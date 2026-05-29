@@ -1,4 +1,3 @@
-.downloads/
 .venv/
 __pycache__/
 .dmypy.json

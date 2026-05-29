@@ -11,7 +11,7 @@ on:
 
 jobs:
   generate_versions:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       versions: ${{ steps.generate-versions.outputs.versions }}
     steps:
@@ -20,15 +20,17 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+    - name: Install asdf & tools
+      uses: asdf-vm/actions/install@v4
     - name: Install dependencies
-      run: ./uv pip install --system -r requirements.test
+      run: uv pip install --system -r requirements.test
     - name: Generate versions
       id: generate-versions
       run: |
         python .github/get_versions.py >> $GITHUB_OUTPUT
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [generate_versions]
     strategy:
       matrix:
@@ -42,8 +44,10 @@ jobs:
     - uses: KengoTODA/actions-setup-docker-compose@v1
       with:
         version: 2.26.1
+    - name: Install asdf & tools
+      uses: asdf-vm/actions/install@v4
     - name: Install dependencies
-      run: ./uv pip install --system -r requirements.test
+      run: uv pip install --system -r requirements.test
     - name: Integration tests (${{ matrix.ha_version}})
       run: cd integration_tests && python test_banning_works.py
       env:
