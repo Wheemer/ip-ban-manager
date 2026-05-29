@@ -3,13 +3,14 @@ homeassistant >= 2023.8.3
 voluptuous
 pytest-watcher
 pytest-homeassistant-custom-component >=0.13.53
-anyio[asyncio]
+anyio
 pre-commit
 jinja2
 requests
 pyyaml
 urllib3
 awesomeversion
+tzdata
 
 types-requests
 types-pyyaml

@@ -1,11 +1,11 @@
-venv:
-	./uv venv
+.venv:
+	uv venv --python 3.12
 
-requirements.test: uv requirements.test.in requirements.constraints
-	./uv pip compile requirements.test.in -c requirements.constraints -o requirements.test
+requirements.test: .venv requirements.test.in requirements.constraints
+	uv pip compile requirements.test.in -c requirements.constraints -o requirements.test
 
-sync: requirements.test
-	./uv pip sync requirements.test
+sync: .venv requirements.test
+	uv pip sync --strict requirements.test
 
 unittest:
 	PYTHONPATH=. .venv/bin/pytest -vvv
