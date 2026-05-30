@@ -13,6 +13,26 @@ from urllib3.exceptions import ProtocolError
 
 env = Environment(loader=FileSystemLoader("config"), autoescape=select_autoescape())
 
+
+def docker_compose_command() -> list[str]:
+    """Return the available Docker Compose command."""
+    if shutil.which("docker") is not None:
+        result = subprocess.run(
+            ["docker", "compose", "version"],
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return ["docker", "compose"]
+
+    if shutil.which("docker-compose") is not None:
+        return ["docker-compose"]
+
+    raise RuntimeError("Docker Compose is required for integration tests")
+
+
+DOCKER_COMPOSE = docker_compose_command()
+
 config_folder = Path("config")
 ban_ip_path = config_folder.joinpath("ip_bans.yaml")
 
@@ -40,7 +60,7 @@ def wait_for_http(port: int, host: str = "localhost", timeout: float = 20.0):
                 print("Waiting", ex.args)
             if time.time() - start_time >= timeout:
                 logs = subprocess.check_output(
-                    ["docker-compose", "logs"], encoding="utf-8"
+                    [*DOCKER_COMPOSE, "logs"], encoding="utf-8"
                 )
                 print("logs")
                 print(logs)
@@ -57,7 +77,7 @@ def wait_for_http(port: int, host: str = "localhost", timeout: float = 20.0):
             else:
                 raise
         except Exception:
-            logs = subprocess.check_output(["docker-compose", "logs"], encoding="utf-8")
+            logs = subprocess.check_output([*DOCKER_COMPOSE, "logs"], encoding="utf-8")
             print("logs")
             print(logs)
             raise
@@ -73,7 +93,7 @@ def configure_ha(allowlist: list[str], ip_ban_enabled: bool = True) -> None:
             )
         )
 
-    subprocess.check_call(["docker-compose", "down"])
+    subprocess.check_call([*DOCKER_COMPOSE, "down"])
 
     for dirpath, dirnames, filenames in config_folder.walk(top_down=True):
         if "custom_components" in dirnames:
@@ -98,7 +118,7 @@ def configure_ha(allowlist: list[str], ip_ban_enabled: bool = True) -> None:
             delete_path.unlink()
 
     subprocess.check_call(
-        ["docker-compose", "up", "-d"],
+        [*DOCKER_COMPOSE, "up", "-d"],
         env={**os.environ, "UID": str(os.getuid()), "GID": str(os.getgid())},
     )
     wait_for_http(8123)
@@ -129,7 +149,7 @@ def check_res(expected_results: list[int]):
                 res.text,
             )
     finally:
-        subprocess.check_call(["docker-compose", "down"])
+        subprocess.check_call([*DOCKER_COMPOSE, "down"])
 
 
 def check_logs() -> None:

@@ -9,6 +9,13 @@ on:
   schedule:
   - cron: 0 0 * * *
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   generate_versions:
     runs-on: ubuntu-24.04
@@ -19,15 +26,24 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.13'
-    - name: Install asdf & tools
-      uses: asdf-vm/actions/install@v4
+        python-version-file: .python-version
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8
+      with:
+        version: 0.11.7
+        enable-cache: true
+        cache-dependency-glob: |
+          requirements.test
+          requirements.test.in
+          requirements.constraints
     - name: Install dependencies
-      run: uv pip install --system -r requirements.test
+      run: |
+        uv venv
+        uv pip sync --python .venv --strict requirements.test
     - name: Generate versions
       id: generate-versions
       run: |
-        python .github/get_versions.py >> $GITHUB_OUTPUT
+        .venv/bin/python .github/get_versions.py >> $GITHUB_OUTPUT
 
   test:
     runs-on: ubuntu-24.04
@@ -40,16 +56,24 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.13'
-    - uses: KengoTODA/actions-setup-docker-compose@v1
+        python-version-file: .python-version
+    - name: Set up Docker Compose
+      uses: docker/setup-compose-action@v2
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8
       with:
-        version: 2.26.1
-    - name: Install asdf & tools
-      uses: asdf-vm/actions/install@v4
+        version: 0.11.7
+        enable-cache: true
+        cache-dependency-glob: |
+          requirements.test
+          requirements.test.in
+          requirements.constraints
     - name: Install dependencies
-      run: uv pip install --system -r requirements.test
+      run: |
+        uv venv
+        uv pip sync --python .venv --strict requirements.test
     - name: Integration tests (${{ matrix.ha_version}})
-      run: cd integration_tests && python test_banning_works.py
+      run: cd integration_tests && ../.venv/bin/python test_banning_works.py
       env:
         HA_VERSION: ${{ matrix.ha_version}}
 

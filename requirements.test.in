@@ -3,7 +3,6 @@ homeassistant >= 2025.1.4
 voluptuous
 pytest-watcher
 pytest-homeassistant-custom-component >=0.13.53
-anyio
 pre-commit
 jinja2
 requests

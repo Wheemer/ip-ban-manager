@@ -1,4 +1,9 @@
 .venv/
+.uv-cache/
+.uv-python/
+.uv-tools/
+.uv-tools-bin/
+.pre-commit-home/
 __pycache__/
 .dmypy.json
 .vscode/
