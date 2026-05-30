@@ -2,14 +2,33 @@
   "config": {
     "step": {
       "user": {
+        "title": "Set up IP Ban Allowlist",
+        "description": "Enter trusted IP addresses or CIDR networks. Use one entry per line, or separate entries with commas.",
         "data": {
+          "ip_addresses": "Allowlisted IP addresses and networks"
         }
       }
     },
     "error": {
+      "invalid_ip_address": "Enter valid IP addresses or CIDR networks.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update IP Ban Allowlist",
+        "description": "Enter trusted IP addresses or CIDR networks. Use one entry per line, or separate entries with commas.",
+        "data": {
+          "ip_addresses": "Allowlisted IP addresses and networks"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Enter valid IP addresses or CIDR networks."
     }
   }
 }

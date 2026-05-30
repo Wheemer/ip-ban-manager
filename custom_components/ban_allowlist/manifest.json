@@ -4,6 +4,7 @@
   "codeowners": [
     "@palfrey"
   ],
+  "config_flow": true,
   "dependencies": ["http"],
   "documentation": "https://github.com/palfrey/ban_allowlist",
   "integration_type": "service",

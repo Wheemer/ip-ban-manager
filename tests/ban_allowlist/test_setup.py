@@ -14,9 +14,10 @@ from homeassistant.components.http.ban import (
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
 from homeassistant.setup import async_setup_component
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ban_allowlist import KEY_ALLOWLIST
-from custom_components.ban_allowlist.const import DOMAIN
+from custom_components.ban_allowlist.const import CONF_IP_ADDRESSES, DOMAIN
 
 
 def check_records(records: list[logging.LogRecord]) -> None:
@@ -36,11 +37,39 @@ async def setup_ban_allowlist(hass: HomeAssistant) -> None:
     hass.data[DATA_CUSTOM_COMPONENTS] = None
     assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
     await async_setup_component(hass, "http", {})
-    await async_setup_component(
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Allowlist",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]},
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_yaml_import(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test YAML configuration is imported into a config entry."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    await async_setup_component(hass, "http", {})
+    assert await async_setup_component(
         hass,
         DOMAIN,
-        {DOMAIN: {"ip_addresses": ["192.168.1.1", "172.17.0.0/24"]}, "foo": "bar"},
+        {DOMAIN: {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}},
     )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
 
 
 @pytest.mark.asyncio

@@ -21,11 +21,12 @@ from homeassistant.components.http.ban import (
     KEY_FAILED_LOGIN_ATTEMPTS,
     IpBanManager,
 )
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
+from .const import CONF_IP_ADDRESSES, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
             {
-                vol.Required("ip_addresses"): vol.All(cv.ensure_list, [cv.string]),
+                vol.Required(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
             }
         )
     },
@@ -113,7 +114,36 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
     ban_manager.async_add_ban = allowlist_async_add_ban  # type: ignore[method-assign]
 
 
+def _parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:
+    """Parse configured IP addresses and networks."""
+    return tuple(ip_network(ip) for ip in ip_addresses)
+
+
+def _entry_ip_addresses(entry: ConfigEntry) -> list[str]:
+    """Return the configured allowlist for a config entry."""
+    return entry.options.get(CONF_IP_ADDRESSES, entry.data.get(CONF_IP_ADDRESSES, []))
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload Ban Allowlist when options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up Ban Allowlist and import YAML configuration."""
+    if DOMAIN in config:
+        hass.async_create_task(
+            hass.config_entries.flow.async_init(
+                DOMAIN,
+                context={"source": SOURCE_IMPORT},
+                data=dict(config[DOMAIN]),
+            )
+        )
+
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ban Allowlist from a config entry."""
     try:
         ban_manager: IpBanManager = hass.http.app[KEY_BAN_MANAGER]
@@ -123,9 +153,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         )
         return True
     _LOGGER.debug("Ban manager %s", ban_manager)
-    allowlist = tuple(
-        ip_network(ip) for ip in config.get(DOMAIN, {}).get("ip_addresses", [])
-    )
+    allowlist = _parse_allowlist(_entry_ip_addresses(entry))
     hass.http.app[KEY_ALLOWLIST] = allowlist
 
     if len(allowlist) == 0:
@@ -136,4 +164,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         _install_wrong_login_patch()
         _install_add_ban_patch(hass, ban_manager)
 
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload Ban Allowlist."""
+    hass.http.app[KEY_ALLOWLIST] = ()
     return True
