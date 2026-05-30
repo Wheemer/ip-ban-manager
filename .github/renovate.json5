@@ -1,0 +1,30 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    ":ignoreModulesAndTests",
+    "group:monorepos",
+    "group:recommended",
+    "replacements:all",
+    "workarounds:all",
+  ],
+  packageRules: [
+    {
+      // Don't really need to upgrade Python
+      matchDepNames: ["python"],
+      enabled: false,
+    },
+    {
+      matchUpdateTypes: ["patch", "minor"],
+      enabled: false
+    },
+    {
+      matchPackageNames: ["*"],
+      automerge: true
+    },
+  ],
+  "prConcurrentLimit": 2,
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true
+}

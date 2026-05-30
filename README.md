@@ -8,7 +8,7 @@ However, it's got one little missing feature: IP allowlists. Without this, somet
 
 This integration (well, kinda) fixes this, but does so in the hackiest way possible, by reaching into the HTTP handler code and adding a wrapper around the banning code.
 
-This does have a decent unit test suite, and is explicitly integration tested against every latest patch version of HA from 2023.8.4 up (i.e. for every `x.y.z` version, we test all values of `x.y` using the latest `z` value), but it's also doing something hacky enough that no guarantees are given. YMMV!
+This does have a decent unit test suite, and is explicitly integration tested against every latest patch version of HA from 2025.1.4 up (i.e. for every `x.y.z` version, we test all values of `x.y` using the latest `z` value), but it's also doing something hacky enough that no guarantees are given. YMMV!
 
 ## Config
 

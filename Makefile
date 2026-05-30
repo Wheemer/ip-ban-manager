@@ -1,11 +1,11 @@
-venv:
-	./uv venv
+.venv:
+	uv venv --python 3.13
 
-requirements.test: uv requirements.test.in requirements.constraints
-	./uv pip compile requirements.test.in -c requirements.constraints -o requirements.test
+requirements.test: .venv requirements.test.in requirements.constraints
+	uv pip compile requirements.test.in -c requirements.constraints -o requirements.test
 
-sync: requirements.test
-	./uv pip sync requirements.test
+sync: .venv requirements.test
+	uv pip sync --strict requirements.test
 
 unittest:
 	PYTHONPATH=. .venv/bin/pytest -vvv
@@ -27,5 +27,8 @@ integration-tests: sync
 
 watch-integration-tests:
 	.venv/bin/watchmedo auto-restart --directory=./ --pattern="*.py;*.pyi;*.yaml.j2" --ignore-patterns "config/custom_components/ban_allowlist/*.py" --no-restart-on-command-exit --recursive -- ${MAKE} integration-tests
+
+clean-integration-tests:
+	git clean -fx ./integration_tests && (cd integration_tests && docker compose kill && docker compose rm -sf)
 
 .PHONY: sync venv watch-tests mypy watch-mypy integration-tests watch-integration-tests
