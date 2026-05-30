@@ -15,6 +15,7 @@ from .const import CONF_IP_ADDRESSES, DOMAIN
 
 def _normalize_ip_addresses(value: str | Iterable[str]) -> list[str]:
     """Normalize multiline, comma-separated, or YAML-imported addresses."""
+    raw_addresses: Iterable[str]
     if isinstance(value, str):
         raw_addresses = value.replace(",", "\n").splitlines()
     else:

@@ -7,34 +7,16 @@ on:
     - main
   pull_request:
 
-permissions:
-  contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   pre-commit:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version-file: .python-version
-    - name: Install uv
-      uses: astral-sh/setup-uv@v8.1.0
-      with:
-        version: 0.11.7
-        enable-cache: true
-        cache-dependency-glob: |
-          requirements.test
-          requirements.test.in
-          requirements.constraints
+    - name: Install asdf & tools
+      uses: asdf-vm/actions/install@v4
     - name: Install dependencies
       run: |
         uv venv
-        uv pip sync --python .venv --strict requirements.test
+        uv pip install -r requirements.test
     - name: pre-commit
       run: .venv/bin/pre-commit run -a
