@@ -53,7 +53,9 @@ jobs:
       env:
         HA_VERSION: ${{ matrix.ha_version}}
 
-  # No steps, just a meta-step to wait for all test steps
+  # No real steps, just a meta-step to wait for all test steps
   finish:
     needs: [test]
     runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
