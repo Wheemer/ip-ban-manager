@@ -26,9 +26,9 @@ shutil.copytree(
 )
 
 
-def wait_for_http(port: int, host: str = "localhost", timeout: float = 5.0):
+def wait_for_http(port: int, host: str = "localhost", timeout: float = 20.0):
     """Wait for a particular HTTP host/port to start responding to GETs."""
-    start_time = time.perf_counter()
+    start_time = time.time()
     print(f"Waiting for http://{host}:{port}")
     while True:
         try:
@@ -38,7 +38,7 @@ def wait_for_http(port: int, host: str = "localhost", timeout: float = 5.0):
         except requests.exceptions.ConnectionError as ex:
             if not isinstance(ex.args[0], ProtocolError):
                 print("Waiting", ex.args)
-            if time.perf_counter() - start_time >= timeout:
+            if time.time() - start_time >= timeout:
                 logs = subprocess.check_output(
                     ["docker-compose", "logs"], encoding="utf-8"
                 )

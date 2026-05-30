@@ -1,5 +1,4 @@
 ---
-version: '3'
 services:
   homeassistant:
     # https://github.com/home-assistant/core/pkgs/container/home-assistant
@@ -7,15 +6,4 @@ services:
     user: ${UID:-1000}:${GID:-1000}
     volumes:
     - ./config:/config
-    ports:
-    - 8123:8123
-    networks:
-      test_net:
-        ipv4_address: 172.16.238.10
-
-networks:
-  test_net:
-    ipam:
-      driver: default
-      config:
-      - subnet: 172.16.238.0/24
+    network_mode: host

@@ -42,3 +42,4 @@ repos:
     language: system
     entry: make mypy
     types: [python]
+    pass_filenames: false
