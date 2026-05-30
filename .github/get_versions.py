@@ -9,7 +9,7 @@ from awesomeversion import AwesomeVersion
 data = requests.get("https://pypi.org/simple/homeassistant/")
 data.raise_for_status()
 
-min_supported = AwesomeVersion("2023.8.4")
+min_supported = AwesomeVersion("2025.1.4")
 
 raw = data.text
 version_pattern = re.compile("homeassistant-([^#-]+).tar.gz")

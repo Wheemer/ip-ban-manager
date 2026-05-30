@@ -1,5 +1,5 @@
 .venv:
-	uv venv --python 3.12
+	uv venv --python 3.13
 
 requirements.test: .venv requirements.test.in requirements.constraints
 	uv pip compile requirements.test.in -c requirements.constraints -o requirements.test

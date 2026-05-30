@@ -1,5 +1,5 @@
 pytest
-homeassistant >= 2023.8.3
+homeassistant >= 2025.1.4
 voluptuous
 pytest-watcher
 pytest-homeassistant-custom-component >=0.13.53
@@ -11,6 +11,7 @@ pyyaml
 urllib3
 awesomeversion
 tzdata
+zlib-ng
 
 types-requests
 types-pyyaml
