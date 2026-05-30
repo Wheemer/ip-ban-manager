@@ -1,11 +1,16 @@
 """Test Ban Allowlist setup."""
 
 import logging
-from ipaddress import IPv4Address
-from typing import cast
+from ipaddress import IPv4Address, ip_address
+from typing import Any, cast
 
 import pytest
-from homeassistant.components.http.ban import KEY_BAN_MANAGER, IpBanManager
+from homeassistant.components.http import ban as http_ban
+from homeassistant.components.http.ban import (
+    KEY_BAN_MANAGER,
+    KEY_FAILED_LOGIN_ATTEMPTS,
+    IpBanManager,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
 from homeassistant.setup import async_setup_component
@@ -80,4 +85,39 @@ async def test_hit_allowlist(
         "Banning IP 10.0.0.1",
         "Not adding 172.17.0.10 to ban list, as it's in the allowlist",
         "Banning IP 172.17.1.10",
+    ]
+
+
+@pytest.mark.anyio
+async def test_ignored_wrong_login_does_not_increment_attempts(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test allowlisted login failures don't count toward a ban."""
+    await setup_ban_allowlist(hass)
+
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 1
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    check_records(caplog.records)
+
+    assert remote_addr not in hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS]
+
+    messages = []
+
+    for record in caplog.records:
+        if record.levelno < logging.INFO or not record.name.startswith(
+            "custom_components.ban_allowlist"
+        ):
+            continue
+
+        messages.append(record.getMessage())
+
+    assert messages == [
+        "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
+        "Ignoring invalid authentication from 192.168.1.1 because it is in the allowlist",
     ]
