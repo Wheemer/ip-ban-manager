@@ -1,6 +1,6 @@
 # Home Assistant IP Ban Manager
 
-[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Wheemer&repository=ban_allowlist&category=integration)
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Wheemer&repository=ip-ban-manager&category=integration)
 
 Status: **THIS IS A HACK. USE AT YOUR OWN RISK.**
 
@@ -31,7 +31,7 @@ This has a unit test suite and is explicitly integration tested against every la
 
 ## Install
 
-If the button does not work, add `Wheemer/ban_allowlist` to HACS manually as a custom integration repository.
+If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a custom integration repository.
 
 ## Config
 

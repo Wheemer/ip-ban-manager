@@ -19,7 +19,7 @@ IP Ban Manager turns the original YAML-only ban allowlist into a full Home Assis
 
 - Visible integration name is now **IP Ban Manager**.
 - Documentation now clearly warns that this integration is a **HACK** because it wraps internal Home Assistant HTTP ban manager behavior.
-- Documentation and issue links now point to `Wheemer/ban_allowlist`.
+- Documentation and issue links now point to `Wheemer/ip-ban-manager`.
 
 ### Compatibility
 
