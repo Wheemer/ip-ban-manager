@@ -23,7 +23,7 @@
     "step": {
       "init": {
         "title": "Manage IP Ban Manager",
-        "description": "Edit either list and save. Changes apply immediately.",
+        "description": "Edit either list and submit. Changes apply immediately.",
         "sections": {
           "allowed_ips": {
             "name": "Allowed IPs",
