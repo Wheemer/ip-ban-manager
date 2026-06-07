@@ -36,24 +36,24 @@ remove_all_ip_bans:
 
 add_allowlist_network:
   name: Allow IP or network
-  description: IP Ban Manager adds an IP address or CIDR network to the live allowlist without restarting Home Assistant.
+  description: IP Ban Manager adds an IP address, CIDR network, or IPv4 wildcard network to the live allowlist without restarting Home Assistant.
   fields:
     network:
       name: Network
-      description: The IP address or CIDR network to allowlist.
+      description: The IP address, CIDR network, or IPv4 wildcard network to allowlist.
       required: true
       selector:
         text:
-      example: 192.168.1.0/24
+      example: 192.168.1.*
 
 remove_allowlist_network:
   name: Remove allowed IP or network
-  description: IP Ban Manager removes an IP address or CIDR network from the live allowlist without restarting Home Assistant.
+  description: IP Ban Manager removes an IP address, CIDR network, or IPv4 wildcard network from the live allowlist without restarting Home Assistant.
   fields:
     network:
       name: Network
-      description: The IP address or CIDR network to remove from the allowlist.
+      description: The IP address, CIDR network, or IPv4 wildcard network to remove from the allowlist.
       required: true
       selector:
         text:
-      example: 192.168.1.0/24
+      example: 192.168.1.*

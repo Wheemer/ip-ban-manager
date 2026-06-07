@@ -17,11 +17,16 @@ from homeassistant.components.http.ban import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ban_allowlist import KEY_ALLOWLIST, current_status
+from custom_components.ban_allowlist import (
+    IP_BAN_DISABLED_ISSUE_ID,
+    KEY_ALLOWLIST,
+    current_status,
+)
 from custom_components.ban_allowlist.const import (
     ATTR_BANNED_IPS,
     ATTR_CONFIRM,
@@ -94,11 +99,85 @@ async def test_yaml_import(
 
 
 @pytest.mark.asyncio
+async def test_yaml_import_normalizes_ipv4_wildcard(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test YAML import accepts IPv4 wildcard shorthand."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    await async_setup_component(hass, "http", {})
+    assert await async_setup_component(
+        hass,
+        DOMAIN,
+        {DOMAIN: {CONF_IP_ADDRESSES: ["192.168.1.*"]}},
+    )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.0/24"]}
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.1.0/24"]
+
+
+@pytest.mark.asyncio
 async def test_setup(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
     """Test setup of ban allowlist."""
     await setup_ban_allowlist(hass)
     check_records(caplog.records)
     assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+
+
+@pytest.mark.asyncio
+async def test_setup_creates_repair_when_ip_banning_disabled(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test setup creates a visible repair when native IP banning is disabled."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    await async_setup_component(hass, "http", {"http": {"ip_ban_enabled": False}})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, IP_BAN_DISABLED_ISSUE_ID)
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.WARNING
+    assert not hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+
+    warning_messages = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno >= logging.WARNING
+    ]
+    assert any("requires http.ip_ban_enabled" in msg for msg in warning_messages)
+
+
+@pytest.mark.asyncio
+async def test_setup_clears_repair_when_ip_banning_enabled(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test setup clears the repair once native IP banning is available."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        IP_BAN_DISABLED_ISSUE_ID,
+        is_fixable=False,
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=IP_BAN_DISABLED_ISSUE_ID,
+    )
+
+    await setup_ban_allowlist(hass)
+    check_records(caplog.records)
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, IP_BAN_DISABLED_ISSUE_ID) is None
 
 
 @pytest.mark.asyncio
@@ -535,6 +614,46 @@ async def test_allowlist_services_update_live_options(
     check_records(caplog.records)
 
     assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == [
+        "172.17.0.0/24",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_allowlist_services_normalize_ipv4_wildcard(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test allowlist services accept IPv4 wildcard shorthand."""
+    await setup_ban_allowlist(hass)
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "10.20.30.*"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+
+    assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == [
+        "192.168.1.1",
+        "172.17.0.0/24",
+        "10.20.30.0/24",
+    ]
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+        "10.20.30.0/24",
+    ]
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "10.20.30.*"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
         "172.17.0.0/24",
     ]
 

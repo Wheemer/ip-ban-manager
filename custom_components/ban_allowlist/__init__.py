@@ -12,7 +12,6 @@ from ipaddress import (
     IPv6Address,
     IPv6Network,
     ip_address,
-    ip_network,
 )
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -33,6 +32,7 @@ from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import yaml as yaml_util
 
@@ -53,6 +53,7 @@ from .const import (
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
     SERVICE_REMOVE_IP_BAN,
 )
+from .ip_utils import parse_allowlist_network
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +63,10 @@ AddBanCallable = Callable[[IPAddress], Awaitable[None]]
 
 ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist"}
+IP_BAN_DISABLED_ISSUE_ID = "ip_ban_disabled"
+HTTP_IP_BAN_DOCS_URL = (
+    "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
+)
 
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ban_allowlist_config_entry")
@@ -154,7 +159,7 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
 
 def _parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:
     """Parse configured IP addresses and networks."""
-    return tuple(ip_network(ip) for ip in ip_addresses)
+    return tuple(parse_allowlist_network(ip) for ip in ip_addresses)
 
 
 def _entry_ip_addresses(entry: ConfigEntry) -> list[str]:
@@ -173,6 +178,25 @@ def _ban_manager(hass: HomeAssistant) -> IpBanManager:
         raise HomeAssistantError(
             "Home Assistant IP banning is not enabled. Set http.ip_ban_enabled to true."
         ) from err
+
+
+def _async_create_ip_ban_disabled_issue(hass: HomeAssistant) -> None:
+    """Create a repair issue when Home Assistant IP banning is disabled."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        IP_BAN_DISABLED_ISSUE_ID,
+        is_fixable=False,
+        is_persistent=True,
+        learn_more_url=HTTP_IP_BAN_DOCS_URL,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=IP_BAN_DISABLED_ISSUE_ID,
+    )
+
+
+def _async_delete_ip_ban_disabled_issue(hass: HomeAssistant) -> None:
+    """Delete the disabled-IP-ban repair issue when setup is healthy."""
+    ir.async_delete_issue(hass, DOMAIN, IP_BAN_DISABLED_ISSUE_ID)
 
 
 def _format_ip_ban(ip_ban: IpBan) -> dict[str, str]:
@@ -408,7 +432,7 @@ async def _async_replace_ip_bans(
 def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> None:
     """Add an allowlist network immediately."""
     try:
-        network = ip_network(network_value)
+        network = parse_allowlist_network(network_value)
     except ValueError as err:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
@@ -433,7 +457,9 @@ def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> Non
 
     current = _current_allowlist_strings(hass)
     normalized_network = str(network)
-    current_networks = {ip_network(current_network) for current_network in current}
+    current_networks = {
+        parse_allowlist_network(current_network) for current_network in current
+    }
     if network not in current_networks:
         _update_allowlist_entry(hass, [*current, normalized_network])
 
@@ -441,7 +467,7 @@ def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> Non
 def _async_remove_allowlist_network(hass: HomeAssistant, network_value: str) -> None:
     """Remove an allowlist network immediately."""
     try:
-        network = ip_network(network_value)
+        network = parse_allowlist_network(network_value)
     except ValueError as err:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
@@ -452,7 +478,7 @@ def _async_remove_allowlist_network(hass: HomeAssistant, network_value: str) -> 
     remaining_networks = [
         current_network
         for current_network in _current_allowlist_strings(hass)
-        if ip_network(current_network) != network
+        if parse_allowlist_network(current_network) != network
     ]
     if not remaining_networks and _current_allowlist_strings(hass):
         raise ServiceValidationError(
@@ -540,7 +566,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning(
             "Can't find ban manager. ban_allowlist requires http.ip_ban_enabled to be True, so disabling."
         )
+        _async_create_ip_ban_disabled_issue(hass)
         return True
+    _async_delete_ip_ban_disabled_issue(hass)
     _LOGGER.debug("Ban manager %s", ban_manager)
     allowlist = _parse_allowlist(_entry_ip_addresses(entry))
     hass.http.app[KEY_ALLOWLIST] = allowlist

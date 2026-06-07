@@ -19,6 +19,7 @@ IP Ban Manager is now a full management integration instead of a YAML-only allow
 
 - config flow setup with YAML import for existing `ban_allowlist` users
 - live editable **Allowed IPs** and **Banned IPs** lists from the integration options
+- IPv4 wildcard shorthand for allowed networks, such as `192.168.1.*`
 - immediate add, remove, and clear actions without restarting Home Assistant
 - banned IP timestamps shown in the UI and preserved when unchanged
 - stale Home Assistant ban/login notifications dismissed when the matching IP is unbanned
@@ -43,13 +44,13 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 ## Config
 
-After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration** and enter trusted IP addresses or CIDR networks.
+After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration** and enter trusted IP addresses, CIDR networks, or IPv4 wildcard networks.
 
 Existing YAML configuration is imported automatically:
 
 ```
 ban_allowlist:
-  ip_addresses: ["my.ip.address", "another.network.address/24"]
+  ip_addresses: ["my.ip.address", "192.168.1.0/24", "192.168.2.*"]
 ```
 
 Home Assistant's built-in HTTP banning must still be enabled:
@@ -60,15 +61,19 @@ http:
   login_attempts_threshold: 5
 ```
 
+If IP banning is not enabled, IP Ban Manager creates a Home Assistant repair warning with the required YAML and a link to the official HTTP documentation. It does not edit `configuration.yaml` automatically; that keeps existing `http:` settings, includes, comments, proxy configuration, and package layouts safe.
+
 ## Live Management
 
 Allowlist and ban changes made from the integration options apply immediately; Home Assistant does not need to restart.
 
 Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 
-- edit **Allowed IPs**, one IP address or CIDR network per line
-- edit **Banned IPs**, one IP address per line
+- edit **Allowed IPs**, one IP address, CIDR network, or IPv4 wildcard network per line
+- edit **Banned IPs**, one exact IP address per line
 - view existing ban timestamps in the `banned_ips` list
+
+Allowed IP wildcard entries such as `192.168.1.*` are saved as `192.168.1.0/24`. Wildcards are only supported for allowed networks, not banned IPs.
 
 Existing banned IP rows are shown as `IP - banned_at`. You can leave those timestamps in place when saving; IP Ban Manager preserves the original ban date for unchanged bans. New banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are saved.
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
+from ipaddress import IPv4Network, IPv6Network, ip_address
 from typing import Any, cast
 
 import voluptuous as vol
@@ -21,6 +21,7 @@ from .const import (
     CONF_IP_ADDRESSES,
     DOMAIN,
 )
+from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
@@ -69,9 +70,11 @@ def _dedupe_items(items: Iterable[str]) -> list[str]:
 
 def _validate_ip_addresses(value: str | Iterable[str]) -> list[str]:
     """Validate and normalize configured IP addresses and networks."""
-    ip_addresses = _dedupe_items(_normalize_list(value))
+    ip_addresses = _dedupe_items(
+        normalize_allowlist_network(address) for address in _normalize_list(value)
+    )
     for address in ip_addresses:
-        network = ip_network(address)
+        network = parse_allowlist_network(address)
         if network.prefixlen == 0:
             raise UnsafeAllowlistError
 
@@ -98,7 +101,7 @@ def _validate_ban_safety(
         raise ClearAllAllowlistError
 
     allowlist_networks: list[IPNetwork] = [
-        ip_network(network) for network in allowlist_values
+        parse_allowlist_network(network) for network in allowlist_values
     ]
     banned_ip_values = [ip_address(banned_ip) for banned_ip in banned_ips]
 

@@ -84,6 +84,23 @@ async def test_user_flow_accepts_comma_separated_addresses(
 
 
 @pytest.mark.asyncio
+async def test_user_flow_normalizes_ipv4_wildcard_addresses(
+    hass: HomeAssistant,
+) -> None:
+    """Test IPv4 wildcard shorthand is normalized to CIDR."""
+    await load_ban_allowlist(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+        data={CONF_IP_ADDRESSES: "192.168.1.*"},
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.0/24"]}
+
+
+@pytest.mark.asyncio
 async def test_user_flow_rejects_invalid_addresses(hass: HomeAssistant) -> None:
     """Test invalid addresses are rejected."""
     await load_ban_allowlist(hass)
@@ -193,6 +210,29 @@ async def test_options_flow_edits_live_lists(
     assert "10.0.0.1" in ban_file
     assert original_banned_at.isoformat() in ban_file
     assert "10.0.0.2" in ban_file
+
+
+@pytest.mark.asyncio
+async def test_options_flow_normalizes_ipv4_wildcard_addresses(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test options normalize IPv4 wildcard shorthand to CIDR."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.50.*"},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.50.0/24"]}
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.50.0/24"]
 
 
 @pytest.mark.asyncio
@@ -316,6 +356,28 @@ async def test_options_flow_rejects_invalid_banned_ip(
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
             CONF_BANNED_IPS: {CONF_BANNED_IPS: "10.0.0.1\nnot-an-ip"},
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {ATTR_BANNED_IPS: "invalid_banned_ip"}
+
+
+@pytest.mark.asyncio
+async def test_options_flow_rejects_wildcard_banned_ip(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test wildcard shorthand is not accepted for banned IPs."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "192.168.1.*"},
         },
     )
 

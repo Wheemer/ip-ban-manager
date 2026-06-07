@@ -3,14 +3,14 @@
     "step": {
       "user": {
         "title": "Set up IP Ban Manager",
-        "description": "Enter trusted IP addresses or CIDR networks. Use one entry per line, or separate entries with commas.",
+        "description": "Enter trusted IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*. Use one entry per line, or separate entries with commas.",
         "data": {
           "ip_addresses": "Allowlisted IP addresses and networks"
         }
       }
     },
     "error": {
-      "invalid_ip_address": "Enter valid IP addresses or CIDR networks.",
+      "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -27,7 +27,7 @@
         "sections": {
           "allowed_ips": {
             "name": "Allowed IPs",
-            "description": "IP addresses or CIDR networks that should never be banned. Use one entry per line.",
+            "description": "IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.* that should never be banned. Use one entry per line.",
             "data": {
               "allowed_ips": "Entries"
             }
@@ -43,8 +43,8 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Enter valid IP addresses or CIDR networks.",
-      "invalid_banned_ip": "Enter only valid IP addresses in the banned IP list.",
+      "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*.",
+      "invalid_banned_ip": "Enter only exact IP addresses in the banned IP list. Wildcards and CIDR networks are only supported for allowed IPs.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
       "clear_all_allowlist": "This would remove every allowed IP or network. Keep at least one trusted entry, or remove the integration if you no longer want an allowlist.",
@@ -56,7 +56,7 @@
       "message": "{ip_address} is not a valid IP address."
     },
     "invalid_network": {
-      "message": "{network} is not a valid IP address or CIDR network."
+      "message": "{network} is not a valid IP address, CIDR network, or IPv4 wildcard network."
     },
     "ip_address_allowlisted": {
       "message": "{ip_address} is allowlisted, so it was not banned."
@@ -75,6 +75,12 @@
     },
     "clear_all_ip_bans_confirmation_required": {
       "message": "Set confirm to true before clearing every IP ban."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Enable Home Assistant IP banning",
+      "description": "IP Ban Manager needs Home Assistant's built-in HTTP IP banning to be enabled before it can manage bans or apply the allowlist.\n\nAdd this to `configuration.yaml`, then restart Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n  login_attempts_threshold: 5\n```\n\nIf you already have an `http:` section, add those two keys inside the existing section."
     }
   }
 }
