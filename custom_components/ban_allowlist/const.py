@@ -1,6 +1,7 @@
 """Constants for the Ban Allowlist integration."""
 
 ATTR_BANNED_IPS = "banned_ips"
+ATTR_CONFIRM = "confirm"
 ATTR_FAILED_LOGIN_ATTEMPTS = "failed_login_attempts"
 ATTR_IP_ADDRESS = "ip_address"
 ATTR_NETWORK = "network"

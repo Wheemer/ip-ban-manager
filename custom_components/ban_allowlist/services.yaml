@@ -25,8 +25,14 @@ remove_ip_ban:
 
 remove_all_ip_bans:
   name: Clear IP ban list
-  description: IP Ban Manager removes every live IP ban and rewrites ip_bans.yaml.
-  fields: {}
+  description: IP Ban Manager removes every live IP ban and rewrites ip_bans.yaml. Requires confirmation.
+  fields:
+    confirm:
+      name: Confirm clear
+      description: Must be enabled to clear every current IP ban.
+      required: true
+      selector:
+        boolean:
 
 add_allowlist_network:
   name: Allow IP or network

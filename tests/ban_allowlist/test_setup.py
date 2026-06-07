@@ -24,6 +24,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.ban_allowlist import KEY_ALLOWLIST, current_status
 from custom_components.ban_allowlist.const import (
     ATTR_BANNED_IPS,
+    ATTR_CONFIRM,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
     ATTR_NETWORK,
@@ -333,7 +334,7 @@ async def test_remove_all_ip_bans_service(
     await hass.services.async_call(
         DOMAIN,
         SERVICE_REMOVE_ALL_IP_BANS,
-        {},
+        {ATTR_CONFIRM: True},
         blocking=True,
     )
     check_records(caplog.records)
@@ -341,6 +342,32 @@ async def test_remove_all_ip_bans_service(
     assert ban_manager.ip_bans_lookup == {}
     assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS] == {}
     assert Path(ban_manager.path).read_text(encoding="utf8") == "{}\n"
+
+
+@pytest.mark.asyncio
+async def test_remove_all_ip_bans_service_requires_confirmation(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test all-ban removal cannot happen by accident from a service call."""
+    await setup_ban_allowlist(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
+    before_file = Path(ban_manager.path).read_text(encoding="utf8")
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_REMOVE_ALL_IP_BANS,
+            {},
+            blocking=True,
+        )
+    check_records(caplog.records)
+
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.1")}
+    assert Path(ban_manager.path).read_text(encoding="utf8") == before_file
 
 
 @pytest.mark.asyncio

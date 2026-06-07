@@ -38,6 +38,7 @@ from homeassistant.util import yaml as yaml_util
 
 from .const import (
     ATTR_BANNED_IPS,
+    ATTR_CONFIRM,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
     ATTR_NETWORK,
@@ -83,6 +84,9 @@ CONFIG_SCHEMA = vol.Schema(
 
 IP_ADDRESS_SCHEMA = vol.Schema({vol.Required(ATTR_IP_ADDRESS): cv.string})
 NETWORK_SCHEMA = vol.Schema({vol.Required(ATTR_NETWORK): cv.string})
+REMOVE_ALL_IP_BANS_SCHEMA = vol.Schema(
+    {vol.Required(ATTR_CONFIRM, default=False): cv.boolean}
+)
 
 
 def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:
@@ -468,6 +472,11 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
         await _async_remove_ip_ban(hass, call.data[ATTR_IP_ADDRESS])
 
     async def remove_all_ip_bans(call: ServiceCall) -> None:
+        if not call.data[ATTR_CONFIRM]:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="clear_all_ip_bans_confirmation_required",
+            )
         await _async_remove_all_ip_bans(hass)
 
     async def add_allowlist_network(call: ServiceCall) -> None:
@@ -482,7 +491,12 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
     hass.services.async_register(
         DOMAIN, SERVICE_REMOVE_IP_BAN, remove_ip_ban, schema=IP_ADDRESS_SCHEMA
     )
-    hass.services.async_register(DOMAIN, SERVICE_REMOVE_ALL_IP_BANS, remove_all_ip_bans)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMOVE_ALL_IP_BANS,
+        remove_all_ip_bans,
+        schema=REMOVE_ALL_IP_BANS_SCHEMA,
+    )
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD_ALLOWLIST_NETWORK,

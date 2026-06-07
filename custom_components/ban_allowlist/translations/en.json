@@ -72,6 +72,9 @@
     },
     "clear_all_allowlist": {
       "message": "This would remove every allowed IP or network. Keep at least one trusted entry."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Set confirm to true before clearing every IP ban."
     }
   }
 }

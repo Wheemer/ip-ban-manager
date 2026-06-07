@@ -72,7 +72,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 
 Existing banned IP rows are shown as `IP - banned_at`. You can leave those timestamps in place when saving; IP Ban Manager preserves the original ban date for unchanged bans. New banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are saved.
 
-The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist entries, IPs that are both allowed and banned, accidental full-list removals, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals and allowlist networks that contain active bans.
+The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist entries, IPs that are both allowed and banned, accidental full-list removals, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals, allowlist networks that contain active bans, and clear-all requests without `confirm: true`.
 
 The integration also adds services for automations and scripts:
 
@@ -82,7 +82,7 @@ The integration also adds services for automations and scripts:
 - `ban_allowlist.add_allowlist_network`
 - `ban_allowlist.remove_allowlist_network`
 
-Adding an IP ban updates Home Assistant's live ban manager and persists to `ip_bans.yaml`. Removing a ban updates the live ban manager, clears any failed-login counter for that IP, and rewrites `ip_bans.yaml`.
+Adding an IP ban updates Home Assistant's live ban manager and persists to `ip_bans.yaml`. Removing a ban updates the live ban manager, clears any failed-login counter for that IP, and rewrites `ip_bans.yaml`. Clearing every ban requires `confirm: true`.
 
 ## Diagnostic Sensors
 
