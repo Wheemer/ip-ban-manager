@@ -28,7 +28,7 @@ jobs:
       with:
         python-version: '3.13'
     - name: Install uv
-      uses: astral-sh/setup-uv@v8
+      uses: astral-sh/setup-uv@v8.2.0
     - name: Install dependencies
       run: uv pip sync --system --strict requirements.test
     - name: Generate versions
@@ -52,7 +52,7 @@ jobs:
       with:
         version: latest
     - name: Install uv
-      uses: astral-sh/setup-uv@v8
+      uses: astral-sh/setup-uv@v8.2.0
     - name: Install dependencies
       run: uv pip sync --system --strict requirements.test
     - name: Integration tests (${{ matrix.ha_version}})
