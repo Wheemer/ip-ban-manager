@@ -161,6 +161,12 @@ async def test_options_flow_edits_live_lists(
         "192.168.1.1/32",
         "10.0.0.0/24",
     ]
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_IP_ADDRESSES] == [
+        "192.168.1.1",
+        "10.0.0.0/24",
+    ]
     assert set(ban_manager.ip_bans_lookup) == {
         ip_address("10.0.0.1"),
         ip_address("10.0.0.2"),
@@ -168,6 +174,10 @@ async def test_options_flow_edits_live_lists(
     assert ban_manager.ip_bans_lookup[ip_address("10.0.0.1")].banned_at == (
         original_banned_at
     )
+    ban_file = Path(ban_manager.path).read_text(encoding="utf8")
+    assert "10.0.0.1" in ban_file
+    assert original_banned_at.isoformat() in ban_file
+    assert "10.0.0.2" in ban_file
 
 
 @pytest.mark.asyncio
@@ -193,6 +203,9 @@ async def test_options_flow_removes_live_bans(
 
     assert result["type"] == "create_entry"
     assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.2")}
+    ban_file = Path(ban_manager.path).read_text(encoding="utf8")
+    assert "10.0.0.1" not in ban_file
+    assert "10.0.0.2" in ban_file
 
 
 @pytest.mark.asyncio
