@@ -1,0 +1,52 @@
+add_ip_ban:
+  name: Ban IP address
+  description: IP Ban Manager adds an IP address to Home Assistant's live ban list and persists it to ip_bans.yaml.
+  fields:
+    ip_address:
+      name: IP address
+      description: The IP address to ban.
+      required: true
+      selector:
+        text:
+      example: "203.0.113.25"
+
+remove_ip_ban:
+  name: Remove IP ban
+  description: IP Ban Manager removes an IP address from Home Assistant's live ban list and ip_bans.yaml.
+  fields:
+    ip_address:
+      name: IP address
+      description: The IP address to remove from the ban list.
+      required: true
+      selector:
+        text:
+      example: "203.0.113.25"
+
+remove_all_ip_bans:
+  name: Clear IP ban list
+  description: IP Ban Manager removes every live IP ban and rewrites ip_bans.yaml.
+  fields: {}
+
+add_allowlist_network:
+  name: Allow IP or network
+  description: IP Ban Manager adds an IP address or CIDR network to the live allowlist without restarting Home Assistant.
+  fields:
+    network:
+      name: Network
+      description: The IP address or CIDR network to allowlist.
+      required: true
+      selector:
+        text:
+      example: "192.168.1.0/24"
+
+remove_allowlist_network:
+  name: Remove allowed IP or network
+  description: IP Ban Manager removes an IP address or CIDR network from the live allowlist without restarting Home Assistant.
+  fields:
+    network:
+      name: Network
+      description: The IP address or CIDR network to remove from the allowlist.
+      required: true
+      selector:
+        text:
+      example: "192.168.1.0/24"

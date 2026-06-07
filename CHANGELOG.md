@@ -1,0 +1,27 @@
+# Changelog
+
+## v1.0.0
+
+IP Ban Manager turns the original YAML-only ban allowlist into a full Home Assistant management integration.
+
+### Added
+
+- Config flow setup with automatic YAML import for existing `ban_allowlist` configuration.
+- Live **Allowed IPs** and **Banned IPs** management from the integration options.
+- Immediate ban and allowlist updates without restarting Home Assistant.
+- Banned IP timestamp display, with timestamps preserved when existing bans remain.
+- Services for adding, removing, and clearing IP bans and allowlist entries.
+- Diagnostic sensors for active bans, allowlisted networks, and failed-login sources.
+- Cleanup of stale Home Assistant ban/login persistent notifications when the matching IP is unbanned.
+- Integration icon and updated HACS/repository metadata.
+
+### Changed
+
+- Visible integration name is now **IP Ban Manager**.
+- Documentation now clearly warns that this integration is a **HACK** because it wraps internal Home Assistant HTTP ban manager behavior.
+- Documentation and issue links now point to `Wheemer/ban_allowlist`.
+
+### Compatibility
+
+- Existing `ban_allowlist:` YAML configuration is still imported.
+- Service IDs remain under `ban_allowlist.*` so Home Assistant service metadata continues to work with the integration domain.
