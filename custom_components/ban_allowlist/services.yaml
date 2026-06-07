@@ -1,3 +1,4 @@
+---
 add_ip_ban:
   name: Ban IP address
   description: IP Ban Manager adds an IP address to Home Assistant's live ban list and persists it to ip_bans.yaml.
@@ -8,7 +9,7 @@ add_ip_ban:
       required: true
       selector:
         text:
-      example: "203.0.113.25"
+      example: 203.0.113.25
 
 remove_ip_ban:
   name: Remove IP ban
@@ -20,7 +21,7 @@ remove_ip_ban:
       required: true
       selector:
         text:
-      example: "203.0.113.25"
+      example: 203.0.113.25
 
 remove_all_ip_bans:
   name: Clear IP ban list
@@ -37,7 +38,7 @@ add_allowlist_network:
       required: true
       selector:
         text:
-      example: "192.168.1.0/24"
+      example: 192.168.1.0/24
 
 remove_allowlist_network:
   name: Remove allowed IP or network
@@ -49,4 +50,4 @@ remove_allowlist_network:
       required: true
       selector:
         text:
-      example: "192.168.1.0/24"
+      example: 192.168.1.0/24
