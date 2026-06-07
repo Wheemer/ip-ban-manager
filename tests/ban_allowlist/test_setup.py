@@ -116,7 +116,9 @@ async def test_setup_renames_legacy_entry_title(
     await hass.async_block_till_done()
     check_records(caplog.records)
 
-    assert entry.title == "IP Ban Manager"
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.title == "IP Ban Manager"
 
 
 @pytest.mark.asyncio
