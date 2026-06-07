@@ -5,7 +5,7 @@
     "@Wheemer"
   ],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["http", "network"],
   "documentation": "https://github.com/Wheemer/ip-ban-manager",
   "integration_type": "service",
   "iot_class": "calculated",
