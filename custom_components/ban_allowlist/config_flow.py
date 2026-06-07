@@ -28,6 +28,7 @@ from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
+CONF_ALLOW_LOCALHOST = "allow_localhost"
 CONF_ALLOW_HOME_ASSISTANT_SUBNET = "allow_home_assistant_subnet"
 
 IPNetwork = IPv4Network | IPv6Network
@@ -145,13 +146,16 @@ def _text_selector() -> selector.TextSelector:
     )
 
 
-def _initial_setup_schema(default_subnet: bool) -> vol.Schema:
+def _initial_setup_schema() -> vol.Schema:
     """Return the first-run setup schema."""
     return vol.Schema(
         {
             vol.Required(
+                CONF_ALLOW_LOCALHOST, default=True
+            ): selector.BooleanSelector(),
+            vol.Required(
                 CONF_ALLOW_HOME_ASSISTANT_SUBNET,
-                default=default_subnet,
+                default=False,
             ): selector.BooleanSelector(),
         }
     )
@@ -215,7 +219,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:
-            ip_addresses = list(DEFAULT_ALLOWED_IPS)
+            ip_addresses = []
+            if user_input.get(CONF_ALLOW_LOCALHOST, True):
+                ip_addresses.extend(DEFAULT_ALLOWED_IPS)
             if user_input.get(CONF_ALLOW_HOME_ASSISTANT_SUBNET, False):
                 ip_addresses.extend(detected_subnets)
 
@@ -228,7 +234,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_initial_setup_schema(bool(detected_subnets)),
+            data_schema=_initial_setup_schema(),
             description_placeholders={
                 "home_assistant_subnets": _items_to_text(detected_subnets) or "None"
             },

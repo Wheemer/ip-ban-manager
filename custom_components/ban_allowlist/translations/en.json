@@ -3,8 +3,9 @@
     "step": {
       "user": {
         "title": "Set up IP Ban Manager",
-        "description": "Start with a safe allowlist. Localhost is always included. Home Assistant also detected this local network: {home_assistant_subnets}",
+        "description": "Choose the safe defaults to start with. Home Assistant detected this local network: {home_assistant_subnets}",
         "data": {
+          "allow_localhost": "Allow 127.0.0.1",
           "allow_home_assistant_subnet": "Trust the detected local network"
         }
       }

@@ -127,7 +127,10 @@ async def test_user_flow(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        user_input={ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: False},
+        user_input={
+            ban_config_flow.CONF_ALLOW_LOCALHOST: True,
+            ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: False,
+        },
     )
 
     assert result["type"] == "create_entry"
@@ -159,13 +162,46 @@ async def test_user_flow_can_add_detected_subnet(
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        user_input={ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: True},
+        user_input={
+            ban_config_flow.CONF_ALLOW_LOCALHOST: True,
+            ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: True,
+        },
     )
 
     assert result["type"] == "create_entry"
     assert result["data"] == {
         CONF_IP_ADDRESSES: [*DEFAULT_ALLOWED_IPS, "192.168.1.0/24"]
     }
+
+
+@pytest.mark.asyncio
+async def test_user_flow_can_skip_localhost(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test first-run setup honors the visible localhost checkbox."""
+    await load_ban_allowlist(hass)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        no_detected_subnets,
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+    )
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.CONF_ALLOW_LOCALHOST: False,
+            ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: False,
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {CONF_IP_ADDRESSES: []}
 
 
 @pytest.mark.asyncio
