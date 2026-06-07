@@ -9,6 +9,13 @@ on:
   schedule:
   - cron: 0 0 * * *
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   generate_versions:
     runs-on: ubuntu-24.04
@@ -20,10 +27,10 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.13'
-    - name: Install asdf & tools
-      uses: asdf-vm/actions/install@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8
     - name: Install dependencies
-      run: uv pip install --system -r requirements.test
+      run: uv pip sync --system --strict requirements.test
     - name: Generate versions
       id: generate-versions
       run: |
@@ -41,13 +48,13 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.13'
-    - uses: KengoTODA/actions-setup-docker-compose@v1
+    - uses: docker/setup-compose-action@v2
       with:
-        version: 2.26.1
-    - name: Install asdf & tools
-      uses: asdf-vm/actions/install@v4
+        version: latest
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8
     - name: Install dependencies
-      run: uv pip install --system -r requirements.test
+      run: uv pip sync --system --strict requirements.test
     - name: Integration tests (${{ matrix.ha_version}})
       run: cd integration_tests && python test_banning_works.py
       env:

@@ -23,8 +23,12 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ban_allowlist import (
+    _ORIGINAL_PROCESS_WRONG_LOGIN,
     IP_BAN_DISABLED_ISSUE_ID,
     KEY_ALLOWLIST,
+    KEY_CONFIG_ENTRY,
+    KEY_ORIGINAL_ADD_BAN,
+    _allowlist_process_wrong_login,
     current_status,
 )
 from custom_components.ban_allowlist.const import (
@@ -360,6 +364,66 @@ async def test_ban_hook_uses_current_allowlist(
         "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
         "Banning IP 192.168.1.1",
     ]
+
+
+@pytest.mark.asyncio
+async def test_ban_hook_works_after_adding_first_allowlist_entry(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test live allowlist additions work when setup started with no allowlist."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: []},
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "10.0.0.0/24"},
+        blocking=True,
+    )
+    await cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER]).async_add_ban(
+        IPv4Address("10.0.0.25")
+    )
+    check_records(caplog.records)
+
+    assert (
+        ip_address("10.0.0.25")
+        not in cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER]).ip_bans_lookup
+    )
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["10.0.0.0/24"]
+
+
+@pytest.mark.asyncio
+async def test_unload_restores_home_assistant_hooks(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test unloading leaves Home Assistant's HTTP ban internals restored."""
+    await setup_ban_allowlist(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    patched_add_ban = ban_manager.async_add_ban
+    original_add_ban = hass.http.app[KEY_ORIGINAL_ADD_BAN]
+
+    assert http_ban.process_wrong_login is _allowlist_process_wrong_login
+    assert patched_add_ban is not original_add_ban
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert http_ban.process_wrong_login is _ORIGINAL_PROCESS_WRONG_LOGIN
+    assert ban_manager.async_add_ban is original_add_ban
+    assert KEY_ALLOWLIST not in hass.http.app
+    assert KEY_CONFIG_ENTRY not in hass.http.app
+    assert KEY_ORIGINAL_ADD_BAN not in hass.http.app
 
 
 @pytest.mark.asyncio

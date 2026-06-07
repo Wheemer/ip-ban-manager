@@ -7,16 +7,27 @@ on:
     - main
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pre-commit:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
-    - name: Install asdf & tools
-      uses: asdf-vm/actions/install@v4
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8
     - name: Install dependencies
       run: |
-        uv venv
-        uv pip install -r requirements.test
+        uv venv --python 3.13
+        uv pip sync --strict requirements.test
     - name: pre-commit
       run: .venv/bin/pre-commit run -a

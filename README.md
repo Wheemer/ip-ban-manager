@@ -79,6 +79,8 @@ Existing banned IP rows are shown as `IP - banned_at`. You can leave those times
 
 The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist entries, IPs that are both allowed and banned, accidental full-list removals, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals, allowlist networks that contain active bans, and clear-all requests without `confirm: true`.
 
+The live hooks are installed at setup even if the initial allowlist is empty, so adding your first allowed IP later works immediately. If the integration is unloaded, those hooks are restored so Home Assistant is left in its normal state.
+
 The integration also adds services for automations and scripts:
 
 - `ban_allowlist.add_ip_ban`

@@ -157,6 +157,19 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
     ban_manager.async_add_ban = allowlist_async_add_ban  # type: ignore[method-assign]
 
 
+def _uninstall_patches(hass: HomeAssistant) -> None:
+    """Restore Home Assistant internals patched by this integration."""
+    app = hass.http.app
+
+    if http_ban.process_wrong_login is _allowlist_process_wrong_login:
+        http_ban.process_wrong_login = _ORIGINAL_PROCESS_WRONG_LOGIN
+
+    original_add_ban = app.pop(KEY_ORIGINAL_ADD_BAN, None)
+    ban_manager = app.get(KEY_BAN_MANAGER)
+    if original_add_ban is not None and ban_manager is not None:
+        ban_manager.async_add_ban = original_add_ban
+
+
 def _parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:
     """Parse configured IP addresses and networks."""
     return tuple(parse_allowlist_network(ip) for ip in ip_addresses)
@@ -537,11 +550,6 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
     )
 
 
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload Ban Allowlist when options change."""
-    await hass.config_entries.async_reload(entry.entry_id)
-
-
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up Ban Allowlist and import YAML configuration."""
     if DOMAIN in config:
@@ -579,10 +587,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         _LOGGER.info("Setting allowlist with %s", [str(ip) for ip in allowlist])
 
-        _install_wrong_login_patch()
-        _install_add_ban_patch(hass, ban_manager)
+    _install_wrong_login_patch()
+    _install_add_ban_patch(hass, ban_manager)
 
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     _register_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -591,7 +598,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Ban Allowlist."""
-    hass.http.app[KEY_ALLOWLIST] = ()
+    _uninstall_patches(hass)
+    hass.http.app.pop(KEY_ALLOWLIST, None)
+    hass.http.app.pop(KEY_CONFIG_ENTRY, None)
     for service in (
         SERVICE_ADD_ALLOWLIST_NETWORK,
         SERVICE_ADD_IP_BAN,
