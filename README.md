@@ -1,5 +1,7 @@
 # Home Assistant IP Ban Manager
 
+Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`](https://github.com/palfrey/ban_allowlist). This maintained fork keeps that work alive and expands it into a live Home Assistant IP ban and allowlist manager.
+
 [![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Wheemer&repository=ip-ban-manager&category=integration)
 
 Status: **THIS IS A HACK. USE AT YOUR OWN RISK.**
