@@ -129,7 +129,6 @@ async def test_user_flow(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -
         result["flow_id"],
         user_input={
             ban_config_flow.CONF_ALLOW_LOCALHOST: True,
-            ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: False,
         },
     )
 
@@ -164,7 +163,7 @@ async def test_user_flow_can_add_detected_subnet(
         result["flow_id"],
         user_input={
             ban_config_flow.CONF_ALLOW_LOCALHOST: True,
-            ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: True,
+            ban_config_flow._local_network_option_label(["192.168.1.0/24"]): True,
         },
     )
 
@@ -196,7 +195,6 @@ async def test_user_flow_can_skip_localhost(
         result["flow_id"],
         user_input={
             ban_config_flow.CONF_ALLOW_LOCALHOST: False,
-            ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: False,
         },
     )
 

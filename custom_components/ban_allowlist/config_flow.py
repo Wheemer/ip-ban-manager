@@ -29,7 +29,6 @@ SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
 CONF_ALLOW_LOCALHOST = "allow_localhost"
-CONF_ALLOW_HOME_ASSISTANT_SUBNET = "allow_home_assistant_subnet"
 
 IPNetwork = IPv4Network | IPv6Network
 
@@ -146,19 +145,28 @@ def _text_selector() -> selector.TextSelector:
     )
 
 
-def _initial_setup_schema() -> vol.Schema:
+def _local_network_option_label(detected_subnets: list[str]) -> str:
+    """Return a readable dynamic label for the local-network checkbox."""
+    if len(detected_subnets) == 1:
+        return f"Allow local network {detected_subnets[0]}"
+
+    return f"Allow local networks {', '.join(detected_subnets)}"
+
+
+def _initial_setup_schema(detected_subnets: list[str]) -> vol.Schema:
     """Return the first-run setup schema."""
-    return vol.Schema(
-        {
+    fields = {
+        vol.Required(CONF_ALLOW_LOCALHOST, default=True): selector.BooleanSelector()
+    }
+    if detected_subnets:
+        fields[
             vol.Required(
-                CONF_ALLOW_LOCALHOST, default=True
-            ): selector.BooleanSelector(),
-            vol.Required(
-                CONF_ALLOW_HOME_ASSISTANT_SUBNET,
+                _local_network_option_label(detected_subnets),
                 default=False,
-            ): selector.BooleanSelector(),
-        }
-    )
+            )
+        ] = selector.BooleanSelector()
+
+    return vol.Schema(fields)
 
 
 async def _async_detect_home_assistant_subnets(hass: HomeAssistant) -> list[str]:
@@ -222,7 +230,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ip_addresses = []
             if user_input.get(CONF_ALLOW_LOCALHOST, True):
                 ip_addresses.extend(DEFAULT_ALLOWED_IPS)
-            if user_input.get(CONF_ALLOW_HOME_ASSISTANT_SUBNET, False):
+            if detected_subnets and user_input.get(
+                _local_network_option_label(detected_subnets), False
+            ):
                 ip_addresses.extend(detected_subnets)
 
             await self.async_set_unique_id(DOMAIN)
@@ -234,7 +244,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_initial_setup_schema(),
+            data_schema=_initial_setup_schema(detected_subnets),
             description_placeholders={
                 "home_assistant_subnets": _items_to_text(detected_subnets) or "None"
             },
