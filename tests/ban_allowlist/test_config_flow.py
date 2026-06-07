@@ -99,6 +99,23 @@ async def test_user_flow_rejects_invalid_addresses(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
+async def test_user_flow_rejects_allowlisting_everything(
+    hass: HomeAssistant,
+) -> None:
+    """Test allowlists that disable IP banning are rejected."""
+    await load_ban_allowlist(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+        data={CONF_IP_ADDRESSES: "0.0.0.0/0"},
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_IP_ADDRESSES: "unsafe_allowlist_network"}
+
+
+@pytest.mark.asyncio
 async def test_user_flow_is_single_instance(hass: HomeAssistant) -> None:
     """Test only one IP Ban Manager entry can be configured."""
     await load_ban_allowlist(hass)
@@ -143,7 +160,7 @@ async def test_options_flow_edits_live_lists(
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         user_input={
-            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n10.0.0.0/24"},
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n10.0.1.0/24"},
             CONF_BANNED_IPS: {
                 CONF_BANNED_IPS: (
                     f"10.0.0.1 - {original_banned_at.isoformat()}\n10.0.0.2"
@@ -153,16 +170,16 @@ async def test_options_flow_edits_live_lists(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.1", "10.0.0.0/24"]}
+    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.1", "10.0.1.0/24"]}
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
         "192.168.1.1/32",
-        "10.0.0.0/24",
+        "10.0.1.0/24",
     ]
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None
     assert stored_entry.options[CONF_IP_ADDRESSES] == [
         "192.168.1.1",
-        "10.0.0.0/24",
+        "10.0.1.0/24",
     ]
     assert CONF_BANNED_IPS not in stored_entry.options
     assert set(ban_manager.ip_bans_lookup) == {
@@ -176,6 +193,59 @@ async def test_options_flow_edits_live_lists(
     assert "10.0.0.1" in ban_file
     assert original_banned_at.isoformat() in ban_file
     assert "10.0.0.2" in ban_file
+
+
+@pytest.mark.asyncio
+async def test_options_flow_rejects_banning_allowlisted_ip(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test the same IP cannot be both allowed and banned."""
+    entry = await setup_options_entry(hass, tmp_path)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1"},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "192.168.1.1"},
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_BANNED_IPS: "banned_ip_allowlisted"}
+    assert ban_manager.ip_bans_lookup == {}
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options == {}
+
+
+@pytest.mark.asyncio
+async def test_options_flow_warns_before_clearing_allowlist(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test deleting every allowed entry warns and keeps state intact."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: ""},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_ALLOWED_IPS: "clear_all_allowlist"}
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
 
 
 @pytest.mark.asyncio
@@ -204,6 +274,31 @@ async def test_options_flow_removes_live_bans(
     ban_file = Path(ban_manager.path).read_text(encoding="utf8")
     assert "10.0.0.1" not in ban_file
     assert "10.0.0.2" in ban_file
+
+
+@pytest.mark.asyncio
+async def test_options_flow_warns_before_clearing_every_ban(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test deleting every ban from the textarea warns and keeps state intact."""
+    entry = await setup_options_entry(hass, tmp_path)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_BANNED_IPS: "clear_all_bans"}
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.1")}
 
 
 @pytest.mark.asyncio

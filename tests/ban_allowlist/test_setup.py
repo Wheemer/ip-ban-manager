@@ -16,6 +16,7 @@ from homeassistant.components.http.ban import (
     IpBanManager,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -457,6 +458,56 @@ async def test_allowlist_services_update_live_options(
     assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == [
         "172.17.0.0/24",
     ]
+
+
+@pytest.mark.asyncio
+async def test_allowlist_service_rejects_allowlisting_everything(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test service calls cannot add an allowlist entry that disables bans."""
+    await setup_ban_allowlist(hass)
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_ALLOWLIST_NETWORK,
+            {ATTR_NETWORK: "0.0.0.0/0"},
+            blocking=True,
+        )
+    check_records(caplog.records)
+
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_allowlist_service_rejects_removing_final_entry(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test service calls cannot accidentally remove the final allowlist entry."""
+    await setup_ban_allowlist(hass)
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "172.17.0.0/24"},
+        blocking=True,
+    )
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_REMOVE_ALLOWLIST_NETWORK,
+            {ATTR_NETWORK: "192.168.1.1"},
+            blocking=True,
+        )
+    check_records(caplog.records)
+
+    assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == [
+        "192.168.1.1",
+    ]
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.1.1/32"]
 
 
 @pytest.mark.asyncio

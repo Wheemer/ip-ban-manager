@@ -11,10 +11,12 @@
     },
     "error": {
       "invalid_ip_address": "Enter valid IP addresses or CIDR networks.",
+      "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]"
+      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]",
+      "unsafe_allowlist_network": "The imported allowlist contains an entry that would trust every IP address."
     }
   },
   "options": {
@@ -42,7 +44,11 @@
     },
     "error": {
       "invalid_ip_address": "Enter valid IP addresses or CIDR networks.",
-      "invalid_banned_ip": "Enter only valid IP addresses in the banned IP list."
+      "invalid_banned_ip": "Enter only valid IP addresses in the banned IP list.",
+      "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
+      "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
+      "clear_all_allowlist": "This would remove every allowed IP or network. Keep at least one trusted entry, or remove the integration if you no longer want an allowlist.",
+      "clear_all_bans": "This would remove every current ban. Use the Clear IP ban list service when you really want to clear all bans."
     }
   },
   "exceptions": {
@@ -54,6 +60,12 @@
     },
     "ip_address_allowlisted": {
       "message": "{ip_address} is allowlisted, so it was not banned."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} would trust every IP address and effectively disable IP banning."
+    },
+    "clear_all_allowlist": {
+      "message": "This would remove every allowed IP or network. Keep at least one trusted entry."
     }
   }
 }

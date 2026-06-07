@@ -402,6 +402,13 @@ def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> Non
             translation_placeholders={ATTR_NETWORK: network_value},
         ) from err
 
+    if network.prefixlen == 0:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="unsafe_allowlist_network",
+            translation_placeholders={ATTR_NETWORK: str(network)},
+        )
+
     current = _current_allowlist_strings(hass)
     normalized_network = str(network)
     current_networks = {ip_network(current_network) for current_network in current}
@@ -420,14 +427,17 @@ def _async_remove_allowlist_network(hass: HomeAssistant, network_value: str) -> 
             translation_placeholders={ATTR_NETWORK: network_value},
         ) from err
 
-    _update_allowlist_entry(
-        hass,
-        [
-            current_network
-            for current_network in _current_allowlist_strings(hass)
-            if ip_network(current_network) != network
-        ],
-    )
+    remaining_networks = [
+        current_network
+        for current_network in _current_allowlist_strings(hass)
+        if ip_network(current_network) != network
+    ]
+    if not remaining_networks and _current_allowlist_strings(hass):
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="clear_all_allowlist",
+        )
+    _update_allowlist_entry(hass, remaining_networks)
 
 
 def _register_services(hass: HomeAssistant) -> None:  # noqa: D202

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from ipaddress import ip_address, ip_network
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 from typing import Any, cast
 
 import voluptuous as vol
@@ -25,6 +25,24 @@ from .const import (
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
 
+IPNetwork = IPv4Network | IPv6Network
+
+
+class UnsafeAllowlistError(ValueError):
+    """Raised when an allowlist entry would effectively disable IP bans."""
+
+
+class BannedAllowlistedIPError(ValueError):
+    """Raised when an IP is both allowlisted and banned."""
+
+
+class ClearAllBansError(ValueError):
+    """Raised when the options form appears to accidentally clear every ban."""
+
+
+class ClearAllAllowlistError(ValueError):
+    """Raised when the options form appears to accidentally clear the allowlist."""
+
 
 def _normalize_list(value: str | Iterable[str]) -> list[str]:
     """Normalize multiline, comma-separated, or YAML-imported values."""
@@ -37,24 +55,62 @@ def _normalize_list(value: str | Iterable[str]) -> list[str]:
     return [item.strip() for item in raw_values if item.strip()]
 
 
+def _dedupe_items(items: Iterable[str]) -> list[str]:
+    """Return items without duplicates while preserving input order."""
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        deduped.append(item)
+    return deduped
+
+
 def _validate_ip_addresses(value: str | Iterable[str]) -> list[str]:
     """Validate and normalize configured IP addresses and networks."""
-    ip_addresses = _normalize_list(value)
+    ip_addresses = _dedupe_items(_normalize_list(value))
     for address in ip_addresses:
-        ip_network(address)
+        network = ip_network(address)
+        if network.prefixlen == 0:
+            raise UnsafeAllowlistError
 
     return ip_addresses
 
 
 def _validate_banned_ips(value: str | Iterable[str]) -> list[str]:
     """Validate and normalize configured banned IP addresses."""
-    banned_ips = [
-        banned_ip.split(" - ", 1)[0].strip() for banned_ip in _normalize_list(value)
-    ]
-    for banned_ip in banned_ips:
-        ip_address(banned_ip)
+    return _dedupe_items(
+        str(ip_address(banned_ip.split(" - ", 1)[0].strip()))
+        for banned_ip in _normalize_list(value)
+    )
 
-    return banned_ips
+
+def _validate_ban_safety(
+    allowlist: Iterable[str],
+    banned_ips: Iterable[str],
+    existing_allowlist: Iterable[str],
+    existing_bans: Iterable[str],
+) -> None:
+    """Validate cross-list edits that could lock users out or hide mistakes."""
+    allowlist_values = list(allowlist)
+    if list(existing_allowlist) and not allowlist_values:
+        raise ClearAllAllowlistError
+
+    allowlist_networks: list[IPNetwork] = [
+        ip_network(network) for network in allowlist_values
+    ]
+    banned_ip_values = [ip_address(banned_ip) for banned_ip in banned_ips]
+
+    if existing_bans and not banned_ip_values:
+        raise ClearAllBansError
+
+    if any(
+        banned_ip in allowlist_network
+        for banned_ip in banned_ip_values
+        for allowlist_network in allowlist_networks
+    ):
+        raise BannedAllowlistedIPError
 
 
 def _items_to_text(items: Iterable[str]) -> str:
@@ -119,6 +175,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 ip_addresses = _validate_ip_addresses(user_input[CONF_IP_ADDRESSES])
+            except UnsafeAllowlistError:
+                errors[CONF_IP_ADDRESSES] = "unsafe_allowlist_network"
             except ValueError:
                 errors[CONF_IP_ADDRESSES] = "invalid_ip_address"
             else:
@@ -139,7 +197,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any]
     ) -> config_entries.ConfigFlowResult:
         """Import YAML configuration."""
-        ip_addresses = _validate_ip_addresses(user_input[CONF_IP_ADDRESSES])
+        try:
+            ip_addresses = _validate_ip_addresses(user_input[CONF_IP_ADDRESSES])
+        except UnsafeAllowlistError:
+            return self.async_abort(reason="unsafe_allowlist_network")
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESSES: ip_addresses})
         return self.async_create_entry(
@@ -233,6 +294,8 @@ class OptionsFlow(config_entries.OptionsFlow):
             banned_input = cast(dict[str, str], user_input[SECTION_BANNED_IPS])
             try:
                 ip_addresses = _validate_ip_addresses(allowed_input[CONF_ALLOWED_IPS])
+            except UnsafeAllowlistError:
+                errors[CONF_ALLOWED_IPS] = "unsafe_allowlist_network"
             except ValueError:
                 errors[CONF_ALLOWED_IPS] = "invalid_ip_address"
 
@@ -240,6 +303,30 @@ class OptionsFlow(config_entries.OptionsFlow):
                 banned_ips = _validate_banned_ips(banned_input[CONF_BANNED_IPS])
             except ValueError:
                 errors[CONF_BANNED_IPS] = "invalid_banned_ip"
+
+            if not errors:
+                from . import current_status
+
+                existing_bans = [
+                    ban[ATTR_IP_ADDRESS]
+                    for ban in cast(
+                        list[dict[str, str]], current_status(self.hass)[ATTR_BANNED_IPS]
+                    )
+                ]
+                existing_allowlist = _current_addresses(self._config_entry)
+                try:
+                    _validate_ban_safety(
+                        ip_addresses,
+                        banned_ips,
+                        existing_allowlist,
+                        existing_bans,
+                    )
+                except ClearAllAllowlistError:
+                    errors[CONF_ALLOWED_IPS] = "clear_all_allowlist"
+                except BannedAllowlistedIPError:
+                    errors[CONF_BANNED_IPS] = "banned_ip_allowlisted"
+                except ClearAllBansError:
+                    errors[CONF_BANNED_IPS] = "clear_all_bans"
 
             if not errors:
                 _update_allowlist_entry(self.hass, ip_addresses)
