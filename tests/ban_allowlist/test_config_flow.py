@@ -153,10 +153,7 @@ async def test_options_flow_edits_live_lists(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {
-        CONF_IP_ADDRESSES: ["192.168.1.1", "10.0.0.0/24"],
-        CONF_BANNED_IPS: ["10.0.0.1", "10.0.0.2"],
-    }
+    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.1", "10.0.0.0/24"]}
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
         "192.168.1.1/32",
         "10.0.0.0/24",
@@ -167,6 +164,7 @@ async def test_options_flow_edits_live_lists(
         "192.168.1.1",
         "10.0.0.0/24",
     ]
+    assert CONF_BANNED_IPS not in stored_entry.options
     assert set(ban_manager.ip_bans_lookup) == {
         ip_address("10.0.0.1"),
         ip_address("10.0.0.2"),

@@ -246,10 +246,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 await _async_replace_ip_bans(self.hass, banned_ips)
                 return self.async_create_entry(
                     title="",
-                    data={
-                        CONF_IP_ADDRESSES: ip_addresses,
-                        CONF_BANNED_IPS: banned_ips,
-                    },
+                    data={CONF_IP_ADDRESSES: ip_addresses},
                 )
 
         return self.async_show_form(
