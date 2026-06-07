@@ -1,6 +1,6 @@
 <table>
   <tr>
-    <td><img src="custom_components/ban_allowlist/icon.png" width="96" alt="IP Ban Manager icon"></td>
+    <td><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/custom_components/ban_allowlist/icon.png" width="96" alt="IP Ban Manager icon"></td>
     <td><h1>Home Assistant IP Ban Manager</h1></td>
   </tr>
 </table>
