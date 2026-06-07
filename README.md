@@ -1,4 +1,8 @@
+<img src="custom_components/ban_allowlist/icon.png" align="left" width="96" alt="IP Ban Manager icon">
+
 # Home Assistant IP Ban Manager
+
+<br clear="left">
 
 Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`](https://github.com/palfrey/ban_allowlist). This fork builds on that work with a live Home Assistant IP ban and allowlist manager UI.
 
