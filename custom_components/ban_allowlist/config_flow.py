@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from ipaddress import IPv4Network, IPv6Network, ip_address
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_interface
 from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.components.http.ban import ATTR_BANNED_AT
+from homeassistant.components.network import async_get_adapters
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 
 from .const import (
@@ -25,6 +27,8 @@ from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
+DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
+CONF_ALLOW_HOME_ASSISTANT_SUBNET = "allow_home_assistant_subnet"
 
 IPNetwork = IPv4Network | IPv6Network
 
@@ -141,16 +145,51 @@ def _text_selector() -> selector.TextSelector:
     )
 
 
-def _data_schema(ip_addresses: Iterable[str] | None = None) -> vol.Schema:
-    """Return the config flow data schema."""
+def _initial_setup_schema(default_subnet: bool) -> vol.Schema:
+    """Return the first-run setup schema."""
     return vol.Schema(
         {
             vol.Required(
-                CONF_IP_ADDRESSES,
-                default=_items_to_text(ip_addresses or []),
-            ): _text_selector()
+                CONF_ALLOW_HOME_ASSISTANT_SUBNET,
+                default=default_subnet,
+            ): selector.BooleanSelector(),
         }
     )
+
+
+async def _async_detect_home_assistant_subnets(hass: HomeAssistant) -> list[str]:
+    """Detect local IPv4 networks from Home Assistant's enabled adapters."""
+    adapters = await async_get_adapters(hass)
+    enabled_adapters = [adapter for adapter in adapters if adapter["enabled"]]
+    default_adapters = [
+        adapter
+        for adapter in enabled_adapters
+        if adapter["default"] and adapter["ipv4"]
+    ]
+    candidate_adapters = default_adapters or enabled_adapters
+    networks: list[str] = []
+    seen: set[str] = set()
+
+    for adapter in candidate_adapters:
+        for address in adapter["ipv4"]:
+            interface = ip_interface(
+                f"{address['address']}/{address['network_prefix']}"
+            )
+            network = interface.network
+            if (
+                network.is_loopback
+                or network.is_link_local
+                or network.is_multicast
+                or network.is_unspecified
+            ):
+                continue
+
+            normalized = str(network)
+            if normalized not in seen:
+                seen.add(normalized)
+                networks.append(normalized)
+
+    return networks
 
 
 def _current_addresses(config_entry: config_entries.ConfigEntry) -> list[str]:
@@ -173,27 +212,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Handle the initial step."""
-        errors: dict[str, str] = {}
+        detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:
-            try:
-                ip_addresses = _validate_ip_addresses(user_input[CONF_IP_ADDRESSES])
-            except UnsafeAllowlistError:
-                errors[CONF_IP_ADDRESSES] = "unsafe_allowlist_network"
-            except ValueError:
-                errors[CONF_IP_ADDRESSES] = "invalid_ip_address"
-            else:
-                await self.async_set_unique_id(DOMAIN)
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(
-                    title="IP Ban Manager",
-                    data={CONF_IP_ADDRESSES: ip_addresses},
-                )
+            ip_addresses = list(DEFAULT_ALLOWED_IPS)
+            if user_input.get(CONF_ALLOW_HOME_ASSISTANT_SUBNET, False):
+                ip_addresses.extend(detected_subnets)
+
+            await self.async_set_unique_id(DOMAIN)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title="IP Ban Manager",
+                data={CONF_IP_ADDRESSES: _dedupe_items(ip_addresses)},
+            )
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_data_schema(),
-            errors=errors,
+            data_schema=_initial_setup_schema(bool(detected_subnets)),
+            description_placeholders={
+                "home_assistant_subnets": _items_to_text(detected_subnets) or "None"
+            },
         )
 
     async def async_step_import(

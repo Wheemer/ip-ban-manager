@@ -3,9 +3,9 @@
     "step": {
       "user": {
         "title": "Set up IP Ban Manager",
-        "description": "Enter trusted IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*. Use one entry per line, or separate entries with commas.",
+        "description": "Start with a safe allowlist. Localhost is always included. Home Assistant also detected this local network: {home_assistant_subnets}",
         "data": {
-          "ip_addresses": "Allowlisted IP addresses and networks"
+          "allow_home_assistant_subnet": "Trust the detected local network"
         }
       }
     },
@@ -23,18 +23,18 @@
     "step": {
       "init": {
         "title": "Manage IP Ban Manager",
-        "description": "Edit either list and submit. Changes apply immediately.",
+        "description": "Review the live lists below. Submit applies changes immediately to Home Assistant's active ban manager.",
         "sections": {
           "allowed_ips": {
             "name": "Allowed IPs",
-            "description": "IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.* that should never be banned. Use one entry per line.",
+            "description": "Trusted IPs and networks that should never be banned. Use one entry per line. CIDR and IPv4 wildcards like 192.168.1.* are supported.",
             "data": {
               "allowed_ips": "Entries"
             }
           },
           "banned_ips": {
             "name": "Banned IPs",
-            "description": "Currently blocked IP addresses. Existing rows include the ban timestamp; new rows can be just an IP.",
+            "description": "Currently blocked IPs from Home Assistant's live ban list. Existing rows include the ban timestamp; new rows can be just an IP.",
             "data": {
               "banned_ips": "Entries"
             }

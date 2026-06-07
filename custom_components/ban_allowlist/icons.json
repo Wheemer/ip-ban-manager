@@ -1,0 +1,29 @@
+{
+  "options": {
+    "step": {
+      "init": {
+        "sections": {
+          "allowed_ips": "mdi:shield-check-outline",
+          "banned_ips": "mdi:shield-lock-outline"
+        }
+      }
+    }
+  },
+  "services": {
+    "add_allowlist_network": {
+      "service": "mdi:shield-plus-outline"
+    },
+    "add_ip_ban": {
+      "service": "mdi:shield-lock-outline"
+    },
+    "remove_allowlist_network": {
+      "service": "mdi:shield-minus-outline"
+    },
+    "remove_all_ip_bans": {
+      "service": "mdi:shield-refresh-outline"
+    },
+    "remove_ip_ban": {
+      "service": "mdi:shield-off-outline"
+    }
+  }
+}

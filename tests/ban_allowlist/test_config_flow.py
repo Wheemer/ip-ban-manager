@@ -14,6 +14,8 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ban_allowlist import KEY_ALLOWLIST
+from custom_components.ban_allowlist import config_flow as ban_config_flow
+from custom_components.ban_allowlist.config_flow import DEFAULT_ALLOWED_IPS
 from custom_components.ban_allowlist.const import (
     ATTR_BANNED_IPS,
     CONF_ALLOWED_IPS,
@@ -21,6 +23,49 @@ from custom_components.ban_allowlist.const import (
     CONF_IP_ADDRESSES,
     DOMAIN,
 )
+
+
+async def no_detected_subnets(hass: HomeAssistant) -> list[str]:
+    """Return no detected subnet for config-flow tests."""
+    return []
+
+
+async def detected_subnets(hass: HomeAssistant) -> list[str]:
+    """Return a detected subnet for config-flow tests."""
+    return ["192.168.1.0/24"]
+
+
+async def mixed_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
+    """Return mixed network adapters for subnet detection tests."""
+    return [
+        {
+            "name": "lo",
+            "index": 1,
+            "enabled": True,
+            "auto": True,
+            "default": False,
+            "ipv4": [{"address": "127.0.0.1", "network_prefix": 8}],
+            "ipv6": [],
+        },
+        {
+            "name": "eth0",
+            "index": 2,
+            "enabled": True,
+            "auto": True,
+            "default": True,
+            "ipv4": [{"address": "192.168.1.40", "network_prefix": 24}],
+            "ipv6": [],
+        },
+        {
+            "name": "fallback",
+            "index": 3,
+            "enabled": True,
+            "auto": True,
+            "default": False,
+            "ipv4": [{"address": "169.254.1.2", "network_prefix": 16}],
+            "ipv6": [],
+        },
+    ]
 
 
 async def load_ban_allowlist(hass: HomeAssistant) -> None:
@@ -51,91 +96,89 @@ async def setup_options_entry(hass: HomeAssistant, tmp_path: Path) -> MockConfig
 
 
 @pytest.mark.asyncio
-async def test_user_flow(hass: HomeAssistant) -> None:
-    """Test creating an entry from the UI."""
+async def test_detect_home_assistant_subnets(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test subnet detection keeps only useful enabled IPv4 networks."""
+    monkeypatch.setattr(ban_config_flow, "async_get_adapters", mixed_adapters)
+
+    assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
+        "192.168.1.0/24"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_user_flow(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test creating an entry from the UI without text-list editing."""
     await load_ban_allowlist(hass)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        no_detected_subnets,
+    )
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": "user"},
-        data={CONF_IP_ADDRESSES: "192.168.1.1\n172.17.0.0/24"},
+    )
+
+    assert result["type"] == "form"
+    assert result["description_placeholders"]["home_assistant_subnets"] == "None"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: False},
     )
 
     assert result["type"] == "create_entry"
     assert result["title"] == "IP Ban Manager"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}
+    assert result["data"] == {CONF_IP_ADDRESSES: DEFAULT_ALLOWED_IPS}
 
 
 @pytest.mark.asyncio
-async def test_user_flow_accepts_comma_separated_addresses(
-    hass: HomeAssistant,
+async def test_user_flow_can_add_detected_subnet(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test comma-separated addresses are normalized."""
+    """Test first-run setup can add the detected Home Assistant subnet."""
     await load_ban_allowlist(hass)
-
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": "user"},
-        data={CONF_IP_ADDRESSES: "192.168.1.1, 172.17.0.0/24"},
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_subnets,
     )
 
-    assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}
-
-
-@pytest.mark.asyncio
-async def test_user_flow_normalizes_ipv4_wildcard_addresses(
-    hass: HomeAssistant,
-) -> None:
-    """Test IPv4 wildcard shorthand is normalized to CIDR."""
-    await load_ban_allowlist(hass)
-
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": "user"},
-        data={CONF_IP_ADDRESSES: "192.168.1.*"},
-    )
-
-    assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.0/24"]}
-
-
-@pytest.mark.asyncio
-async def test_user_flow_rejects_invalid_addresses(hass: HomeAssistant) -> None:
-    """Test invalid addresses are rejected."""
-    await load_ban_allowlist(hass)
-
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": "user"},
-        data={CONF_IP_ADDRESSES: "not-an-ip"},
     )
 
     assert result["type"] == "form"
-    assert result["errors"] == {CONF_IP_ADDRESSES: "invalid_ip_address"}
-
-
-@pytest.mark.asyncio
-async def test_user_flow_rejects_allowlisting_everything(
-    hass: HomeAssistant,
-) -> None:
-    """Test allowlists that disable IP banning are rejected."""
-    await load_ban_allowlist(hass)
-
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN,
-        context={"source": "user"},
-        data={CONF_IP_ADDRESSES: "0.0.0.0/0"},
+    assert result["description_placeholders"]["home_assistant_subnets"] == (
+        "192.168.1.0/24"
     )
 
-    assert result["type"] == "form"
-    assert result["errors"] == {CONF_IP_ADDRESSES: "unsafe_allowlist_network"}
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_ALLOW_HOME_ASSISTANT_SUBNET: True},
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {
+        CONF_IP_ADDRESSES: [*DEFAULT_ALLOWED_IPS, "192.168.1.0/24"]
+    }
 
 
 @pytest.mark.asyncio
-async def test_user_flow_is_single_instance(hass: HomeAssistant) -> None:
+async def test_user_flow_is_single_instance(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test only one IP Ban Manager entry can be configured."""
     await load_ban_allowlist(hass)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        no_detected_subnets,
+    )
 
     entry = MockConfigEntry(
         domain=DOMAIN,

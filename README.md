@@ -18,6 +18,7 @@ IP Ban Manager extends Home Assistant's [IP filtering and banning](https://www.h
 IP Ban Manager is now a full management integration instead of a YAML-only allowlist wrapper:
 
 - config flow setup with YAML import for existing `ban_allowlist` users
+- new UI setup that seeds `127.0.0.1` and offers to trust Home Assistant's detected local subnet
 - live editable **Allowed IPs** and **Banned IPs** lists from the integration options
 - IPv4 wildcard shorthand for allowed networks, such as `192.168.1.*`
 - immediate add, remove, and clear actions without restarting Home Assistant
@@ -44,7 +45,7 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 ## Config
 
-After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration** and enter trusted IP addresses, CIDR networks, or IPv4 wildcard networks.
+After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. New installs always allow `127.0.0.1` and offer a checkbox to trust the local subnet Home Assistant detects from its active network adapter. Add or remove trusted LAN and remote IPs from **Configure** after setup.
 
 Existing YAML configuration is imported automatically:
 
