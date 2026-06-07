@@ -10,6 +10,7 @@ IP Ban Manager turns the original YAML-only ban allowlist into a full Home Assis
 - Live **Allowed IPs** and **Banned IPs** management from the integration options.
 - Immediate ban and allowlist updates without restarting Home Assistant.
 - Banned IP timestamp display, with timestamps preserved when existing bans remain.
+- Atomic writes to Home Assistant's native `ip_bans.yaml` file.
 - Services for adding, removing, and clearing IP bans and allowlist entries.
 - Diagnostic sensors for active bans, allowlisted networks, and failed-login sources.
 - Cleanup of stale Home Assistant ban/login persistent notifications when the matching IP is unbanned.

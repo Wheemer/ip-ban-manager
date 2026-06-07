@@ -27,6 +27,7 @@ from custom_components.ban_allowlist.const import (
     ATTR_IP_ADDRESS,
     ATTR_NETWORK,
     ATTR_NETWORKS,
+    CONF_BANNED_IPS,
     CONF_IP_ADDRESSES,
     DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
@@ -109,6 +110,10 @@ async def test_setup_renames_legacy_entry_title(
         domain=DOMAIN,
         title="IP Ban Allowlist",
         data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+        options={
+            CONF_IP_ADDRESSES: ["192.168.1.1"],
+            CONF_BANNED_IPS: ["10.0.0.1"],
+        },
     )
     entry.add_to_hass(hass)
 
@@ -119,6 +124,7 @@ async def test_setup_renames_legacy_entry_title(
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None
     assert stored_entry.title == "IP Ban Manager"
+    assert stored_entry.options == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
 
 
 @pytest.mark.asyncio

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Awaitable, Callable, Iterable
 from datetime import datetime
 from ipaddress import (
@@ -13,6 +14,8 @@ from ipaddress import (
     ip_address,
     ip_network,
 )
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import voluptuous as vol
 from aiohttp.web import AppKey, Request
@@ -39,6 +42,7 @@ from .const import (
     ATTR_IP_ADDRESS,
     ATTR_NETWORK,
     ATTR_NETWORKS,
+    CONF_BANNED_IPS,
     CONF_IP_ADDRESSES,
     DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
@@ -176,6 +180,30 @@ def _ip_ban_sort_key(ip_ban: IpBan) -> tuple[int, bytes]:
     return (ip_ban.ip_address.version, ip_ban.ip_address.packed)
 
 
+def _atomic_write_text(path: str, content: str) -> None:
+    """Write text to a file using an atomic same-directory replacement."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temp_path: str | None = None
+    try:
+        with NamedTemporaryFile(
+            "w",
+            encoding="utf8",
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_path = temp_file.name
+            temp_file.write(content)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        os.replace(temp_path, target)
+    finally:
+        if temp_path is not None and os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+
 def current_status(hass: HomeAssistant) -> dict[str, object]:
     """Return the live ban and allowlist status for UI surfaces."""
     ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
@@ -220,8 +248,10 @@ async def _async_rewrite_ip_bans_file(
                 ban_manager.ip_bans_lookup.values(), key=_ip_ban_sort_key
             )
         }
-        with open(ban_manager.path, "w", encoding="utf8") as out:
-            out.write(yaml_util.dump(ip_bans) if ip_bans else "{}\n")
+        _atomic_write_text(
+            ban_manager.path,
+            yaml_util.dump(ip_bans) if ip_bans else "{}\n",
+        )
 
     await hass.async_add_executor_job(_write_bans)
 
@@ -238,6 +268,17 @@ def _update_allowlist_entry(hass: HomeAssistant, ip_addresses: list[str]) -> Non
 def _current_allowlist_strings(hass: HomeAssistant) -> list[str]:
     """Return the persisted allowlist strings."""
     return _entry_ip_addresses(hass.http.app[KEY_CONFIG_ENTRY])
+
+
+def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean legacy config entry metadata without changing live ban state."""
+    if entry.title in LEGACY_ENTRY_TITLES:
+        hass.config_entries.async_update_entry(entry, title=ENTRY_TITLE)
+
+    if CONF_BANNED_IPS in entry.options:
+        options = dict(entry.options)
+        options.pop(CONF_BANNED_IPS, None)
+        hass.config_entries.async_update_entry(entry, options=options)
 
 
 def _dismiss_removed_ip_notifications(
@@ -449,8 +490,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ban Allowlist from a config entry."""
-    if entry.title in LEGACY_ENTRY_TITLES:
-        hass.config_entries.async_update_entry(entry, title=ENTRY_TITLE)
+    _async_cleanup_entry_metadata(hass, entry)
 
     try:
         ban_manager: IpBanManager = hass.http.app[KEY_BAN_MANAGER]
