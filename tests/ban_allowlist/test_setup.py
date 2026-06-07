@@ -98,6 +98,28 @@ async def test_setup(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> N
 
 
 @pytest.mark.asyncio
+async def test_setup_renames_legacy_entry_title(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test old config entry titles are updated after the integration rename."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Allowlist",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert entry.title == "IP Ban Manager"
+
+
+@pytest.mark.asyncio
 async def test_diagnostic_sensors_expose_counts(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:

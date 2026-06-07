@@ -54,6 +54,9 @@ IPAddress = IPv4Address | IPv6Address
 IPNetwork = IPv4Network | IPv6Network
 AddBanCallable = Callable[[IPAddress], Awaitable[None]]
 
+ENTRY_TITLE = "IP Ban Manager"
+LEGACY_ENTRY_TITLES = {"IP Ban Allowlist"}
+
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ban_allowlist_config_entry")
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ban_allowlist_original_add_ban")
@@ -446,6 +449,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ban Allowlist from a config entry."""
+    if entry.title in LEGACY_ENTRY_TITLES:
+        hass.config_entries.async_update_entry(entry, title=ENTRY_TITLE)
+
     try:
         ban_manager: IpBanManager = hass.http.app[KEY_BAN_MANAGER]
     except KeyError:
