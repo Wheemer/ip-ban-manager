@@ -61,8 +61,14 @@
     "ip_address_allowlisted": {
       "message": "{ip_address} is allowlisted, so it was not banned."
     },
+    "ip_address_not_banned": {
+      "message": "{ip_address} is not currently banned."
+    },
     "unsafe_allowlist_network": {
       "message": "{network} would trust every IP address and effectively disable IP banning."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} contains one or more currently banned IP addresses. Remove those bans before allowlisting this network."
     },
     "clear_all_allowlist": {
       "message": "This would remove every allowed IP or network. Keep at least one trusted entry."

@@ -28,6 +28,7 @@ from custom_components.ban_allowlist.const import (
     ATTR_IP_ADDRESS,
     ATTR_NETWORK,
     ATTR_NETWORKS,
+    CONF_ALLOWED_IPS,
     CONF_BANNED_IPS,
     CONF_IP_ADDRESSES,
     DOMAIN,
@@ -126,6 +127,29 @@ async def test_setup_renames_legacy_entry_title(
     assert stored_entry is not None
     assert stored_entry.title == "IP Ban Manager"
     assert stored_entry.options == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
+
+
+@pytest.mark.asyncio
+async def test_setup_reads_legacy_allowed_ips_option(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test old allowed_ips option data is still honored."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+        options={CONF_ALLOWED_IPS: ["10.0.0.0/24"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["10.0.0.0/24"]
 
 
 @pytest.mark.asyncio
@@ -395,6 +419,34 @@ async def test_remove_ip_ban_keeps_unrelated_notification(
 
 
 @pytest.mark.asyncio
+async def test_remove_ip_ban_rejects_unknown_ip_without_mutating_state(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test typo removals do not rewrite ban state or clear failed attempts."""
+    await setup_ban_allowlist(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][ip_address("10.0.0.2")] = 2
+    before_file = Path(ban_manager.path).read_text(encoding="utf8")
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_REMOVE_IP_BAN,
+            {ATTR_IP_ADDRESS: "10.0.0.2"},
+            blocking=True,
+        )
+    check_records(caplog.records)
+
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.1")}
+    assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][ip_address("10.0.0.2")] == 2
+    assert Path(ban_manager.path).read_text(encoding="utf8") == before_file
+
+
+@pytest.mark.asyncio
 async def test_allowlist_services_update_live_options(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -480,6 +532,34 @@ async def test_allowlist_service_rejects_allowlisting_everything(
         "192.168.1.1/32",
         "172.17.0.0/24",
     ]
+
+
+@pytest.mark.asyncio
+async def test_allowlist_service_rejects_network_containing_active_ban(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test service calls cannot allowlist a network with active bans inside it."""
+    await setup_ban_allowlist(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.25"))
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_ALLOWLIST_NETWORK,
+            {ATTR_NETWORK: "10.0.0.0/24"},
+            blocking=True,
+        )
+    check_records(caplog.records)
+
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.25")}
 
 
 @pytest.mark.asyncio

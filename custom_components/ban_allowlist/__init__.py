@@ -42,6 +42,7 @@ from .const import (
     ATTR_IP_ADDRESS,
     ATTR_NETWORK,
     ATTR_NETWORKS,
+    CONF_ALLOWED_IPS,
     CONF_BANNED_IPS,
     CONF_IP_ADDRESSES,
     DOMAIN,
@@ -154,7 +155,10 @@ def _parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:
 
 def _entry_ip_addresses(entry: ConfigEntry) -> list[str]:
     """Return the configured allowlist for a config entry."""
-    return entry.options.get(CONF_IP_ADDRESSES, entry.data.get(CONF_IP_ADDRESSES, []))
+    return entry.options.get(
+        CONF_IP_ADDRESSES,
+        entry.options.get(CONF_ALLOWED_IPS, entry.data.get(CONF_IP_ADDRESSES, [])),
+    )
 
 
 def _ban_manager(hass: HomeAssistant) -> IpBanManager:
@@ -343,10 +347,16 @@ async def _async_remove_ip_ban(hass: HomeAssistant, ip_address_value: str) -> No
 
     ban_manager = _ban_manager(hass)
     removed_ban = ban_manager.ip_bans_lookup.pop(remote_addr, None)
+    if removed_ban is None:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="ip_address_not_banned",
+            translation_placeholders={ATTR_IP_ADDRESS: str(remote_addr)},
+        )
+
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
     await _async_rewrite_ip_bans_file(hass, ban_manager)
-    if removed_ban is not None:
-        _dismiss_removed_ip_notifications(hass, [remote_addr])
+    _dismiss_removed_ip_notifications(hass, [remote_addr])
 
 
 async def _async_remove_all_ip_bans(hass: HomeAssistant) -> None:
@@ -406,6 +416,14 @@ def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> Non
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="unsafe_allowlist_network",
+            translation_placeholders={ATTR_NETWORK: str(network)},
+        )
+
+    banned_ips = _ban_manager(hass).ip_bans_lookup
+    if any(banned_ip in network for banned_ip in banned_ips):
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="network_contains_banned_ip",
             translation_placeholders={ATTR_NETWORK: str(network)},
         )
 

@@ -22,6 +22,7 @@ IP Ban Manager is now a full management integration instead of a YAML-only allow
 - immediate add, remove, and clear actions without restarting Home Assistant
 - banned IP timestamps shown in the UI and preserved when unchanged
 - stale Home Assistant ban/login notifications dismissed when the matching IP is unbanned
+- safety checks for dangerous or contradictory edits before anything is written
 - diagnostic sensors for active bans, allowlisted networks, and failed-login sources
 - automation/script services for ban and allowlist management
 - shipped integration icon and updated HACS/repository metadata
@@ -70,6 +71,8 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 - view existing ban timestamps in the `banned_ips` list
 
 Existing banned IP rows are shown as `IP - banned_at`. You can leave those timestamps in place when saving; IP Ban Manager preserves the original ban date for unchanged bans. New banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are saved.
+
+The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist entries, IPs that are both allowed and banned, accidental full-list removals, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals and allowlist networks that contain active bans.
 
 The integration also adds services for automations and scripts:
 
