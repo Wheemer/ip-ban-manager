@@ -70,7 +70,9 @@ HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
 INTEGRATION_CONFIG_URL = f"/config/integrations/integration/{DOMAIN}"
-CONFIG_ENTRY_URL_TEMPLATE = "/config/integrations/config_entry/{entry_id}"
+CONFIG_ENTRY_URL_TEMPLATE = (
+    f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
+)
 
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ban_allowlist_config_entry")
