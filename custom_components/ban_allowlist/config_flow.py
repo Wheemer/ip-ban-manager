@@ -38,6 +38,7 @@ SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
 CONF_QUICK_ALLOWLIST = "quick_allowlist"
+CONF_BANNED_IPS_HELP = "banned_ips_help"
 QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
@@ -154,6 +155,21 @@ def _text_selector() -> selector.TextSelector:
             multiline=True,
             type=selector.TextSelectorType.TEXT,
         )
+    )
+
+
+def _banned_ips_help_text() -> str:
+    """Return static guidance for the banned entries textarea."""
+    return (
+        "Currently blocked IP addresses. Existing rows show the ban time for "
+        "review; new rows can be just an IP. Leave this empty to clear all bans."
+    )
+
+
+def _banned_ips_help_selector() -> selector.ConstantSelector:
+    """Return static guidance for the banned entries textarea."""
+    return selector.ConstantSelector(
+        selector.ConstantSelectorConfig(value=_banned_ips_help_text())
     )
 
 
@@ -470,6 +486,10 @@ class OptionsFlow(config_entries.OptionsFlow):
                                 bool(status[ATTR_AUTO_BAN_ENABLED]),
                                 cast(int, status[ATTR_LOGIN_ATTEMPTS_THRESHOLD]),
                             ),
+                            vol_optional(
+                                CONF_BANNED_IPS_HELP,
+                                default=_banned_ips_help_text(),
+                            ): _banned_ips_help_selector(),
                             vol.Required(
                                 CONF_BANNED_IPS,
                                 default=_items_to_text(banned_ips),
