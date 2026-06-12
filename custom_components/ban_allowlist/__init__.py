@@ -309,30 +309,35 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
     }
 
 
+def _ip_ban_file_payload(ban_manager: IpBanManager) -> dict[str, dict[str, str]]:
+    """Return the serialized ban mapping for ip_bans.yaml."""
+    return {
+        str(ip_ban.ip_address): {
+            ATTR_BANNED_AT: (
+                ip_ban.banned_at.isoformat()
+                if isinstance(ip_ban.banned_at, datetime)
+                else ip_ban.banned_at
+            )
+        }
+        for ip_ban in _chronological_ip_bans(ban_manager)
+    }
+
+
 async def _async_rewrite_ip_bans_file(
     hass: HomeAssistant, ban_manager: IpBanManager
 ) -> None:
-    """Rewrite ip_bans.yaml from the live ban manager."""
+    """Rewrite ip_bans.yaml from a stable snapshot of the live ban manager."""
+    ban_path = ban_manager.path
+    ip_bans = _ip_ban_file_payload(ban_manager)
 
     def _write_bans() -> None:
-        ip_bans = {
-            str(ip_ban.ip_address): {
-                ATTR_BANNED_AT: (
-                    ip_ban.banned_at.isoformat()
-                    if isinstance(ip_ban.banned_at, datetime)
-                    else ip_ban.banned_at
-                )
-            }
-            for ip_ban in _chronological_ip_bans(ban_manager)
-        }
+        path = Path(ban_path)
         if not ip_bans:
-            path = Path(ban_manager.path)
-            if path.exists():
-                path.unlink()
+            path.unlink(missing_ok=True)
             return
 
         _atomic_write_text(
-            ban_manager.path,
+            ban_path,
             yaml.safe_dump(ip_bans, sort_keys=False),
         )
 
