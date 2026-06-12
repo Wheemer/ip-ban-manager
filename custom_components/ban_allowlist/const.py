@@ -1,16 +1,23 @@
 """Constants for the Ban Allowlist integration."""
 
+ATTR_AUTO_BAN_ENABLED = "auto_ban_enabled"
 ATTR_BANNED_IPS = "banned_ips"
 ATTR_CONFIRM = "confirm"
 ATTR_FAILED_LOGIN_ATTEMPTS = "failed_login_attempts"
+ATTR_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
+ATTR_NATIVE_IP_BAN_ENABLED = "native_ip_ban_enabled"
 ATTR_IP_ADDRESS = "ip_address"
 ATTR_NETWORK = "network"
 ATTR_NETWORKS = "networks"
 
 CONF_ALLOWED_IPS = "allowed_ips"
+CONF_AUTO_BAN_ENABLED = "auto_ban_enabled"
 CONF_BANNED_IPS = "banned_ips"
 CONF_IP_ADDRESSES = "ip_addresses"
+CONF_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
 DOMAIN = "ban_allowlist"
+
+DEFAULT_LOGIN_ATTEMPTS_THRESHOLD = 5
 
 SERVICE_ADD_ALLOWLIST_NETWORK = "add_allowlist_network"
 SERVICE_ADD_IP_BAN = "add_ip_ban"

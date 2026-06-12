@@ -24,6 +24,7 @@ from homeassistant.components.http.ban import (
     ATTR_BANNED_AT,
     KEY_BAN_MANAGER,
     KEY_FAILED_LOGIN_ATTEMPTS,
+    KEY_LOGIN_THRESHOLD,
     NOTIFICATION_ID_BAN,
     NOTIFICATION_ID_LOGIN,
     IpBan,
@@ -39,15 +40,21 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_AUTO_BAN_ENABLED,
     ATTR_BANNED_IPS,
     ATTR_CONFIRM,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
+    ATTR_LOGIN_ATTEMPTS_THRESHOLD,
+    ATTR_NATIVE_IP_BAN_ENABLED,
     ATTR_NETWORK,
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
+    CONF_AUTO_BAN_ENABLED,
     CONF_BANNED_IPS,
     CONF_IP_ADDRESSES,
+    CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
     SERVICE_ADD_IP_BAN,
@@ -227,6 +234,61 @@ def _entry_ip_addresses(entry: ConfigEntry) -> list[str]:
     )
 
 
+def _native_ip_banning_enabled(hass: HomeAssistant) -> bool:
+    """Return whether Home Assistant loaded its native IP ban manager."""
+    return hass.http is not None and KEY_BAN_MANAGER in hass.http.app
+
+
+def _entry_auto_ban_enabled(entry: ConfigEntry) -> bool:
+    """Return whether automatic IP bans should be active when HA supports them."""
+    return bool(
+        entry.options.get(
+            CONF_AUTO_BAN_ENABLED,
+            entry.data.get(CONF_AUTO_BAN_ENABLED, True),
+        )
+    )
+
+
+def _current_login_threshold(hass: HomeAssistant) -> int:
+    """Return Home Assistant's current live login-attempt threshold."""
+    if hass.http is None:
+        return DEFAULT_LOGIN_ATTEMPTS_THRESHOLD
+    return max(
+        0, int(hass.http.app.get(KEY_LOGIN_THRESHOLD, DEFAULT_LOGIN_ATTEMPTS_THRESHOLD))
+    )
+
+
+def _entry_login_threshold(entry: ConfigEntry, hass: HomeAssistant) -> int:
+    """Return the configured login-attempt threshold for a config entry."""
+    return int(
+        entry.options.get(
+            CONF_LOGIN_ATTEMPTS_THRESHOLD,
+            entry.data.get(
+                CONF_LOGIN_ATTEMPTS_THRESHOLD, _current_login_threshold(hass)
+            ),
+        )
+    )
+
+
+def _effective_login_threshold(entry: ConfigEntry, hass: HomeAssistant) -> int:
+    """Return the live threshold to apply to Home Assistant."""
+    if not _entry_auto_ban_enabled(entry):
+        return 0
+    return _entry_login_threshold(entry, hass)
+
+
+def _apply_ban_settings(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Apply integration-owned ban settings to Home Assistant's live app."""
+    if _native_ip_banning_enabled(hass):
+        hass.http.app[KEY_LOGIN_THRESHOLD] = _effective_login_threshold(entry, hass)
+
+
+def _update_entry_options(hass: HomeAssistant, **updates: object) -> None:
+    """Persist config-entry options without dropping unrelated settings."""
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    hass.config_entries.async_update_entry(entry, options={**entry.options, **updates})
+
+
 def _ban_manager(hass: HomeAssistant) -> IpBanManager:
     """Return Home Assistant's loaded IP ban manager."""
     try:
@@ -292,7 +354,15 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
     """Return the live ban and allowlist status for UI surfaces."""
     ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
     failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     return {
+        ATTR_NATIVE_IP_BAN_ENABLED: _native_ip_banning_enabled(hass),
+        ATTR_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry) if entry else False,
+        ATTR_LOGIN_ATTEMPTS_THRESHOLD: (
+            _entry_login_threshold(entry, hass)
+            if entry
+            else _current_login_threshold(hass)
+        ),
         ATTR_NETWORKS: [
             str(network) for network in hass.http.app.get(KEY_ALLOWLIST, ())
         ],
@@ -348,10 +418,7 @@ async def _async_rewrite_ip_bans_file(
 
 def _update_allowlist_entry(hass: HomeAssistant, ip_addresses: list[str]) -> None:
     """Persist and apply the current allowlist without a Home Assistant restart."""
-    entry = hass.http.app[KEY_CONFIG_ENTRY]
-    hass.config_entries.async_update_entry(
-        entry, options={**entry.options, CONF_IP_ADDRESSES: ip_addresses}
-    )
+    _update_entry_options(hass, **{CONF_IP_ADDRESSES: ip_addresses})
     hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(ip_addresses)
 
 
@@ -627,6 +694,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ban Allowlist from a config entry."""
     _async_cleanup_entry_metadata(hass, entry)
+    hass.http.app[KEY_CONFIG_ENTRY] = entry
+    hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(_entry_ip_addresses(entry))
 
     try:
         ban_manager: IpBanManager = hass.http.app[KEY_BAN_MANAGER]
@@ -638,9 +707,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
     _async_delete_ip_ban_disabled_issue(hass)
     _LOGGER.debug("Ban manager %s", ban_manager)
-    allowlist = _parse_allowlist(_entry_ip_addresses(entry))
-    hass.http.app[KEY_ALLOWLIST] = allowlist
-    hass.http.app[KEY_CONFIG_ENTRY] = entry
+    _apply_ban_settings(hass, entry)
+    allowlist = hass.http.app[KEY_ALLOWLIST]
 
     if len(allowlist) == 0:
         _LOGGER.info("Not setting allowlist, as no IPs set")

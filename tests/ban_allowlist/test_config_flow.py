@@ -23,10 +23,21 @@ from custom_components.ban_allowlist.config_flow import (
 from custom_components.ban_allowlist.const import (
     ATTR_BANNED_IPS,
     CONF_ALLOWED_IPS,
+    CONF_AUTO_BAN_ENABLED,
     CONF_BANNED_IPS,
     CONF_IP_ADDRESSES,
+    CONF_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
 )
+
+
+def expected_setup_data(ip_addresses: list[str]) -> dict[str, object]:
+    """Return expected first-run config entry data."""
+    return {
+        CONF_IP_ADDRESSES: ip_addresses,
+        CONF_AUTO_BAN_ENABLED: True,
+        CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+    }
 
 
 async def no_detected_subnets(hass: HomeAssistant) -> list[str]:
@@ -140,7 +151,7 @@ async def test_user_flow(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -
 
     assert result["type"] == "create_entry"
     assert result["title"] == "IP Ban Manager"
-    assert result["data"] == {CONF_IP_ADDRESSES: DEFAULT_ALLOWED_IPS}
+    assert result["data"] == expected_setup_data(DEFAULT_ALLOWED_IPS)
 
 
 @pytest.mark.asyncio
@@ -176,9 +187,9 @@ async def test_user_flow_can_add_detected_subnet(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {
-        CONF_IP_ADDRESSES: [*DEFAULT_ALLOWED_IPS, "192.168.1.0/24"]
-    }
+    assert result["data"] == expected_setup_data(
+        [*DEFAULT_ALLOWED_IPS, "192.168.1.0/24"]
+    )
 
 
 @pytest.mark.asyncio
@@ -207,7 +218,7 @@ async def test_user_flow_can_skip_localhost(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: []}
+    assert result["data"] == expected_setup_data([])
 
 
 @pytest.mark.asyncio

@@ -3,9 +3,11 @@
     "step": {
       "user": {
         "title": "Set up IP Ban Manager",
-        "description": "Choose any safe default allowlist entries to start with.",
+        "description": "Choose safe default allowlist entries and initial automatic ban settings.",
         "data": {
-          "quick_allowlist": "Safe defaults"
+          "quick_allowlist": "Safe defaults",
+          "auto_ban_enabled": "Enable automatic bans",
+          "login_attempts_threshold": "Login attempts threshold"
         }
       }
     },
@@ -25,6 +27,14 @@
         "title": "Manage IP Ban Manager",
         "description": "Manage the live allowlist and ban list. Submit applies changes immediately; no Home Assistant restart is needed.",
         "sections": {
+          "ban_settings": {
+            "name": "Ban Settings",
+            "description": "Adjust Home Assistant's live automatic ban threshold. Set the threshold to 0 or disable automatic bans to stop new automatic bans while keeping manual ban management available.",
+            "data": {
+              "auto_ban_enabled": "Enable automatic bans",
+              "login_attempts_threshold": "Login attempts threshold"
+            }
+          },
           "allowed_ips": {
             "name": "Allowed IPs",
             "description": "Trusted IP addresses or networks that should never be banned. Use one entry per line. CIDR and IPv4 wildcard networks like 192.168.1.* are supported.",

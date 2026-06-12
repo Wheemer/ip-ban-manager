@@ -9,7 +9,7 @@ from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant import config_entries, data_entry_flow
-from homeassistant.components.http.ban import ATTR_BANNED_AT
+from homeassistant.components.http.ban import ATTR_BANNED_AT, KEY_LOGIN_THRESHOLD
 from homeassistant.components.network import async_get_adapters
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
@@ -17,19 +17,26 @@ from homeassistant.util import dt as dt_util
 from voluptuous.schema_builder import Optional as vol_optional
 
 from .const import (
+    ATTR_AUTO_BAN_ENABLED,
     ATTR_BANNED_IPS,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
+    ATTR_LOGIN_ATTEMPTS_THRESHOLD,
+    ATTR_NATIVE_IP_BAN_ENABLED,
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
+    CONF_AUTO_BAN_ENABLED,
     CONF_BANNED_IPS,
     CONF_IP_ADDRESSES,
+    CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
 )
 from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
+SECTION_BAN_SETTINGS = "ban_settings"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
 CONF_QUICK_ALLOWLIST = "quick_allowlist"
 QUICK_ALLOW_LOCALHOST = "localhost"
@@ -151,6 +158,45 @@ def _text_selector() -> selector.TextSelector:
     )
 
 
+def _login_attempts_threshold_selector() -> selector.NumberSelector:
+    """Return the login-attempt threshold selector."""
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0,
+            max=100,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+
+def _current_login_threshold(hass: HomeAssistant) -> int:
+    """Return Home Assistant's current live login-attempt threshold."""
+    if hass.http is None:
+        return DEFAULT_LOGIN_ATTEMPTS_THRESHOLD
+    return max(
+        0, int(hass.http.app.get(KEY_LOGIN_THRESHOLD, DEFAULT_LOGIN_ATTEMPTS_THRESHOLD))
+    )
+
+
+def _ban_settings_fields(auto_ban_enabled: bool, threshold: int) -> dict[Any, Any]:
+    """Return the auto-ban settings fields."""
+    return {
+        vol_optional(
+            CONF_AUTO_BAN_ENABLED,
+            default=auto_ban_enabled,
+        ): bool,
+        vol.Required(
+            CONF_LOGIN_ATTEMPTS_THRESHOLD,
+            default=threshold,
+        ): _login_attempts_threshold_selector(),
+    }
+
+
+def _ban_settings_schema(auto_ban_enabled: bool, threshold: int) -> vol.Schema:
+    """Return the auto-ban settings schema."""
+    return vol.Schema(_ban_settings_fields(auto_ban_enabled, threshold))
+
+
 def _local_network_option_label(detected_subnets: list[str]) -> str:
     """Return a readable dynamic label for the local-network checkbox."""
     if len(detected_subnets) == 1:
@@ -159,22 +205,22 @@ def _local_network_option_label(detected_subnets: list[str]) -> str:
     return f"Allow local networks {', '.join(detected_subnets)}"
 
 
-def _initial_setup_schema(detected_subnets: list[str]) -> vol.Schema:
+def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Schema:
     """Return the first-run setup schema."""
-    return vol.Schema(
-        {
-            vol_optional(
-                CONF_QUICK_ALLOWLIST,
-                default=[QUICK_ALLOW_LOCALHOST],
-            ): _quick_allowlist_selector(
-                [
-                    QUICK_ALLOW_LOCALHOST,
-                    *([QUICK_ALLOW_LOCAL_NETWORK] if detected_subnets else []),
-                ],
-                detected_subnets,
-            )
-        }
+    fields = _ban_settings_fields(True, threshold)
+    fields[
+        vol_optional(
+            CONF_QUICK_ALLOWLIST,
+            default=[QUICK_ALLOW_LOCALHOST],
+        )
+    ] = _quick_allowlist_selector(
+        [
+            QUICK_ALLOW_LOCALHOST,
+            *([QUICK_ALLOW_LOCAL_NETWORK] if detected_subnets else []),
+        ],
+        detected_subnets,
     )
+    return vol.Schema(fields)
 
 
 def _allowlist_management_schema(
@@ -328,12 +374,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title="IP Ban Manager",
-                data={CONF_IP_ADDRESSES: _dedupe_items(ip_addresses)},
+                data={
+                    CONF_IP_ADDRESSES: _dedupe_items(ip_addresses),
+                    CONF_AUTO_BAN_ENABLED: bool(
+                        user_input.get(CONF_AUTO_BAN_ENABLED, True)
+                    ),
+                    CONF_LOGIN_ATTEMPTS_THRESHOLD: int(
+                        user_input.get(
+                            CONF_LOGIN_ATTEMPTS_THRESHOLD,
+                            _current_login_threshold(self.hass),
+                        )
+                    ),
+                },
             )
 
         return self.async_show_form(
             step_id="user",
-            data_schema=_initial_setup_schema(detected_subnets),
+            data_schema=_initial_setup_schema(
+                detected_subnets, _current_login_threshold(self.hass)
+            ),
             description_placeholders={
                 "home_assistant_subnets": _items_to_text(detected_subnets) or "None"
             },
@@ -382,6 +441,16 @@ class OptionsFlow(config_entries.OptionsFlow):
         current_addresses = _current_addresses(self._config_entry)
         return vol.Schema(
             {
+                vol_optional(
+                    SECTION_BAN_SETTINGS,
+                    default={},
+                ): data_entry_flow.section(
+                    _ban_settings_schema(
+                        bool(status[ATTR_AUTO_BAN_ENABLED]),
+                        cast(int, status[ATTR_LOGIN_ATTEMPTS_THRESHOLD]),
+                    ),
+                    {"collapsed": True},
+                ),
                 vol.Required(
                     SECTION_ALLOWED_IPS,
                 ): data_entry_flow.section(
@@ -414,6 +483,13 @@ class OptionsFlow(config_entries.OptionsFlow):
         banned_ips = cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
         failed_login_attempts = cast(dict[str, int], status[ATTR_FAILED_LOGIN_ATTEMPTS])
         return {
+            ATTR_NATIVE_IP_BAN_ENABLED: (
+                "Enabled" if status[ATTR_NATIVE_IP_BAN_ENABLED] else "Disabled"
+            ),
+            ATTR_AUTO_BAN_ENABLED: (
+                "Enabled" if status[ATTR_AUTO_BAN_ENABLED] else "Disabled"
+            ),
+            ATTR_LOGIN_ATTEMPTS_THRESHOLD: str(status[ATTR_LOGIN_ATTEMPTS_THRESHOLD]),
             ATTR_NETWORKS: "\n".join(cast(list[str], status[ATTR_NETWORKS])) or "None",
             ATTR_BANNED_IPS: _format_banned_ip_details(banned_ips),
             ATTR_FAILED_LOGIN_ATTEMPTS: "\n".join(
@@ -426,12 +502,40 @@ class OptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Manage allowlisted and banned IP entries."""
-        from . import _async_replace_ip_bans, _update_allowlist_entry
+        from . import (
+            _apply_ban_settings,
+            _async_replace_ip_bans,
+            _update_allowlist_entry,
+        )
 
         errors: dict[str, str] = {}
         self._detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:
+            ban_settings_input = cast(
+                dict[str, Any], user_input.get(SECTION_BAN_SETTINGS, {})
+            )
+            auto_ban_enabled = bool(
+                ban_settings_input.get(
+                    CONF_AUTO_BAN_ENABLED,
+                    self._config_entry.options.get(
+                        CONF_AUTO_BAN_ENABLED,
+                        self._config_entry.data.get(CONF_AUTO_BAN_ENABLED, True),
+                    ),
+                )
+            )
+            login_attempts_threshold = int(
+                ban_settings_input.get(
+                    CONF_LOGIN_ATTEMPTS_THRESHOLD,
+                    self._config_entry.options.get(
+                        CONF_LOGIN_ATTEMPTS_THRESHOLD,
+                        self._config_entry.data.get(
+                            CONF_LOGIN_ATTEMPTS_THRESHOLD,
+                            _current_login_threshold(self.hass),
+                        ),
+                    ),
+                )
+            )
             allowed_input = cast(dict[str, Any], user_input[SECTION_ALLOWED_IPS])
             banned_input = cast(dict[str, str], user_input[SECTION_BANNED_IPS])
             try:
@@ -462,6 +566,15 @@ class OptionsFlow(config_entries.OptionsFlow):
                     errors[CONF_BANNED_IPS] = "banned_ip_allowlisted"
 
             if not errors:
+                self.hass.config_entries.async_update_entry(
+                    self._config_entry,
+                    options={
+                        **self._config_entry.options,
+                        CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+                        CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+                    },
+                )
+                _apply_ban_settings(self.hass, self._config_entry)
                 _update_allowlist_entry(self.hass, ip_addresses)
                 await _async_replace_ip_bans(self.hass, banned_ips)
                 return self.async_create_entry(
