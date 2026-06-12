@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, ip_address
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from homeassistant.components.http.ban import KEY_BAN_MANAGER, IpBanManager
@@ -33,10 +33,17 @@ from custom_components.ban_allowlist.const import (
 
 def expected_setup_data(ip_addresses: list[str]) -> dict[str, object]:
     """Return expected first-run config entry data."""
+    return expected_options_data(ip_addresses)
+
+
+def expected_options_data(
+    ip_addresses: list[str], threshold: int = 0
+) -> dict[str, object]:
+    """Return expected options-flow data."""
     return {
         CONF_IP_ADDRESSES: ip_addresses,
         CONF_AUTO_BAN_ENABLED: True,
-        CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+        CONF_LOGIN_ATTEMPTS_THRESHOLD: threshold,
     }
 
 
@@ -283,7 +290,7 @@ async def test_options_flow_edits_live_lists(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.1.1", "10.0.1.0/24"]}
+    assert result["data"] == expected_options_data(["192.168.1.1", "10.0.1.0/24"])
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
         "192.168.1.1/32",
         "10.0.1.0/24",
@@ -312,8 +319,12 @@ async def test_options_flow_edits_live_lists(
 async def test_options_flow_safe_default_checkboxes(
     hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test options only show checkboxes for missing allowlist entries."""
+    """Test options show checked safe-default checkboxes for current entries."""
     entry = await setup_options_entry(hass, tmp_path)
+    hass.config_entries.async_update_entry(
+        cast(Any, entry),
+        options={CONF_ALLOWED_IPS: ["127.0.0.1", "192.168.1.0/24"]},
+    )
     monkeypatch.setattr(
         ban_config_flow,
         "_async_detect_home_assistant_subnets",
@@ -322,6 +333,18 @@ async def test_options_flow_safe_default_checkboxes(
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
+    allowed_schema = (
+        result["data_schema"].schema[ban_config_flow.SECTION_ALLOWED_IPS].schema
+    )
+    quick_marker = next(
+        marker
+        for marker in allowed_schema.schema
+        if marker.schema == ban_config_flow.CONF_QUICK_ALLOWLIST
+    )
+    assert quick_marker.default() == [
+        ban_config_flow.QUICK_ALLOW_LOCALHOST,
+        ban_config_flow.QUICK_ALLOW_LOCAL_NETWORK,
+    ]
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
@@ -333,14 +356,22 @@ async def test_options_flow_safe_default_checkboxes(
                 ],
                 CONF_ALLOWED_IPS: "10.0.1.0/24",
             },
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+            CONF_BANNED_IPS: {
+                CONF_AUTO_BAN_ENABLED: True,
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
+                CONF_BANNED_IPS: "",
+            },
         },
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {
-        CONF_IP_ADDRESSES: ["10.0.1.0/24", "127.0.0.1", "192.168.1.0/24"]
-    }
+    assert result["data"] == expected_options_data(
+        ["10.0.1.0/24", "127.0.0.1", "192.168.1.0/24"], threshold=5
+    )
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_AUTO_BAN_ENABLED] is True
+    assert stored_entry.options[CONF_LOGIN_ATTEMPTS_THRESHOLD] == 5
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
@@ -349,14 +380,23 @@ async def test_options_flow_safe_default_checkboxes(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {
+                ban_config_flow.CONF_QUICK_ALLOWLIST: [],
                 CONF_ALLOWED_IPS: "10.0.1.0/24",
             },
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+            CONF_BANNED_IPS: {
+                CONF_AUTO_BAN_ENABLED: True,
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
+                CONF_BANNED_IPS: "",
+            },
         },
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["10.0.1.0/24"]}
+    assert result["data"] == {
+        CONF_IP_ADDRESSES: ["10.0.1.0/24"],
+        CONF_AUTO_BAN_ENABLED: True,
+        CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
+    }
 
 
 @pytest.mark.asyncio
@@ -378,7 +418,7 @@ async def test_options_flow_normalizes_ipv4_wildcard_addresses(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["192.168.50.0/24"]}
+    assert result["data"] == expected_options_data(["192.168.50.0/24"])
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.50.0/24"]
 
 
@@ -428,7 +468,7 @@ async def test_options_flow_can_clear_allowlist(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {CONF_IP_ADDRESSES: []}
+    assert result["data"] == expected_options_data([])
     assert hass.http.app[KEY_ALLOWLIST] == ()
 
 

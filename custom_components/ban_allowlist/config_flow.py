@@ -36,7 +36,6 @@ from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
-SECTION_BAN_SETTINGS = "ban_settings"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
 CONF_QUICK_ALLOWLIST = "quick_allowlist"
 QUICK_ALLOW_LOCALHOST = "localhost"
@@ -227,17 +226,17 @@ def _allowlist_management_schema(
     current_addresses: list[str], detected_subnets: list[str]
 ) -> vol.Schema:
     """Return the compact allowlist management schema."""
+    quick_options = _available_quick_allowlist_options(detected_subnets)
     fields: dict[Any, Any] = {}
-    missing_quick_options = _missing_quick_allowlist_options(
-        current_addresses, detected_subnets
-    )
-    if missing_quick_options:
+    if quick_options:
         fields[
             vol_optional(
                 CONF_QUICK_ALLOWLIST,
-                default=[],
+                default=_current_quick_allowlist_options(
+                    current_addresses, detected_subnets
+                ),
             )
-        ] = _quick_allowlist_selector(missing_quick_options, detected_subnets)
+        ] = _quick_allowlist_selector(quick_options, detected_subnets)
     fields[
         vol.Required(
             CONF_ALLOWED_IPS,
@@ -277,25 +276,33 @@ def _quick_allowlist_selector(
     )
 
 
-def _missing_quick_allowlist_options(
+def _available_quick_allowlist_options(detected_subnets: list[str]) -> list[str]:
+    """Return common allowlist checkbox options available for this host."""
+    return [
+        QUICK_ALLOW_LOCALHOST,
+        *([QUICK_ALLOW_LOCAL_NETWORK] if detected_subnets else []),
+    ]
+
+
+def _current_quick_allowlist_options(
     current_addresses: list[str], detected_subnets: list[str]
 ) -> list[str]:
-    """Return common allowlist checkboxes that are not already configured."""
-    missing: list[str] = []
-    if DEFAULT_ALLOWED_IPS[0] not in current_addresses:
-        missing.append(QUICK_ALLOW_LOCALHOST)
-    if detected_subnets and not any(
-        subnet in current_addresses for subnet in detected_subnets
-    ):
-        missing.append(QUICK_ALLOW_LOCAL_NETWORK)
-    return missing
+    """Return common allowlist checkbox options already active."""
+    current = set(current_addresses)
+    selected: list[str] = []
+    if DEFAULT_ALLOWED_IPS[0] in current:
+        selected.append(QUICK_ALLOW_LOCALHOST)
+    if detected_subnets and any(subnet in current for subnet in detected_subnets):
+        selected.append(QUICK_ALLOW_LOCAL_NETWORK)
+    return selected
 
 
 def _apply_quick_allowlist_options(
     ip_addresses: list[str], quick_input: list[str], detected_subnets: list[str]
 ) -> list[str]:
-    """Add selected convenience allowlist entries to the editable allowlist."""
-    updated = list(ip_addresses)
+    """Sync convenience allowlist entries with the checkbox state."""
+    quick_managed_entries = {*DEFAULT_ALLOWED_IPS, *detected_subnets}
+    updated = [ip for ip in ip_addresses if ip not in quick_managed_entries]
 
     if QUICK_ALLOW_LOCALHOST in quick_input:
         updated.extend(DEFAULT_ALLOWED_IPS)
@@ -441,16 +448,6 @@ class OptionsFlow(config_entries.OptionsFlow):
         current_addresses = _current_addresses(self._config_entry)
         return vol.Schema(
             {
-                vol_optional(
-                    SECTION_BAN_SETTINGS,
-                    default={},
-                ): data_entry_flow.section(
-                    _ban_settings_schema(
-                        bool(status[ATTR_AUTO_BAN_ENABLED]),
-                        cast(int, status[ATTR_LOGIN_ATTEMPTS_THRESHOLD]),
-                    ),
-                    {"collapsed": True},
-                ),
                 vol.Required(
                     SECTION_ALLOWED_IPS,
                 ): data_entry_flow.section(
@@ -464,6 +461,10 @@ class OptionsFlow(config_entries.OptionsFlow):
                 ): data_entry_flow.section(
                     vol.Schema(
                         {
+                            **_ban_settings_fields(
+                                bool(status[ATTR_AUTO_BAN_ENABLED]),
+                                cast(int, status[ATTR_LOGIN_ATTEMPTS_THRESHOLD]),
+                            ),
                             vol.Required(
                                 CONF_BANNED_IPS,
                                 default=_items_to_text(banned_ips),
@@ -512,11 +513,10 @@ class OptionsFlow(config_entries.OptionsFlow):
         self._detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:
-            ban_settings_input = cast(
-                dict[str, Any], user_input.get(SECTION_BAN_SETTINGS, {})
-            )
+            allowed_input = cast(dict[str, Any], user_input[SECTION_ALLOWED_IPS])
+            banned_input = cast(dict[str, Any], user_input[SECTION_BANNED_IPS])
             auto_ban_enabled = bool(
-                ban_settings_input.get(
+                banned_input.get(
                     CONF_AUTO_BAN_ENABLED,
                     self._config_entry.options.get(
                         CONF_AUTO_BAN_ENABLED,
@@ -525,7 +525,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 )
             )
             login_attempts_threshold = int(
-                ban_settings_input.get(
+                banned_input.get(
                     CONF_LOGIN_ATTEMPTS_THRESHOLD,
                     self._config_entry.options.get(
                         CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -536,8 +536,6 @@ class OptionsFlow(config_entries.OptionsFlow):
                     ),
                 )
             )
-            allowed_input = cast(dict[str, Any], user_input[SECTION_ALLOWED_IPS])
-            banned_input = cast(dict[str, str], user_input[SECTION_BANNED_IPS])
             try:
                 ip_addresses = _validate_ip_addresses(allowed_input[CONF_ALLOWED_IPS])
                 if CONF_QUICK_ALLOWLIST in allowed_input:
@@ -579,7 +577,11 @@ class OptionsFlow(config_entries.OptionsFlow):
                 await _async_replace_ip_bans(self.hass, banned_ips)
                 return self.async_create_entry(
                     title="",
-                    data={CONF_IP_ADDRESSES: ip_addresses},
+                    data={
+                        CONF_IP_ADDRESSES: ip_addresses,
+                        CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+                        CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+                    },
                 )
 
         return self.async_show_form(

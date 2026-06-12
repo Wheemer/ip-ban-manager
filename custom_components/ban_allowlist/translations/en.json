@@ -27,14 +27,6 @@
         "title": "Manage IP Ban Manager",
         "description": "Manage the live allowlist and ban list. Submit applies changes immediately; no Home Assistant restart is needed.",
         "sections": {
-          "ban_settings": {
-            "name": "Ban Settings",
-            "description": "Adjust Home Assistant's live automatic ban threshold. Set the threshold to 0 or disable automatic bans to stop new automatic bans while keeping manual ban management available.",
-            "data": {
-              "auto_ban_enabled": "Enable automatic bans",
-              "login_attempts_threshold": "Login attempts threshold"
-            }
-          },
           "allowed_ips": {
             "name": "Allowed IPs",
             "description": "Trusted IP addresses or networks that should never be banned. Use one entry per line. CIDR and IPv4 wildcard networks like 192.168.1.* are supported.",
@@ -45,8 +37,10 @@
           },
           "banned_ips": {
             "name": "Banned IPs",
-            "description": "Currently blocked IP addresses from Home Assistant's live ban list. Existing rows show the ban time for review; new rows can be just an IP. Leave this empty to clear all bans.",
+            "description": "Manage Home Assistant's automatic bans and currently blocked IP addresses. Existing rows show the ban time for review; new rows can be just an IP. Leave the list empty to clear all bans.",
             "data": {
+              "auto_ban_enabled": "Enable automatic bans",
+              "login_attempts_threshold": "Login attempts threshold",
               "banned_ips": "Banned entries"
             }
           }
