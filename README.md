@@ -1,15 +1,31 @@
-<table>
-  <tr>
-    <td><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/custom_components/ban_allowlist/icon.png" width="96" alt="IP Ban Manager icon"></td>
-    <td><h1>Home Assistant IP Ban Manager</h1></td>
-  </tr>
-</table>
+<div align="center">
 
-Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`](https://github.com/palfrey/ban_allowlist). This fork builds on that work with a live Home Assistant IP ban and allowlist manager UI.
+<img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/custom_components/ban_allowlist/icon.png" width="112" alt="IP Ban Manager icon">
+
+# Home Assistant IP Ban Manager
+
+### Live IP ban and allowlist management for Home Assistant
+
+[![HACS Custom](https://img.shields.io/badge/HACS-CUSTOM-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://github.com/hacs/integration)
+[![Home Assistant 2025.1.4+](https://img.shields.io/badge/HOME%20ASSISTANT-2025.1.4%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
+[![Latest release](https://img.shields.io/github/v/release/Wheemer/ip-ban-manager?style=for-the-badge&logo=github&logoColor=white&label=RELEASE&labelColor=555555&color=22C55E)](https://github.com/Wheemer/ip-ban-manager/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
+[![Unit Tests](https://img.shields.io/github/actions/workflow/status/Wheemer/ip-ban-manager/unittest.yaml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=TESTS&labelColor=555555)](https://github.com/Wheemer/ip-ban-manager/actions/workflows/unittest.yaml)
+[![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&labelColor=555555&color=64748B)](LICENSE)
+
+<p>
+  <strong>Version 1.0.0:</strong><br>
+  Config UI, live ban edits, allowlist safety checks, diagnostics, services, and Home Assistant notification links.
+</p>
 
 [![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Wheemer&repository=ip-ban-manager&category=integration)
 
-Status: **THIS IS A HACK. USE AT YOUR OWN RISK.**
+</div>
+
+Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`](https://github.com/palfrey/ban_allowlist). This fork builds on that work with a live Home Assistant IP ban and allowlist manager UI.
+
+> [!WARNING]
+> **THIS IS A HACK. USE AT YOUR OWN RISK.** Home Assistant does not provide a public integration API for changing the HTTP IP ban manager at runtime, so this integration uses a small internal hook around Home Assistant's built-in ban manager.
 
 IP Ban Manager extends Home Assistant's [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) with a UI for trusted networks, live IP ban management, diagnostics, services, and a proper integration icon.
 
