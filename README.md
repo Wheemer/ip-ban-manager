@@ -30,9 +30,10 @@ IP Ban Manager extends Home Assistant's [IP filtering and banning](https://www.h
 
 IP Ban Manager is now a full management integration instead of a YAML-only allowlist wrapper:
 
-- config flow setup with YAML import for existing `ban_allowlist` users
-- new UI setup with checkboxes for `127.0.0.1` and Home Assistant's detected local subnet
+- polished config-flow setup with YAML import for existing `ban_allowlist` users
+- first-run checkboxes for automatic banning, `127.0.0.1`, and Home Assistant's detected local subnet
 - live editable **Allowed IPs** and **Banned IPs** lists from the integration options
+- automatic-ban enable/disable and login-attempt threshold controls under **Banned IPs**
 - IPv4 wildcard shorthand for allowed networks, such as `192.168.1.*`
 - immediate add, remove, and clear actions without restarting Home Assistant
 - banned IP timestamps shown as readable local times in the UI and preserved when unchanged
@@ -42,6 +43,20 @@ IP Ban Manager is now a full management integration instead of a YAML-only allow
 - diagnostic sensors for active bans, allowlisted networks, and failed-login sources
 - automation/script services for ban and allowlist management
 - shipped integration icon and updated HACS/repository metadata
+
+## UI Examples
+
+### Initial Setup
+
+![Set up IP Ban Manager](docs/images/setup-flow.png)
+
+### Allowed IPs
+
+![Allowed IPs options](docs/images/allowed-ips-options.png)
+
+### Banned IPs
+
+![Banned IPs options](docs/images/banned-ips-options.png)
 
 ## Hack Warning
 
@@ -61,7 +76,7 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 ## Config
 
-After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. New installs show safe-default checkboxes for `127.0.0.1` and, when detected, Home Assistant's local subnet. `127.0.0.1` is selected by default; the detected local subnet is available but not selected by default. Add or remove trusted LAN and remote IPs from **Configure** after setup.
+After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. New installs show an automatic-ban checkbox, the login-attempt threshold, and allowlist safe-default checkboxes for `127.0.0.1` and, when detected, Home Assistant's local subnet. `127.0.0.1` is selected by default; the detected local subnet is available but not selected by default. Add or remove trusted LAN and remote IPs from **Configure** after setup.
 
 Existing YAML configuration is imported automatically:
 
@@ -82,12 +97,13 @@ If IP banning is not enabled, IP Ban Manager creates a Home Assistant repair war
 
 ## Live Management
 
-Allowlist and ban changes made from the integration options apply immediately; Home Assistant does not need to restart.
+Allowlist, ban list, and automatic-ban setting changes made from the integration options apply immediately; Home Assistant does not need to restart. The integration stores automatic-ban settings in its config entry and reapplies them when Home Assistant starts.
 
 Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 
-- add missing safe defaults with checkboxes inside **Allowed IPs**
+- add safe defaults with checkboxes inside **Allowed IPs**
 - edit **Allowed IPs**, one IP address, CIDR network, or IPv4 wildcard network per line
+- enable or disable new automatic bans and adjust the login-attempt threshold under **Banned IPs**
 - edit **Banned IPs**, one exact IP address per line
 - view existing ban timestamps as readable local times in **Banned IPs**
 - clear every ban by leaving the **Banned IPs** list empty and submitting

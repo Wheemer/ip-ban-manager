@@ -7,8 +7,8 @@ IP Ban Manager turns the original YAML-only ban allowlist into a full Home Assis
 ### Added
 
 - Config flow setup with automatic YAML import for existing `ban_allowlist` configuration.
-- New UI setup shows safe-default checkboxes for `127.0.0.1` and Home Assistant's detected local subnet.
-- Live **Allowed IPs** and **Banned IPs** management from the integration options.
+- Polished UI setup shows automatic-ban controls and allowlist safe-default checkboxes for `127.0.0.1` and Home Assistant's detected local subnet.
+- Live **Allowed IPs** and **Banned IPs** management from the integration options, with safe defaults, inline guidance, and readable ban timestamps.
 - IPv4 wildcard shorthand for allowlisted networks, such as `192.168.1.*`.
 - Immediate ban and allowlist updates without restarting Home Assistant.
 - Banned IP timestamp display as readable local times, with timestamps preserved when existing bans remain.
@@ -19,7 +19,7 @@ IP Ban Manager turns the original YAML-only ban allowlist into a full Home Assis
 - Services for adding, removing, and clearing IP bans and allowlist entries.
 - Diagnostic sensors for active bans, allowlisted networks, and failed-login sources.
 - Cleanup of stale Home Assistant ban/login persistent notifications when the matching IP is unbanned.
-- Integration icon and updated HACS/repository metadata.
+- Integration icon, README screenshots, and updated HACS/repository metadata.
 
 ### Changed
 

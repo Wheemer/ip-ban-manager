@@ -39,6 +39,8 @@ SECTION_BANNED_IPS = "banned_ips"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
 CONF_QUICK_ALLOWLIST = "quick_allowlist"
 CONF_BANNED_IPS_HELP = "banned_ips_help"
+CONF_ALLOWED_IPS_HELP = "allowed_ips_help"
+CONF_AUTO_BAN_CHECKBOX = "auto_ban"
 QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
@@ -158,6 +160,22 @@ def _text_selector() -> selector.TextSelector:
     )
 
 
+def _allowed_ips_help_text() -> str:
+    """Return static guidance for the allowed entries textarea."""
+    return (
+        "Trusted IP addresses or networks that should never be banned. Use "
+        "one entry per line. CIDR and IPv4 wildcard networks like "
+        "192.168.1.* are supported."
+    )
+
+
+def _allowed_ips_help_selector() -> selector.ConstantSelector:
+    """Return static guidance for the allowed entries textarea."""
+    return selector.ConstantSelector(
+        selector.ConstantSelectorConfig(value=_allowed_ips_help_text())
+    )
+
+
 def _banned_ips_help_text() -> str:
     """Return static guidance for the banned entries textarea."""
     return (
@@ -173,9 +191,21 @@ def _banned_ips_help_selector() -> selector.ConstantSelector:
     )
 
 
-def _auto_ban_enabled_selector() -> selector.BooleanSelector:
-    """Return the automatic-ban enabled selector."""
-    return selector.BooleanSelector(selector.BooleanSelectorConfig())
+def _auto_ban_enabled_selector() -> selector.SelectSelector:
+    """Return the automatic-ban enabled checkbox selector."""
+    options: list[selector.SelectOptionDict] = [
+        {
+            "value": CONF_AUTO_BAN_CHECKBOX,
+            "label": "Enable automatic bans",
+        }
+    ]
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=options,
+            multiple=True,
+            mode=selector.SelectSelectorMode.LIST,
+        )
+    )
 
 
 def _login_attempts_threshold_selector() -> selector.NumberSelector:
@@ -203,7 +233,7 @@ def _ban_settings_fields(auto_ban_enabled: bool, threshold: int) -> dict[Any, An
     return {
         vol_optional(
             CONF_AUTO_BAN_ENABLED,
-            default=auto_ban_enabled,
+            default=[CONF_AUTO_BAN_CHECKBOX] if auto_ban_enabled else [],
         ): _auto_ban_enabled_selector(),
         vol.Required(
             CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -220,9 +250,9 @@ def _ban_settings_schema(auto_ban_enabled: bool, threshold: int) -> vol.Schema:
 def _local_network_option_label(detected_subnets: list[str]) -> str:
     """Return a readable dynamic label for the local-network checkbox."""
     if len(detected_subnets) == 1:
-        return f"Allow local network {detected_subnets[0]}"
+        return f"Local network {detected_subnets[0]}"
 
-    return f"Allow local networks {', '.join(detected_subnets)}"
+    return f"Local networks {', '.join(detected_subnets)}"
 
 
 def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Schema:
@@ -259,6 +289,12 @@ def _allowlist_management_schema(
             )
         ] = _quick_allowlist_selector(quick_options, detected_subnets)
     fields[
+        vol_optional(
+            CONF_ALLOWED_IPS_HELP,
+            default=_allowed_ips_help_text(),
+        )
+    ] = _allowed_ips_help_selector()
+    fields[
         vol.Required(
             CONF_ALLOWED_IPS,
             default=_items_to_text(current_addresses),
@@ -277,7 +313,7 @@ def _quick_allowlist_selector(
         options.append(
             {
                 "value": QUICK_ALLOW_LOCALHOST,
-                "label": "Allow localhost 127.0.0.1",
+                "label": "Localhost 127.0.0.1",
             }
         )
     if QUICK_ALLOW_LOCAL_NETWORK in quick_options:
@@ -404,9 +440,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title="IP Ban Manager",
                 data={
                     CONF_IP_ADDRESSES: _dedupe_items(ip_addresses),
-                    CONF_AUTO_BAN_ENABLED: bool(
-                        user_input.get(CONF_AUTO_BAN_ENABLED, True)
-                    ),
+                    CONF_AUTO_BAN_ENABLED: CONF_AUTO_BAN_CHECKBOX
+                    in cast(list[str], user_input.get(CONF_AUTO_BAN_ENABLED, [])),
                     CONF_LOGIN_ATTEMPTS_THRESHOLD: int(
                         user_input.get(
                             CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -540,14 +575,18 @@ class OptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             allowed_input = cast(dict[str, Any], user_input[SECTION_ALLOWED_IPS])
             banned_input = cast(dict[str, Any], user_input[SECTION_BANNED_IPS])
-            auto_ban_enabled = bool(
+            current_auto_ban_enabled = bool(
+                self._config_entry.options.get(
+                    CONF_AUTO_BAN_ENABLED,
+                    self._config_entry.data.get(CONF_AUTO_BAN_ENABLED, True),
+                )
+            )
+            auto_ban_enabled = CONF_AUTO_BAN_CHECKBOX in cast(
+                list[str],
                 banned_input.get(
                     CONF_AUTO_BAN_ENABLED,
-                    self._config_entry.options.get(
-                        CONF_AUTO_BAN_ENABLED,
-                        self._config_entry.data.get(CONF_AUTO_BAN_ENABLED, True),
-                    ),
-                )
+                    [CONF_AUTO_BAN_CHECKBOX] if current_auto_ban_enabled else [],
+                ),
             )
             login_attempts_threshold = int(
                 banned_input.get(

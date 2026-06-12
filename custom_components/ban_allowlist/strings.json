@@ -3,11 +3,10 @@
     "step": {
       "user": {
         "title": "Set up IP Ban Manager",
-        "description": "Choose safe default allowlist entries and initial automatic ban settings.",
         "data": {
-          "quick_allowlist": "Safe defaults",
-          "auto_ban_enabled": "Enable automatic bans",
-          "login_attempts_threshold": "Login attempts threshold"
+          "quick_allowlist": "Allowlist safe defaults",
+          "login_attempts_threshold": "Login attempts threshold",
+          "auto_ban_enabled": " "
         }
       }
     },
@@ -29,16 +28,16 @@
         "sections": {
           "allowed_ips": {
             "name": "Allowed IPs",
-            "description": "Trusted IP addresses or networks that should never be banned. Use one entry per line. CIDR and IPv4 wildcard networks like 192.168.1.* are supported.",
             "data": {
               "quick_allowlist": "Add safe defaults",
-              "allowed_ips": "Allowed entries"
+              "allowed_ips": "Allowed entries",
+              "allowed_ips_help": ""
             }
           },
           "banned_ips": {
             "name": "Banned IPs",
             "data": {
-              "auto_ban_enabled": "Enable automatic bans",
+              "auto_ban_enabled": " ",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips_help": "",
               "banned_ips": "Banned entries"

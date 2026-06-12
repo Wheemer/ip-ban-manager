@@ -357,7 +357,7 @@ async def test_options_flow_safe_default_checkboxes(
                 CONF_ALLOWED_IPS: "10.0.1.0/24",
             },
             CONF_BANNED_IPS: {
-                CONF_AUTO_BAN_ENABLED: True,
+                CONF_AUTO_BAN_ENABLED: [ban_config_flow.CONF_AUTO_BAN_CHECKBOX],
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
                 CONF_BANNED_IPS: "",
             },
@@ -384,7 +384,7 @@ async def test_options_flow_safe_default_checkboxes(
                 CONF_ALLOWED_IPS: "10.0.1.0/24",
             },
             CONF_BANNED_IPS: {
-                CONF_AUTO_BAN_ENABLED: True,
+                CONF_AUTO_BAN_ENABLED: [ban_config_flow.CONF_AUTO_BAN_CHECKBOX],
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
                 CONF_BANNED_IPS: "",
             },
