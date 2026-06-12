@@ -509,7 +509,7 @@ async def test_options_flow_clears_every_ban(
 
     assert result["type"] == "create_entry"
     assert ban_manager.ip_bans_lookup == {}
-    assert Path(ban_manager.path).read_text(encoding="utf8") == "{}\n"
+    assert not Path(ban_manager.path).exists()
 
 
 @pytest.mark.asyncio
@@ -535,7 +535,7 @@ async def test_options_flow_handles_missing_ban_file(
 
     assert result["type"] == "create_entry"
     assert ban_manager.ip_bans_lookup == {}
-    assert Path(ban_manager.path).read_text(encoding="utf8") == "{}\n"
+    assert not Path(ban_manager.path).exists()
 
 
 @pytest.mark.asyncio

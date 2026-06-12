@@ -515,7 +515,7 @@ async def test_live_ban_services_update_memory_and_file(
     check_records(caplog.records)
 
     assert ip_address("10.0.0.1") not in ban_manager.ip_bans_lookup
-    assert Path(ban_manager.path).read_text(encoding="utf8") == "{}\n"
+    assert not Path(ban_manager.path).exists()
 
 
 @pytest.mark.asyncio
@@ -542,7 +542,7 @@ async def test_remove_all_ip_bans_service(
 
     assert ban_manager.ip_bans_lookup == {}
     assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS] == {}
-    assert Path(ban_manager.path).read_text(encoding="utf8") == "{}\n"
+    assert not Path(ban_manager.path).exists()
 
 
 @pytest.mark.asyncio

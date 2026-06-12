@@ -17,6 +17,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 import voluptuous as vol
+import yaml
 from aiohttp.web import AppKey, Request
 from homeassistant.components.http import ban as http_ban
 from homeassistant.components.http.ban import (
@@ -36,7 +37,6 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
-from homeassistant.util import yaml as yaml_util
 
 from .const import (
     ATTR_BANNED_IPS,
@@ -325,9 +325,15 @@ async def _async_rewrite_ip_bans_file(
             }
             for ip_ban in _chronological_ip_bans(ban_manager)
         }
+        if not ip_bans:
+            path = Path(ban_manager.path)
+            if path.exists():
+                path.unlink()
+            return
+
         _atomic_write_text(
             ban_manager.path,
-            yaml_util.dump(ip_bans) if ip_bans else "{}\n",
+            yaml.safe_dump(ip_bans, sort_keys=False),
         )
 
     await hass.async_add_executor_job(_write_bans)
