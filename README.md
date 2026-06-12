@@ -6,19 +6,16 @@
 
 ### Live IP ban and allowlist management for Home Assistant
 
-[![HACS Custom](https://img.shields.io/badge/HACS-CUSTOM-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://github.com/hacs/integration)
+[![HACS Custom](https://img.shields.io/badge/HACS-CUSTOM-FD7E14?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://github.com/hacs/integration)
 [![Home Assistant 2025.1.4+](https://img.shields.io/badge/HOME%20ASSISTANT-2025.1.4%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
 [![Latest release](https://img.shields.io/github/v/release/Wheemer/ip-ban-manager?style=for-the-badge&logo=github&logoColor=white&label=RELEASE&labelColor=555555&color=22C55E)](https://github.com/Wheemer/ip-ban-manager/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
-[![Unit Tests](https://img.shields.io/github/actions/workflow/status/Wheemer/ip-ban-manager/unittest.yaml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=TESTS&labelColor=555555)](https://github.com/Wheemer/ip-ban-manager/actions/workflows/unittest.yaml)
 [![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&labelColor=555555&color=64748B)](LICENSE)
 
 <p>
   <strong>Version 1.0.0:</strong><br>
   Config UI, live ban edits, allowlist safety checks, diagnostics, services, and Home Assistant notification links.
 </p>
-
-[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Wheemer&repository=ip-ban-manager&category=integration)
 
 </div>
 
@@ -57,6 +54,8 @@ Home Assistant has a very useful IP banning feature, which is nice for a private
 This includes a focused unit test suite for the runtime hooks, config flow, services, and file handling. Test after Home Assistant updates, especially major releases, because this integration intentionally touches internal HTTP ban manager behavior.
 
 ## Install
+
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Wheemer&repository=ip-ban-manager&category=integration)
 
 If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a custom integration repository.
 
