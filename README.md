@@ -22,7 +22,8 @@ IP Ban Manager is now a full management integration instead of a YAML-only allow
 - live editable **Allowed IPs** and **Banned IPs** lists from the integration options
 - IPv4 wildcard shorthand for allowed networks, such as `192.168.1.*`
 - immediate add, remove, and clear actions without restarting Home Assistant
-- banned IP timestamps shown in the UI and preserved when unchanged
+- banned IP timestamps shown as readable local times in the UI and preserved when unchanged
+- `ip_bans.yaml` rewrites kept oldest-first so new bans appear at the bottom
 - stale Home Assistant ban/login notifications dismissed when the matching IP is unbanned
 - safety checks for dangerous or contradictory edits before anything is written
 - diagnostic sensors for active bans, allowlisted networks, and failed-login sources
@@ -45,7 +46,7 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 ## Config
 
-After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. New installs show a checked `127.0.0.1` checkbox and an unchecked checkbox for the local subnet Home Assistant detects from its active network adapter. Add or remove trusted LAN and remote IPs from **Configure** after setup.
+After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. New installs show safe-default checkboxes for `127.0.0.1` and, when detected, Home Assistant's local subnet. `127.0.0.1` is selected by default; the detected local subnet is available but not selected by default. Add or remove trusted LAN and remote IPs from **Configure** after setup.
 
 Existing YAML configuration is imported automatically:
 
@@ -70,15 +71,17 @@ Allowlist and ban changes made from the integration options apply immediately; H
 
 Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 
+- add missing safe defaults with checkboxes inside **Allowed IPs**
 - edit **Allowed IPs**, one IP address, CIDR network, or IPv4 wildcard network per line
 - edit **Banned IPs**, one exact IP address per line
-- view existing ban timestamps in the `banned_ips` list
+- view existing ban timestamps as readable local times in the `banned_ips` list
+- clear every ban by leaving the **Banned IPs** list empty and submitting
 
 Allowed IP wildcard entries such as `192.168.1.*` are saved as `192.168.1.0/24`. Wildcards are only supported for allowed networks, not banned IPs.
 
-Existing banned IP rows are shown as `IP - banned_at`. You can leave those timestamps in place when saving; IP Ban Manager preserves the original ban date for unchanged bans. New banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are saved.
+Existing banned IP rows are shown as `IP - local ban time`, oldest first. You can leave those timestamps in place when submitting; IP Ban Manager preserves the original ban date for unchanged bans. New banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are submitted. When the ban file is rewritten, entries are written oldest first so new bans appear at the bottom in both the UI and `ip_bans.yaml`.
 
-The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist entries, IPs that are both allowed and banned, accidental full-list removals, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals, allowlist networks that contain active bans, and clear-all requests without `confirm: true`.
+The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist entries, IPs that are both allowed and banned, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals, allowlist networks that contain active bans, and clear-all ban requests without `confirm: true`.
 
 The live hooks are installed at setup even if the initial allowlist is empty, so adding your first allowed IP later works immediately. If the integration is unloaded, those hooks are restored so Home Assistant is left in its normal state.
 
@@ -99,3 +102,13 @@ IP Ban Manager adds diagnostic sensors with count states and detailed attributes
 - `sensor.ip_ban_manager_active_bans`
 - `sensor.ip_ban_manager_allowlisted_networks`
 - `sensor.ip_ban_manager_failed_login_sources`
+
+## Development
+
+Run the unit test suite with:
+
+```
+python scripts/test.py
+```
+
+The test runner creates a Python 3.13 virtual environment with `uv`, syncs `requirements.test`, and runs `pytest`. On Windows it uses `.venv-win`; on Linux/macOS it uses `.venv`, so stale virtual environments from another platform do not break the default test command.

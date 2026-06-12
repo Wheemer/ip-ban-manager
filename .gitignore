@@ -1,4 +1,5 @@
 .venv/
+.venv-win/
 .uv-cache/
 .uv-python/
 .uv-tools/

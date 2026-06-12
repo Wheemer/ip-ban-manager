@@ -3,9 +3,9 @@
     "step": {
       "user": {
         "title": "Set up IP Ban Manager",
-        "description": "Choose the safe defaults to start with.",
+        "description": "Choose any safe default allowlist entries to start with.",
         "data": {
-          "allow_localhost": "Allow localhost 127.0.0.1"
+          "quick_allowlist": "Safe defaults"
         }
       }
     },
@@ -23,20 +23,21 @@
     "step": {
       "init": {
         "title": "Manage IP Ban Manager",
-        "description": "Review the live lists below. Submit applies changes immediately to Home Assistant's active ban manager.",
+        "description": "Manage the live allowlist and ban list. Submit applies changes immediately; no Home Assistant restart is needed.",
         "sections": {
           "allowed_ips": {
             "name": "Allowed IPs",
-            "description": "Trusted IPs and networks that should never be banned. Use one entry per line. CIDR and IPv4 wildcards like 192.168.1.* are supported.",
+            "description": "Trusted IP addresses or networks that should never be banned. Use one entry per line. CIDR and IPv4 wildcard networks like 192.168.1.* are supported.",
             "data": {
-              "allowed_ips": "Entries"
+              "quick_allowlist": "Add safe defaults",
+              "allowed_ips": "Allowed entries"
             }
           },
           "banned_ips": {
             "name": "Banned IPs",
-            "description": "Currently blocked IPs from Home Assistant's live ban list. Existing rows include the ban timestamp; new rows can be just an IP.",
+            "description": "Currently blocked IP addresses from Home Assistant's live ban list. Existing rows show the ban time for review; new rows can be just an IP. Leave this empty to clear all bans.",
             "data": {
-              "banned_ips": "Entries"
+              "banned_ips": "Banned entries"
             }
           }
         }
@@ -46,9 +47,7 @@
       "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*.",
       "invalid_banned_ip": "Enter only exact IP addresses in the banned IP list. Wildcards and CIDR networks are only supported for allowed IPs.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
-      "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
-      "clear_all_allowlist": "This would remove every allowed IP or network. Keep at least one trusted entry, or remove the integration if you no longer want an allowlist.",
-      "clear_all_bans": "This would remove every current ban. Use the Clear IP ban list service when you really want to clear all bans."
+      "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again."
     }
   },
   "exceptions": {
@@ -69,9 +68,6 @@
     },
     "network_contains_banned_ip": {
       "message": "{network} contains one or more currently banned IP addresses. Remove those bans before allowlisting this network."
-    },
-    "clear_all_allowlist": {
-      "message": "This would remove every allowed IP or network. Keep at least one trusted entry."
     },
     "clear_all_ip_bans_confirmation_required": {
       "message": "Set confirm to true before clearing every IP ban."

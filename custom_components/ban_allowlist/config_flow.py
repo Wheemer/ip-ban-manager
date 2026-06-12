@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime
 from ipaddress import IPv4Network, IPv6Network, ip_address, ip_interface
 from typing import Any, cast
 
@@ -12,6 +13,7 @@ from homeassistant.components.http.ban import ATTR_BANNED_AT
 from homeassistant.components.network import async_get_adapters
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_BANNED_IPS,
@@ -28,7 +30,9 @@ from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
-CONF_ALLOW_LOCALHOST = "allow_localhost"
+CONF_QUICK_ALLOWLIST = "quick_allowlist"
+QUICK_ALLOW_LOCALHOST = "localhost"
+QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
 IPNetwork = IPv4Network | IPv6Network
 
@@ -39,14 +43,6 @@ class UnsafeAllowlistError(ValueError):
 
 class BannedAllowlistedIPError(ValueError):
     """Raised when an IP is both allowlisted and banned."""
-
-
-class ClearAllBansError(ValueError):
-    """Raised when the options form appears to accidentally clear every ban."""
-
-
-class ClearAllAllowlistError(ValueError):
-    """Raised when the options form appears to accidentally clear the allowlist."""
 
 
 def _normalize_list(value: str | Iterable[str]) -> list[str]:
@@ -96,21 +92,14 @@ def _validate_banned_ips(value: str | Iterable[str]) -> list[str]:
 def _validate_ban_safety(
     allowlist: Iterable[str],
     banned_ips: Iterable[str],
-    existing_allowlist: Iterable[str],
-    existing_bans: Iterable[str],
 ) -> None:
     """Validate cross-list edits that could lock users out or hide mistakes."""
     allowlist_values = list(allowlist)
-    if list(existing_allowlist) and not allowlist_values:
-        raise ClearAllAllowlistError
 
     allowlist_networks: list[IPNetwork] = [
         parse_allowlist_network(network) for network in allowlist_values
     ]
     banned_ip_values = [ip_address(banned_ip) for banned_ip in banned_ips]
-
-    if existing_bans and not banned_ip_values:
-        raise ClearAllBansError
 
     if any(
         banned_ip in allowlist_network
@@ -122,7 +111,8 @@ def _validate_ban_safety(
 
 def _items_to_text(items: Iterable[str]) -> str:
     """Convert stored items to the multiline UI representation."""
-    return "\n".join(items)
+    text = "\n".join(items)
+    return f"{text}\n" if text else ""
 
 
 def _format_banned_ip_details(banned_ips: list[dict[str, str]]) -> str:
@@ -131,8 +121,23 @@ def _format_banned_ip_details(banned_ips: list[dict[str, str]]) -> str:
         return "None"
 
     return "\n".join(
-        f"{ban[ATTR_IP_ADDRESS]} - {ban[ATTR_BANNED_AT]}" for ban in banned_ips
+        f"{ban[ATTR_IP_ADDRESS]} - {_format_banned_at(ban[ATTR_BANNED_AT])}"
+        for ban in banned_ips
     )
+
+
+def _format_banned_at(banned_at: str) -> str:
+    """Return a friendly local timestamp for the options UI."""
+    try:
+        parsed_banned_at = datetime.fromisoformat(banned_at)
+    except ValueError:
+        return banned_at
+
+    if parsed_banned_at.tzinfo is None:
+        parsed_banned_at = dt_util.as_utc(parsed_banned_at)
+
+    local_banned_at = dt_util.as_local(parsed_banned_at)
+    return local_banned_at.strftime("%Y-%m-%d %H:%M")
 
 
 def _text_selector() -> selector.TextSelector:
@@ -155,18 +160,102 @@ def _local_network_option_label(detected_subnets: list[str]) -> str:
 
 def _initial_setup_schema(detected_subnets: list[str]) -> vol.Schema:
     """Return the first-run setup schema."""
-    fields = {
-        vol.Required(CONF_ALLOW_LOCALHOST, default=True): selector.BooleanSelector()
-    }
-    if detected_subnets:
-        fields[
-            vol.Required(
-                _local_network_option_label(detected_subnets),
-                default=False,
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_QUICK_ALLOWLIST,
+                default=[QUICK_ALLOW_LOCALHOST],
+            ): _quick_allowlist_selector(
+                [
+                    QUICK_ALLOW_LOCALHOST,
+                    *([QUICK_ALLOW_LOCAL_NETWORK] if detected_subnets else []),
+                ],
+                detected_subnets,
             )
-        ] = selector.BooleanSelector()
+        }
+    )
+
+
+def _allowlist_management_schema(
+    current_addresses: list[str], detected_subnets: list[str]
+) -> vol.Schema:
+    """Return the compact allowlist management schema."""
+    fields: dict[vol.Marker, Any] = {}
+    missing_quick_options = _missing_quick_allowlist_options(
+        current_addresses, detected_subnets
+    )
+    if missing_quick_options:
+        fields[
+            vol.Optional(
+                CONF_QUICK_ALLOWLIST,
+                default=[],
+            )
+        ] = _quick_allowlist_selector(missing_quick_options, detected_subnets)
+    fields[
+        vol.Required(
+            CONF_ALLOWED_IPS,
+            default=_items_to_text(current_addresses),
+        )
+    ] = _text_selector()
 
     return vol.Schema(fields)
+
+
+def _quick_allowlist_selector(
+    quick_options: list[str], detected_subnets: list[str]
+) -> selector.SelectSelector:
+    """Return a compact checkbox list for common allowlist entries."""
+    options = []
+    if QUICK_ALLOW_LOCALHOST in quick_options:
+        options.append(
+            {
+                "value": QUICK_ALLOW_LOCALHOST,
+                "label": "Allow localhost 127.0.0.1",
+            }
+        )
+    if QUICK_ALLOW_LOCAL_NETWORK in quick_options:
+        options.append(
+            {
+                "value": QUICK_ALLOW_LOCAL_NETWORK,
+                "label": _local_network_option_label(detected_subnets),
+            }
+        )
+
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=options,
+            multiple=True,
+            mode=selector.SelectSelectorMode.LIST,
+        )
+    )
+
+
+def _missing_quick_allowlist_options(
+    current_addresses: list[str], detected_subnets: list[str]
+) -> list[str]:
+    """Return common allowlist checkboxes that are not already configured."""
+    missing: list[str] = []
+    if DEFAULT_ALLOWED_IPS[0] not in current_addresses:
+        missing.append(QUICK_ALLOW_LOCALHOST)
+    if detected_subnets and not any(
+        subnet in current_addresses for subnet in detected_subnets
+    ):
+        missing.append(QUICK_ALLOW_LOCAL_NETWORK)
+    return missing
+
+
+def _apply_quick_allowlist_options(
+    ip_addresses: list[str], quick_input: list[str], detected_subnets: list[str]
+) -> list[str]:
+    """Add selected convenience allowlist entries to the editable allowlist."""
+    updated = list(ip_addresses)
+
+    if QUICK_ALLOW_LOCALHOST in quick_input:
+        updated.extend(DEFAULT_ALLOWED_IPS)
+    if QUICK_ALLOW_LOCAL_NETWORK in quick_input:
+        updated.extend(detected_subnets)
+
+    return _dedupe_items(updated)
 
 
 async def _async_detect_home_assistant_subnets(hass: HomeAssistant) -> list[str]:
@@ -228,11 +317,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             ip_addresses = []
-            if user_input.get(CONF_ALLOW_LOCALHOST, True):
+            quick_input = cast(list[str], user_input.get(CONF_QUICK_ALLOWLIST, []))
+            if QUICK_ALLOW_LOCALHOST in quick_input:
                 ip_addresses.extend(DEFAULT_ALLOWED_IPS)
-            if detected_subnets and user_input.get(
-                _local_network_option_label(detected_subnets), False
-            ):
+            if QUICK_ALLOW_LOCAL_NETWORK in quick_input:
                 ip_addresses.extend(detected_subnets)
 
             await self.async_set_unique_id(DOMAIN)
@@ -279,6 +367,7 @@ class OptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self._config_entry = config_entry
+        self._detected_subnets: list[str] = []
 
     def _management_schema(self) -> vol.Schema:
         """Return the live management form schema."""
@@ -286,23 +375,17 @@ class OptionsFlow(config_entries.OptionsFlow):
 
         status = current_status(self.hass)
         banned_ips = [
-            f"{ban[ATTR_IP_ADDRESS]} - {ban[ATTR_BANNED_AT]}"
+            f"{ban[ATTR_IP_ADDRESS]} - {_format_banned_at(ban[ATTR_BANNED_AT])}"
             for ban in cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
         ]
+        current_addresses = _current_addresses(self._config_entry)
         return vol.Schema(
             {
                 vol.Required(
                     SECTION_ALLOWED_IPS,
                 ): data_entry_flow.section(
-                    vol.Schema(
-                        {
-                            vol.Required(
-                                CONF_ALLOWED_IPS,
-                                default=_items_to_text(
-                                    _current_addresses(self._config_entry)
-                                ),
-                            ): _text_selector(),
-                        }
+                    _allowlist_management_schema(
+                        current_addresses, self._detected_subnets
                     ),
                     {"collapsed": True},
                 ),
@@ -345,12 +428,19 @@ class OptionsFlow(config_entries.OptionsFlow):
         from . import _async_replace_ip_bans, _update_allowlist_entry
 
         errors: dict[str, str] = {}
+        self._detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:
-            allowed_input = cast(dict[str, str], user_input[SECTION_ALLOWED_IPS])
+            allowed_input = cast(dict[str, Any], user_input[SECTION_ALLOWED_IPS])
             banned_input = cast(dict[str, str], user_input[SECTION_BANNED_IPS])
             try:
                 ip_addresses = _validate_ip_addresses(allowed_input[CONF_ALLOWED_IPS])
+                if CONF_QUICK_ALLOWLIST in allowed_input:
+                    ip_addresses = _apply_quick_allowlist_options(
+                        ip_addresses,
+                        cast(list[str], allowed_input[CONF_QUICK_ALLOWLIST]),
+                        self._detected_subnets,
+                    )
             except UnsafeAllowlistError:
                 errors[CONF_ALLOWED_IPS] = "unsafe_allowlist_network"
             except ValueError:
@@ -362,28 +452,13 @@ class OptionsFlow(config_entries.OptionsFlow):
                 errors[CONF_BANNED_IPS] = "invalid_banned_ip"
 
             if not errors:
-                from . import current_status
-
-                existing_bans = [
-                    ban[ATTR_IP_ADDRESS]
-                    for ban in cast(
-                        list[dict[str, str]], current_status(self.hass)[ATTR_BANNED_IPS]
-                    )
-                ]
-                existing_allowlist = _current_addresses(self._config_entry)
                 try:
                     _validate_ban_safety(
                         ip_addresses,
                         banned_ips,
-                        existing_allowlist,
-                        existing_bans,
                     )
-                except ClearAllAllowlistError:
-                    errors[CONF_ALLOWED_IPS] = "clear_all_allowlist"
                 except BannedAllowlistedIPError:
                     errors[CONF_BANNED_IPS] = "banned_ip_allowlisted"
-                except ClearAllBansError:
-                    errors[CONF_BANNED_IPS] = "clear_all_bans"
 
             if not errors:
                 _update_allowlist_entry(self.hass, ip_addresses)

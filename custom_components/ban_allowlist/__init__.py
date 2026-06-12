@@ -28,13 +28,14 @@ from homeassistant.components.http.ban import (
     IpBan,
     IpBanManager,
 )
+from homeassistant.components.http.const import KEY_HASS
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.util import yaml as yaml_util
+from homeassistant.util import dt as dt_util, yaml as yaml_util
 
 from .const import (
     ATTR_BANNED_IPS,
@@ -67,6 +68,8 @@ IP_BAN_DISABLED_ISSUE_ID = "ip_ban_disabled"
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
+INTEGRATION_CONFIG_URL = f"/config/integrations/integration/{DOMAIN}"
+CONFIG_ENTRY_URL_TEMPLATE = "/config/integrations/config_entry/{entry_id}"
 
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ban_allowlist_config_entry")
@@ -129,6 +132,41 @@ async def _allowlist_process_wrong_login(request: Request) -> None:
         return
 
     await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
+    _add_manager_links_to_http_notifications(request.app[KEY_HASS])
+
+
+def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
+    """Add IP Ban Manager navigation links to Home Assistant HTTP notices."""
+    from homeassistant.components import persistent_notification
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    manager_url = _manager_config_url(hass)
+    notification_links = f"\n\n[Open IP Ban Manager settings]({manager_url})"
+    for notification_id in (NOTIFICATION_ID_LOGIN, NOTIFICATION_ID_BAN):
+        notification = notifications.get(notification_id)
+        if notification is None:
+            continue
+
+        message = notification["message"]
+        if manager_url in message or INTEGRATION_CONFIG_URL in message:
+            continue
+
+        persistent_notification.async_create(
+            hass,
+            f"{message}{notification_links}",
+            notification["title"],
+            notification_id,
+        )
+
+
+def _manager_config_url(hass: HomeAssistant) -> str:
+    """Return the most direct stable frontend URL for this integration."""
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None:
+        return INTEGRATION_CONFIG_URL
+    return CONFIG_ENTRY_URL_TEMPLATE.format(entry_id=entry.entry_id)
 
 
 def _install_wrong_login_patch() -> None:
@@ -220,11 +258,6 @@ def _format_ip_ban(ip_ban: IpBan) -> dict[str, str]:
     }
 
 
-def _ip_ban_sort_key(ip_ban: IpBan) -> tuple[int, bytes]:
-    """Sort IPv4 and IPv6 ban entries consistently."""
-    return (ip_ban.ip_address.version, ip_ban.ip_address.packed)
-
-
 def _atomic_write_text(path: str, content: str) -> None:
     """Write text to a file using an atomic same-directory replacement."""
     target = Path(path)
@@ -259,9 +292,8 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ],
         ATTR_BANNED_IPS: [
             _format_ip_ban(ip_ban)
-            for ip_ban in sorted(
-                (ban_manager.ip_bans_lookup.values() if ban_manager else ()),
-                key=_ip_ban_sort_key,
+            for ip_ban in (
+                _chronological_ip_bans(ban_manager) if ban_manager else ()
             )
         ],
         ATTR_FAILED_LOGIN_ATTEMPTS: {
@@ -289,9 +321,7 @@ async def _async_rewrite_ip_bans_file(
                     else ip_ban.banned_at
                 )
             }
-            for ip_ban in sorted(
-                ban_manager.ip_bans_lookup.values(), key=_ip_ban_sort_key
-            )
+            for ip_ban in _chronological_ip_bans(ban_manager)
         }
         _atomic_write_text(
             ban_manager.path,
@@ -423,13 +453,17 @@ async def _async_replace_ip_bans(
     existing_bans = ban_manager.ip_bans_lookup
     preserved_bans = dict(existing_bans)
     removed_addrs = set(preserved_bans) - remote_addr_set
+    updated_bans = {
+        remote_addr: preserved_bans.get(remote_addr, IpBan(remote_addr))
+        for remote_addr in remote_addrs
+    }
     existing_bans.clear()
     existing_bans.update(
         {
-            remote_addr: preserved_bans.get(remote_addr, IpBan(remote_addr))
-            for remote_addr in sorted(
-                remote_addr_set,
-                key=lambda ip_addr: (ip_addr.version, ip_addr.packed),
+            ip_ban.ip_address: ip_ban
+            for ip_ban in sorted(
+                updated_bans.values(),
+                key=_ip_ban_chronological_key,
             )
         }
     )
@@ -440,6 +474,22 @@ async def _async_replace_ip_bans(
 
     await _async_rewrite_ip_bans_file(hass, ban_manager)
     _dismiss_removed_ip_notifications(hass, removed_addrs)
+
+
+def _chronological_ip_bans(ban_manager: IpBanManager) -> list[IpBan]:
+    """Return IP bans ordered by oldest ban first."""
+    return sorted(
+        ban_manager.ip_bans_lookup.values(),
+        key=_ip_ban_chronological_key,
+    )
+
+
+def _ip_ban_chronological_key(ip_ban: IpBan) -> tuple[datetime, int, bytes]:
+    """Return a stable chronological sort key for an IP ban."""
+    banned_at = ip_ban.banned_at
+    if banned_at.tzinfo is None:
+        banned_at = dt_util.as_utc(banned_at)
+    return (banned_at, ip_ban.ip_address.version, ip_ban.ip_address.packed)
 
 
 def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> None:
@@ -493,11 +543,6 @@ def _async_remove_allowlist_network(hass: HomeAssistant, network_value: str) -> 
         for current_network in _current_allowlist_strings(hass)
         if parse_allowlist_network(current_network) != network
     ]
-    if not remaining_networks and _current_allowlist_strings(hass):
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="clear_all_allowlist",
-        )
     _update_allowlist_entry(hass, remaining_networks)
 
 
@@ -586,6 +631,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Not setting allowlist, as no IPs set")
     else:
         _LOGGER.info("Setting allowlist with %s", [str(ip) for ip in allowlist])
+
+    await _async_rewrite_ip_bans_file(hass, ban_manager)
 
     _install_wrong_login_patch()
     _install_add_ban_patch(hass, ban_manager)

@@ -24,10 +24,13 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ban_allowlist import (
     _ORIGINAL_PROCESS_WRONG_LOGIN,
+    CONFIG_ENTRY_URL_TEMPLATE,
     IP_BAN_DISABLED_ISSUE_ID,
+    INTEGRATION_CONFIG_URL,
     KEY_ALLOWLIST,
     KEY_CONFIG_ENTRY,
     KEY_ORIGINAL_ADD_BAN,
+    _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
     current_status,
 )
@@ -335,6 +338,61 @@ async def test_ignored_wrong_login_does_not_increment_attempts(
         "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
         "Ignoring invalid authentication from 192.168.1.1 because it is in the allowlist",
     ]
+
+
+@pytest.mark.asyncio
+async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None:
+    """Test Home Assistant HTTP notifications link to IP Ban Manager."""
+    persistent_notification.async_create(
+        hass,
+        "Too many login attempts from 10.0.0.1",
+        "Banning IP address",
+        NOTIFICATION_ID_BAN,
+    )
+    persistent_notification.async_create(
+        hass,
+        "Login attempt or request with invalid authentication from host (10.0.0.1).",
+        "Login attempt failed",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    _add_manager_links_to_http_notifications(hass)
+    _add_manager_links_to_http_notifications(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    for notification_id in (NOTIFICATION_ID_BAN, NOTIFICATION_ID_LOGIN):
+        message = notifications[notification_id]["message"]
+        assert "Open IP Ban Manager settings" in message
+        assert message.count(INTEGRATION_CONFIG_URL) == 1
+        assert "Open integrations" not in message
+
+
+@pytest.mark.asyncio
+async def test_http_notifications_link_directly_to_config_entry(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test Home Assistant HTTP notifications link to the settings page."""
+    await setup_ban_allowlist(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    manager_url = CONFIG_ENTRY_URL_TEMPLATE.format(entry_id=entry.entry_id)
+    persistent_notification.async_create(
+        hass,
+        "Too many login attempts from 10.0.0.1",
+        "Banning IP address",
+        NOTIFICATION_ID_BAN,
+    )
+
+    _add_manager_links_to_http_notifications(hass)
+    check_records(caplog.records)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_BAN]["message"]
+    assert message.endswith(f"[Open IP Ban Manager settings]({manager_url})")
+    assert "Open integrations" not in message
 
 
 @pytest.mark.asyncio
@@ -773,10 +831,10 @@ async def test_allowlist_service_rejects_network_containing_active_ban(
 
 
 @pytest.mark.asyncio
-async def test_allowlist_service_rejects_removing_final_entry(
+async def test_allowlist_service_can_remove_final_entry(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Test service calls cannot accidentally remove the final allowlist entry."""
+    """Test service calls can remove the final allowlist entry."""
     await setup_ban_allowlist(hass)
 
     await hass.services.async_call(
@@ -785,19 +843,16 @@ async def test_allowlist_service_rejects_removing_final_entry(
         {ATTR_NETWORK: "172.17.0.0/24"},
         blocking=True,
     )
-    with pytest.raises(ServiceValidationError):
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_REMOVE_ALLOWLIST_NETWORK,
-            {ATTR_NETWORK: "192.168.1.1"},
-            blocking=True,
-        )
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "192.168.1.1"},
+        blocking=True,
+    )
     check_records(caplog.records)
 
-    assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == [
-        "192.168.1.1",
-    ]
-    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.1.1/32"]
+    assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == []
+    assert hass.http.app[KEY_ALLOWLIST] == ()
 
 
 @pytest.mark.asyncio
