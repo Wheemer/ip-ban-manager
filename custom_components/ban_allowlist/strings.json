@@ -37,11 +37,16 @@
           },
           "banned_ips": {
             "name": "Banned IPs",
-            "description": "Manage Home Assistant's automatic bans and currently blocked IP addresses. Existing rows show the ban time for review; new rows can be just an IP. Leave the list empty to clear all bans.",
+            "description": "Control Home Assistant's automatic ban behavior. Disable automatic bans to stop new lockouts, or adjust how many failed login attempts are allowed before Home Assistant bans an address.",
             "data": {
               "auto_ban_enabled": "Enable automatic bans",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips": "Banned entries"
+            },
+            "data_description": {
+              "auto_ban_enabled": "When enabled, Home Assistant can automatically ban addresses after repeated failed logins.",
+              "login_attempts_threshold": "Number of failed login attempts allowed before a new automatic ban is created. Set to 0 to stop new automatic bans.",
+              "banned_ips": "Currently blocked IP addresses. Existing rows show the ban time for review; new rows can be just an IP. Leave this empty to clear all bans."
             }
           }
         }

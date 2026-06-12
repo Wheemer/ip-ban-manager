@@ -157,6 +157,11 @@ def _text_selector() -> selector.TextSelector:
     )
 
 
+def _auto_ban_enabled_selector() -> selector.BooleanSelector:
+    """Return the automatic-ban enabled selector."""
+    return selector.BooleanSelector(selector.BooleanSelectorConfig())
+
+
 def _login_attempts_threshold_selector() -> selector.NumberSelector:
     """Return the login-attempt threshold selector."""
     return selector.NumberSelector(
@@ -183,7 +188,7 @@ def _ban_settings_fields(auto_ban_enabled: bool, threshold: int) -> dict[Any, An
         vol_optional(
             CONF_AUTO_BAN_ENABLED,
             default=auto_ban_enabled,
-        ): bool,
+        ): _auto_ban_enabled_selector(),
         vol.Required(
             CONF_LOGIN_ATTEMPTS_THRESHOLD,
             default=threshold,
