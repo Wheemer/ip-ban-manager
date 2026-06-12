@@ -35,7 +35,8 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.util import dt as dt_util, yaml as yaml_util
+from homeassistant.util import dt as dt_util
+from homeassistant.util import yaml as yaml_util
 
 from .const import (
     ATTR_BANNED_IPS,
@@ -163,6 +164,9 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
 
 def _manager_config_url(hass: HomeAssistant) -> str:
     """Return the most direct stable frontend URL for this integration."""
+    if hass.http is None or hass.http.app is None:
+        return INTEGRATION_CONFIG_URL
+
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     if entry is None:
         return INTEGRATION_CONFIG_URL
@@ -292,9 +296,7 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ],
         ATTR_BANNED_IPS: [
             _format_ip_ban(ip_ban)
-            for ip_ban in (
-                _chronological_ip_bans(ban_manager) if ban_manager else ()
-            )
+            for ip_ban in (_chronological_ip_bans(ban_manager) if ban_manager else ())
         ],
         ATTR_FAILED_LOGIN_ATTEMPTS: {
             str(ip): count

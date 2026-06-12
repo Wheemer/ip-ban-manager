@@ -38,7 +38,7 @@ That internal hook is intentionally small and covered by tests, but it is still 
 
 Home Assistant has a very useful IP banning feature, which is nice for a private but externally facing instance. The missing feature is IP allowlists. Without an allowlist, your own home IP can get banned when something inside the house uses your external hostname. The position of the core devs appears to be ["this is a bug with something else that we shouldn't workaround"](https://github.com/home-assistant/core/pull/52334), but this integration keeps that workaround available and manageable.
 
-This has a unit test suite and is explicitly integration tested against every latest patch version of HA from 2025.1.4 up (i.e. for every `x.y.z` version, we test all values of `x.y` using the latest `z` value).
+This includes a focused unit test suite for the runtime hooks, config flow, services, and file handling. Test after Home Assistant updates, especially major releases, because this integration intentionally touches internal HTTP ban manager behavior.
 
 ## Install
 
@@ -74,7 +74,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 - add missing safe defaults with checkboxes inside **Allowed IPs**
 - edit **Allowed IPs**, one IP address, CIDR network, or IPv4 wildcard network per line
 - edit **Banned IPs**, one exact IP address per line
-- view existing ban timestamps as readable local times in the `banned_ips` list
+- view existing ban timestamps as readable local times in **Banned IPs**
 - clear every ban by leaving the **Banned IPs** list empty and submitting
 
 Allowed IP wildcard entries such as `192.168.1.*` are saved as `192.168.1.0/24`. Wildcards are only supported for allowed networks, not banned IPs.

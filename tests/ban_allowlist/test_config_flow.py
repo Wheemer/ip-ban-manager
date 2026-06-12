@@ -162,7 +162,7 @@ async def test_user_flow_can_add_detected_subnet(
 
     assert result["type"] == "form"
     assert result["description_placeholders"]["home_assistant_subnets"] == (
-        "192.168.1.0/24"
+        "192.168.1.0/24\n"
     )
 
     result = await hass.config_entries.flow.async_configure(
@@ -472,9 +472,7 @@ async def test_options_flow_writes_bans_oldest_first(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
-            CONF_BANNED_IPS: {
-                CONF_BANNED_IPS: "10.0.0.2\n10.0.0.3\n10.0.0.1"
-            },
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "10.0.0.2\n10.0.0.3\n10.0.0.1"},
         },
     )
 

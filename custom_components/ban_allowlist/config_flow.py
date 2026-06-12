@@ -14,6 +14,7 @@ from homeassistant.components.network import async_get_adapters
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
+from voluptuous.schema_builder import Optional as vol_optional
 
 from .const import (
     ATTR_BANNED_IPS,
@@ -162,7 +163,7 @@ def _initial_setup_schema(detected_subnets: list[str]) -> vol.Schema:
     """Return the first-run setup schema."""
     return vol.Schema(
         {
-            vol.Optional(
+            vol_optional(
                 CONF_QUICK_ALLOWLIST,
                 default=[QUICK_ALLOW_LOCALHOST],
             ): _quick_allowlist_selector(
@@ -180,13 +181,13 @@ def _allowlist_management_schema(
     current_addresses: list[str], detected_subnets: list[str]
 ) -> vol.Schema:
     """Return the compact allowlist management schema."""
-    fields: dict[vol.Marker, Any] = {}
+    fields: dict[Any, Any] = {}
     missing_quick_options = _missing_quick_allowlist_options(
         current_addresses, detected_subnets
     )
     if missing_quick_options:
         fields[
-            vol.Optional(
+            vol_optional(
                 CONF_QUICK_ALLOWLIST,
                 default=[],
             )
@@ -205,7 +206,7 @@ def _quick_allowlist_selector(
     quick_options: list[str], detected_subnets: list[str]
 ) -> selector.SelectSelector:
     """Return a compact checkbox list for common allowlist entries."""
-    options = []
+    options: list[selector.SelectOptionDict] = []
     if QUICK_ALLOW_LOCALHOST in quick_options:
         options.append(
             {

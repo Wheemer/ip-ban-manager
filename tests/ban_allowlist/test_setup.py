@@ -25,8 +25,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.ban_allowlist import (
     _ORIGINAL_PROCESS_WRONG_LOGIN,
     CONFIG_ENTRY_URL_TEMPLATE,
-    IP_BAN_DISABLED_ISSUE_ID,
     INTEGRATION_CONFIG_URL,
+    IP_BAN_DISABLED_ISSUE_ID,
     KEY_ALLOWLIST,
     KEY_CONFIG_ENTRY,
     KEY_ORIGINAL_ADD_BAN,

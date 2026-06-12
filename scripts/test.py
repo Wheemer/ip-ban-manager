@@ -7,14 +7,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 VENV = ROOT / (".venv-win" if os.name == "nt" else ".venv")
 UV_CACHE = ROOT / ".uv-cache"
 VENV_PYTHON = (
-    VENV / "Scripts" / "python.exe"
-    if os.name == "nt"
-    else VENV / "bin" / "python"
+    VENV / "Scripts" / "python.exe" if os.name == "nt" else VENV / "bin" / "python"
 )
 
 
