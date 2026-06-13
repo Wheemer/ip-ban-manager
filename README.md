@@ -44,19 +44,27 @@ Version 1.0.0 turns the original YAML-only allowlist wrapper into a practical ma
 - automation/script services for ban and allowlist management
 - shipped integration icon and updated HACS/repository metadata
 
-## UI Examples
+## Screenshots
 
-### Initial Setup
-
-![Set up IP Ban Manager](docs/images/setup-flow.png)
-
-### Allowed IPs
-
-![Allowed IPs options](docs/images/allowed-ips-options.png)
-
-### Banned IPs
-
-![Banned IPs options](docs/images/banned-ips-options.png)
+<table>
+  <tr>
+    <td width="50%">
+      <strong>Setup</strong><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png" width="100%">
+    </td>
+    <td width="50%">
+      <strong>Allowed IPs</strong><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/allowed-ips-options.png" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>Banned IPs</strong><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/banned-ips-options.png" width="100%">
+    </td>
+    <td width="50%"></td>
+  </tr>
+</table>
 
 ## Hack Warning
 
