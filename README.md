@@ -13,8 +13,8 @@
 [![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&labelColor=555555&color=64748B)](LICENSE)
 
 <p>
-  <strong>Version 1.1.0:</strong><br>
-  Subnet blocking without touching ip_bans.yaml, allowlist precedence, notification controls, cleaner setup, safer live edits, diagnostics, and services.
+  <strong>Version 1.1.1:</strong><br>
+  HACS icon/metadata refresh plus the 1.1 network blocking, allowlist precedence, notification controls, safer live edits, diagnostics, and services.
 </p>
 
 </div>
@@ -26,9 +26,9 @@ Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`]
 
 IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted networks, live ban review and removal, automatic-ban controls, diagnostics, services, and a proper integration icon.
 
-## What's New In v1.1.0
+## What's New In v1.1.1
 
-Version 1.1.0 adds the big missing piece: managed network blocks. You can now block whole CIDR networks or IPv4 wildcard ranges from the same Configure screen, while exact IP bans still stay in Home Assistant's native `ip_bans.yaml` workflow.
+Version 1.1.1 fixes the HACS card/update icon and refreshes the public manifest version. Version 1.1.0 added the big missing piece: managed network blocks. You can now block whole CIDR networks or IPv4 wildcard ranges from the same Configure screen, while exact IP bans still stay in Home Assistant's native `ip_bans.yaml` workflow.
 
 - **Blocked networks** for CIDR ranges like `203.0.113.0/24` or IPv4 wildcard shorthand like `203.0.113.*`
 - **Allowlist wins** over managed network blocks, so you can block a subnet and still keep trusted IPs available
