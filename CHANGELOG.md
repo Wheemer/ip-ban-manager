@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.1.0
+
+IP Ban Manager 1.1.0 expands the ban-management UI beyond exact IP entries while keeping Home Assistant's native ban manager in charge of exact bans.
+
+### Added
+
+- Separate **Blocked networks** field for CIDR networks and IPv4 wildcard shorthand, such as `192.168.1.*`.
+- Allowlist precedence over managed blocked networks, so trusted addresses can stay allowed inside a blocked subnet.
+- Optional suppression of Home Assistant's automatic ban/login persistent notifications.
+- Diagnostic sensor coverage for managed blocked networks.
+
+### Improved
+
+- First-run setup stores the automatic-ban notification preference correctly.
+- First-run setup uses a clean **Automatic ban notifications** checkbox heading instead of exposing the internal option key.
+- The options form can submit successfully with an empty **Blocked networks** field.
+- Documentation now distinguishes exact Home Assistant bans from IP Ban Manager's managed blocked networks.
+
 ## v1.0.0
 
 IP Ban Manager 1.0.0 is the first public release of the expanded integration. It keeps Home Assistant's native IP ban file and ban manager in charge, then adds the UI and safety rails that were missing: setup from the UI, live allowlist edits, live ban review/removal, automatic-ban controls, diagnostics, and scriptable services.

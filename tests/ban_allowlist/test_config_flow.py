@@ -24,7 +24,9 @@ from custom_components.ban_allowlist.const import (
     ATTR_BANNED_IPS,
     CONF_ALLOWED_IPS,
     CONF_AUTO_BAN_ENABLED,
+    CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
+    CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
@@ -33,7 +35,12 @@ from custom_components.ban_allowlist.const import (
 
 def expected_setup_data(ip_addresses: list[str]) -> dict[str, object]:
     """Return expected first-run config entry data."""
-    return expected_options_data(ip_addresses)
+    return {
+        CONF_IP_ADDRESSES: ip_addresses,
+        CONF_AUTO_BAN_ENABLED: True,
+        CONF_BAN_NOTIFICATIONS_ENABLED: True,
+        CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+    }
 
 
 def expected_options_data(
@@ -43,7 +50,9 @@ def expected_options_data(
     return {
         CONF_IP_ADDRESSES: ip_addresses,
         CONF_AUTO_BAN_ENABLED: True,
+        CONF_BAN_NOTIFICATIONS_ENABLED: True,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: threshold,
+        CONF_BLOCKED_NETWORKS: [],
     }
 
 
@@ -216,6 +225,14 @@ async def test_user_flow_can_skip_localhost(
         context={"source": "user"},
     )
     assert result["type"] == "form"
+    notifications_marker = next(
+        marker
+        for marker in result["data_schema"].schema
+        if marker.schema == ban_config_flow.CONF_BAN_NOTIFICATIONS_FIELD
+    )
+    assert notifications_marker.default() == [
+        ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX
+    ]
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -284,7 +301,8 @@ async def test_options_flow_edits_live_lists(
             CONF_BANNED_IPS: {
                 CONF_BANNED_IPS: (
                     f"10.0.0.1 - {original_banned_at.isoformat()}\n10.0.0.2"
-                )
+                ),
+                CONF_BLOCKED_NETWORKS: "",
             },
         },
     )
@@ -360,6 +378,7 @@ async def test_options_flow_safe_default_checkboxes(
                 CONF_AUTO_BAN_ENABLED: [ban_config_flow.CONF_AUTO_BAN_CHECKBOX],
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
                 CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
             },
         },
     )
@@ -387,16 +406,13 @@ async def test_options_flow_safe_default_checkboxes(
                 CONF_AUTO_BAN_ENABLED: [ban_config_flow.CONF_AUTO_BAN_CHECKBOX],
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
                 CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
             },
         },
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {
-        CONF_IP_ADDRESSES: ["10.0.1.0/24"],
-        CONF_AUTO_BAN_ENABLED: True,
-        CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
-    }
+    assert result["data"] == expected_options_data(["10.0.1.0/24"], threshold=5)
 
 
 @pytest.mark.asyncio
@@ -413,7 +429,7 @@ async def test_options_flow_normalizes_ipv4_wildcard_addresses(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.50.*"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "", CONF_BLOCKED_NETWORKS: ""},
         },
     )
 
@@ -437,7 +453,10 @@ async def test_options_flow_rejects_banning_allowlisted_ip(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: "192.168.1.1"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "192.168.1.1",
+                CONF_BLOCKED_NETWORKS: "",
+            },
         },
     )
 
@@ -463,7 +482,7 @@ async def test_options_flow_can_clear_allowlist(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: ""},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "", CONF_BLOCKED_NETWORKS: ""},
         },
     )
 
@@ -489,7 +508,10 @@ async def test_options_flow_removes_live_bans(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: "10.0.0.2"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "10.0.0.2",
+                CONF_BLOCKED_NETWORKS: "",
+            },
         },
     )
 
@@ -523,7 +545,10 @@ async def test_options_flow_writes_bans_oldest_first(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: "10.0.0.2\n10.0.0.3\n10.0.0.1"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "10.0.0.2\n10.0.0.3\n10.0.0.1",
+                CONF_BLOCKED_NETWORKS: "",
+            },
         },
     )
 
@@ -554,7 +579,7 @@ async def test_options_flow_clears_every_ban(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "", CONF_BLOCKED_NETWORKS: ""},
         },
     )
 
@@ -580,7 +605,7 @@ async def test_options_flow_handles_missing_ban_file(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "", CONF_BLOCKED_NETWORKS: ""},
         },
     )
 
@@ -603,7 +628,10 @@ async def test_options_flow_rejects_invalid_banned_ip(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: "10.0.0.1\nnot-an-ip"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "10.0.0.1\nnot-an-ip",
+                CONF_BLOCKED_NETWORKS: "",
+            },
         },
     )
 
@@ -615,7 +643,7 @@ async def test_options_flow_rejects_invalid_banned_ip(
 async def test_options_flow_rejects_wildcard_banned_ip(
     hass: HomeAssistant, tmp_path: Path
 ) -> None:
-    """Test wildcard shorthand is not accepted for banned IPs."""
+    """Test wildcard shorthand is not accepted for exact banned IPs."""
     entry = await setup_options_entry(hass, tmp_path)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -625,9 +653,74 @@ async def test_options_flow_rejects_wildcard_banned_ip(
         result["flow_id"],
         user_input={
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
-            CONF_BANNED_IPS: {CONF_BANNED_IPS: "192.168.1.*"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "192.168.1.*",
+                CONF_BLOCKED_NETWORKS: "",
+            },
         },
     )
 
     assert result["type"] == "form"
     assert result["errors"] == {ATTR_BANNED_IPS: "invalid_banned_ip"}
+
+
+@pytest.mark.asyncio
+async def test_options_flow_accepts_empty_blocked_networks(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test the options form can submit without managed blocked networks."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {
+        **expected_options_data(["192.168.1.1", "172.17.0.0/24"]),
+        CONF_BLOCKED_NETWORKS: [],
+    }
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_BLOCKED_NETWORKS] == []
+
+
+@pytest.mark.asyncio
+async def test_options_flow_accepts_wildcard_blocked_network(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test wildcard shorthand is accepted as a managed blocked network."""
+    entry = await setup_options_entry(hass, tmp_path)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "192.168.1.*",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {
+        **expected_options_data(["192.168.1.1", "172.17.0.0/24"]),
+        CONF_BLOCKED_NETWORKS: ["192.168.1.0/24"],
+    }
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_BLOCKED_NETWORKS] == ["192.168.1.0/24"]
+    assert ip_address("192.168.1.50") in ban_manager.ip_bans_lookup
+    assert ip_address("172.17.0.10") not in ban_manager.ip_bans_lookup

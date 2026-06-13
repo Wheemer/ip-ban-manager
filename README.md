@@ -13,8 +13,8 @@
 [![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&labelColor=555555&color=64748B)](LICENSE)
 
 <p>
-  <strong>Version 1.0.0:</strong><br>
-  Polished setup, live allowlist and ban management, safer edits, diagnostics, services, and Home Assistant notification links.
+  <strong>Version 1.1.0:</strong><br>
+  Managed blocked networks, automatic-ban notification controls, cleaner setup, safer live edits, diagnostics, and services.
 </p>
 
 </div>
@@ -26,9 +26,20 @@ Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`]
 
 IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted networks, live ban review and removal, automatic-ban controls, diagnostics, services, and a proper integration icon.
 
-## What's New In v1.0.0
+## What's New In v1.1.0
 
-Version 1.0.0 turns the original YAML-only allowlist wrapper into a practical management panel for Home Assistant IP banning:
+Version 1.1.0 adds managed subnet blocking and tightens the setup/config experience:
+
+- separate **Blocked networks** field using CIDR or IPv4 wildcard entries
+- allowlist precedence over managed blocked networks, so trusted addresses can stay allowed inside a blocked subnet
+- optional suppression of Home Assistant's automatic ban/login persistent notifications
+- setup now stores the automatic-ban notification preference correctly
+- setup shows a clean **Automatic ban notifications** heading instead of an internal option key
+- options can submit cleanly when **Blocked networks** is empty
+- diagnostic sensor coverage for managed blocked networks
+- docs now distinguish exact Home Assistant bans from IP Ban Manager's managed blocked networks
+
+Version 1.0.0 turned the original YAML-only allowlist wrapper into a practical management panel for Home Assistant IP banning:
 
 - polished config-flow setup with YAML import for existing `ban_allowlist` users
 - first-run checkboxes for automatic banning, `127.0.0.1`, and Home Assistant's detected local subnet
@@ -108,16 +119,17 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 
 - add safe defaults with checkboxes inside **Allowed IPs**
 - edit **Allowed IPs**, one IP address, CIDR network, or IPv4 wildcard network per line
-- enable or disable new automatic bans and adjust the login-attempt threshold under **Banned IPs**
-- edit **Banned IPs**, one exact IP address per line
+- enable or disable new automatic bans, automatic ban notifications, and the login-attempt threshold under **Banned IPs**
+- edit **Banned entries**, one exact IP address per line
+- edit **Blocked networks**, one CIDR network or IPv4 wildcard network per line
 - view existing ban timestamps as readable local times in **Banned IPs**
-- clear every ban by leaving the **Banned IPs** list empty and submitting
+- clear exact bans or managed blocked networks by emptying the matching field and submitting
 
-Allowed IP wildcard entries such as `192.168.1.*` are saved as `192.168.1.0/24`. Wildcards are only supported for allowed networks, not banned IPs.
+Wildcard blocked-network entries such as `192.168.1.*` are saved as `192.168.1.0/24`. Exact banned IPs stay in Home Assistant's native live ban manager and `ip_bans.yaml`; CIDR and wildcard blocked networks are stored by IP Ban Manager and enforced behind the same native ban lookup. Allowed entries win over managed blocked networks, so you can block a subnet while keeping a trusted address allowed.
 
-Existing banned IP rows are shown as `IP - local ban time`, oldest first. You can leave those timestamps in place when submitting; IP Ban Manager preserves the original ban date for unchanged bans. New banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are submitted. When the ban file is rewritten, entries are written oldest first so new bans appear at the bottom in both the UI and `ip_bans.yaml`.
+Existing exact banned IP rows are shown as `IP - local ban time`, oldest first. You can leave those timestamps in place when submitting; IP Ban Manager preserves the original ban date for unchanged bans. New exact banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are submitted. When the ban file is rewritten, entries are written oldest first so new exact bans appear at the bottom in both the UI and `ip_bans.yaml`.
 
-The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist entries, IPs that are both allowed and banned, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals, allowlist networks that contain active bans, and clear-all ban requests without `confirm: true`.
+The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist or blocked-network entries, IPs that are both allowed and exactly banned, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals, allowlist networks that contain active exact bans, and clear-all ban requests without `confirm: true`.
 
 The live hooks are installed at setup even if the initial allowlist is empty, so adding your first allowed IP later works immediately. If the integration is unloaded, those hooks are restored so Home Assistant is left in its normal state.
 
@@ -137,4 +149,5 @@ IP Ban Manager adds diagnostic sensors with count states and detailed attributes
 
 - `sensor.ip_ban_manager_active_bans`
 - `sensor.ip_ban_manager_allowlisted_networks`
+- `sensor.ip_ban_manager_blocked_networks`
 - `sensor.ip_ban_manager_failed_login_sources`

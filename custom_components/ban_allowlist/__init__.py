@@ -41,7 +41,9 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_AUTO_BAN_ENABLED,
+    ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
+    ATTR_BLOCKED_NETWORKS,
     ATTR_CONFIRM,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
@@ -51,7 +53,9 @@ from .const import (
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
     CONF_AUTO_BAN_ENABLED,
+    CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
+    CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
@@ -82,6 +86,7 @@ CONFIG_ENTRY_URL_TEMPLATE = (
 )
 
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_networks")
+KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_blocked_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ban_allowlist_config_entry")
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ban_allowlist_original_add_ban")
 
@@ -107,9 +112,44 @@ REMOVE_ALL_IP_BANS_SCHEMA = vol.Schema(
 )
 
 
+class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
+    """IP ban lookup that also blocks configured networks."""
+
+    def __init__(
+        self,
+        values: dict[IPAddress, IpBan],
+        blocked_networks: tuple[IPNetwork, ...],
+        allowlist: tuple[IPNetwork, ...],
+    ) -> None:
+        """Initialize the lookup from Home Assistant's exact IP bans."""
+        super().__init__(values)
+        self.blocked_networks = blocked_networks
+        self.allowlist = allowlist
+
+    def __contains__(self, key: object) -> bool:
+        """Return whether an IP is exactly banned or blocked by network."""
+        if dict.__contains__(self, key):
+            return True
+
+        if not isinstance(key, (IPv4Address, IPv6Address)):
+            return False
+
+        if _is_allowed(key, self.allowlist):
+            return False
+
+        return any(key in network for network in self.blocked_networks)
+
+
 def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:
     """Return whether a remote address is covered by the allowlist."""
     return any(remote_addr in allowed_network for allowed_network in allowlist)
+
+
+def _is_blocked(
+    remote_addr: IPAddress, blocked_networks: tuple[IPNetwork, ...]
+) -> bool:
+    """Return whether a remote address is covered by blocked networks."""
+    return any(remote_addr in blocked_network for blocked_network in blocked_networks)
 
 
 def _request_remote_ip(request: Request) -> IPAddress | None:
@@ -142,7 +182,37 @@ async def _allowlist_process_wrong_login(request: Request) -> None:
         return
 
     await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
-    _add_manager_links_to_http_notifications(request.app[KEY_HASS])
+    _handle_http_notifications(request.app[KEY_HASS])
+
+
+def _notifications_enabled(hass: HomeAssistant) -> bool:
+    """Return whether Home Assistant HTTP ban/login notifications should remain."""
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None:
+        return True
+    return bool(
+        entry.options.get(
+            CONF_BAN_NOTIFICATIONS_ENABLED,
+            entry.data.get(CONF_BAN_NOTIFICATIONS_ENABLED, True),
+        )
+    )
+
+
+def _handle_http_notifications(hass: HomeAssistant) -> None:
+    """Add manager links to, or suppress, Home Assistant HTTP notices."""
+    if _notifications_enabled(hass):
+        _add_manager_links_to_http_notifications(hass)
+        return
+
+    _dismiss_http_notifications(hass)
+
+
+def _dismiss_http_notifications(hass: HomeAssistant) -> None:
+    """Dismiss Home Assistant HTTP ban/login notifications."""
+    from homeassistant.components import persistent_notification
+
+    persistent_notification.async_dismiss(hass, NOTIFICATION_ID_LOGIN)
+    persistent_notification.async_dismiss(hass, NOTIFICATION_ID_BAN)
 
 
 def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
@@ -219,6 +289,10 @@ def _uninstall_patches(hass: HomeAssistant) -> None:
     ban_manager = app.get(KEY_BAN_MANAGER)
     if original_add_ban is not None and ban_manager is not None:
         ban_manager.async_add_ban = original_add_ban
+    if ban_manager is not None and isinstance(
+        ban_manager.ip_bans_lookup, NetworkAwareBanLookup
+    ):
+        ban_manager.ip_bans_lookup = dict(ban_manager.ip_bans_lookup)
 
 
 def _parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:
@@ -226,11 +300,24 @@ def _parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:
     return tuple(parse_allowlist_network(ip) for ip in ip_addresses)
 
 
+def _parse_blocked_networks(networks: list[str]) -> tuple[IPNetwork, ...]:
+    """Parse configured blocked networks."""
+    return tuple(parse_allowlist_network(network) for network in networks)
+
+
 def _entry_ip_addresses(entry: ConfigEntry) -> list[str]:
     """Return the configured allowlist for a config entry."""
     return entry.options.get(
         CONF_IP_ADDRESSES,
         entry.options.get(CONF_ALLOWED_IPS, entry.data.get(CONF_IP_ADDRESSES, [])),
+    )
+
+
+def _entry_blocked_networks(entry: ConfigEntry) -> list[str]:
+    """Return configured blocked network strings for a config entry."""
+    return entry.options.get(
+        CONF_BLOCKED_NETWORKS,
+        entry.data.get(CONF_BLOCKED_NETWORKS, []),
     )
 
 
@@ -245,6 +332,16 @@ def _entry_auto_ban_enabled(entry: ConfigEntry) -> bool:
         entry.options.get(
             CONF_AUTO_BAN_ENABLED,
             entry.data.get(CONF_AUTO_BAN_ENABLED, True),
+        )
+    )
+
+
+def _entry_ban_notifications_enabled(entry: ConfigEntry) -> bool:
+    """Return whether automatic IP ban/login notifications should remain."""
+    return bool(
+        entry.options.get(
+            CONF_BAN_NOTIFICATIONS_ENABLED,
+            entry.data.get(CONF_BAN_NOTIFICATIONS_ENABLED, True),
         )
     )
 
@@ -281,6 +378,29 @@ def _apply_ban_settings(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Apply integration-owned ban settings to Home Assistant's live app."""
     if _native_ip_banning_enabled(hass):
         hass.http.app[KEY_LOGIN_THRESHOLD] = _effective_login_threshold(entry, hass)
+    if not _entry_ban_notifications_enabled(entry):
+        _dismiss_http_notifications(hass)
+
+
+def _apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Apply blocked network settings to Home Assistant's live ban lookup."""
+    blocked_networks = _parse_blocked_networks(_entry_blocked_networks(entry))
+    allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
+    hass.http.app[KEY_BLOCKED_NETWORKS] = blocked_networks
+
+    if not _native_ip_banning_enabled(hass):
+        return
+
+    ban_manager = hass.http.app[KEY_BAN_MANAGER]
+    lookup = ban_manager.ip_bans_lookup
+    if isinstance(lookup, NetworkAwareBanLookup):
+        lookup.blocked_networks = blocked_networks
+        lookup.allowlist = allowlist
+        return
+
+    ban_manager.ip_bans_lookup = NetworkAwareBanLookup(
+        dict(lookup), blocked_networks, allowlist
+    )
 
 
 def _update_entry_options(hass: HomeAssistant, **updates: object) -> None:
@@ -358,6 +478,9 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
     return {
         ATTR_NATIVE_IP_BAN_ENABLED: _native_ip_banning_enabled(hass),
         ATTR_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry) if entry else False,
+        ATTR_BAN_NOTIFICATIONS_ENABLED: (
+            _entry_ban_notifications_enabled(entry) if entry else True
+        ),
         ATTR_LOGIN_ATTEMPTS_THRESHOLD: (
             _entry_login_threshold(entry, hass)
             if entry
@@ -365,6 +488,9 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ),
         ATTR_NETWORKS: [
             str(network) for network in hass.http.app.get(KEY_ALLOWLIST, ())
+        ],
+        ATTR_BLOCKED_NETWORKS: [
+            str(network) for network in hass.http.app.get(KEY_BLOCKED_NETWORKS, ())
         ],
         ATTR_BANNED_IPS: [
             _format_ip_ban(ip_ban)
@@ -420,11 +546,23 @@ def _update_allowlist_entry(hass: HomeAssistant, ip_addresses: list[str]) -> Non
     """Persist and apply the current allowlist without a Home Assistant restart."""
     _update_entry_options(hass, **{CONF_IP_ADDRESSES: ip_addresses})
     hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(ip_addresses)
+    _apply_blocked_networks(hass, hass.http.app[KEY_CONFIG_ENTRY])
+
+
+def _update_blocked_networks_entry(hass: HomeAssistant, networks: list[str]) -> None:
+    """Persist and apply blocked networks without a Home Assistant restart."""
+    _update_entry_options(hass, **{CONF_BLOCKED_NETWORKS: networks})
+    _apply_blocked_networks(hass, hass.http.app[KEY_CONFIG_ENTRY])
 
 
 def _current_allowlist_strings(hass: HomeAssistant) -> list[str]:
     """Return the persisted allowlist strings."""
     return _entry_ip_addresses(hass.http.app[KEY_CONFIG_ENTRY])
+
+
+def _current_blocked_network_strings(hass: HomeAssistant) -> list[str]:
+    """Return the persisted blocked network strings."""
+    return _entry_blocked_networks(hass.http.app[KEY_CONFIG_ENTRY])
 
 
 def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -480,6 +618,13 @@ async def _async_add_ip_ban(hass: HomeAssistant, ip_address_value: str) -> None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="ip_address_allowlisted",
+            translation_placeholders={ATTR_IP_ADDRESS: str(remote_addr)},
+        )
+
+    if _is_blocked(remote_addr, hass.http.app.get(KEY_BLOCKED_NETWORKS, ())):
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="ip_address_blocked_network",
             translation_placeholders={ATTR_IP_ADDRESS: str(remote_addr)},
         )
 
@@ -708,6 +853,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _async_delete_ip_ban_disabled_issue(hass)
     _LOGGER.debug("Ban manager %s", ban_manager)
     _apply_ban_settings(hass, entry)
+    _apply_blocked_networks(hass, entry)
     allowlist = hass.http.app[KEY_ALLOWLIST]
 
     if len(allowlist) == 0:
@@ -730,6 +876,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Ban Allowlist."""
     _uninstall_patches(hass)
     hass.http.app.pop(KEY_ALLOWLIST, None)
+    hass.http.app.pop(KEY_BLOCKED_NETWORKS, None)
     hass.http.app.pop(KEY_CONFIG_ENTRY, None)
     for service in (
         SERVICE_ADD_ALLOWLIST_NETWORK,

@@ -18,7 +18,9 @@ from voluptuous.schema_builder import Optional as vol_optional
 
 from .const import (
     ATTR_AUTO_BAN_ENABLED,
+    ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
+    ATTR_BLOCKED_NETWORKS,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
     ATTR_LOGIN_ATTEMPTS_THRESHOLD,
@@ -26,7 +28,9 @@ from .const import (
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
     CONF_AUTO_BAN_ENABLED,
+    CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
+    CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
@@ -39,8 +43,11 @@ SECTION_BANNED_IPS = "banned_ips"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
 CONF_QUICK_ALLOWLIST = "quick_allowlist"
 CONF_BANNED_IPS_HELP = "banned_ips_help"
+CONF_BLOCKED_NETWORKS_HELP = "blocked_networks_help"
 CONF_ALLOWED_IPS_HELP = "allowed_ips_help"
 CONF_AUTO_BAN_CHECKBOX = "auto_ban"
+CONF_BAN_NOTIFICATIONS_CHECKBOX = "ban_notifications"
+CONF_BAN_NOTIFICATIONS_FIELD = "Automatic ban notifications"
 QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
@@ -53,6 +60,10 @@ class UnsafeAllowlistError(ValueError):
 
 class BannedAllowlistedIPError(ValueError):
     """Raised when an IP is both allowlisted and banned."""
+
+
+class UnsafeBlockedNetworkError(ValueError):
+    """Raised when a blocked network would block every IP address."""
 
 
 def _normalize_list(value: str | Iterable[str]) -> list[str]:
@@ -97,6 +108,19 @@ def _validate_banned_ips(value: str | Iterable[str]) -> list[str]:
         str(ip_address(banned_ip.split(" - ", 1)[0].strip()))
         for banned_ip in _normalize_list(value)
     )
+
+
+def _validate_blocked_networks(value: str | Iterable[str]) -> list[str]:
+    """Validate and normalize configured blocked network entries."""
+    blocked_networks: list[str] = []
+
+    for raw_entry in _normalize_list(value):
+        network = parse_allowlist_network(raw_entry)
+        if network.prefixlen == 0:
+            raise UnsafeBlockedNetworkError
+        blocked_networks.append(str(network))
+
+    return _dedupe_items(blocked_networks)
 
 
 def _validate_ban_safety(
@@ -179,8 +203,9 @@ def _allowed_ips_help_selector() -> selector.ConstantSelector:
 def _banned_ips_help_text() -> str:
     """Return static guidance for the banned entries textarea."""
     return (
-        "Currently blocked IP addresses. Existing rows show the ban time for "
-        "review; new rows can be just an IP. Leave this empty to clear all bans."
+        "Currently banned IP addresses. Existing rows show the ban time for "
+        "review; new rows can be just an IP. Leave this empty to clear all "
+        "exact IP bans."
     )
 
 
@@ -191,11 +216,43 @@ def _banned_ips_help_selector() -> selector.ConstantSelector:
     )
 
 
+def _blocked_networks_help_text() -> str:
+    """Return static guidance for the blocked network textarea."""
+    return (
+        "CIDR networks or IPv4 wildcard networks to block without writing them "
+        "to Home Assistant's ip_bans.yaml. Allowed entries still win."
+    )
+
+
+def _blocked_networks_help_selector() -> selector.ConstantSelector:
+    """Return static guidance for the blocked network textarea."""
+    return selector.ConstantSelector(
+        selector.ConstantSelectorConfig(value=_blocked_networks_help_text())
+    )
+
+
 def _auto_ban_enabled_selector() -> selector.SelectSelector:
     """Return the automatic-ban enabled checkbox selector."""
     options: list[selector.SelectOptionDict] = [
         {
             "value": CONF_AUTO_BAN_CHECKBOX,
+            "label": "Enabled",
+        }
+    ]
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=options,
+            multiple=True,
+            mode=selector.SelectSelectorMode.LIST,
+        )
+    )
+
+
+def _ban_notifications_enabled_selector() -> selector.SelectSelector:
+    """Return the automatic-ban notifications checkbox selector."""
+    options: list[selector.SelectOptionDict] = [
+        {
+            "value": CONF_BAN_NOTIFICATIONS_CHECKBOX,
             "label": "Enabled",
         }
     ]
@@ -228,13 +285,24 @@ def _current_login_threshold(hass: HomeAssistant) -> int:
     )
 
 
-def _ban_settings_fields(auto_ban_enabled: bool, threshold: int) -> dict[Any, Any]:
+def _ban_settings_fields(
+    auto_ban_enabled: bool,
+    threshold: int,
+    notifications_enabled: bool = True,
+    notifications_field: str = CONF_BAN_NOTIFICATIONS_ENABLED,
+) -> dict[Any, Any]:
     """Return the auto-ban settings fields."""
     return {
         vol_optional(
             CONF_AUTO_BAN_ENABLED,
             default=[CONF_AUTO_BAN_CHECKBOX] if auto_ban_enabled else [],
         ): _auto_ban_enabled_selector(),
+        vol_optional(
+            notifications_field,
+            default=(
+                [CONF_BAN_NOTIFICATIONS_CHECKBOX] if notifications_enabled else []
+            ),
+        ): _ban_notifications_enabled_selector(),
         vol.Required(
             CONF_LOGIN_ATTEMPTS_THRESHOLD,
             default=threshold,
@@ -242,9 +310,13 @@ def _ban_settings_fields(auto_ban_enabled: bool, threshold: int) -> dict[Any, An
     }
 
 
-def _ban_settings_schema(auto_ban_enabled: bool, threshold: int) -> vol.Schema:
+def _ban_settings_schema(
+    auto_ban_enabled: bool, threshold: int, notifications_enabled: bool = True
+) -> vol.Schema:
     """Return the auto-ban settings schema."""
-    return vol.Schema(_ban_settings_fields(auto_ban_enabled, threshold))
+    return vol.Schema(
+        _ban_settings_fields(auto_ban_enabled, threshold, notifications_enabled)
+    )
 
 
 def _local_network_option_label(detected_subnets: list[str]) -> str:
@@ -257,7 +329,11 @@ def _local_network_option_label(detected_subnets: list[str]) -> str:
 
 def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Schema:
     """Return the first-run setup schema."""
-    fields = _ban_settings_fields(True, threshold)
+    fields = _ban_settings_fields(
+        True,
+        threshold,
+        notifications_field=CONF_BAN_NOTIFICATIONS_FIELD,
+    )
     fields[
         vol_optional(
             CONF_QUICK_ALLOWLIST,
@@ -442,6 +518,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_IP_ADDRESSES: _dedupe_items(ip_addresses),
                     CONF_AUTO_BAN_ENABLED: CONF_AUTO_BAN_CHECKBOX
                     in cast(list[str], user_input.get(CONF_AUTO_BAN_ENABLED, [])),
+                    CONF_BAN_NOTIFICATIONS_ENABLED: CONF_BAN_NOTIFICATIONS_CHECKBOX
+                    in cast(
+                        list[str],
+                        user_input.get(
+                            CONF_BAN_NOTIFICATIONS_FIELD,
+                            user_input.get(CONF_BAN_NOTIFICATIONS_ENABLED, []),
+                        ),
+                    ),
                     CONF_LOGIN_ATTEMPTS_THRESHOLD: int(
                         user_input.get(
                             CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -501,6 +585,7 @@ class OptionsFlow(config_entries.OptionsFlow):
             f"{ban[ATTR_IP_ADDRESS]} - {_format_banned_at(ban[ATTR_BANNED_AT])}"
             for ban in cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
         ]
+        blocked_networks = cast(list[str], status[ATTR_BLOCKED_NETWORKS])
         current_addresses = _current_addresses(self._config_entry)
         return vol.Schema(
             {
@@ -520,6 +605,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                             **_ban_settings_fields(
                                 bool(status[ATTR_AUTO_BAN_ENABLED]),
                                 cast(int, status[ATTR_LOGIN_ATTEMPTS_THRESHOLD]),
+                                bool(status[ATTR_BAN_NOTIFICATIONS_ENABLED]),
                             ),
                             vol_optional(
                                 CONF_BANNED_IPS_HELP,
@@ -528,6 +614,14 @@ class OptionsFlow(config_entries.OptionsFlow):
                             vol.Required(
                                 CONF_BANNED_IPS,
                                 default=_items_to_text(banned_ips),
+                            ): _text_selector(),
+                            vol_optional(
+                                CONF_BLOCKED_NETWORKS_HELP,
+                                default=_blocked_networks_help_text(),
+                            ): _blocked_networks_help_selector(),
+                            vol_optional(
+                                CONF_BLOCKED_NETWORKS,
+                                default=_items_to_text(blocked_networks),
                             ): _text_selector(),
                         }
                     ),
@@ -543,6 +637,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         status = current_status(self.hass)
         banned_ips = cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
         failed_login_attempts = cast(dict[str, int], status[ATTR_FAILED_LOGIN_ATTEMPTS])
+        blocked_networks = cast(list[str], status[ATTR_BLOCKED_NETWORKS])
         return {
             ATTR_NATIVE_IP_BAN_ENABLED: (
                 "Enabled" if status[ATTR_NATIVE_IP_BAN_ENABLED] else "Disabled"
@@ -550,9 +645,13 @@ class OptionsFlow(config_entries.OptionsFlow):
             ATTR_AUTO_BAN_ENABLED: (
                 "Enabled" if status[ATTR_AUTO_BAN_ENABLED] else "Disabled"
             ),
+            ATTR_BAN_NOTIFICATIONS_ENABLED: (
+                "Enabled" if status[ATTR_BAN_NOTIFICATIONS_ENABLED] else "Disabled"
+            ),
             ATTR_LOGIN_ATTEMPTS_THRESHOLD: str(status[ATTR_LOGIN_ATTEMPTS_THRESHOLD]),
             ATTR_NETWORKS: "\n".join(cast(list[str], status[ATTR_NETWORKS])) or "None",
             ATTR_BANNED_IPS: _format_banned_ip_details(banned_ips),
+            ATTR_BLOCKED_NETWORKS: "\n".join(blocked_networks) or "None",
             ATTR_FAILED_LOGIN_ATTEMPTS: "\n".join(
                 f"{ip}: {count}" for ip, count in failed_login_attempts.items()
             )
@@ -567,6 +666,7 @@ class OptionsFlow(config_entries.OptionsFlow):
             _apply_ban_settings,
             _async_replace_ip_bans,
             _update_allowlist_entry,
+            _update_blocked_networks_entry,
         )
 
         errors: dict[str, str] = {}
@@ -586,6 +686,23 @@ class OptionsFlow(config_entries.OptionsFlow):
                 banned_input.get(
                     CONF_AUTO_BAN_ENABLED,
                     [CONF_AUTO_BAN_CHECKBOX] if current_auto_ban_enabled else [],
+                ),
+            )
+            current_ban_notifications_enabled = bool(
+                self._config_entry.options.get(
+                    CONF_BAN_NOTIFICATIONS_ENABLED,
+                    self._config_entry.data.get(CONF_BAN_NOTIFICATIONS_ENABLED, True),
+                )
+            )
+            ban_notifications_enabled = CONF_BAN_NOTIFICATIONS_CHECKBOX in cast(
+                list[str],
+                banned_input.get(
+                    CONF_BAN_NOTIFICATIONS_ENABLED,
+                    (
+                        [CONF_BAN_NOTIFICATIONS_CHECKBOX]
+                        if current_ban_notifications_enabled
+                        else []
+                    ),
                 ),
             )
             login_attempts_threshold = int(
@@ -615,8 +732,19 @@ class OptionsFlow(config_entries.OptionsFlow):
 
             try:
                 banned_ips = _validate_banned_ips(banned_input[CONF_BANNED_IPS])
+            except UnsafeBlockedNetworkError:
+                errors[CONF_BANNED_IPS] = "unsafe_blocked_network"
             except ValueError:
                 errors[CONF_BANNED_IPS] = "invalid_banned_ip"
+
+            try:
+                blocked_networks = _validate_blocked_networks(
+                    banned_input.get(CONF_BLOCKED_NETWORKS, "")
+                )
+            except UnsafeBlockedNetworkError:
+                errors[CONF_BLOCKED_NETWORKS] = "unsafe_blocked_network"
+            except ValueError:
+                errors[CONF_BLOCKED_NETWORKS] = "invalid_blocked_network"
 
             if not errors:
                 try:
@@ -633,18 +761,23 @@ class OptionsFlow(config_entries.OptionsFlow):
                     options={
                         **self._config_entry.options,
                         CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+                        CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
                         CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+                        CONF_BLOCKED_NETWORKS: blocked_networks,
                     },
                 )
                 _apply_ban_settings(self.hass, self._config_entry)
                 _update_allowlist_entry(self.hass, ip_addresses)
+                _update_blocked_networks_entry(self.hass, blocked_networks)
                 await _async_replace_ip_bans(self.hass, banned_ips)
                 return self.async_create_entry(
                     title="",
                     data={
                         CONF_IP_ADDRESSES: ip_addresses,
                         CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+                        CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
                         CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+                        CONF_BLOCKED_NETWORKS: blocked_networks,
                     },
                 )
 

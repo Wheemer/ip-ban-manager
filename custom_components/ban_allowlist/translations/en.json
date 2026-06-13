@@ -38,9 +38,12 @@
             "name": "Banned IPs",
             "data": {
               "auto_ban_enabled": "Automatic bans",
+              "ban_notifications_enabled": "Automatic ban notifications",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips_help": "",
-              "banned_ips": "Banned entries"
+              "banned_ips": "Banned entries",
+              "blocked_networks_help": "",
+              "blocked_networks": "Blocked networks"
             }
           }
         }
@@ -48,7 +51,9 @@
     },
     "error": {
       "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*.",
-      "invalid_banned_ip": "Enter only exact IP addresses in the banned IP list. Wildcards and CIDR networks are only supported for allowed IPs.",
+      "invalid_banned_ip": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 203.0.113.*.",
+      "invalid_blocked_network": "Enter valid CIDR networks or IPv4 wildcard networks like 203.0.113.*.",
+      "unsafe_blocked_network": "That blocked network would block every IP address. Use a narrower network.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again."
     }
@@ -65,6 +70,9 @@
     },
     "ip_address_not_banned": {
       "message": "{ip_address} is not currently banned."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} is already blocked by a blocked network."
     },
     "unsafe_allowlist_network": {
       "message": "{network} would trust every IP address and effectively disable IP banning."

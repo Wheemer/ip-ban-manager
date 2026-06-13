@@ -13,7 +13,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import current_status
-from .const import ATTR_BANNED_IPS, ATTR_FAILED_LOGIN_ATTEMPTS, ATTR_NETWORKS
+from .const import (
+    ATTR_BANNED_IPS,
+    ATTR_BLOCKED_NETWORKS,
+    ATTR_FAILED_LOGIN_ATTEMPTS,
+    ATTR_NETWORKS,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -44,6 +49,15 @@ SENSOR_DESCRIPTIONS = (
         value_fn=lambda status: len(cast(list[object], status[ATTR_NETWORKS])),
         attributes_fn=lambda status: {
             ATTR_NETWORKS: status[ATTR_NETWORKS],
+        },
+    ),
+    IPBanManagerSensorDescription(
+        key="blocked_networks",
+        name="IP Ban Manager Blocked Networks",
+        icon="mdi:shield-alert-outline",
+        value_fn=lambda status: len(cast(list[object], status[ATTR_BLOCKED_NETWORKS])),
+        attributes_fn=lambda status: {
+            ATTR_BLOCKED_NETWORKS: status[ATTR_BLOCKED_NETWORKS],
         },
     ),
     IPBanManagerSensorDescription(

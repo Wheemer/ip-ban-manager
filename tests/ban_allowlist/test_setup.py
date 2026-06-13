@@ -28,6 +28,7 @@ from custom_components.ban_allowlist import (
     INTEGRATION_CONFIG_URL,
     IP_BAN_DISABLED_ISSUE_ID,
     KEY_ALLOWLIST,
+    KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
     KEY_ORIGINAL_ADD_BAN,
     _add_manager_links_to_http_notifications,
@@ -36,6 +37,7 @@ from custom_components.ban_allowlist import (
 )
 from custom_components.ban_allowlist.const import (
     ATTR_BANNED_IPS,
+    ATTR_BLOCKED_NETWORKS,
     ATTR_CONFIRM,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
@@ -43,6 +45,7 @@ from custom_components.ban_allowlist.const import (
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
     CONF_BANNED_IPS,
+    CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
     DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
@@ -133,6 +136,36 @@ async def test_setup(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> N
     await setup_ban_allowlist(hass)
     check_records(caplog.records)
     assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+
+
+@pytest.mark.asyncio
+async def test_setup_applies_blocked_networks_with_allowlist_precedence(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test managed blocked networks are enforced behind the native ban lookup."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["203.0.113.10"],
+            CONF_BLOCKED_NETWORKS: ["203.0.113.0/24"],
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    assert [str(network) for network in hass.http.app[KEY_BLOCKED_NETWORKS]] == [
+        "203.0.113.0/24"
+    ]
+    assert ip_address("203.0.113.25") in ban_manager.ip_bans_lookup
+    assert ip_address("203.0.113.10") not in ban_manager.ip_bans_lookup
 
 
 @pytest.mark.asyncio
@@ -259,6 +292,11 @@ async def test_diagnostic_sensors_expose_counts(
         "192.168.1.1/32",
         "172.17.0.0/24",
     ]
+
+    blocked_networks = hass.states.get("sensor.ip_ban_manager_blocked_networks")
+    assert blocked_networks is not None
+    assert blocked_networks.state == "0"
+    assert blocked_networks.attributes[ATTR_BLOCKED_NETWORKS] == []
 
     failed_login_sources = hass.states.get("sensor.ip_ban_manager_failed_login_sources")
     assert failed_login_sources is not None
