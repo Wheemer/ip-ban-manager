@@ -33,17 +33,17 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 | **v1.1.0** | Managed **Blocked networks** for CIDR ranges and IPv4 wildcard shorthand, allowlist precedence over blocked networks, automatic-ban notification control, and blocked-network diagnostics. |
 | **v1.0.0** | First public IP Ban Manager release with config-flow setup, YAML import, live **Allowed IPs** and **Banned IPs** editing, automatic-ban controls, services, diagnostics, and safer file handling. |
 
-| Area | What It Adds |
-| --- | --- |
-| **Setup** | UI setup with automatic-ban controls, `127.0.0.1` safe default, optional detected local subnet, and YAML import for existing `ban_allowlist` users. |
-| **Allowed IPs** | Live editable trusted IPs, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`. |
-| **Banned IPs** | Live exact-IP ban review, add, remove, and clear actions without restarting Home Assistant. Existing ban timestamps are shown as readable local times and preserved when unchanged. |
-| **Blocked networks** | Managed CIDR or wildcard network blocks, enforced behind Home Assistant's native ban lookup without pretending `ip_bans.yaml` supports ranges. |
-| **Ordering and persistence** | `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior. |
-| **Notifications** | Matching stale Home Assistant ban/login notifications are dismissed when a ban is removed, and automatic-ban notifications can be disabled from the UI. |
-| **Safety checks** | Rejects malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, risky typo removals, and unconfirmed clear-all service calls before anything is written. |
-| **Automation** | Services for adding, removing, and clearing exact bans plus adding and removing allowlist entries. |
-| **Diagnostics** | Sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources. |
+Core management features include:
+
+- **Setup:** UI setup with automatic-ban controls, `127.0.0.1` safe default, optional detected local subnet, and YAML import for existing `ban_allowlist` users.
+- **Allowed IPs:** live editable trusted IPs, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
+- **Banned IPs:** live exact-IP ban review, add, remove, and clear actions without restarting Home Assistant. Existing ban timestamps are shown as readable local times and preserved when unchanged.
+- **Blocked networks:** managed CIDR or wildcard network blocks, enforced behind Home Assistant's native ban lookup without pretending `ip_bans.yaml` supports ranges.
+- **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
+- **Notifications:** matching stale Home Assistant ban/login notifications are dismissed when a ban is removed, and automatic-ban notifications can be disabled from the UI.
+- **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, risky typo removals, and unconfirmed clear-all service calls are rejected before anything is written.
+- **Automation:** services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
+- **Diagnostics:** sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources.
 
 ## Examples
 
