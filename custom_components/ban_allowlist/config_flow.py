@@ -196,7 +196,7 @@ def _auto_ban_enabled_selector() -> selector.SelectSelector:
     options: list[selector.SelectOptionDict] = [
         {
             "value": CONF_AUTO_BAN_CHECKBOX,
-            "label": "Enable automatic bans",
+            "label": "Enabled",
         }
     ]
     return selector.SelectSelector(

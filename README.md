@@ -14,7 +14,7 @@
 
 <p>
   <strong>Version 1.0.0:</strong><br>
-  Config UI, live ban edits, allowlist safety checks, diagnostics, services, and Home Assistant notification links.
+  Polished setup, live allowlist and ban management, safer edits, diagnostics, services, and Home Assistant notification links.
 </p>
 
 </div>
@@ -24,11 +24,11 @@ Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`]
 > [!WARNING]
 > **THIS IS A HACK. USE AT YOUR OWN RISK.** Home Assistant does not provide a public integration API for changing the HTTP IP ban manager at runtime, so this integration uses a small internal hook around Home Assistant's built-in ban manager.
 
-IP Ban Manager extends Home Assistant's [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) with a UI for trusted networks, live IP ban management, diagnostics, services, and a proper integration icon.
+IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted networks, live ban review and removal, automatic-ban controls, diagnostics, services, and a proper integration icon.
 
 ## What's New In v1.0.0
 
-IP Ban Manager is now a full management integration instead of a YAML-only allowlist wrapper:
+Version 1.0.0 turns the original YAML-only allowlist wrapper into a practical management panel for Home Assistant IP banning:
 
 - polished config-flow setup with YAML import for existing `ban_allowlist` users
 - first-run checkboxes for automatic banning, `127.0.0.1`, and Home Assistant's detected local subnet
@@ -76,7 +76,7 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 ## Config
 
-After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. New installs show an automatic-ban checkbox, the login-attempt threshold, and allowlist safe-default checkboxes for `127.0.0.1` and, when detected, Home Assistant's local subnet. `127.0.0.1` is selected by default; the detected local subnet is available but not selected by default. Add or remove trusted LAN and remote IPs from **Configure** after setup.
+After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. Setup starts with the important controls only: automatic bans, the login-attempt threshold, and allowlist safe defaults for `127.0.0.1` plus, when detected, Home Assistant's local subnet. `127.0.0.1` is selected by default; the detected local subnet is available but not selected by default. Add or remove trusted LAN and remote IPs from **Configure** after setup.
 
 Existing YAML configuration is imported automatically:
 
@@ -97,7 +97,7 @@ If IP banning is not enabled, IP Ban Manager creates a Home Assistant repair war
 
 ## Live Management
 
-Allowlist, ban list, and automatic-ban setting changes made from the integration options apply immediately; Home Assistant does not need to restart. The integration stores automatic-ban settings in its config entry and reapplies them when Home Assistant starts.
+The options UI is the main workspace. Allowlist, ban list, and automatic-ban setting changes apply immediately; Home Assistant does not need to restart. The integration stores automatic-ban settings in its config entry and reapplies them when Home Assistant starts.
 
 Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 
@@ -133,13 +133,3 @@ IP Ban Manager adds diagnostic sensors with count states and detailed attributes
 - `sensor.ip_ban_manager_active_bans`
 - `sensor.ip_ban_manager_allowlisted_networks`
 - `sensor.ip_ban_manager_failed_login_sources`
-
-## Development
-
-Run the unit test suite with:
-
-```
-python scripts/test.py
-```
-
-The test runner creates a Python 3.13 virtual environment with `uv`, syncs `requirements.test`, and runs `pytest`. On Windows it uses `.venv-win`; on Linux/macOS it uses `.venv`, so stale virtual environments from another platform do not break the default test command.

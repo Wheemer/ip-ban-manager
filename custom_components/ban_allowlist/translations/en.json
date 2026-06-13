@@ -6,7 +6,7 @@
         "data": {
           "quick_allowlist": "Allowlist safe defaults",
           "login_attempts_threshold": "Login attempts threshold",
-          "auto_ban_enabled": " "
+          "auto_ban_enabled": "Automatic bans"
         }
       }
     },
@@ -37,7 +37,7 @@
           "banned_ips": {
             "name": "Banned IPs",
             "data": {
-              "auto_ban_enabled": " ",
+              "auto_ban_enabled": "Automatic bans",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips_help": "",
               "banned_ips": "Banned entries"

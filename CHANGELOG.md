@@ -2,9 +2,11 @@
 
 ## v1.0.0
 
-IP Ban Manager turns the original YAML-only ban allowlist into a full Home Assistant management integration.
+IP Ban Manager 1.0.0 is the first public release of the expanded integration. It keeps Home Assistant's native IP ban file and ban manager in charge, then adds the UI and safety rails that were missing: setup from the UI, live allowlist edits, live ban review/removal, automatic-ban controls, diagnostics, and scriptable services.
 
-### Added
+This is still intentionally marked as a **HACK** because Home Assistant does not expose a supported public API for every part of this workflow. The implementation keeps that internal touch point small, tested, and reversible on unload.
+
+### Highlights
 
 - Config flow setup with automatic YAML import for existing `ban_allowlist` configuration.
 - Polished UI setup shows automatic-ban controls and allowlist safe-default checkboxes for `127.0.0.1` and Home Assistant's detected local subnet.
@@ -21,7 +23,7 @@ IP Ban Manager turns the original YAML-only ban allowlist into a full Home Assis
 - Cleanup of stale Home Assistant ban/login persistent notifications when the matching IP is unbanned.
 - Integration icon, README screenshots, and updated HACS/repository metadata.
 
-### Changed
+### Notes
 
 - Visible integration name is now **IP Ban Manager**.
 - Documentation now clearly warns that this integration is a **HACK** because it wraps internal Home Assistant HTTP ban manager behavior.
