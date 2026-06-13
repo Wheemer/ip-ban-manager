@@ -12,10 +12,6 @@
 [![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
 [![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&label=LICENSE&labelColor=555555&color=64748B)](LICENSE)
 
-<p>
-  <strong>Version 1.1.2:</strong><br>
-  License badge fix plus the 1.1 network blocking, allowlist precedence, notification controls, safer live edits, diagnostics, and services.
-</p>
 
 </div>
 
@@ -26,20 +22,19 @@ Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`]
 
 IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted networks, live ban review and removal, automatic-ban controls, diagnostics, services, and a proper integration icon.
 
-## What's New In v1.1.2
+## What's New
 
-Version 1.1.2 fixes the README license badge in HACS views. Version 1.1.1 added the repository brand assets and refreshed the public manifest version. Version 1.1.0 added the big missing piece: managed network blocks. You can now block whole CIDR networks or IPv4 wildcard ranges from the same Configure screen, while exact IP bans still stay in Home Assistant's native `ip_bans.yaml` workflow.
+IP Ban Manager turns the original YAML-only allowlist wrapper into a practical management panel for Home Assistant IP banning. The current release adds managed network blocks while keeping exact IP bans in Home Assistant's native live ban manager and `ip_bans.yaml` workflow.
 
 - **Blocked networks** for CIDR ranges like `203.0.113.0/24` or IPv4 wildcard shorthand like `203.0.113.*`
 - **Allowlist wins** over managed network blocks, so you can block a subnet and still keep trusted IPs available
 - **Exact bans stay native**: single-IP bans continue to use Home Assistant's live ban manager and `ip_bans.yaml`
 - **No fake ban-file ranges**: managed networks are stored by IP Ban Manager and enforced behind the native ban lookup
 - **Notification control** for Home Assistant's automatic ban/login persistent notifications
-- **Cleaner first-run setup**, including a proper **Automatic ban notifications** checkbox label and saved preference
-- **Empty Blocked networks submits cleanly**, so users do not have to add network blocks to manage exact bans
+- **Cleaner first-run setup** with automatic-ban controls and allowlist safe defaults
 - **New blocked-network diagnostics** alongside active bans, allowlisted networks, and failed-login sources
 
-Version 1.0.0 turned the original YAML-only allowlist wrapper into a practical management panel for Home Assistant IP banning:
+Core management features include:
 
 - polished config-flow setup with YAML import for existing `ban_allowlist` users
 - first-run checkboxes for automatic banning, `127.0.0.1`, and Home Assistant's detected local subnet
@@ -82,7 +77,6 @@ That internal hook is intentionally small and covered by tests, but it is still 
 
 Home Assistant has a very useful IP banning feature, which is nice for a private but externally facing instance. The missing feature is IP allowlists. Without an allowlist, your own home IP can get banned when something inside the house uses your external hostname. The position of the core devs appears to be ["this is a bug with something else that we shouldn't workaround"](https://github.com/home-assistant/core/pull/52334), but this integration keeps that workaround available and manageable.
 
-This includes a focused unit test suite for the runtime hooks, config flow, services, and file handling. Test after Home Assistant updates, especially major releases, because this integration intentionally touches internal HTTP ban manager behavior.
 
 ## Install
 
