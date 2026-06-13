@@ -46,20 +46,25 @@ Version 1.0.0 turns the original YAML-only allowlist wrapper into a practical ma
 
 ## Examples
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-  <div>
-    <strong>Setup</strong><br>
-    <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png" width="100%">
-  </div>
-  <div>
-    <strong>Allowed IPs</strong><br>
-    <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/allowed-ips-options.png" width="100%">
-  </div>
-  <div>
-    <strong>Banned IPs</strong><br>
-    <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/banned-ips-options.png" width="100%">
-  </div>
-</div>
+<table>
+  <tr>
+    <td width="50%">
+      <strong>Setup</strong><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png" width="100%">
+    </td>
+    <td width="50%">
+      <strong>Allowed IPs</strong><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/allowed-ips-options.png" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>Banned IPs</strong><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/banned-ips-options.png" width="100%">
+    </td>
+    <td width="50%"></td>
+  </tr>
+</table>
 
 ## Hack Warning
 
