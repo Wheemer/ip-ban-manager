@@ -1,4 +1,3 @@
 *
 !.gitignore
 !configuration.yaml.j2
-!.storage/
