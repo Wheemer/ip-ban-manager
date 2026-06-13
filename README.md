@@ -10,11 +10,11 @@
 [![Home Assistant 2025.1.4+](https://img.shields.io/badge/HOME%20ASSISTANT-2025.1.4%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
 [![Latest release](https://img.shields.io/github/v/release/Wheemer/ip-ban-manager?style=for-the-badge&logo=github&logoColor=white&label=RELEASE&labelColor=555555&color=22C55E)](https://github.com/Wheemer/ip-ban-manager/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
-[![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&labelColor=555555&color=64748B)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-64748B.svg?style=for-the-badge&labelColor=555555)](LICENSE)
 
 <p>
-  <strong>Version 1.1.1:</strong><br>
-  HACS icon/metadata refresh plus the 1.1 network blocking, allowlist precedence, notification controls, safer live edits, diagnostics, and services.
+  <strong>Version 1.1.2:</strong><br>
+  License badge fix plus the 1.1 network blocking, allowlist precedence, notification controls, safer live edits, diagnostics, and services.
 </p>
 
 </div>
@@ -26,9 +26,9 @@ Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`]
 
 IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted networks, live ban review and removal, automatic-ban controls, diagnostics, services, and a proper integration icon.
 
-## What's New In v1.1.1
+## What's New In v1.1.2
 
-Version 1.1.1 fixes the HACS card/update icon and refreshes the public manifest version. Version 1.1.0 added the big missing piece: managed network blocks. You can now block whole CIDR networks or IPv4 wildcard ranges from the same Configure screen, while exact IP bans still stay in Home Assistant's native `ip_bans.yaml` workflow.
+Version 1.1.2 fixes the README license badge in HACS views. Version 1.1.1 added the repository brand assets and refreshed the public manifest version. Version 1.1.0 added the big missing piece: managed network blocks. You can now block whole CIDR networks or IPv4 wildcard ranges from the same Configure screen, while exact IP bans still stay in Home Assistant's native `ip_bans.yaml` workflow.
 
 - **Blocked networks** for CIDR ranges like `203.0.113.0/24` or IPv4 wildcard shorthand like `203.0.113.*`
 - **Allowlist wins** over managed network blocks, so you can block a subnet and still keep trusted IPs available

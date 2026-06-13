@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.2
+
+### Fixed
+
+- Replaced the dynamic GitHub license badge with a static AGPL-3.0-only Shields badge so HACS does not render a broken license image in cached README views.
+
+### Note
+
+- HACS update/download dialogs may still show the generic "icon not available" placeholder for custom integrations because HACS currently reads those icons from the public brands CDN instead of Home Assistant's local custom-integration brand API. IP Ban Manager ships the correct local brand assets under `custom_components/ban_allowlist/brand/` and repository-level `brand/`.
+
 ## v1.1.1
 
 ### Fixed
