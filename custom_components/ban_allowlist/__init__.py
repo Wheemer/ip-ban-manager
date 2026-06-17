@@ -86,6 +86,13 @@ INTEGRATION_CONFIG_URL = f"/config/integrations/integration/{DOMAIN}"
 CONFIG_ENTRY_URL_TEMPLATE = (
     f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
 )
+NOTIFICATION_LINK_LABEL = "Open IP Ban Manager settings"
+TITLE_LOGIN_FAILED = "IP Ban Manager: Login attempt failed"
+TITLE_ALLOWLISTED_LOGIN_FAILED = "IP Ban Manager: Allowlisted login failed"
+TITLE_REPEATED_ALLOWLISTED_LOGIN_FAILED = (
+    "IP Ban Manager: Repeated allowlisted login failures"
+)
+TITLE_IP_BANNED = "IP Ban Manager: IP banned"
 
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_networks")
 KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_blocked_networks")
@@ -207,14 +214,10 @@ async def _process_allowlisted_wrong_login(
 
     logging.getLogger("homeassistant.components.http.ban").warning(log_msg)
 
-    from homeassistant.components import persistent_notification
-
-    persistent_notification.async_create(
-        hass, notification_msg, "Login attempt failed", NOTIFICATION_ID_LOGIN
-    )
-
     if KEY_BAN_MANAGER in request.app and request.app[KEY_LOGIN_THRESHOLD] >= 1:
         request.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] += 1
+
+    _create_allowlisted_login_notification(hass, remote_addr, notification_msg)
 
 
 def _notifications_enabled(hass: HomeAssistant) -> bool:
@@ -263,28 +266,86 @@ def _dismiss_ban_notification_for_ips(
         persistent_notification.async_dismiss(hass, NOTIFICATION_ID_BAN)
 
 
+def _manager_notification_link(hass: HomeAssistant) -> str:
+    """Return the markdown link to IP Ban Manager settings."""
+    return f"[{NOTIFICATION_LINK_LABEL}]({_manager_config_url(hass)})"
+
+
+def _with_manager_link(hass: HomeAssistant, message: str) -> str:
+    """Append the manager settings link once."""
+    if NOTIFICATION_LINK_LABEL in message or INTEGRATION_CONFIG_URL in message:
+        return message
+    return f"{message}\n\n{_manager_notification_link(hass)}"
+
+
+def _notification_title(notification_id: str, message: str) -> str:
+    """Return the IP Ban Manager title for a Home Assistant HTTP notice."""
+    if notification_id == NOTIFICATION_ID_BAN:
+        return TITLE_IP_BANNED
+    if "allowlisted" in message.lower():
+        if "threshold" in message.lower():
+            return TITLE_REPEATED_ALLOWLISTED_LOGIN_FAILED
+        return TITLE_ALLOWLISTED_LOGIN_FAILED
+    return TITLE_LOGIN_FAILED
+
+
+def _create_allowlisted_login_notification(
+    hass: HomeAssistant, remote_addr: IPAddress, base_message: str
+) -> None:
+    """Create an IP Ban Manager failed-login notice for an allowlisted source."""
+    from homeassistant.components import persistent_notification
+
+    failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
+    attempts = int(failed_attempts.get(remote_addr, 0))
+    threshold = int(hass.http.app.get(KEY_LOGIN_THRESHOLD, 0))
+
+    details = [base_message]
+    if threshold >= 1 and attempts >= threshold:
+        title = TITLE_REPEATED_ALLOWLISTED_LOGIN_FAILED
+        details.append(
+            f"This source has reached the automatic ban threshold "
+            f"({attempts}/{threshold}), but {remote_addr} is allowlisted, "
+            "so IP Ban Manager prevented Home Assistant from banning it."
+        )
+    else:
+        title = TITLE_ALLOWLISTED_LOGIN_FAILED
+        if threshold >= 1:
+            details.append(
+                f"Current failed-login count: {attempts}/{threshold}. "
+                f"{remote_addr} is allowlisted, so it will not be banned."
+            )
+        else:
+            details.append(f"{remote_addr} is allowlisted, so it will not be banned.")
+
+    persistent_notification.async_create(
+        hass,
+        _with_manager_link(hass, "\n\n".join(details)),
+        title,
+        NOTIFICATION_ID_LOGIN,
+    )
+
+
 def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
-    """Add IP Ban Manager navigation links to Home Assistant HTTP notices."""
+    """Rewrite Home Assistant HTTP notices as IP Ban Manager notices."""
     from homeassistant.components import persistent_notification
 
     notifications = persistent_notification._async_get_or_create_notifications(
         hass
     )  # noqa: SLF001
-    manager_url = _manager_config_url(hass)
-    notification_links = f"\n\n[Open IP Ban Manager settings]({manager_url})"
     for notification_id in (NOTIFICATION_ID_LOGIN, NOTIFICATION_ID_BAN):
         notification = notifications.get(notification_id)
         if notification is None:
             continue
 
-        message = notification["message"]
-        if manager_url in message or INTEGRATION_CONFIG_URL in message:
+        message = _with_manager_link(hass, notification["message"])
+        title = _notification_title(notification_id, message)
+        if message == notification["message"] and title == notification["title"]:
             continue
 
         persistent_notification.async_create(
             hass,
-            f"{message}{notification_links}",
-            notification["title"],
+            message,
+            title,
             notification_id,
         )
 

@@ -369,7 +369,18 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
     await http_ban.process_wrong_login(cast(Any, MockRequest()))
 
     assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] == 2
-    assert NOTIFICATION_ID_LOGIN in existing_notifications
+    assert existing_notifications[NOTIFICATION_ID_LOGIN]["title"] == (
+        "IP Ban Manager: Repeated allowlisted login failures"
+    )
+    assert "2/2" in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert (
+        "prevented Home Assistant from banning it"
+        in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
+    )
+    assert (
+        "Open IP Ban Manager settings"
+        in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
+    )
     assert NOTIFICATION_ID_BAN not in existing_notifications
 
     messages = []
@@ -410,6 +421,10 @@ async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None
     notifications = persistent_notification._async_get_or_create_notifications(
         hass
     )  # noqa: SLF001
+    assert notifications[NOTIFICATION_ID_BAN]["title"] == "IP Ban Manager: IP banned"
+    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == (
+        "IP Ban Manager: Login attempt failed"
+    )
     for notification_id in (NOTIFICATION_ID_BAN, NOTIFICATION_ID_LOGIN):
         message = notifications[notification_id]["message"]
         assert "Open IP Ban Manager settings" in message
@@ -438,6 +453,7 @@ async def test_http_notifications_link_directly_to_config_entry(
     notifications = persistent_notification._async_get_or_create_notifications(
         hass
     )  # noqa: SLF001
+    assert notifications[NOTIFICATION_ID_BAN]["title"] == "IP Ban Manager: IP banned"
     message = notifications[NOTIFICATION_ID_BAN]["message"]
     assert message.endswith(f"[Open IP Ban Manager settings]({manager_url})")
     assert "Open integrations" not in message
