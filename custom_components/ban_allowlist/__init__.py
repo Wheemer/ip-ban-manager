@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Collection, Iterable
+from contextlib import suppress
 from datetime import datetime
 from ipaddress import (
     IPv4Address,
@@ -14,6 +15,7 @@ from ipaddress import (
     ip_address,
 )
 from pathlib import Path
+from socket import gethostbyaddr, herror
 from tempfile import NamedTemporaryFile
 
 import voluptuous as vol
@@ -167,22 +169,52 @@ def _request_remote_ip(request: Request) -> IPAddress | None:
 
 
 async def _allowlist_process_wrong_login(request: Request) -> None:
-    """Ignore failed login attempts from allowlisted addresses."""
+    """Process failed logins while preventing allowlisted addresses from bans."""
     allowlist = request.app.get(KEY_ALLOWLIST, ())
     remote_addr = _request_remote_ip(request)
 
-    if remote_addr is not None and _is_allowed(remote_addr, allowlist):
-        attempts = request.app.get(KEY_FAILED_LOGIN_ATTEMPTS)
-        if attempts is not None:
-            attempts.pop(remote_addr, None)
-        _LOGGER.info(
-            "Ignoring invalid authentication from %s because it is in the allowlist",
-            remote_addr,
-        )
+    if remote_addr is None or not _is_allowed(remote_addr, allowlist):
+        await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
+        _handle_http_notifications(request.app[KEY_HASS])
         return
 
-    await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
+    await _process_allowlisted_wrong_login(request, remote_addr)
     _handle_http_notifications(request.app[KEY_HASS])
+    _LOGGER.info(
+        "Allowlisted address %s failed authentication but was not banned",
+        remote_addr,
+    )
+
+
+async def _process_allowlisted_wrong_login(
+    request: Request, remote_addr: IPAddress
+) -> None:
+    """Record an allowlisted failed login without letting it become a ban."""
+    hass = request.app[KEY_HASS]
+    remote_host = request.remote or str(remote_addr)
+    with suppress(herror):
+        remote_host, _, _ = await hass.async_add_executor_job(
+            gethostbyaddr, str(remote_addr)
+        )
+
+    base_msg = (
+        "Login attempt or request with invalid authentication from"
+        f" {remote_host} ({remote_addr})."
+    )
+    user_agent = request.headers.get("user-agent")
+    log_msg = f"{base_msg} Requested URL: '{request.rel_url}'. ({user_agent})"
+    notification_msg = f"{base_msg} See the log for details."
+
+    logging.getLogger("homeassistant.components.http.ban").warning(log_msg)
+
+    from homeassistant.components import persistent_notification
+
+    persistent_notification.async_create(
+        hass, notification_msg, "Login attempt failed", NOTIFICATION_ID_LOGIN
+    )
+
+    if KEY_BAN_MANAGER in request.app and request.app[KEY_LOGIN_THRESHOLD] >= 1:
+        request.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] += 1
 
 
 def _notifications_enabled(hass: HomeAssistant) -> bool:
@@ -213,6 +245,22 @@ def _dismiss_http_notifications(hass: HomeAssistant) -> None:
 
     persistent_notification.async_dismiss(hass, NOTIFICATION_ID_LOGIN)
     persistent_notification.async_dismiss(hass, NOTIFICATION_ID_BAN)
+
+
+def _dismiss_ban_notification_for_ips(
+    hass: HomeAssistant, removed_ips: Collection[IPAddress]
+) -> None:
+    """Dismiss Home Assistant's ban notification when it only describes these IPs."""
+    from homeassistant.components import persistent_notification
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    ban_notification = notifications.get(NOTIFICATION_ID_BAN)
+    if ban_notification and any(
+        str(removed_ip) in ban_notification["message"] for removed_ip in removed_ips
+    ):
+        persistent_notification.async_dismiss(hass, NOTIFICATION_ID_BAN)
 
 
 def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
@@ -590,11 +638,7 @@ def _dismiss_removed_ip_notifications(
         hass
     )  # noqa: SLF001
 
-    ban_notification = notifications.get(NOTIFICATION_ID_BAN)
-    if ban_notification and any(
-        removed_ip in ban_notification["message"] for removed_ip in removed_ips
-    ):
-        persistent_notification.async_dismiss(hass, NOTIFICATION_ID_BAN)
+    _dismiss_ban_notification_for_ips(hass, {ip_address(ip) for ip in removed_ips})
 
     login_notification = notifications.get(NOTIFICATION_ID_LOGIN)
     if login_notification and any(

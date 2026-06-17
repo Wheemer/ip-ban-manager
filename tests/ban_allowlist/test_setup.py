@@ -11,6 +11,7 @@ from homeassistant.components.http import ban as http_ban
 from homeassistant.components.http.ban import (
     KEY_BAN_MANAGER,
     KEY_FAILED_LOGIN_ATTEMPTS,
+    KEY_LOGIN_THRESHOLD,
     NOTIFICATION_ID_BAN,
     NOTIFICATION_ID_LOGIN,
     IpBanManager,
@@ -344,23 +345,32 @@ async def test_hit_allowlist(
 
 
 @pytest.mark.asyncio
-async def test_ignored_wrong_login_does_not_increment_attempts(
+async def test_allowlisted_wrong_login_does_not_add_ban_notice(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Test allowlisted login failures don't count toward a ban."""
+    """Test allowlisted login failures are reported but do not become bans."""
     await setup_ban_allowlist(hass)
 
     remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 2
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 1
+
+    existing_notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )
+    assert NOTIFICATION_ID_BAN not in existing_notifications
 
     class MockRequest:
         remote = "192.168.1.1"
         app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
 
     await http_ban.process_wrong_login(cast(Any, MockRequest()))
-    check_records(caplog.records)
 
-    assert remote_addr not in hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS]
+    assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] == 2
+    assert NOTIFICATION_ID_LOGIN in existing_notifications
+    assert NOTIFICATION_ID_BAN not in existing_notifications
 
     messages = []
 
@@ -374,7 +384,7 @@ async def test_ignored_wrong_login_does_not_increment_attempts(
 
     assert messages == [
         "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
-        "Ignoring invalid authentication from 192.168.1.1 because it is in the allowlist",
+        "Allowlisted address 192.168.1.1 failed authentication but was not banned",
     ]
 
 
