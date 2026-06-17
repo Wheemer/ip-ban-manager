@@ -87,12 +87,7 @@ CONFIG_ENTRY_URL_TEMPLATE = (
     f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
 )
 NOTIFICATION_LINK_LABEL = "Open IP Ban Manager settings"
-TITLE_LOGIN_FAILED = "IP Ban Manager: Login attempt failed"
-TITLE_ALLOWLISTED_LOGIN_FAILED = "IP Ban Manager: Allowlisted login failed"
-TITLE_REPEATED_ALLOWLISTED_LOGIN_FAILED = (
-    "IP Ban Manager: Repeated allowlisted login failures"
-)
-TITLE_IP_BANNED = "IP Ban Manager: IP banned"
+NOTIFICATION_TITLE = "IP Ban Manager"
 
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_networks")
 KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ban_allowlist_blocked_networks")
@@ -278,15 +273,23 @@ def _with_manager_link(hass: HomeAssistant, message: str) -> str:
     return f"{message}\n\n{_manager_notification_link(hass)}"
 
 
-def _notification_title(notification_id: str, message: str) -> str:
-    """Return the IP Ban Manager title for a Home Assistant HTTP notice."""
+def _notification_heading(notification_id: str, message: str) -> str:
+    """Return the short message heading for a Home Assistant HTTP notice."""
     if notification_id == NOTIFICATION_ID_BAN:
-        return TITLE_IP_BANNED
+        return "IP banned"
     if "allowlisted" in message.lower():
         if "threshold" in message.lower():
-            return TITLE_REPEATED_ALLOWLISTED_LOGIN_FAILED
-        return TITLE_ALLOWLISTED_LOGIN_FAILED
-    return TITLE_LOGIN_FAILED
+            return "Repeated allowlisted login failures"
+        return "Allowlisted login failed"
+    return "Login attempt failed"
+
+
+def _with_notification_heading(heading: str, message: str) -> str:
+    """Prefix a notification body with a compact heading once."""
+    heading_line = f"**{heading}**"
+    if message.startswith(heading_line):
+        return message
+    return f"{heading_line}\n\n{message}"
 
 
 def _create_allowlisted_login_notification(
@@ -301,14 +304,14 @@ def _create_allowlisted_login_notification(
 
     details = [base_message]
     if threshold >= 1 and attempts >= threshold:
-        title = TITLE_REPEATED_ALLOWLISTED_LOGIN_FAILED
+        heading = "Repeated allowlisted login failures"
         details.append(
             f"This source has reached the automatic ban threshold "
             f"({attempts}/{threshold}), but {remote_addr} is allowlisted, "
             "so IP Ban Manager prevented Home Assistant from banning it."
         )
     else:
-        title = TITLE_ALLOWLISTED_LOGIN_FAILED
+        heading = "Allowlisted login failed"
         if threshold >= 1:
             details.append(
                 f"Current failed-login count: {attempts}/{threshold}. "
@@ -317,10 +320,11 @@ def _create_allowlisted_login_notification(
         else:
             details.append(f"{remote_addr} is allowlisted, so it will not be banned.")
 
+    message = _with_notification_heading(heading, "\n\n".join(details))
     persistent_notification.async_create(
         hass,
-        _with_manager_link(hass, "\n\n".join(details)),
-        title,
+        _with_manager_link(hass, message),
+        NOTIFICATION_TITLE,
         NOTIFICATION_ID_LOGIN,
     )
 
@@ -337,15 +341,19 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         if notification is None:
             continue
 
-        message = _with_manager_link(hass, notification["message"])
-        title = _notification_title(notification_id, message)
-        if message == notification["message"] and title == notification["title"]:
+        heading = _notification_heading(notification_id, notification["message"])
+        message = _with_notification_heading(heading, notification["message"])
+        message = _with_manager_link(hass, message)
+        if (
+            message == notification["message"]
+            and notification["title"] == NOTIFICATION_TITLE
+        ):
             continue
 
         persistent_notification.async_create(
             hass,
             message,
-            title,
+            NOTIFICATION_TITLE,
             notification_id,
         )
 
