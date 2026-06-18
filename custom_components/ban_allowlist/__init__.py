@@ -11,7 +11,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from custom_components.ip_ban_manager.const import CONF_IP_ADDRESSES, DOMAIN as NEW_DOMAIN
+from custom_components.ip_ban_manager.const import (
+    CONF_IP_ADDRESSES,
+)
+from custom_components.ip_ban_manager.const import DOMAIN as NEW_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
