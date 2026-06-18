@@ -1,4 +1,4 @@
-"""Integration test for ban allowlist."""
+"""Integration test for IP Ban Manager."""
 
 import os
 import shutil
@@ -37,12 +37,12 @@ config_folder = Path("config")
 ban_ip_path = config_folder.joinpath("ip_bans.yaml")
 
 root = Path(__file__).parent.parent
-new_custom_components = config_folder.joinpath("custom_components", "ban_allowlist")
+new_custom_components = config_folder.joinpath("custom_components", "ip_ban_manager")
 if new_custom_components.exists():
     shutil.rmtree(new_custom_components)
 
 shutil.copytree(
-    root.joinpath("custom_components", "ban_allowlist"), new_custom_components
+    root.joinpath("custom_components", "ip_ban_manager"), new_custom_components
 )
 
 
@@ -81,6 +81,20 @@ def wait_for_http(port: int, host: str = "localhost", timeout: float = 20.0):
             print("logs")
             print(logs)
             raise
+
+
+def wait_for_log_line(pattern: str, timeout: float = 20.0) -> None:
+    """Wait for Docker Compose logs to contain a setup marker."""
+    start_time = time.time()
+    while True:
+        logs = subprocess.check_output([*DOCKER_COMPOSE, "logs"], encoding="utf-8")
+        if pattern in logs:
+            return
+        if time.time() - start_time >= timeout:
+            print("logs")
+            print(logs)
+            raise TimeoutError(f"Timed out waiting for log line: {pattern}")
+        time.sleep(0.1)
 
 
 def configure_ha(allowlist: list[str], ip_ban_enabled: bool = True) -> None:
@@ -122,9 +136,7 @@ def configure_ha(allowlist: list[str], ip_ban_enabled: bool = True) -> None:
         env={**os.environ, "UID": str(os.getuid()), "GID": str(os.getgid())},
     )
     wait_for_http(8123)
-
-    # FIXME: check for actually up, as opposed to waiting "probably long enough"
-    time.sleep(5)
+    wait_for_log_line("Home Assistant initialized")
 
 
 def check_res(expected_results: list[int]):
@@ -152,6 +164,27 @@ def check_res(expected_results: list[int]):
         subprocess.check_call([*DOCKER_COMPOSE, "down"])
 
 
+def check_icon_route(timeout: float = 10.0) -> None:
+    """Check the notification icon route serves the integration icon."""
+    start_time = time.time()
+    last_response: requests.Response | None = None
+    while True:
+        res = requests.get("http://localhost:8123/api/ip_ban_manager/icon.png")
+        last_response = res
+        if (
+            res.ok
+            and res.headers["content-type"].startswith("image/png")
+            and res.content
+        ):
+            return
+        if time.time() - start_time >= timeout:
+            assert last_response is not None
+            assert last_response.ok, (last_response.status_code, last_response.text)
+            assert last_response.headers["content-type"].startswith("image/png")
+            assert len(last_response.content) > 0
+        time.sleep(0.1)
+
+
 def check_logs() -> None:
     """Check the logs for errors."""
     log_path = Path(__file__).parent.joinpath("config", "home-assistant.log")
@@ -168,6 +201,7 @@ check_logs()
 
 # Enable banning
 configure_ha([])
+check_icon_route()
 check_res([404, 403])  # Second is after banning
 check_logs()
 
@@ -178,6 +212,7 @@ ban_ip = list(ban_ips.keys())[0]
 print(f"Banned ip is {ban_ip}")
 
 configure_ha([ban_ip])
+check_icon_route()
 check_res([404, 404])
 check_logs()
 

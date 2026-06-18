@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.2.0
+
+IP Ban Manager 1.2.0 completes the public rename and domain migration. New installs use the `ip_ban_manager` integration domain and service namespace, while existing installs are carried forward by a small compatibility loader.
+
+### Changed
+
+- Migrated the integration domain, config URL, entity platform, and service namespace to `ip_ban_manager`.
+- Updated HACS-facing metadata, README examples, YAML examples, service names, tests, integration-test fixtures, and development targets for the new domain.
+- Refined the README header so the product name is simply **IP Ban Manager** with the icon beside it.
+
+### Improved
+
+- Locked in the cleaner persistent-notification style with the compact IP Ban Manager icon header, shorter copy, and `Open settings` link.
+- Added a local static icon route for persistent notifications so the icon does not depend on external README or brand asset URLs.
+- Removed leftover migration cleanup code from the new integration path; old-domain handling now lives only in the compatibility loader.
+- Lowered the documented and HACS minimum Home Assistant version to `2024.7.4` after testing the integration there.
+
+### Compatibility
+
+- Existing config entries are migrated to `ip_ban_manager` automatically on restart.
+- Existing YAML is imported into the new domain by the compatibility loader, but new documentation uses `ip_ban_manager:`.
+- Services now live under `ip_ban_manager.*`; update automations or scripts that call the older service namespace.
+
 ## v1.1.2
 
 ### Fixed
@@ -8,7 +31,7 @@
 
 ### Note
 
-- HACS update/download dialogs may still show the generic "icon not available" placeholder for custom integrations because HACS currently reads those icons from the public brands CDN instead of Home Assistant's local custom-integration brand API. IP Ban Manager ships the correct local brand assets under `custom_components/ban_allowlist/brand/` and repository-level `brand/`.
+- HACS update/download dialogs may still show the generic "icon not available" placeholder for custom integrations because HACS currently reads those icons from the public brands CDN instead of Home Assistant's local custom-integration brand API. IP Ban Manager ships the correct local brand assets under `custom_components/ip_ban_manager/brand/` and repository-level `brand/`.
 
 ## v1.1.1
 
@@ -43,7 +66,7 @@ This is still intentionally marked as a **HACK** because Home Assistant does not
 
 ### Highlights
 
-- Config flow setup with automatic YAML import for existing `ban_allowlist` configuration.
+- Config flow setup with automatic YAML import.
 - Polished UI setup shows automatic-ban controls and allowlist safe-default checkboxes for `127.0.0.1` and Home Assistant's detected local subnet.
 - Live **Allowed IPs** and **Banned IPs** management from the integration options, with safe defaults, inline guidance, and readable ban timestamps.
 - IPv4 wildcard shorthand for allowlisted networks, such as `192.168.1.*`.
@@ -66,5 +89,5 @@ This is still intentionally marked as a **HACK** because Home Assistant does not
 
 ### Compatibility
 
-- Existing `ban_allowlist:` YAML configuration is still imported.
-- Service IDs remain under `ban_allowlist.*` so Home Assistant service metadata continues to work with the integration domain.
+- YAML configuration is still imported under the new integration domain.
+- Service IDs now use `ip_ban_manager.*` to match the integration domain.

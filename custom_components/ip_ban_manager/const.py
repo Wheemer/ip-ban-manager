@@ -1,4 +1,4 @@
-"""Constants for the Ban Allowlist integration."""
+"""Constants for the IP Ban Manager integration."""
 
 ATTR_AUTO_BAN_ENABLED = "auto_ban_enabled"
 ATTR_BAN_NOTIFICATIONS_ENABLED = "ban_notifications_enabled"
@@ -19,7 +19,7 @@ CONF_BANNED_IPS = "banned_ips"
 CONF_BLOCKED_NETWORKS = "blocked_networks"
 CONF_IP_ADDRESSES = "ip_addresses"
 CONF_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
-DOMAIN = "ban_allowlist"
+DOMAIN = "ip_ban_manager"
 
 DEFAULT_LOGIN_ATTEMPTS_THRESHOLD = 5
 

@@ -1,4 +1,4 @@
-ban_allowlist:
+ip_ban_manager:
   ip_addresses: {{ ALLOWLIST }}
 
 http:
@@ -8,7 +8,7 @@ http:
 logger:
   default: info
   logs:
-    custom_components.ban_allowlist: debug
+    custom_components.ip_ban_manager: debug
     homeassistant.components.http: debug
 
 api:

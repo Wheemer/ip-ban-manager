@@ -1,21 +1,22 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/custom_components/ban_allowlist/icon.png" width="112" alt="IP Ban Manager icon">
-
-# Home Assistant IP Ban Manager
+<h1>
+  <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/custom_components/ip_ban_manager/icon.png" width="64" alt="IP Ban Manager icon" align="center">
+  IP Ban Manager
+</h1>
 
 ### Live IP ban and allowlist management for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-CUSTOM-FD7E14?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://github.com/hacs/integration)
-[![Home Assistant 2025.1.4+](https://img.shields.io/badge/HOME%20ASSISTANT-2025.1.4%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
+[![Home Assistant 2024.7.4+](https://img.shields.io/badge/HOME%20ASSISTANT-2024.7.4%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
 [![Latest release](https://img.shields.io/github/v/release/Wheemer/ip-ban-manager?style=for-the-badge&logo=github&logoColor=white&label=RELEASE&labelColor=555555&color=22C55E)](https://github.com/Wheemer/ip-ban-manager/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
-[![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&label=LICENSE&labelColor=555555&color=64748B)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/LICENSE-AGPL--3.0--only-64748B?style=for-the-badge&labelColor=555555)](LICENSE)
 
 
 </div>
 
-Originally created by [palfrey](https://github.com/palfrey) as [`ban_allowlist`](https://github.com/palfrey/ban_allowlist). This fork builds on that work with a live Home Assistant IP ban and allowlist manager UI.
+Originally created by [palfrey](https://github.com/palfrey). This fork builds on that allowlist work with a live Home Assistant IP ban and allowlist manager UI.
 
 > [!WARNING]
 > **THIS IS A HACK. USE AT YOUR OWN RISK.** Home Assistant does not provide a public integration API for changing the HTTP IP ban manager at runtime, so this integration uses a small internal hook around Home Assistant's built-in ban manager.
@@ -28,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.0** | Full `ip_ban_manager` domain migration, `ip_ban_manager.*` services, automatic upgrade shim for existing installs, cleaner notification branding, and a local notification icon route. |
 | **v1.1.2** | README and HACS display polish, including a more reliable license badge. |
 | **v1.1.1** | Repository brand assets so HACS and Home Assistant can discover the integration icon where supported. |
 | **v1.1.0** | Managed **Blocked networks** for CIDR ranges and IPv4 wildcard shorthand, allowlist precedence over blocked networks, automatic-ban notification control, and blocked-network diagnostics. |
@@ -35,14 +37,14 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 Core management features include:
 
-- **Setup:** UI setup with automatic-ban controls, `127.0.0.1` safe default, optional detected local subnet, and YAML import for existing `ban_allowlist` users.
+- **Setup:** UI setup with automatic-ban controls, `127.0.0.1` safe default, optional detected local subnet, and YAML import for existing users.
 - **Allowed IPs:** live editable trusted IPs, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
 - **Banned IPs:** live exact-IP ban review, add, remove, and clear actions without restarting Home Assistant. Existing ban timestamps are shown as readable local times and preserved when unchanged.
 - **Blocked networks:** managed CIDR or wildcard network blocks, enforced behind Home Assistant's native ban lookup without pretending `ip_bans.yaml` supports ranges.
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
-- **Notifications:** matching stale Home Assistant ban/login notifications are dismissed when a ban is removed, and automatic-ban notifications can be disabled from the UI.
+- **Notifications:** branded IP Ban Manager login/ban notices include a compact icon header, direct settings link, stale-notice cleanup when bans are removed, and optional automatic-ban notification suppression.
 - **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, risky typo removals, and unconfirmed clear-all service calls are rejected before anything is written.
-- **Automation:** services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
+- **Automation:** `ip_ban_manager.*` services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
 - **Diagnostics:** sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources.
 
 ## Examples
@@ -83,10 +85,12 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. Setup starts with the important controls only: automatic bans, the login-attempt threshold, and allowlist safe defaults for `127.0.0.1` plus, when detected, Home Assistant's local subnet. `127.0.0.1` is selected by default; the detected local subnet is available but not selected by default. Add or remove trusted LAN and remote IPs from **Configure** after setup.
 
-Existing YAML configuration is imported automatically:
+Existing installs from the previous domain are migrated automatically on restart. The visible integration name is **IP Ban Manager**, YAML examples use `ip_ban_manager:`, and automation/service calls use `ip_ban_manager.*`.
+
+YAML configuration is imported automatically:
 
 ```
-ban_allowlist:
+ip_ban_manager:
   ip_addresses: ["my.ip.address", "192.168.1.0/24", "192.168.2.*"]
 ```
 
@@ -126,11 +130,11 @@ The live hooks are installed at setup even if the initial allowlist is empty, so
 
 The integration also adds services for automations and scripts:
 
-- `ban_allowlist.add_ip_ban`
-- `ban_allowlist.remove_ip_ban`
-- `ban_allowlist.remove_all_ip_bans`
-- `ban_allowlist.add_allowlist_network`
-- `ban_allowlist.remove_allowlist_network`
+- `ip_ban_manager.add_ip_ban`
+- `ip_ban_manager.remove_ip_ban`
+- `ip_ban_manager.remove_all_ip_bans`
+- `ip_ban_manager.add_allowlist_network`
+- `ip_ban_manager.remove_allowlist_network`
 
 Adding an IP ban updates Home Assistant's live ban manager and persists to `ip_bans.yaml`. Removing a ban updates the live ban manager, clears any failed-login counter for that IP, and rewrites `ip_bans.yaml`. Clearing every ban requires `confirm: true`.
 

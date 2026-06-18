@@ -1,4 +1,4 @@
-"""Test Ban Allowlist setup."""
+"""Test IP Ban Manager setup."""
 
 import logging
 from ipaddress import IPv4Address, ip_address
@@ -23,7 +23,7 @@ from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_compon
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ban_allowlist import (
+from custom_components.ip_ban_manager import (
     _ORIGINAL_PROCESS_WRONG_LOGIN,
     CONFIG_ENTRY_URL_TEMPLATE,
     INTEGRATION_CONFIG_URL,
@@ -36,7 +36,7 @@ from custom_components.ban_allowlist import (
     _allowlist_process_wrong_login,
     current_status,
 )
-from custom_components.ban_allowlist.const import (
+from custom_components.ip_ban_manager.const import (
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
     ATTR_CONFIRM,
@@ -63,16 +63,18 @@ def check_records(records: list[logging.LogRecord]) -> None:
         if record.levelno >= logging.WARNING:
             msg = record.getMessage()
             if msg.startswith(
+                "We found a custom integration ip_ban_manager which has not been tested by Home Assistant"
+            ) or msg.startswith(
                 "We found a custom integration ban_allowlist which has not been tested by Home Assistant"
             ):
                 continue
             raise Exception(msg)
 
 
-async def setup_ban_allowlist(hass: HomeAssistant) -> None:
-    """Configure ban_allowlist and dependencies."""
+async def setup_ip_ban_manager(hass: HomeAssistant) -> None:
+    """Configure ip_ban_manager and dependencies."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -90,7 +92,7 @@ async def test_yaml_import(
 ) -> None:
     """Test YAML configuration is imported into a config entry."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     assert await async_setup_component(
         hass,
@@ -115,7 +117,7 @@ async def test_yaml_import_normalizes_ipv4_wildcard(
 ) -> None:
     """Test YAML import accepts IPv4 wildcard shorthand."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     assert await async_setup_component(
         hass,
@@ -133,8 +135,8 @@ async def test_yaml_import_normalizes_ipv4_wildcard(
 
 @pytest.mark.asyncio
 async def test_setup(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
-    """Test setup of ban allowlist."""
-    await setup_ban_allowlist(hass)
+    """Test setup of IP Ban Manager."""
+    await setup_ip_ban_manager(hass)
     check_records(caplog.records)
     assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
 
@@ -145,7 +147,7 @@ async def test_setup_applies_blocked_networks_with_allowlist_precedence(
 ) -> None:
     """Test managed blocked networks are enforced behind the native ban lookup."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -175,7 +177,7 @@ async def test_setup_creates_repair_when_ip_banning_disabled(
 ) -> None:
     """Test setup creates a visible repair when native IP banning is disabled."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {"http": {"ip_ban_enabled": False}})
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -215,23 +217,23 @@ async def test_setup_clears_repair_when_ip_banning_enabled(
         translation_key=IP_BAN_DISABLED_ISSUE_ID,
     )
 
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     check_records(caplog.records)
 
     assert ir.async_get(hass).async_get_issue(DOMAIN, IP_BAN_DISABLED_ISSUE_ID) is None
 
 
 @pytest.mark.asyncio
-async def test_setup_renames_legacy_entry_title(
+async def test_setup_removes_deprecated_banned_ips_option(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Test old config entry titles are updated after the integration rename."""
+    """Test deprecated options are removed during setup."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
         domain=DOMAIN,
-        title="IP Ban Allowlist",
+        title="IP Ban Manager",
         data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
         options={
             CONF_IP_ADDRESSES: ["192.168.1.1"],
@@ -251,12 +253,44 @@ async def test_setup_renames_legacy_entry_title(
 
 
 @pytest.mark.asyncio
+async def test_legacy_domain_entry_migrates_to_ip_ban_manager(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test an older domain config entry migrates to the new domain."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    components = await async_get_custom_components(hass)
+    assert "ban_allowlist" in components
+    assert "ip_ban_manager" in components
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain="ban_allowlist",
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+        options={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert hass.config_entries.async_entries("ban_allowlist") == []
+    migrated_entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(migrated_entries) == 1
+    migrated = migrated_entries[0]
+    assert migrated.title == "IP Ban Manager"
+    assert migrated.data == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
+    assert migrated.options == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
+    assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+
+
+@pytest.mark.asyncio
 async def test_setup_reads_legacy_allowed_ips_option(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test old allowed_ips option data is still honored."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -278,7 +312,7 @@ async def test_diagnostic_sensors_expose_counts(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test diagnostic sensors expose meaningful counts and details."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     check_records(caplog.records)
 
     active_bans = hass.states.get("sensor.ip_ban_manager_active_bans")
@@ -310,7 +344,7 @@ async def test_hit_allowlist(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test hitting the allowlist."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     await cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER]).async_add_ban(
         IPv4Address("192.168.1.1")
     )
@@ -329,7 +363,7 @@ async def test_hit_allowlist(
 
     for record in caplog.records:
         if record.levelno < logging.INFO or not record.name.startswith(
-            "custom_components.ban_allowlist"
+            "custom_components.ip_ban_manager"
         ):
             continue
 
@@ -349,7 +383,7 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test allowlisted login failures are reported but do not become bans."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
 
     remote_addr = ip_address("192.168.1.1")
     hass.http.app[KEY_LOGIN_THRESHOLD] = 2
@@ -369,27 +403,24 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
     await http_ban.process_wrong_login(cast(Any, MockRequest()))
 
     assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] == 2
-    assert existing_notifications[NOTIFICATION_ID_LOGIN]["title"] == "IP Ban Manager"
+    assert existing_notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
     assert (
         "Repeated allowlisted login failures"
         in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
     )
     assert "2/2" in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
     assert (
-        "prevented Home Assistant from banning it"
+        "so it was not banned"
         in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
     )
-    assert (
-        "Open IP Ban Manager settings"
-        in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
-    )
+    assert "Open settings" in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
     assert NOTIFICATION_ID_BAN not in existing_notifications
 
     messages = []
 
     for record in caplog.records:
         if record.levelno < logging.INFO or not record.name.startswith(
-            "custom_components.ban_allowlist"
+            "custom_components.ip_ban_manager"
         ):
             continue
 
@@ -423,13 +454,13 @@ async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None
     notifications = persistent_notification._async_get_or_create_notifications(
         hass
     )  # noqa: SLF001
-    assert notifications[NOTIFICATION_ID_BAN]["title"] == "IP Ban Manager"
-    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == "IP Ban Manager"
+    assert notifications[NOTIFICATION_ID_BAN]["title"] == " "
+    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
     assert "IP banned" in notifications[NOTIFICATION_ID_BAN]["message"]
     assert "Login attempt failed" in notifications[NOTIFICATION_ID_LOGIN]["message"]
     for notification_id in (NOTIFICATION_ID_BAN, NOTIFICATION_ID_LOGIN):
         message = notifications[notification_id]["message"]
-        assert "Open IP Ban Manager settings" in message
+        assert "Open settings" in message
         assert message.count(INTEGRATION_CONFIG_URL) == 1
         assert "Open integrations" not in message
 
@@ -439,7 +470,7 @@ async def test_http_notifications_link_directly_to_config_entry(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test Home Assistant HTTP notifications link to the settings page."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     manager_url = CONFIG_ENTRY_URL_TEMPLATE.format(entry_id=entry.entry_id)
     persistent_notification.async_create(
@@ -455,10 +486,10 @@ async def test_http_notifications_link_directly_to_config_entry(
     notifications = persistent_notification._async_get_or_create_notifications(
         hass
     )  # noqa: SLF001
-    assert notifications[NOTIFICATION_ID_BAN]["title"] == "IP Ban Manager"
+    assert notifications[NOTIFICATION_ID_BAN]["title"] == " "
     assert "IP banned" in notifications[NOTIFICATION_ID_BAN]["message"]
     message = notifications[NOTIFICATION_ID_BAN]["message"]
-    assert message.endswith(f"[Open IP Ban Manager settings]({manager_url})")
+    assert message.endswith(f"[Open settings]({manager_url})")
     assert "Open integrations" not in message
 
 
@@ -467,7 +498,7 @@ async def test_ban_hook_uses_current_allowlist(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test the ban hook reads the current app allowlist."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     hass.http.app[KEY_ALLOWLIST] = ()
 
     await cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER]).async_add_ban(
@@ -479,7 +510,7 @@ async def test_ban_hook_uses_current_allowlist(
 
     for record in caplog.records:
         if record.levelno < logging.INFO or not record.name.startswith(
-            "custom_components.ban_allowlist"
+            "custom_components.ip_ban_manager"
         ):
             continue
 
@@ -497,7 +528,7 @@ async def test_ban_hook_works_after_adding_first_allowlist_entry(
 ) -> None:
     """Test live allowlist additions work when setup started with no allowlist."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -531,7 +562,7 @@ async def test_unload_restores_home_assistant_hooks(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test unloading leaves Home Assistant's HTTP ban internals restored."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     patched_add_ban = ban_manager.async_add_ban
@@ -558,7 +589,7 @@ async def test_live_ban_services_update_memory_and_file(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test IP bans can be added and removed without restarting Home Assistant."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
 
@@ -592,7 +623,7 @@ async def test_remove_all_ip_bans_service(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test all IP bans can be removed without restarting Home Assistant."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
     await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
@@ -619,7 +650,7 @@ async def test_remove_all_ip_bans_service_requires_confirmation(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test all-ban removal cannot happen by accident from a service call."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
     await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
@@ -645,7 +676,7 @@ async def test_remove_ip_ban_dismisses_matching_notifications(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test removing one ban dismisses stale notifications for that IP."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
     await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
@@ -687,7 +718,7 @@ async def test_remove_ip_ban_keeps_unrelated_notification(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test removing one ban does not dismiss a notification for a different IP."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
     await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
@@ -720,7 +751,7 @@ async def test_remove_ip_ban_rejects_unknown_ip_without_mutating_state(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test typo removals do not rewrite ban state or clear failed attempts."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
     await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
@@ -746,7 +777,7 @@ async def test_allowlist_services_update_live_options(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test allowlist entries can be added and removed without restarting."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
 
     await hass.services.async_call(
         DOMAIN,
@@ -812,7 +843,7 @@ async def test_allowlist_services_normalize_ipv4_wildcard(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test allowlist services accept IPv4 wildcard shorthand."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
 
     await hass.services.async_call(
         DOMAIN,
@@ -852,7 +883,7 @@ async def test_allowlist_service_rejects_allowlisting_everything(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test service calls cannot add an allowlist entry that disables bans."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
 
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
@@ -876,7 +907,7 @@ async def test_allowlist_service_rejects_network_containing_active_ban(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test service calls cannot allowlist a network with active bans inside it."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
     await ban_manager.async_add_ban(IPv4Address("10.0.0.25"))
@@ -902,7 +933,7 @@ async def test_allowlist_service_can_remove_final_entry(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test service calls can remove the final allowlist entry."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
 
     await hass.services.async_call(
         DOMAIN,
@@ -929,7 +960,7 @@ async def test_current_status_lists_live_state(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test the status helper formats the live lists for UI display."""
-    await setup_ban_allowlist(hass)
+    await setup_ip_ban_manager(hass)
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     ban_manager.path = str(tmp_path / "ip_bans.yaml")
     await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))

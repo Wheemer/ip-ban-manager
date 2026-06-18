@@ -1,4 +1,4 @@
-"""Test the Ban Allowlist config flow."""
+"""Test the IP Ban Manager config flow."""
 
 from __future__ import annotations
 
@@ -14,13 +14,13 @@ from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_compon
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.ban_allowlist import KEY_ALLOWLIST
-from custom_components.ban_allowlist import config_flow as ban_config_flow
-from custom_components.ban_allowlist.config_flow import (
+from custom_components.ip_ban_manager import KEY_ALLOWLIST
+from custom_components.ip_ban_manager import config_flow as ban_config_flow
+from custom_components.ip_ban_manager.config_flow import (
     DEFAULT_ALLOWED_IPS,
     _format_banned_at,
 )
-from custom_components.ban_allowlist.const import (
+from custom_components.ip_ban_manager.const import (
     ATTR_BANNED_IPS,
     CONF_ALLOWED_IPS,
     CONF_AUTO_BAN_ENABLED,
@@ -99,15 +99,15 @@ async def mixed_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
     ]
 
 
-async def load_ban_allowlist(hass: HomeAssistant) -> None:
+async def load_ip_ban_manager(hass: HomeAssistant) -> None:
     """Load the custom integration."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
-    assert list((await async_get_custom_components(hass)).keys()) == ["ban_allowlist"]
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
 
 
 async def setup_options_entry(hass: HomeAssistant, tmp_path: Path) -> MockConfigEntry:
     """Set up an options-test config entry with Home Assistant HTTP loaded."""
-    await load_ban_allowlist(hass)
+    await load_ip_ban_manager(hass)
     await async_setup_component(hass, "http", {})
 
     entry = MockConfigEntry(
@@ -141,7 +141,7 @@ async def test_detect_home_assistant_subnets(
 @pytest.mark.asyncio
 async def test_user_flow(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test creating an entry from the UI without text-list editing."""
-    await load_ban_allowlist(hass)
+    await load_ip_ban_manager(hass)
     monkeypatch.setattr(
         ban_config_flow,
         "_async_detect_home_assistant_subnets",
@@ -175,7 +175,7 @@ async def test_user_flow_can_add_detected_subnet(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test first-run setup can add the detected Home Assistant subnet."""
-    await load_ban_allowlist(hass)
+    await load_ip_ban_manager(hass)
     monkeypatch.setattr(
         ban_config_flow,
         "_async_detect_home_assistant_subnets",
@@ -213,7 +213,7 @@ async def test_user_flow_can_skip_localhost(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test first-run setup honors the visible localhost checkbox option."""
-    await load_ban_allowlist(hass)
+    await load_ip_ban_manager(hass)
     monkeypatch.setattr(
         ban_config_flow,
         "_async_detect_home_assistant_subnets",
@@ -250,7 +250,7 @@ async def test_user_flow_is_single_instance(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test only one IP Ban Manager entry can be configured."""
-    await load_ban_allowlist(hass)
+    await load_ip_ban_manager(hass)
     monkeypatch.setattr(
         ban_config_flow,
         "_async_detect_home_assistant_subnets",

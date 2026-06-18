@@ -1,11 +1,11 @@
 {
-  "domain": "ban_allowlist",
-  "name": "IP Ban Manager Migration",
+  "domain": "ip_ban_manager",
+  "name": "IP Ban Manager",
   "codeowners": [
     "@Wheemer"
   ],
-  "config_flow": false,
-  "dependencies": ["ip_ban_manager"],
+  "config_flow": true,
+  "dependencies": ["http", "network"],
   "documentation": "https://github.com/Wheemer/ip-ban-manager",
   "integration_type": "service",
   "iot_class": "calculated",

@@ -47,7 +47,7 @@ integration-tests: sync
 	cd integration_tests && ../$(VENV_PYTHON) test_banning_works.py
 
 watch-integration-tests:
-	$(VENV_WATCHMEDO) auto-restart --directory=./ --pattern="*.py;*.pyi;*.yaml.j2" --ignore-patterns "config/custom_components/ban_allowlist/*.py" --no-restart-on-command-exit --recursive -- ${MAKE} integration-tests
+	$(VENV_WATCHMEDO) auto-restart --directory=./ --pattern="*.py;*.pyi;*.yaml.j2" --ignore-patterns "config/custom_components/ip_ban_manager/*.py" --no-restart-on-command-exit --recursive -- ${MAKE} integration-tests
 
 clean-integration-tests:
 	git clean -fx ./integration_tests && (cd integration_tests && docker compose kill && docker compose rm -sf)

@@ -1,5 +1,5 @@
 pytest
-homeassistant >= 2025.1.4
+homeassistant >= 2024.7.4
 voluptuous
 pytest-watcher
 pytest-homeassistant-custom-component >=0.13.53
