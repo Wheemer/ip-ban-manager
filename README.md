@@ -29,7 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
-| **v1.2.0** | Full `ip_ban_manager` domain migration, `ip_ban_manager.*` services, automatic upgrade shim for existing installs, cleaner notification branding, and a local notification icon route. |
+| **v1.2.0** | Public-ready release with managed **Blocked networks**, allowlist precedence, automatic-ban notification controls, diagnostics, branded notifications, full `ip_ban_manager` domain migration, and automatic upgrade shim for existing installs. |
 | **v1.1.2** | README and HACS display polish, including a more reliable license badge. |
 | **v1.1.1** | Repository brand assets so HACS and Home Assistant can discover the integration icon where supported. |
 | **v1.1.0** | Managed **Blocked networks** for CIDR ranges and IPv4 wildcard shorthand, allowlist precedence over blocked networks, automatic-ban notification control, and blocked-network diagnostics. |

@@ -2,7 +2,16 @@
 
 ## v1.2.0
 
-IP Ban Manager 1.2.0 completes the public rename and domain migration. New installs use the `ip_ban_manager` integration domain and service namespace, while existing installs are carried forward by a small compatibility loader.
+IP Ban Manager 1.2.0 is the public-ready release for the expanded integration: live exact-IP bans, allowlists, managed network blocks, automatic-ban controls, branded notifications, and the completed `ip_ban_manager` domain migration.
+
+### Highlights
+
+- Manage Home Assistant exact IP bans from the UI without restarting Home Assistant.
+- Add managed **Blocked networks** for CIDR ranges and IPv4 wildcard shorthand, such as `192.168.1.0/24` or `192.168.1.*`.
+- Keep allowlisted IPs and networks trusted even when they fall inside a managed blocked network.
+- Enable or disable automatic bans, automatic-ban notifications, and the login-attempt threshold from setup and Configure.
+- Show branded IP Ban Manager login/ban notifications with a compact local icon header and a direct settings link.
+- Keep diagnostics for exact bans, allowlisted networks, managed blocked networks, and failed-login sources.
 
 ### Changed
 
@@ -12,7 +21,6 @@ IP Ban Manager 1.2.0 completes the public rename and domain migration. New insta
 
 ### Improved
 
-- Locked in the cleaner persistent-notification style with the compact IP Ban Manager icon header, shorter copy, and `Open settings` link.
 - Added a local static icon route for persistent notifications so the icon does not depend on external README or brand asset URLs.
 - Removed leftover migration cleanup code from the new integration path; old-domain handling now lives only in the compatibility loader.
 - Lowered the documented and HACS minimum Home Assistant version to `2024.7.4` after testing the integration there.
