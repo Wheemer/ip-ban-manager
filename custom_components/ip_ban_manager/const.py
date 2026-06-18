@@ -20,6 +20,7 @@ CONF_BLOCKED_NETWORKS = "blocked_networks"
 CONF_IP_ADDRESSES = "ip_addresses"
 CONF_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
 DOMAIN = "ip_ban_manager"
+LEGACY_DOMAIN = "ban_allowlist"
 
 DEFAULT_LOGIN_ATTEMPTS_THRESHOLD = 5
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.2.1
+
+IP Ban Manager 1.2.1 fixes the HACS packaging layout so new installs load the real `ip_ban_manager` integration instead of the old migration shim.
+
+### Fixed
+
+- Removed the legacy `custom_components/ban_allowlist` folder from the distributable repository. HACS supports one integration folder per repository, and the extra folder could cause HACS to install the YAML-only compatibility shim instead of IP Ban Manager.
+- Added direct absorption of leftover `ban_allowlist:` YAML inside the `ip_ban_manager` integration, without shipping a second HACS component folder.
+- Bumped the manifest version to `1.2.1` so HACS users get a clean update prompt.
+
+### Upgrade note
+
+- If Home Assistant says "This integration cannot be added from the UI", update to `v1.2.1`, restart Home Assistant, then add **IP Ban Manager** from the UI again. Existing Home Assistant `http:` IP-ban settings can stay in `configuration.yaml`.
+- Leftover `ban_allowlist:` YAML is absorbed automatically when IP Ban Manager loads, so users do not need to rename that key just to migrate. Normal setup and ongoing management are done from the UI.
+
 ## v1.2.0
 
 IP Ban Manager 1.2.0 is the public-ready release for the expanded integration: live exact-IP bans, allowlists, managed network blocks, automatic-ban controls, branded notifications, and the completed `ip_ban_manager` domain migration.

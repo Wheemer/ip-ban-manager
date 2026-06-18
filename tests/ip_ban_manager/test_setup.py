@@ -49,6 +49,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
     DOMAIN,
+    LEGACY_DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
     SERVICE_ADD_IP_BAN,
     SERVICE_REMOVE_ALL_IP_BANS,
@@ -64,8 +65,6 @@ def check_records(records: list[logging.LogRecord]) -> None:
             msg = record.getMessage()
             if msg.startswith(
                 "We found a custom integration ip_ban_manager which has not been tested by Home Assistant"
-            ) or msg.startswith(
-                "We found a custom integration ban_allowlist which has not been tested by Home Assistant"
             ):
                 continue
             raise Exception(msg)
@@ -131,6 +130,31 @@ async def test_yaml_import_normalizes_ipv4_wildcard(
     assert len(entries) == 1
     assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.0/24"]}
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.1.0/24"]
+
+
+@pytest.mark.asyncio
+async def test_legacy_yaml_import_is_absorbed(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test leftover ban_allowlist YAML is imported by IP Ban Manager."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    assert await async_setup_component(
+        hass,
+        DOMAIN,
+        {LEGACY_DOMAIN: {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}},
+    )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
 
 
 @pytest.mark.asyncio
@@ -250,38 +274,6 @@ async def test_setup_removes_deprecated_banned_ips_option(
     assert stored_entry is not None
     assert stored_entry.title == "IP Ban Manager"
     assert stored_entry.options == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
-
-
-@pytest.mark.asyncio
-async def test_legacy_domain_entry_migrates_to_ip_ban_manager(
-    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
-) -> None:
-    """Test an older domain config entry migrates to the new domain."""
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
-    components = await async_get_custom_components(hass)
-    assert "ban_allowlist" in components
-    assert "ip_ban_manager" in components
-    await async_setup_component(hass, "http", {})
-    entry = MockConfigEntry(
-        domain="ban_allowlist",
-        title="IP Ban Manager",
-        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
-        options={CONF_IP_ADDRESSES: ["192.168.1.1"]},
-    )
-    entry.add_to_hass(hass)
-
-    await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-    check_records(caplog.records)
-
-    assert hass.config_entries.async_entries("ban_allowlist") == []
-    migrated_entries = hass.config_entries.async_entries(DOMAIN)
-    assert len(migrated_entries) == 1
-    migrated = migrated_entries[0]
-    assert migrated.title == "IP Ban Manager"
-    assert migrated.data == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
-    assert migrated.options == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
-    assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
 
 
 @pytest.mark.asyncio

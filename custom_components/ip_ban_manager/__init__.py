@@ -40,6 +40,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
+from voluptuous.schema_builder import Optional as vol_optional
 
 from .const import (
     ATTR_AUTO_BAN_ENABLED,
@@ -62,6 +63,7 @@ from .const import (
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
+    LEGACY_DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
     SERVICE_ADD_IP_BAN,
     SERVICE_REMOVE_ALL_IP_BANS,
@@ -100,11 +102,16 @@ _ORIGINAL_PROCESS_WRONG_LOGIN = http_ban.process_wrong_login
 
 CONFIG_SCHEMA = vol.Schema(
     {
-        DOMAIN: vol.Schema(
+        vol_optional(DOMAIN): vol.Schema(
             {
                 vol.Required(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
             }
-        )
+        ),
+        vol_optional(LEGACY_DOMAIN): vol.Schema(
+            {
+                vol.Required(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
+            }
+        ),
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -973,12 +980,13 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
-    if DOMAIN in config:
+    yaml_config = config.get(DOMAIN) or config.get(LEGACY_DOMAIN)
+    if yaml_config is not None:
         hass.async_create_task(
             hass.config_entries.flow.async_init(
                 DOMAIN,
                 context={"source": SOURCE_IMPORT},
-                data=dict(config[DOMAIN]),
+                data=dict(yaml_config),
             )
         )
 
