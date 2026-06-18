@@ -86,9 +86,9 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. Setup starts with the important controls only: automatic bans, the login-attempt threshold, and allowlist safe defaults for `127.0.0.1` plus, when detected, Home Assistant's local subnet. `127.0.0.1` is selected by default; the detected local subnet is available but not selected by default. Add or remove trusted LAN and remote IPs from **Configure** after setup.
 
-The visible integration name is **IP Ban Manager** and automation/service calls use `ip_ban_manager.*`. Normal setup is done from the UI; existing Home Assistant `http:` IP-ban settings can stay in `configuration.yaml`. Leftover `ban_allowlist:` allowlist YAML is absorbed automatically when IP Ban Manager loads.
+The visible integration name is **IP Ban Manager** and automation/service calls use `ip_ban_manager.*`. Normal setup is done from the UI; existing Home Assistant `http:` IP-ban settings can stay in `configuration.yaml`. Leftover `ban_allowlist:` allowlist YAML is absorbed automatically when IP Ban Manager first loads.
 
-YAML import is optional and mainly kept as a one-time migration path for advanced/manual installs, including leftover `ban_allowlist:` allowlist YAML. Most users should add and manage IP Ban Manager from the UI.
+YAML import is optional and mainly kept as a one-time migration path for advanced/manual installs, including leftover `ban_allowlist:` allowlist YAML. After IP Ban Manager imports those settings, remove the old integration YAML key and restart Home Assistant. If the old key is left behind, IP Ban Manager ignores it once the UI config entry already exists. Most users should add and manage IP Ban Manager from the UI.
 
 Home Assistant's built-in HTTP banning must still be enabled:
 

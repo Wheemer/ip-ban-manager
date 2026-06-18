@@ -554,7 +554,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except UnsafeAllowlistError:
             return self.async_abort(reason="unsafe_allowlist_network")
         await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESSES: ip_addresses})
+        self._abort_if_unique_id_configured()
         return self.async_create_entry(
             title="IP Ban Manager",
             data={CONF_IP_ADDRESSES: ip_addresses},

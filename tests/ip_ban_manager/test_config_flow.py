@@ -276,6 +276,33 @@ async def test_user_flow_is_single_instance(
 
 
 @pytest.mark.asyncio
+async def test_yaml_import_is_ignored_after_entry_exists(
+    hass: HomeAssistant,
+) -> None:
+    """Test stale YAML does not overwrite the UI-managed config entry."""
+    await load_ip_ban_manager(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        unique_id=DOMAIN,
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "import"},
+        data={CONF_IP_ADDRESSES: ["172.17.0.0/24"]},
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "already_configured"
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.data == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
+
+
+@pytest.mark.asyncio
 async def test_options_flow_edits_live_lists(
     hass: HomeAssistant, tmp_path: Path
 ) -> None:
