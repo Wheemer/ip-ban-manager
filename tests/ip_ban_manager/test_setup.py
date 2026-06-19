@@ -25,6 +25,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.ip_ban_manager import (
     _ORIGINAL_PROCESS_WRONG_LOGIN,
+    ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD,
     CONFIG_ENTRY_URL_TEMPLATE,
     INTEGRATION_CONFIG_URL,
     IP_BAN_DISABLED_ISSUE_ID,
@@ -46,6 +47,7 @@ from custom_components.ip_ban_manager.const import (
     ATTR_NETWORK,
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
@@ -411,7 +413,7 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
     assert login_message.count(NOTIFICATION_ICON_DATA_URL) == 1
     assert "/api/ip_ban_manager/icon.png" not in login_message
     assert "IP Ban Manager icon" not in login_message
-    assert "Open settings" in login_message
+    assert "Open settings" not in login_message
     assert NOTIFICATION_ID_BAN not in existing_notifications
 
     messages = []
@@ -428,6 +430,43 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
         "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
         "Allowlisted address 192.168.1.1 failed authentication but was not banned",
     ]
+
+
+@pytest.mark.asyncio
+async def test_quiet_allowlisted_wrong_logins_escalate_after_repeated_failures(
+    hass: HomeAssistant,
+) -> None:
+    """Test muted allowlisted login notices still escalate after repeated failures."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False}
+    )
+
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 5
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = (
+        ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD - 2
+    )
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    assert NOTIFICATION_ID_LOGIN not in notifications
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "Repeated allowlisted login failures" in message
+    assert f"{ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD} times" in message
+    assert "Open settings" not in message
+    assert NOTIFICATION_ID_BAN not in notifications
 
 
 @pytest.mark.asyncio

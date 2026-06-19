@@ -43,6 +43,7 @@ from homeassistant.util import dt as dt_util
 from voluptuous.schema_builder import Optional as vol_optional
 
 from .const import (
+    ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     ATTR_AUTO_BAN_ENABLED,
     ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
@@ -55,6 +56,7 @@ from .const import (
     ATTR_NETWORK,
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
@@ -79,6 +81,7 @@ IPNetwork = IPv4Network | IPv6Network
 AddBanCallable = Callable[[IPAddress], Awaitable[None]]
 
 IP_BAN_DISABLED_ISSUE_ID = "ip_ban_disabled"
+ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
@@ -326,6 +329,15 @@ def _with_notification_heading(heading: str, message: str) -> str:
     return f"{brand_header}\n\n{heading_line}\n\n{message}"
 
 
+def _should_notify_allowlisted_login(hass: HomeAssistant, attempts: int) -> bool:
+    """Return whether an allowlisted failed login should notify the user."""
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None or _entry_allowlisted_login_notifications_enabled(entry):
+        return True
+
+    return attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD
+
+
 def _create_allowlisted_login_notification(
     hass: HomeAssistant, remote_addr: IPAddress, base_message: str
 ) -> None:
@@ -335,9 +347,18 @@ def _create_allowlisted_login_notification(
     failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
     attempts = int(failed_attempts.get(remote_addr, 0))
     threshold = int(hass.http.app.get(KEY_LOGIN_THRESHOLD, 0))
+    if not _should_notify_allowlisted_login(hass, attempts):
+        return
 
     details = [base_message]
-    if threshold >= 1 and attempts >= threshold:
+    if attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
+        heading = "Repeated allowlisted login failures"
+        details.append(
+            f"This allowlisted source has failed authentication {attempts} times. "
+            f"It was not banned because {remote_addr} is trusted, but repeated "
+            "failures from a trusted source should be reviewed."
+        )
+    elif threshold >= 1 and attempts >= threshold:
         heading = "Repeated allowlisted login failures"
         details.append(
             f"This source has reached the automatic ban threshold "
@@ -357,7 +378,7 @@ def _create_allowlisted_login_notification(
     message = _with_notification_heading(heading, "\n\n".join(details))
     persistent_notification.async_create(
         hass,
-        _with_manager_link(hass, message),
+        message,
         NOTIFICATION_TITLE,
         NOTIFICATION_ID_LOGIN,
     )
@@ -377,7 +398,11 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
 
         heading = _notification_heading(notification_id, notification["message"])
         message = _with_notification_heading(heading, notification["message"])
-        message = _with_manager_link(hass, message)
+        if (
+            notification_id != NOTIFICATION_ID_LOGIN
+            or "allowlisted" not in message.lower()
+        ):
+            message = _with_manager_link(hass, message)
         if (
             message == notification["message"]
             and notification["title"] == NOTIFICATION_TITLE
@@ -493,6 +518,16 @@ def _entry_ban_notifications_enabled(entry: ConfigEntry) -> bool:
         entry.options.get(
             CONF_BAN_NOTIFICATIONS_ENABLED,
             entry.data.get(CONF_BAN_NOTIFICATIONS_ENABLED, True),
+        )
+    )
+
+
+def _entry_allowlisted_login_notifications_enabled(entry: ConfigEntry) -> bool:
+    """Return whether allowlisted failed logins should notify immediately."""
+    return bool(
+        entry.options.get(
+            CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+            entry.data.get(CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED, True),
         )
     )
 
@@ -631,6 +666,9 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ATTR_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry) if entry else False,
         ATTR_BAN_NOTIFICATIONS_ENABLED: (
             _entry_ban_notifications_enabled(entry) if entry else True
+        ),
+        ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+            _entry_allowlisted_login_notifications_enabled(entry) if entry else True
         ),
         ATTR_LOGIN_ATTEMPTS_THRESHOLD: (
             _entry_login_threshold(entry, hass)

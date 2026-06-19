@@ -23,6 +23,7 @@ from custom_components.ip_ban_manager.config_flow import (
 from custom_components.ip_ban_manager.const import (
     ATTR_BANNED_IPS,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
@@ -39,6 +40,7 @@ def expected_setup_data(ip_addresses: list[str]) -> dict[str, object]:
         CONF_IP_ADDRESSES: ip_addresses,
         CONF_AUTO_BAN_ENABLED: True,
         CONF_BAN_NOTIFICATIONS_ENABLED: True,
+        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: True,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
     }
 
@@ -51,6 +53,7 @@ def expected_options_data(
         CONF_IP_ADDRESSES: ip_addresses,
         CONF_AUTO_BAN_ENABLED: True,
         CONF_BAN_NOTIFICATIONS_ENABLED: True,
+        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: True,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: threshold,
         CONF_BLOCKED_NETWORKS: [],
     }

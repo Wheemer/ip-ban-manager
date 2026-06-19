@@ -39,6 +39,7 @@
             "data": {
               "auto_ban_enabled": "Automatic bans",
               "ban_notifications_enabled": "Automatic ban notifications",
+              "allowlisted_login_notifications_enabled": "Allowlisted login notices",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips_help": "",
               "banned_ips": "Banned entries",
