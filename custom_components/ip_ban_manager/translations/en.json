@@ -6,7 +6,9 @@
         "data": {
           "quick_allowlist": "Allowlist safe defaults",
           "login_attempts_threshold": "Login attempts threshold",
-          "auto_ban_enabled": "Automatic bans"
+          "auto_ban_enabled": "Automatic bans",
+          "ban_notifications_enabled": "Automatic ban notifications",
+          "allowlisted_login_notifications_enabled": "Allowlisted login notices"
         }
       }
     },
