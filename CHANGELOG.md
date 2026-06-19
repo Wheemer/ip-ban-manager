@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.2.4
+
+IP Ban Manager 1.2.4 adds a quieter path for trusted sources that fail authentication without being banned.
+
+### Added
+
+- Added **Allowlisted login notices** as a setup and Configure option so allowlisted failed-login notifications can be silenced without disabling real ban notifications.
+- Added an **Allowlisted login notices** link directly on allowlisted failed-login notifications. Selecting it silences those low-priority notices and dismisses the current notification.
+
+### Changed
+
+- Allowlisted failed-login notifications no longer include the settings link, because no IP was blocked and there is usually nothing urgent to manage.
+- Silenced allowlisted failed-login notices still escalate after repeated failures, so a trusted source that keeps failing authentication is still surfaced.
+- Bumped the manifest version to `1.2.4` for HACS update detection.
+
 ## v1.2.3
 
 IP Ban Manager 1.2.3 fixes one last notification polish issue found after the 1.2.2 release.
