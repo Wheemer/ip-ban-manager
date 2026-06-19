@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.5
+
+IP Ban Manager 1.2.5 is a polish release for the public setup and documentation flow.
+
+### Fixed
+
+- Fixed the first-run setup label for **Allowlisted login notices** so Home Assistant no longer shows the internal option key.
+- Refreshed the README example screenshots from a live Home Assistant install with the current setup, allowlist, and ban-management UI.
+- Bumped the manifest version to `1.2.5` for HACS update detection.
+
 ## v1.2.4
 
 IP Ban Manager 1.2.4 adds a quieter path for trusted sources that fail authentication without being banned.
