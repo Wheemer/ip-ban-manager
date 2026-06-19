@@ -20,7 +20,8 @@ from tempfile import NamedTemporaryFile
 
 import voluptuous as vol
 import yaml
-from aiohttp.web import AppKey, Request
+from aiohttp.web import AppKey, Request, Response
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.components.http import ban as http_ban
 from homeassistant.components.http.ban import (
     ATTR_BANNED_AT,
@@ -90,6 +91,8 @@ CONFIG_ENTRY_URL_TEMPLATE = (
     f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
 )
 NOTIFICATION_LINK_LABEL = "Open settings"
+ALLOWLISTED_LOGIN_SILENCE_LABEL = "Silence these notices"
+ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
 NOTIFICATION_ICON_DATA_URL = (
@@ -292,6 +295,16 @@ def _with_manager_link(hass: HomeAssistant, message: str) -> str:
     return f"{message}\n\n{_manager_notification_link(hass)}"
 
 
+def _with_allowlisted_login_silence_link(message: str) -> str:
+    """Append the allowlisted-login silence link once."""
+    if ALLOWLISTED_LOGIN_SILENCE_LABEL in message:
+        return message
+    return (
+        f"{message}\n\n"
+        f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]({ALLOWLISTED_LOGIN_SILENCE_URL})"
+    )
+
+
 def _notification_heading(notification_id: str, message: str) -> str:
     """Return the short message heading for a Home Assistant HTTP notice."""
     if notification_id == NOTIFICATION_ID_BAN:
@@ -376,6 +389,8 @@ def _create_allowlisted_login_notification(
             details.append(f"{remote_addr} is allowlisted, so it will not be banned.")
 
     message = _with_notification_heading(heading, "\n\n".join(details))
+    if attempts < ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
+        message = _with_allowlisted_login_silence_link(message)
     persistent_notification.async_create(
         hass,
         message,
@@ -414,6 +429,38 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
             message,
             NOTIFICATION_TITLE,
             notification_id,
+        )
+
+
+class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
+    """Silence low-priority allowlisted failed-login notices from a notification link."""
+
+    name = "api:ip_ban_manager:silence_allowlisted_login_notifications"
+    url = ALLOWLISTED_LOGIN_SILENCE_URL
+
+    async def get(self, request: Request) -> Response:
+        """Disable allowlisted failed-login notices and dismiss the current notice."""
+        from homeassistant.components import persistent_notification
+
+        hass = request.app[KEY_HASS]
+        entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+        if entry is None:
+            return Response(text="IP Ban Manager is not loaded.", status=404)
+
+        hass.config_entries.async_update_entry(
+            entry,
+            options={
+                **entry.options,
+                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False,
+            },
+        )
+        persistent_notification.async_dismiss(hass, NOTIFICATION_ID_LOGIN)
+        return Response(
+            text=(
+                "Allowlisted login notices are now silenced. "
+                "IP Ban Manager will still notify after repeated failures."
+            ),
+            content_type="text/plain",
         )
 
 
@@ -1063,6 +1110,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
     _async_delete_ip_ban_disabled_issue(hass)
     await _async_register_static_assets(hass)
+    hass.http.register_view(SilenceAllowlistedLoginNotificationsView())
     _LOGGER.debug("Ban manager %s", ban_manager)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
