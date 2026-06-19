@@ -431,6 +431,32 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
 
 
 @pytest.mark.asyncio
+async def test_setup_entry_rewrites_existing_http_notifications(
+    hass: HomeAssistant,
+) -> None:
+    """Test stale Home Assistant HTTP notices are normalized on startup."""
+    persistent_notification.async_create(
+        hass,
+        "Login attempt or request with invalid authentication from host (10.0.0.1).",
+        "IP Ban Manager",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    await setup_ip_ban_manager(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
+    assert message.startswith("## <img ")
+    assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
+    assert "**Login attempt failed**" in message
+    assert "Open settings" in message
+    assert "IP Ban Manager icon" not in message
+
+
+@pytest.mark.asyncio
 async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None:
     """Test Home Assistant HTTP notifications link to IP Ban Manager."""
     persistent_notification.async_create(

@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.3** | Startup notification cleanup so existing Home Assistant HTTP notices are normalized into the current branded format immediately. |
 | **v1.2.2** | Repair-message cleanup and embedded notification logo so branded IP Ban Manager notices do not depend on Home Assistant URL routing. |
 | **v1.2.1** | HACS packaging fix so new installs load the real `ip_ban_manager` integration instead of the old YAML-only migration shim. |
 | **v1.2.0** | Public-ready release with managed **Blocked networks**, allowlist precedence, automatic-ban notification controls, diagnostics, branded notifications, and full `ip_ban_manager` domain migration. |

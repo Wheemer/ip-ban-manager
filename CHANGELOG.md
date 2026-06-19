@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.2.3
+
+IP Ban Manager 1.2.3 fixes one last notification polish issue found after the 1.2.2 release.
+
+### Fixed
+
+- Existing Home Assistant HTTP login/ban notifications are now normalized into the current IP Ban Manager branded format as soon as the integration starts, instead of waiting for the next failed-login event.
+- Bumped the manifest version to `1.2.3` for HACS update detection.
+
 ## v1.2.2
 
 IP Ban Manager 1.2.2 polishes the Home Assistant repair and persistent notification experience for the public release.

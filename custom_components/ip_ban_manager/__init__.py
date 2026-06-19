@@ -1039,6 +1039,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _install_wrong_login_patch()
     _install_add_ban_patch(hass, ban_manager)
+    _handle_http_notifications(hass)
 
     _register_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
