@@ -91,7 +91,7 @@ CONFIG_ENTRY_URL_TEMPLATE = (
     f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
 )
 NOTIFICATION_LINK_LABEL = "Open settings"
-ALLOWLISTED_LOGIN_SILENCE_LABEL = "Silence these notices"
+ALLOWLISTED_LOGIN_SILENCE_LABEL = "Allowlisted login notices"
 ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
