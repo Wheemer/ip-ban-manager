@@ -32,6 +32,7 @@ from custom_components.ip_ban_manager import (
     KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
     KEY_ORIGINAL_ADD_BAN,
+    NOTIFICATION_ICON_DATA_URL,
     _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
     current_status,
@@ -405,7 +406,12 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
         "so it was not banned"
         in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
     )
-    assert "Open settings" in existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
+    login_message = existing_notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert login_message.startswith("## <img ")
+    assert login_message.count(NOTIFICATION_ICON_DATA_URL) == 1
+    assert "/api/ip_ban_manager/icon.png" not in login_message
+    assert "IP Ban Manager icon" not in login_message
+    assert "Open settings" in login_message
     assert NOTIFICATION_ID_BAN not in existing_notifications
 
     messages = []
@@ -454,6 +460,10 @@ async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None
         message = notifications[notification_id]["message"]
         assert "Open settings" in message
         assert message.count(INTEGRATION_CONFIG_URL) == 1
+        assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
+        assert message.startswith("## <img ")
+        assert "/api/ip_ban_manager/icon.png" not in message
+        assert "IP Ban Manager icon" not in message
         assert "Open integrations" not in message
 
 
@@ -483,6 +493,37 @@ async def test_http_notifications_link_directly_to_config_entry(
     message = notifications[NOTIFICATION_ID_BAN]["message"]
     assert message.endswith(f"[Open settings]({manager_url})")
     assert "Open integrations" not in message
+
+
+@pytest.mark.asyncio
+async def test_http_notification_rewrites_old_brand_header(
+    hass: HomeAssistant,
+) -> None:
+    """Test old or broken branded headers are normalized to the current format."""
+    persistent_notification.async_create(
+        hass,
+        (
+            '## <img src="/api/ip_ban_manager/icon.png" width="28" height="28" '
+            'alt="IP Ban Manager icon">&nbsp;&nbsp;IP Ban Manager\n\n'
+            "Too many login attempts from 10.0.0.1"
+        ),
+        "Banning IP address",
+        NOTIFICATION_ID_BAN,
+    )
+
+    _add_manager_links_to_http_notifications(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_BAN]["message"]
+    assert notifications[NOTIFICATION_ID_BAN]["title"] == " "
+    assert message.startswith("## <img ")
+    assert message.count("IP Ban Manager") == 1
+    assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
+    assert "/api/ip_ban_manager/icon.png" not in message
+    assert "IP Ban Manager icon" not in message
+    assert "Too many login attempts from 10.0.0.1" in message
 
 
 @pytest.mark.asyncio

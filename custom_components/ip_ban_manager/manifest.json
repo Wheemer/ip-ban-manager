@@ -5,11 +5,14 @@
     "@Wheemer"
   ],
   "config_flow": true,
-  "dependencies": ["http", "network"],
+  "dependencies": [
+    "http",
+    "network"
+  ],
   "documentation": "https://github.com/Wheemer/ip-ban-manager",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/Wheemer/ip-ban-manager/issues",
   "requirements": [],
-  "version": "1.2.1"
+  "version": "1.2.2"
 }

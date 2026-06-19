@@ -89,6 +89,15 @@ CONFIG_ENTRY_URL_TEMPLATE = (
 NOTIFICATION_LINK_LABEL = "Open settings"
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
+NOTIFICATION_ICON_DATA_URL = (
+    "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
+    "viewBox='0%200%2064%2064'%3E%3Cpath%20fill='%231ea8d1'%20"
+    "d='M32%204L56%2014v17c0%2015-10%2025-24%2029C18%2056%208%2046%208%2031V14z'/%3E"
+    "%3Cpath%20fill='%233fb6dc'%20d='M32%204l24%2010v17c0%2015-10%2025-24%2029z'/%3E"
+    "%3Cpath%20stroke='%23fff'%20stroke-width='7'%20stroke-linecap='round'%20"
+    "d='M20%2032h24M32%2020v24'/%3E%3Cpath%20stroke='%230b4d78'%20"
+    "stroke-width='7'%20stroke-linecap='round'%20d='M17%2050L49%2014'/%3E%3C/svg%3E"
+)
 
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_networks")
 KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_blocked_networks")
@@ -294,17 +303,24 @@ def _notification_heading(notification_id: str, message: str) -> str:
 def _notification_brand_header() -> str:
     """Return the compact branded header used in persistent notifications."""
     return (
-        f'## <img src="{NOTIFICATION_ICON_URL}" width="28" height="28" '
-        'alt="IP Ban Manager icon">&nbsp;&nbsp;IP Ban Manager'
+        f'## <img src="{NOTIFICATION_ICON_DATA_URL}" width="28" height="28" '
+        'alt="">&nbsp;&nbsp;IP Ban Manager'
     )
+
+
+def _strip_notification_brand_header(message: str) -> str:
+    """Remove an existing IP Ban Manager markdown header before rebranding."""
+    first_line, separator, rest = message.partition("\n")
+    if separator and first_line.startswith("## ") and "IP Ban Manager" in first_line:
+        return rest.lstrip("\n")
+    return message
 
 
 def _with_notification_heading(heading: str, message: str) -> str:
     """Prefix a notification body with the branded header and compact heading once."""
     brand_header = _notification_brand_header()
     heading_line = f"**{heading}**"
-    if message.startswith(brand_header):
-        return message
+    message = _strip_notification_brand_header(message)
     if message.startswith(heading_line):
         return f"{brand_header}\n\n{message}"
     return f"{brand_header}\n\n{heading_line}\n\n{message}"

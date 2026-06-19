@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.2.2
+
+IP Ban Manager 1.2.2 polishes the Home Assistant repair and persistent notification experience for the public release.
+
+### Fixed
+
+- Switched branded persistent notifications to an embedded icon so the logo does not depend on Home Assistant external/internal URL routing or the old/new integration domain during migration.
+- Cleaned the HTTP IP banning repair message so it only shows the required `http.ip_ban_enabled: true` setting. The login-attempt threshold remains managed by IP Ban Manager setup and Configure.
+- Kept repair-style notification previews visually consistent with the normal IP Ban Manager login/ban notices by using a blank Home Assistant notification title and the branded body header.
+- Removed a duplicate notification-dismiss call from automatic notification cleanup.
+- Bumped the manifest version to `1.2.2` for HACS update detection.
+
 ## v1.2.1
 
 IP Ban Manager 1.2.1 fixes the HACS packaging layout so new installs load the real `ip_ban_manager` integration instead of the old migration shim.

@@ -86,8 +86,8 @@
   },
   "issues": {
     "ip_ban_disabled": {
-      "title": "Enable Home Assistant IP banning",
-      "description": "IP Ban Manager needs Home Assistant's built-in HTTP IP banning to be enabled before it can manage bans or apply the allowlist.\n\nAdd this to `configuration.yaml`, then restart Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n  login_attempts_threshold: 5\n```\n\nIf you already have an `http:` section, add those two keys inside the existing section."
+      "title": "Enable HTTP IP banning",
+      "description": "Home Assistant's built-in HTTP IP banning is currently disabled, so ban management and allowlist protection cannot run.\n\nSet this key inside your existing `http:` section in `configuration.yaml`, then restart Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
     }
   }
 }

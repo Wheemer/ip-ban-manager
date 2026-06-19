@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.2** | Repair-message cleanup and embedded notification logo so branded IP Ban Manager notices do not depend on Home Assistant URL routing. |
 | **v1.2.1** | HACS packaging fix so new installs load the real `ip_ban_manager` integration instead of the old YAML-only migration shim. |
 | **v1.2.0** | Public-ready release with managed **Blocked networks**, allowlist precedence, automatic-ban notification controls, diagnostics, branded notifications, and full `ip_ban_manager` domain migration. |
 | **v1.1.2** | README and HACS display polish, including a more reliable license badge. |
@@ -43,7 +44,7 @@ Core management features include:
 - **Banned IPs:** live exact-IP ban review, add, remove, and clear actions without restarting Home Assistant. Existing ban timestamps are shown as readable local times and preserved when unchanged.
 - **Blocked networks:** managed CIDR or wildcard network blocks, enforced behind Home Assistant's native ban lookup without pretending `ip_bans.yaml` supports ranges.
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
-- **Notifications:** branded IP Ban Manager login/ban notices include a compact icon header, direct settings link, stale-notice cleanup when bans are removed, and optional automatic-ban notification suppression.
+- **Notifications:** branded IP Ban Manager login/ban notices include an embedded compact icon header, direct settings link, stale-notice cleanup when bans are removed, and optional automatic-ban notification suppression.
 - **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, risky typo removals, and unconfirmed clear-all service calls are rejected before anything is written.
 - **Automation:** `ip_ban_manager.*` services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
 - **Diagnostics:** sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources.
@@ -95,8 +96,9 @@ Home Assistant's built-in HTTP banning must still be enabled:
 ```
 http:
   ip_ban_enabled: true
-  login_attempts_threshold: 5
 ```
+
+The login-attempt threshold is managed from IP Ban Manager setup and Configure after Home Assistant's native IP banning is enabled.
 
 If IP banning is not enabled, IP Ban Manager creates a Home Assistant repair warning with the required YAML and a link to the official HTTP documentation. It does not edit `configuration.yaml` automatically; that keeps existing `http:` settings, includes, comments, proxy configuration, and package layouts safe.
 
