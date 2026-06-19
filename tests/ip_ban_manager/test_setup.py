@@ -377,7 +377,7 @@ async def test_hit_allowlist(
 
 
 @pytest.mark.asyncio
-async def test_allowlisted_wrong_login_does_not_add_ban_notice(
+async def test_allowlisted_wrong_login_does_not_add_ban_notification(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test allowlisted login failures are reported but do not become bans."""
@@ -441,7 +441,7 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notice(
 async def test_quiet_allowlisted_wrong_logins_escalate_after_repeated_failures(
     hass: HomeAssistant,
 ) -> None:
-    """Test muted allowlisted login notices still escalate after repeated failures."""
+    """Test muted allowlisted login notifications still escalate after repeated failures."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     hass.config_entries.async_update_entry(
@@ -479,7 +479,7 @@ async def test_quiet_allowlisted_wrong_logins_escalate_after_repeated_failures(
 async def test_silence_allowlisted_login_notifications_view(
     hass: HomeAssistant,
 ) -> None:
-    """Test the notification link can silence low-priority allowlisted login notices."""
+    """Test the notification link can silence low-priority allowlisted login notifications."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
 
@@ -508,7 +508,7 @@ async def test_silence_allowlisted_login_notifications_view(
 async def test_setup_entry_rewrites_existing_http_notifications(
     hass: HomeAssistant,
 ) -> None:
-    """Test stale Home Assistant HTTP notices are normalized on startup."""
+    """Test stale Home Assistant HTTP notifications are normalized on startup."""
     persistent_notification.async_create(
         hass,
         "Login attempt or request with invalid authentication from host (10.0.0.1).",

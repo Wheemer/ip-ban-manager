@@ -1,12 +1,22 @@
 # Changelog
 
+## v1.2.6
+
+IP Ban Manager 1.2.6 unifies the allowlisted-login wording with Home Assistant's notification terminology.
+
+### Changed
+
+- Renamed the **Allowlisted login notices** setup and Configure label to **Allowlisted login notifications**.
+- Updated matching README, changelog, notification-action, and test wording so the integration consistently uses "notifications" instead of "notices".
+- Bumped the manifest version to `1.2.6` for HACS update detection.
+
 ## v1.2.5
 
 IP Ban Manager 1.2.5 is a polish release for the public setup and documentation flow.
 
 ### Fixed
 
-- Fixed the first-run setup label for **Allowlisted login notices** so Home Assistant no longer shows the internal option key.
+- Fixed the first-run setup label for **Allowlisted login notifications** so Home Assistant no longer shows the internal option key.
 - Refreshed the README example screenshots from a live Home Assistant install with the current setup, allowlist, and ban-management UI.
 - Bumped the manifest version to `1.2.5` for HACS update detection.
 
@@ -16,13 +26,13 @@ IP Ban Manager 1.2.4 adds a quieter path for trusted sources that fail authentic
 
 ### Added
 
-- Added **Allowlisted login notices** as a setup and Configure option so allowlisted failed-login notifications can be silenced without disabling real ban notifications.
-- Added an **Allowlisted login notices** link directly on allowlisted failed-login notifications. Selecting it silences those low-priority notices and dismisses the current notification.
+- Added **Allowlisted login notifications** as a setup and Configure option so allowlisted failed-login notifications can be silenced without disabling real ban notifications.
+- Added an **Allowlisted login notifications** link directly on allowlisted failed-login notifications. Selecting it silences those low-priority notifications and dismisses the current notification.
 
 ### Changed
 
 - Allowlisted failed-login notifications no longer include the settings link, because no IP was blocked and there is usually nothing urgent to manage.
-- Silenced allowlisted failed-login notices still escalate after repeated failures, so a trusted source that keeps failing authentication is still surfaced.
+- Silenced allowlisted failed-login notifications still escalate after repeated failures, so a trusted source that keeps failing authentication is still surfaced.
 - Bumped the manifest version to `1.2.4` for HACS update detection.
 
 ## v1.2.3
@@ -42,7 +52,7 @@ IP Ban Manager 1.2.2 polishes the Home Assistant repair and persistent notificat
 
 - Switched branded persistent notifications to an embedded icon so the logo does not depend on Home Assistant external/internal URL routing or the old/new integration domain during migration.
 - Cleaned the HTTP IP banning repair message so it only shows the required `http.ip_ban_enabled: true` setting. The login-attempt threshold remains managed by IP Ban Manager setup and Configure.
-- Kept repair-style notification previews visually consistent with the normal IP Ban Manager login/ban notices by using a blank Home Assistant notification title and the branded body header.
+- Kept repair-style notification previews visually consistent with the normal IP Ban Manager login/ban notifications by using a blank Home Assistant notification title and the branded body header.
 - Removed a duplicate notification-dismiss call from automatic notification cleanup.
 - Bumped the manifest version to `1.2.2` for HACS update detection.
 
