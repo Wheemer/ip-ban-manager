@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.7** | Completes the visible migration by renaming old `ban_allowlist` / **IP Ban Allowlist** config entries to **IP Ban Manager** during setup. |
 | **v1.2.6** | Unified allowlisted-login wording with Home Assistant terminology: **Allowlisted login notifications** everywhere. |
 | **v1.2.5** | Setup polish for the **Allowlisted login notifications** label plus refreshed live Home Assistant screenshots for setup, allowlist management, and ban management. |
 | **v1.2.4** | Quieter allowlisted failed-login notifications with a matching **Allowlisted login notifications** option and notification link, while repeated failures still escalate. |

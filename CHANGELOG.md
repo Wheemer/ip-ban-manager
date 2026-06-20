@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.7
+
+IP Ban Manager 1.2.7 completes the visible migration from the old integration name.
+
+### Fixed
+
+- Existing config entries titled `ban_allowlist` or **IP Ban Allowlist** are now renamed to **IP Ban Manager** during setup.
+- Added regression coverage so old entry titles cannot keep showing on the Home Assistant Integrations page after the domain migration.
+- Bumped the manifest version to `1.2.7` for HACS update detection.
+
 ## v1.2.6
 
 IP Ban Manager 1.2.6 unifies the allowlisted-login wording with Home Assistant's notification terminology.

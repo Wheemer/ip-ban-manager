@@ -93,6 +93,8 @@ CONFIG_ENTRY_URL_TEMPLATE = (
 NOTIFICATION_LINK_LABEL = "Open settings"
 ALLOWLISTED_LOGIN_SILENCE_LABEL = "Allowlisted login notifications"
 ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
+ENTRY_TITLE = "IP Ban Manager"
+LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
 NOTIFICATION_ICON_DATA_URL = (
@@ -803,6 +805,9 @@ def _current_blocked_network_strings(hass: HomeAssistant) -> list[str]:
 
 def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Clean stale options without changing live ban state."""
+    if entry.title in LEGACY_ENTRY_TITLES:
+        hass.config_entries.async_update_entry(entry, title=ENTRY_TITLE)
+
     if CONF_BANNED_IPS in entry.options:
         options = dict(entry.options)
         options.pop(CONF_BANNED_IPS, None)

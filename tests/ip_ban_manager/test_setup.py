@@ -283,6 +283,30 @@ async def test_setup_removes_deprecated_banned_ips_option(
 
 
 @pytest.mark.asyncio
+async def test_setup_renames_legacy_entry_title(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test old config entry titles are updated after the integration rename."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="ban_allowlist",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.title == "IP Ban Manager"
+
+
+@pytest.mark.asyncio
 async def test_setup_reads_legacy_allowed_ips_option(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
