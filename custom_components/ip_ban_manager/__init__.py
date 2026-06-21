@@ -1086,6 +1086,11 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
+    if hass.config_entries.async_entries(DOMAIN):
+        for entry in hass.config_entries.async_entries(LEGACY_DOMAIN):
+            _LOGGER.info("Removing legacy ban_allowlist config entry after migration")
+            await hass.config_entries.async_remove(entry.entry_id)
+
     yaml_config = config.get(DOMAIN) or config.get(LEGACY_DOMAIN)
     if yaml_config is not None:
         hass.async_create_task(

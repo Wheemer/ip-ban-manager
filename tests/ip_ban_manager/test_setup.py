@@ -166,6 +166,33 @@ async def test_legacy_yaml_import_is_absorbed(
 
 
 @pytest.mark.asyncio
+async def test_setup_removes_leftover_legacy_entry(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test stale old-domain entries are removed when IP Ban Manager starts."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    legacy_entry = MockConfigEntry(
+        domain=LEGACY_DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    legacy_entry.add_to_hass(hass)
+    target_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["127.0.0.1"]},
+    )
+    target_entry.add_to_hass(hass)
+
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert not hass.config_entries.async_entries(LEGACY_DOMAIN)
+
+
+@pytest.mark.asyncio
 async def test_setup(hass: HomeAssistant, caplog: pytest.LogCaptureFixture) -> None:
     """Test setup of IP Ban Manager."""
     await setup_ip_ban_manager(hass)

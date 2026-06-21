@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.10
+
+IP Ban Manager 1.2.10 removes stale old-domain config entries when a new `ip_ban_manager` entry already exists.
+
+### Fixed
+
+- Added startup cleanup for leftover `ban_allowlist` config entries after the new **IP Ban Manager** entry exists.
+- Kept first-time old-domain migration safe by allowing the legacy loader to import old data before the old entry is removed.
+- Added regression coverage for stale old-domain entry cleanup.
+- Bumped both manifests to `1.2.10` for HACS update detection.
+
 ## v1.2.9
 
 IP Ban Manager 1.2.9 is the clean CI release for the legacy migration loader.
