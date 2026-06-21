@@ -34,7 +34,7 @@ from homeassistant.components.http.ban import (
     IpBanManager,
 )
 from homeassistant.components.http.const import KEY_HASS
-from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry, UnknownEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -814,6 +814,20 @@ def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> No
         hass.config_entries.async_update_entry(entry, options=options)
 
 
+def _async_remove_legacy_entries(hass: HomeAssistant) -> None:
+    """Schedule stale old-domain entries for removal after setup."""
+    for entry in hass.config_entries.async_entries(LEGACY_DOMAIN):
+        _LOGGER.info("Removing legacy ban_allowlist config entry after migration")
+
+        async def _remove_legacy_entry(entry_id: str = entry.entry_id) -> None:
+            if hass.config_entries.async_get_entry(entry_id) is None:
+                return
+            with suppress(UnknownEntry):
+                await hass.config_entries.async_remove(entry_id)
+
+        hass.async_create_task(_remove_legacy_entry())
+
+
 def _dismiss_removed_ip_notifications(
     hass: HomeAssistant, removed_addrs: Iterable[IPAddress]
 ) -> None:
@@ -1087,9 +1101,7 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
     if hass.config_entries.async_entries(DOMAIN):
-        for entry in hass.config_entries.async_entries(LEGACY_DOMAIN):
-            _LOGGER.info("Removing legacy ban_allowlist config entry after migration")
-            await hass.config_entries.async_remove(entry.entry_id)
+        _async_remove_legacy_entries(hass)
 
     yaml_config = config.get(DOMAIN) or config.get(LEGACY_DOMAIN)
     if yaml_config is not None:
@@ -1107,6 +1119,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
     _async_cleanup_entry_metadata(hass, entry)
+    _async_remove_legacy_entries(hass)
     hass.http.app[KEY_CONFIG_ENTRY] = entry
     hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(_entry_ip_addresses(entry))
 

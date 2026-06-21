@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.11** | Removes stale old-domain `ban_allowlist` cards from the new **IP Ban Manager** config-entry startup path. |
 | **v1.2.10** | Removes stale old-domain `ban_allowlist` cards once the new **IP Ban Manager** entry exists, while preserving first-time migration. |
 | **v1.2.9** | Clean CI release for the legacy `ban_allowlist` migration loader, with GitHub Actions formatting/lint fixes. |
 | **v1.2.8** | Restores a tiny old-domain compatibility loader so existing `ban_allowlist` entries migrate into **IP Ban Manager** instead of staying **Not loaded**. |

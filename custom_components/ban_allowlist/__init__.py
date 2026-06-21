@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from typing import Any
 
-from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry, UnknownEntry
 from homeassistant.core import HomeAssistant
 
 from custom_components.ip_ban_manager.const import (
@@ -44,7 +45,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     async def _remove_legacy_entry() -> None:
-        await hass.config_entries.async_remove(entry.entry_id)
+        if hass.config_entries.async_get_entry(entry.entry_id) is None:
+            return
+        with suppress(UnknownEntry):
+            await hass.config_entries.async_remove(entry.entry_id)
 
     hass.async_create_task(_remove_legacy_entry())
     return True
