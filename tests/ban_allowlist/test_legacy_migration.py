@@ -37,9 +37,7 @@ async def test_legacy_entry_imports_to_ip_ban_manager(hass: HomeAssistant) -> No
     entries = hass.config_entries.async_entries(TARGET_DOMAIN)
     assert len(entries) == 1
     assert entries[0].title == "IP Ban Manager"
-    assert entries[0].data == {
-        CONF_IP_ADDRESSES: ["192.168.1.1", "127.0.0.1"]
-    }
+    assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.1", "127.0.0.1"]}
 
 
 @pytest.mark.asyncio

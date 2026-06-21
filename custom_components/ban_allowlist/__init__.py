@@ -5,15 +5,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant import config_entries
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from custom_components.ip_ban_manager.const import (
     CONF_ALLOWED_IPS,
     CONF_IP_ADDRESSES,
-    DOMAIN as TARGET_DOMAIN,
 )
+from custom_components.ip_ban_manager.const import DOMAIN as TARGET_DOMAIN
 
 DOMAIN = "ban_allowlist"
 

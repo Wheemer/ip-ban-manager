@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.9** | Clean CI release for the legacy `ban_allowlist` migration loader, with GitHub Actions formatting/lint fixes. |
 | **v1.2.8** | Restores a tiny old-domain compatibility loader so existing `ban_allowlist` entries migrate into **IP Ban Manager** instead of staying **Not loaded**. |
 | **v1.2.7** | Completes the visible migration by renaming old `ban_allowlist` / **IP Ban Allowlist** config entries to **IP Ban Manager** during setup. |
 | **v1.2.6** | Unified allowlisted-login wording with Home Assistant terminology: **Allowlisted login notifications** everywhere. |

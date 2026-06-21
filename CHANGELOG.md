@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.9
+
+IP Ban Manager 1.2.9 is the clean CI release for the legacy migration loader.
+
+### Fixed
+
+- Applied the same Black/isort formatting that GitHub Actions requires for the new legacy migration tests and loader.
+- Removed an unused import from the legacy `ban_allowlist` compatibility loader.
+- Bumped both manifests to `1.2.9` for HACS update detection.
+
 ## v1.2.8
 
 IP Ban Manager 1.2.8 restores the old-domain compatibility loader so existing `ban_allowlist` entries can migrate instead of staying stuck as **Not loaded**.
