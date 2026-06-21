@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.8
+
+IP Ban Manager 1.2.8 restores the old-domain compatibility loader so existing `ban_allowlist` entries can migrate instead of staying stuck as **Not loaded**.
+
+### Fixed
+
+- Added a tiny legacy `ban_allowlist` loader that imports old stored entries into **IP Ban Manager** and removes the stale old entry.
+- Kept new installs and normal setup on the `ip_ban_manager` domain while preserving an upgrade path for users who still have a stored `ban_allowlist` config entry.
+- Added regression tests for old-domain entry import and cleanup.
+- Bumped the manifest version to `1.2.8` for HACS update detection.
+
 ## v1.2.7
 
 IP Ban Manager 1.2.7 completes the visible migration from the old integration name.

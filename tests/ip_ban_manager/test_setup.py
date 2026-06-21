@@ -71,6 +71,8 @@ def check_records(records: list[logging.LogRecord]) -> None:
             msg = record.getMessage()
             if msg.startswith(
                 "We found a custom integration ip_ban_manager which has not been tested by Home Assistant"
+            ) or msg.startswith(
+                "We found a custom integration ban_allowlist which has not been tested by Home Assistant"
             ):
                 continue
             raise Exception(msg)
