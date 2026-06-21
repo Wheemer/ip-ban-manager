@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.12** | Safer legacy `ban_allowlist` cleanup: removes stale old-domain cards only after **IP Ban Manager** exists, with startup cleanup and regression tests. |
 | **v1.2.11** | Removes stale old-domain `ban_allowlist` cards from the new **IP Ban Manager** config-entry startup path. |
 | **v1.2.10** | Removes stale old-domain `ban_allowlist` cards once the new **IP Ban Manager** entry exists, while preserving first-time migration. |
 | **v1.2.9** | Clean CI release for the legacy `ban_allowlist` migration loader, with GitHub Actions formatting/lint fixes. |
@@ -39,7 +40,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 | **v1.2.4** | Quieter allowlisted failed-login notifications with a matching **Allowlisted login notifications** option and notification link, while repeated failures still escalate. |
 | **v1.2.3** | Startup notification cleanup so existing Home Assistant HTTP notifications are normalized into the current branded format immediately. |
 | **v1.2.2** | Repair-message cleanup and embedded notification logo so branded IP Ban Manager notifications do not depend on Home Assistant URL routing. |
-| **v1.2.1** | HACS packaging fix so new installs load the real `ip_ban_manager` integration instead of the old YAML-only migration shim. |
+| **v1.2.1** | HACS packaging fix so new installs load the real `ip_ban_manager` integration cleanly and absorb leftover YAML. |
 | **v1.2.0** | Public-ready release with managed **Blocked networks**, allowlist precedence, automatic-ban notification controls, diagnostics, branded notifications, and full `ip_ban_manager` domain migration. |
 | **v1.1.2** | README and HACS display polish, including a more reliable license badge. |
 | **v1.1.1** | Repository brand assets so HACS and Home Assistant can discover the integration icon where supported. |

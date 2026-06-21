@@ -16,7 +16,8 @@ from homeassistant.components.http.ban import (
     NOTIFICATION_ID_LOGIN,
     IpBanManager,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
@@ -39,6 +40,7 @@ from custom_components.ip_ban_manager import (
     SilenceAllowlistedLoginNotificationsView,
     _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
+    _async_remove_legacy_entries,
     current_status,
 )
 from custom_components.ip_ban_manager.const import (
@@ -214,6 +216,91 @@ async def test_setup_entry_removes_leftover_legacy_entry(
     target_entry.add_to_hass(hass)
 
     await hass.config_entries.async_setup(target_entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert not hass.config_entries.async_entries(LEGACY_DOMAIN)
+
+
+@pytest.mark.asyncio
+async def test_legacy_cleanup_keeps_legacy_entry_without_target(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test cleanup does not remove the only legacy import source."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    legacy_entry = MockConfigEntry(
+        domain=LEGACY_DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    legacy_entry.add_to_hass(hass)
+
+    _async_remove_legacy_entries(hass)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert hass.config_entries.async_entries(LEGACY_DOMAIN) == [legacy_entry]
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_removes_legacy_entry_from_all_entries(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test cleanup is based on all runtime entries, not only domain indexes."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    legacy_entry = MockConfigEntry(
+        domain=LEGACY_DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    legacy_entry.add_to_hass(hass)
+    target_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["127.0.0.1"]},
+    )
+    target_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(target_entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert all(
+        entry.domain != LEGACY_DOMAIN for entry in hass.config_entries.async_entries()
+    )
+
+
+@pytest.mark.asyncio
+async def test_started_event_removes_late_legacy_entry(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test stale old-domain entries added before startup completion are removed."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    hass.state = CoreState.starting
+    target_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["127.0.0.1"]},
+    )
+    target_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(target_entry.entry_id)
+    await hass.async_block_till_done()
+
+    legacy_entry = MockConfigEntry(
+        domain=LEGACY_DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    legacy_entry.add_to_hass(hass)
+
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    hass.state = CoreState.running
     await hass.async_block_till_done()
     check_records(caplog.records)
 

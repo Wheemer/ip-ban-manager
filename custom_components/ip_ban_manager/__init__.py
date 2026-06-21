@@ -35,10 +35,11 @@ from homeassistant.components.http.ban import (
 )
 from homeassistant.components.http.const import KEY_HASS
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry, UnknownEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from voluptuous.schema_builder import Optional as vol_optional
@@ -112,6 +113,7 @@ KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_blocked_net
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ip_ban_manager_config_entry")
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
+KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 
 PLATFORMS = ["sensor"]
 
@@ -814,9 +816,18 @@ def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> No
         hass.config_entries.async_update_entry(entry, options=options)
 
 
+@callback
 def _async_remove_legacy_entries(hass: HomeAssistant) -> None:
-    """Schedule stale old-domain entries for removal after setup."""
-    for entry in hass.config_entries.async_entries(LEGACY_DOMAIN):
+    """Remove stale old-domain entries once IP Ban Manager exists."""
+    if not hass.config_entries.async_entries(DOMAIN):
+        return
+
+    legacy_entries = [
+        entry
+        for entry in hass.config_entries.async_entries()
+        if entry.domain == LEGACY_DOMAIN
+    ]
+    for entry in legacy_entries:
         _LOGGER.info("Removing legacy ban_allowlist config entry after migration")
 
         async def _remove_legacy_entry(entry_id: str = entry.entry_id) -> None:
@@ -826,6 +837,17 @@ def _async_remove_legacy_entries(hass: HomeAssistant) -> None:
                 await hass.config_entries.async_remove(entry_id)
 
         hass.async_create_task(_remove_legacy_entry())
+
+
+def _async_schedule_legacy_cleanup(hass: HomeAssistant) -> None:
+    """Remove old-domain entries now and once Home Assistant has started."""
+    _async_remove_legacy_entries(hass)
+
+    if hass.data.get(KEY_LEGACY_CLEANUP_SCHEDULED):
+        return
+
+    hass.data[KEY_LEGACY_CLEANUP_SCHEDULED] = True
+    async_at_started(hass, _async_remove_legacy_entries)
 
 
 def _dismiss_removed_ip_notifications(
@@ -1101,7 +1123,7 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
     if hass.config_entries.async_entries(DOMAIN):
-        _async_remove_legacy_entries(hass)
+        _async_schedule_legacy_cleanup(hass)
 
     yaml_config = config.get(DOMAIN) or config.get(LEGACY_DOMAIN)
     if yaml_config is not None:
@@ -1119,7 +1141,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
     _async_cleanup_entry_metadata(hass, entry)
-    _async_remove_legacy_entries(hass)
+    _async_schedule_legacy_cleanup(hass)
     hass.http.app[KEY_CONFIG_ENTRY] = entry
     hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(_entry_ip_addresses(entry))
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.12
+
+IP Ban Manager 1.2.12 tightens the legacy `ban_allowlist` migration cleanup so old cards are removed safely without extra retry churn.
+
+### Fixed
+
+- Removed stale old-domain `ban_allowlist` config entries from the full runtime config-entry list once **IP Ban Manager** exists.
+- Added a startup cleanup pass using Home Assistant's started helper, which runs at startup or immediately if Home Assistant is already running.
+- Added a safety guard so legacy entries are not removed unless a real `ip_ban_manager` config entry exists, preserving first-time imports.
+- Removed the unnecessary delayed retry sweep from the cleanup path.
+- Added regression coverage for full-entry cleanup, started-state cleanup, and the no-target safety guard.
+- Bumped both manifests to `1.2.12` for HACS update detection.
+
 ## v1.2.11
 
 IP Ban Manager 1.2.11 removes stale old-domain entries from the new config-entry setup path.
@@ -115,8 +128,8 @@ IP Ban Manager 1.2.1 fixes the HACS packaging layout so new installs load the re
 
 ### Fixed
 
-- Removed the legacy `custom_components/ban_allowlist` folder from the distributable repository. HACS supports one integration folder per repository, and the extra folder could cause HACS to install the YAML-only compatibility shim instead of IP Ban Manager.
-- Added direct absorption of leftover `ban_allowlist:` YAML inside the `ip_ban_manager` integration, without shipping a second HACS component folder.
+- Fixed the packaging path so HACS installs the real `ip_ban_manager` integration cleanly.
+- Added direct absorption of leftover `ban_allowlist:` YAML inside the `ip_ban_manager` integration.
 - Changed YAML imports to be one-time only: once a UI config entry exists, leftover YAML is ignored instead of overwriting UI-managed settings on restart.
 - Bumped the manifest version to `1.2.1` so HACS users get a clean update prompt.
 
