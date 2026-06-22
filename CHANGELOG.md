@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.13
+
+IP Ban Manager 1.2.13 adds an opt-in backend mode for broad allowlists where individual bad-login sources should still become exact Home Assistant bans.
+
+### Added
+
+- Added **Allow automatic bans inside Allowed IPs** to setup and Configure. When enabled, an allowed subnet can still bypass managed blocked networks, but a specific IP inside that subnet can become an exact Home Assistant ban after failed logins.
+
+### Kept
+
+- The default behavior is unchanged: allowed IPs and networks remain fully trusted and do not become automatic bans unless this new option is enabled.
+- Bumped both manifests to `1.2.13` for HACS update detection.
+
 ## v1.2.12
 
 IP Ban Manager 1.2.12 tightens the legacy `ban_allowlist` migration cleanup so old cards are removed safely without extra retry churn.

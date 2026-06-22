@@ -44,6 +44,7 @@ from custom_components.ip_ban_manager import (
     current_status,
 )
 from custom_components.ip_ban_manager.const import (
+    ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
     ATTR_CONFIRM,
@@ -53,6 +54,7 @@ from custom_components.ip_ban_manager.const import (
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+    CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
@@ -603,6 +605,36 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notification(
         "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
         "Allowlisted address 192.168.1.1 failed authentication but was not banned",
     ]
+
+
+@pytest.mark.asyncio
+async def test_allowlisted_wrong_login_can_become_exact_ban(
+    hass: HomeAssistant,
+) -> None:
+    """Test opt-in failed logins from allowed networks can become exact bans."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_ALLOWLISTED_LOGINS_CAN_BAN: True}
+    )
+
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 1
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    assert remote_addr in ban_manager.ip_bans_lookup
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert NOTIFICATION_ID_BAN in notifications
+    assert "Allowlisted login" not in notifications[NOTIFICATION_ID_BAN]["message"]
 
 
 @pytest.mark.asyncio
@@ -1270,6 +1302,7 @@ async def test_current_status_lists_live_state(
 
     status = current_status(hass)
 
+    assert status[ATTR_ALLOWLISTED_LOGINS_CAN_BAN] is False
     assert status[ATTR_NETWORKS] == ["192.168.1.1/32", "172.17.0.0/24"]
     assert status[ATTR_BANNED_IPS] == [
         {

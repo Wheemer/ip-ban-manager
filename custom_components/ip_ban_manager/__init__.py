@@ -46,6 +46,7 @@ from voluptuous.schema_builder import Optional as vol_optional
 
 from .const import (
     ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+    ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
     ATTR_AUTO_BAN_ENABLED,
     ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
@@ -59,6 +60,7 @@ from .const import (
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+    CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
@@ -200,14 +202,20 @@ async def _allowlist_process_wrong_login(request: Request) -> None:
     """Process failed logins while preventing allowlisted addresses from bans."""
     allowlist = request.app.get(KEY_ALLOWLIST, ())
     remote_addr = _request_remote_ip(request)
+    hass = request.app[KEY_HASS]
 
     if remote_addr is None or not _is_allowed(remote_addr, allowlist):
         await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
-        _handle_http_notifications(request.app[KEY_HASS])
+        _handle_http_notifications(hass)
+        return
+
+    if _allowlisted_logins_can_ban(hass):
+        await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
+        _handle_http_notifications(hass)
         return
 
     await _process_allowlisted_wrong_login(request, remote_addr)
-    _handle_http_notifications(request.app[KEY_HASS])
+    _handle_http_notifications(hass)
     _LOGGER.info(
         "Allowlisted address %s failed authentication but was not banned",
         remote_addr,
@@ -492,7 +500,9 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
 
     async def allowlist_async_add_ban(remote_addr: IPAddress) -> None:
         allowlist = app.get(KEY_ALLOWLIST, ())
-        if _is_allowed(remote_addr, allowlist):
+        if _is_allowed(remote_addr, allowlist) and not _allowlisted_logins_can_ban(
+            hass
+        ):
             _LOGGER.info(
                 "Not adding %s to ban list, as it's in the allowlist",
                 remote_addr,
@@ -581,6 +591,22 @@ def _entry_allowlisted_login_notifications_enabled(entry: ConfigEntry) -> bool:
             entry.data.get(CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED, True),
         )
     )
+
+
+def _entry_allowlisted_logins_can_ban(entry: ConfigEntry) -> bool:
+    """Return whether failed logins from allowlisted sources can become exact bans."""
+    return bool(
+        entry.options.get(
+            CONF_ALLOWLISTED_LOGINS_CAN_BAN,
+            entry.data.get(CONF_ALLOWLISTED_LOGINS_CAN_BAN, False),
+        )
+    )
+
+
+def _allowlisted_logins_can_ban(hass: HomeAssistant) -> bool:
+    """Return whether the current entry allows exact bans inside the allowlist."""
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    return _entry_allowlisted_logins_can_ban(entry) if entry else False
 
 
 def _current_login_threshold(hass: HomeAssistant) -> int:
@@ -720,6 +746,9 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ),
         ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
             _entry_allowlisted_login_notifications_enabled(entry) if entry else True
+        ),
+        ATTR_ALLOWLISTED_LOGINS_CAN_BAN: (
+            _entry_allowlisted_logins_can_ban(entry) if entry else False
         ),
         ATTR_LOGIN_ATTEMPTS_THRESHOLD: (
             _entry_login_threshold(entry, hass)

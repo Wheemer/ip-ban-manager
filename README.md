@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.13** | Optional **Allow automatic bans inside Allowed IPs** setting for carrier/VPN subnet allowlists where individual failed-login sources should still become exact Home Assistant bans. |
 | **v1.2.12** | Safer legacy `ban_allowlist` cleanup: removes stale old-domain cards only after **IP Ban Manager** exists, with startup cleanup and regression tests. |
 | **v1.2.11** | Removes stale old-domain `ban_allowlist` cards from the new **IP Ban Manager** config-entry startup path. |
 | **v1.2.10** | Removes stale old-domain `ban_allowlist` cards once the new **IP Ban Manager** entry exists, while preserving first-time migration. |
@@ -53,6 +54,7 @@ Core management features include:
 - **Allowed IPs:** live editable trusted IPs, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
 - **Banned IPs:** live exact-IP ban review, add, remove, and clear actions without restarting Home Assistant. Existing ban timestamps are shown as readable local times and preserved when unchanged.
 - **Blocked networks:** managed CIDR or wildcard network blocks, enforced behind Home Assistant's native ban lookup without pretending `ip_bans.yaml` supports ranges.
+- **Allowed subnet auto-bans:** optional exact automatic bans for failed logins inside allowed IP ranges, useful when a broad trusted carrier/VPN subnet should bypass network blocks but individual bad-login sources should still be banned.
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
 - **Notifications:** branded IP Ban Manager login/ban notifications include an embedded compact icon header, direct settings link where action is useful, stale-notification cleanup when bans are removed, optional automatic-ban notification suppression, and quieter allowlisted-login notifications that can still escalate if a trusted source keeps failing authentication.
 - **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, risky typo removals, and unconfirmed clear-all service calls are rejected before anything is written.
@@ -121,6 +123,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 - add safe defaults with checkboxes inside **Allowed IPs**
 - edit **Allowed IPs**, one IP address, CIDR network, or IPv4 wildcard network per line
 - enable or disable new automatic bans, automatic ban notifications, and the login-attempt threshold under **Banned IPs**
+- optionally allow automatic exact bans inside **Allowed IPs** for broad trusted subnets
 - edit **Banned entries**, one exact IP address per line
 - edit **Blocked networks**, one CIDR network or IPv4 wildcard network per line
 - view existing ban timestamps as readable local times in **Banned IPs**

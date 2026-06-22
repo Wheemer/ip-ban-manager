@@ -5,10 +5,12 @@
         "title": "Set up IP Ban Manager",
         "data": {
           "quick_allowlist": "Allowlist safe defaults",
+          "ban_options": "Options",
           "login_attempts_threshold": "Login attempts threshold",
           "auto_ban_enabled": "Automatic bans",
           "ban_notifications_enabled": "Automatic ban notifications",
-          "allowlisted_login_notifications_enabled": "Allowlisted login notifications"
+          "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
+          "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs"
         }
       }
     },
@@ -40,8 +42,10 @@
             "name": "Banned IPs",
             "data": {
               "auto_ban_enabled": "Automatic bans",
+              "ban_options": "Options",
               "ban_notifications_enabled": "Automatic ban notifications",
               "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
+              "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips_help": "",
               "banned_ips": "Banned entries",

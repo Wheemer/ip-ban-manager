@@ -1,6 +1,7 @@
 """Constants for the IP Ban Manager integration."""
 
 ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED = "allowlisted_login_notifications_enabled"
+ATTR_ALLOWLISTED_LOGINS_CAN_BAN = "allowlisted_logins_can_ban"
 ATTR_AUTO_BAN_ENABLED = "auto_ban_enabled"
 ATTR_BAN_NOTIFICATIONS_ENABLED = "ban_notifications_enabled"
 ATTR_BANNED_IPS = "banned_ips"
@@ -15,6 +16,7 @@ ATTR_NETWORKS = "networks"
 
 CONF_ALLOWED_IPS = "allowed_ips"
 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED = "allowlisted_login_notifications_enabled"
+CONF_ALLOWLISTED_LOGINS_CAN_BAN = "allowlisted_logins_can_ban"
 CONF_AUTO_BAN_ENABLED = "auto_ban_enabled"
 CONF_BAN_NOTIFICATIONS_ENABLED = "ban_notifications_enabled"
 CONF_BANNED_IPS = "banned_ips"

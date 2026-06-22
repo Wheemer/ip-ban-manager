@@ -18,6 +18,7 @@ from voluptuous.schema_builder import Optional as vol_optional
 
 from .const import (
     ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+    ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
     ATTR_AUTO_BAN_ENABLED,
     ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
@@ -29,6 +30,7 @@ from .const import (
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+    CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
@@ -47,10 +49,11 @@ CONF_QUICK_ALLOWLIST = "quick_allowlist"
 CONF_BANNED_IPS_HELP = "banned_ips_help"
 CONF_BLOCKED_NETWORKS_HELP = "blocked_networks_help"
 CONF_ALLOWED_IPS_HELP = "allowed_ips_help"
+CONF_BAN_OPTIONS = "ban_options"
 CONF_AUTO_BAN_CHECKBOX = "auto_ban"
 CONF_BAN_NOTIFICATIONS_CHECKBOX = "ban_notifications"
 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX = "allowlisted_login_notifications"
-CONF_BAN_NOTIFICATIONS_FIELD = "Automatic ban notifications"
+CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX = "allowlisted_logins_can_ban"
 QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
@@ -234,30 +237,44 @@ def _blocked_networks_help_selector() -> selector.ConstantSelector:
     )
 
 
-def _auto_ban_enabled_selector() -> selector.SelectSelector:
-    """Return the automatic-ban enabled checkbox selector."""
+def _ban_option_values(
+    auto_ban_enabled: bool,
+    notifications_enabled: bool,
+    allowlisted_login_notifications_enabled: bool,
+    allowlisted_logins_can_ban: bool,
+) -> list[str]:
+    """Return selected automatic-ban option values."""
+    values: list[str] = []
+    if auto_ban_enabled:
+        values.append(CONF_AUTO_BAN_CHECKBOX)
+    if notifications_enabled:
+        values.append(CONF_BAN_NOTIFICATIONS_CHECKBOX)
+    if allowlisted_login_notifications_enabled:
+        values.append(CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX)
+    if allowlisted_logins_can_ban:
+        values.append(CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX)
+    return values
+
+
+def _ban_options_selector() -> selector.SelectSelector:
+    """Return the compact automatic-ban checkbox group."""
     options: list[selector.SelectOptionDict] = [
         {
             "value": CONF_AUTO_BAN_CHECKBOX,
-            "label": "Enabled",
-        }
-    ]
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=options,
-            multiple=True,
-            mode=selector.SelectSelectorMode.LIST,
-        )
-    )
-
-
-def _ban_notifications_enabled_selector() -> selector.SelectSelector:
-    """Return the automatic-ban notifications checkbox selector."""
-    options: list[selector.SelectOptionDict] = [
+            "label": "Automatic bans",
+        },
         {
             "value": CONF_BAN_NOTIFICATIONS_CHECKBOX,
-            "label": "Enabled",
-        }
+            "label": "Automatic ban notifications",
+        },
+        {
+            "value": CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+            "label": "Allowlisted login notifications",
+        },
+        {
+            "value": CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
+            "label": "Automatic bans inside Allowed IPs",
+        },
     ]
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
@@ -279,20 +296,17 @@ def _login_attempts_threshold_selector() -> selector.NumberSelector:
     )
 
 
-def _allowlisted_login_notifications_enabled_selector() -> selector.SelectSelector:
-    """Return the allowlisted-login notifications checkbox selector."""
-    options: list[selector.SelectOptionDict] = [
-        {
-            "value": CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
-            "label": "Enabled",
-        }
-    ]
-    return selector.SelectSelector(
-        selector.SelectSelectorConfig(
-            options=options,
-            multiple=True,
-            mode=selector.SelectSelectorMode.LIST,
-        )
+def _ban_option_enabled(
+    user_input: dict[str, Any],
+    legacy_key: str,
+    checkbox: str,
+    default: bool,
+) -> bool:
+    """Return whether a ban option is selected from new or legacy form data."""
+    if CONF_BAN_OPTIONS in user_input:
+        return checkbox in cast(list[str], user_input.get(CONF_BAN_OPTIONS, []))
+    return checkbox in cast(
+        list[str], user_input.get(legacy_key, [checkbox] if default else [])
     )
 
 
@@ -310,28 +324,19 @@ def _ban_settings_fields(
     threshold: int,
     notifications_enabled: bool = True,
     allowlisted_login_notifications_enabled: bool = True,
-    notifications_field: str = CONF_BAN_NOTIFICATIONS_ENABLED,
+    allowlisted_logins_can_ban: bool = False,
 ) -> dict[Any, Any]:
     """Return the auto-ban settings fields."""
     return {
         vol_optional(
-            CONF_AUTO_BAN_ENABLED,
-            default=[CONF_AUTO_BAN_CHECKBOX] if auto_ban_enabled else [],
-        ): _auto_ban_enabled_selector(),
-        vol_optional(
-            notifications_field,
-            default=(
-                [CONF_BAN_NOTIFICATIONS_CHECKBOX] if notifications_enabled else []
+            CONF_BAN_OPTIONS,
+            default=_ban_option_values(
+                auto_ban_enabled,
+                notifications_enabled,
+                allowlisted_login_notifications_enabled,
+                allowlisted_logins_can_ban,
             ),
-        ): _ban_notifications_enabled_selector(),
-        vol_optional(
-            CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
-            default=(
-                [CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX]
-                if allowlisted_login_notifications_enabled
-                else []
-            ),
-        ): _allowlisted_login_notifications_enabled_selector(),
+        ): _ban_options_selector(),
         vol.Required(
             CONF_LOGIN_ATTEMPTS_THRESHOLD,
             default=threshold,
@@ -344,6 +349,7 @@ def _ban_settings_schema(
     threshold: int,
     notifications_enabled: bool = True,
     allowlisted_login_notifications_enabled: bool = True,
+    allowlisted_logins_can_ban: bool = False,
 ) -> vol.Schema:
     """Return the auto-ban settings schema."""
     return vol.Schema(
@@ -352,6 +358,7 @@ def _ban_settings_schema(
             threshold,
             notifications_enabled,
             allowlisted_login_notifications_enabled,
+            allowlisted_logins_can_ban,
         )
     )
 
@@ -369,7 +376,6 @@ def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Sc
     fields = _ban_settings_fields(
         True,
         threshold,
-        notifications_field=CONF_BAN_NOTIFICATIONS_FIELD,
     )
     fields[
         vol_optional(
@@ -553,25 +559,29 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title="IP Ban Manager",
                 data={
                     CONF_IP_ADDRESSES: _dedupe_items(ip_addresses),
-                    CONF_AUTO_BAN_ENABLED: CONF_AUTO_BAN_CHECKBOX
-                    in cast(list[str], user_input.get(CONF_AUTO_BAN_ENABLED, [])),
-                    CONF_BAN_NOTIFICATIONS_ENABLED: CONF_BAN_NOTIFICATIONS_CHECKBOX
-                    in cast(
-                        list[str],
-                        user_input.get(
-                            CONF_BAN_NOTIFICATIONS_FIELD,
-                            user_input.get(CONF_BAN_NOTIFICATIONS_ENABLED, []),
-                        ),
+                    CONF_AUTO_BAN_ENABLED: _ban_option_enabled(
+                        user_input,
+                        CONF_AUTO_BAN_ENABLED,
+                        CONF_AUTO_BAN_CHECKBOX,
+                        True,
                     ),
-                    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
-                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX
-                        in cast(
-                            list[str],
-                            user_input.get(
-                                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
-                                [CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX],
-                            ),
-                        )
+                    CONF_BAN_NOTIFICATIONS_ENABLED: _ban_option_enabled(
+                        user_input,
+                        CONF_BAN_NOTIFICATIONS_ENABLED,
+                        CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                        True,
+                    ),
+                    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: _ban_option_enabled(
+                        user_input,
+                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                        True,
+                    ),
+                    CONF_ALLOWLISTED_LOGINS_CAN_BAN: _ban_option_enabled(
+                        user_input,
+                        CONF_ALLOWLISTED_LOGINS_CAN_BAN,
+                        CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
+                        False,
                     ),
                     CONF_LOGIN_ATTEMPTS_THRESHOLD: int(
                         user_input.get(
@@ -656,6 +666,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                                 bool(
                                     status[ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]
                                 ),
+                                bool(status[ATTR_ALLOWLISTED_LOGINS_CAN_BAN]),
                             ),
                             vol_optional(
                                 CONF_BANNED_IPS_HELP,
@@ -731,12 +742,11 @@ class OptionsFlow(config_entries.OptionsFlow):
                     self._config_entry.data.get(CONF_AUTO_BAN_ENABLED, True),
                 )
             )
-            auto_ban_enabled = CONF_AUTO_BAN_CHECKBOX in cast(
-                list[str],
-                banned_input.get(
-                    CONF_AUTO_BAN_ENABLED,
-                    [CONF_AUTO_BAN_CHECKBOX] if current_auto_ban_enabled else [],
-                ),
+            auto_ban_enabled = _ban_option_enabled(
+                banned_input,
+                CONF_AUTO_BAN_ENABLED,
+                CONF_AUTO_BAN_CHECKBOX,
+                current_auto_ban_enabled,
             )
             current_ban_notifications_enabled = bool(
                 self._config_entry.options.get(
@@ -744,16 +754,11 @@ class OptionsFlow(config_entries.OptionsFlow):
                     self._config_entry.data.get(CONF_BAN_NOTIFICATIONS_ENABLED, True),
                 )
             )
-            ban_notifications_enabled = CONF_BAN_NOTIFICATIONS_CHECKBOX in cast(
-                list[str],
-                banned_input.get(
-                    CONF_BAN_NOTIFICATIONS_ENABLED,
-                    (
-                        [CONF_BAN_NOTIFICATIONS_CHECKBOX]
-                        if current_ban_notifications_enabled
-                        else []
-                    ),
-                ),
+            ban_notifications_enabled = _ban_option_enabled(
+                banned_input,
+                CONF_BAN_NOTIFICATIONS_ENABLED,
+                CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                current_ban_notifications_enabled,
             )
             current_allowlisted_login_notifications_enabled = bool(
                 self._config_entry.options.get(
@@ -763,19 +768,23 @@ class OptionsFlow(config_entries.OptionsFlow):
                     ),
                 )
             )
-            allowlisted_login_notifications_enabled = (
-                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX
-                in cast(
-                    list[str],
-                    banned_input.get(
-                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
-                        (
-                            [CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX]
-                            if current_allowlisted_login_notifications_enabled
-                            else []
-                        ),
-                    ),
+            allowlisted_login_notifications_enabled = _ban_option_enabled(
+                banned_input,
+                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                current_allowlisted_login_notifications_enabled,
+            )
+            current_allowlisted_logins_can_ban = bool(
+                self._config_entry.options.get(
+                    CONF_ALLOWLISTED_LOGINS_CAN_BAN,
+                    self._config_entry.data.get(CONF_ALLOWLISTED_LOGINS_CAN_BAN, False),
                 )
+            )
+            allowlisted_logins_can_ban = _ban_option_enabled(
+                banned_input,
+                CONF_ALLOWLISTED_LOGINS_CAN_BAN,
+                CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
+                current_allowlisted_logins_can_ban,
             )
             login_attempts_threshold = int(
                 banned_input.get(
@@ -837,6 +846,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                             allowlisted_login_notifications_enabled
                         ),
+                        CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
                         CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                         CONF_BLOCKED_NETWORKS: blocked_networks,
                     },
@@ -854,6 +864,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                             allowlisted_login_notifications_enabled
                         ),
+                        CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
                         CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                         CONF_BLOCKED_NETWORKS: blocked_networks,
                     },
