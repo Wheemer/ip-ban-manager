@@ -634,7 +634,13 @@ async def test_allowlisted_wrong_login_can_become_exact_ban(
 
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert NOTIFICATION_ID_BAN in notifications
-    assert "Allowlisted login" not in notifications[NOTIFICATION_ID_BAN]["message"]
+    ban_message = notifications[NOTIFICATION_ID_BAN]["message"]
+    assert notifications[NOTIFICATION_ID_BAN]["title"] == " "
+    assert ban_message.startswith("## <img ")
+    assert ban_message.count(NOTIFICATION_ICON_DATA_URL) == 1
+    assert "**IP banned**" in ban_message
+    assert "Open settings" in ban_message
+    assert "Allowlisted login" not in ban_message
 
 
 @pytest.mark.asyncio
