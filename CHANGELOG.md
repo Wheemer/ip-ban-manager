@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.14
+
+IP Ban Manager 1.2.14 fixes blank banned-IP submissions and adds a safety confirmation before clearing every exact ban.
+
+### Fixed
+
+- Fixed the **Banned entries** field so it can be submitted empty, matching the UI text that says leaving it empty clears exact bans.
+- Added a dedicated confirmation step before an empty **Banned entries** submit can remove every current exact IP ban from Home Assistant.
+- Added regression coverage for the optional banned-IP field, the clear-all confirmation flow, and branded exact-ban notifications from the allowlisted auto-ban path.
+- Bumped both manifests to `1.2.14` for HACS update detection.
+
 ## v1.2.13
 
 IP Ban Manager 1.2.13 adds an opt-in backend mode for broad allowlists where individual bad-login sources should still become exact Home Assistant bans.
