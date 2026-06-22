@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from voluptuous.schema_builder import Optional as VolOptional
 
 from custom_components.ip_ban_manager import KEY_ALLOWLIST
 from custom_components.ip_ban_manager import config_flow as ban_config_flow
@@ -667,6 +668,15 @@ async def test_options_flow_clears_every_ban(
         },
     )
 
+    assert result["type"] == "form"
+    assert result["step_id"] == "confirm_clear_bans"
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.1")}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_CONFIRM_CLEAR_BANS: True},
+    )
+
     assert result["type"] == "create_entry"
     assert ban_manager.ip_bans_lookup == {}
     assert not Path(ban_manager.path).exists()
@@ -774,6 +784,70 @@ async def test_options_flow_accepts_empty_blocked_networks(
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None
     assert stored_entry.options[CONF_BLOCKED_NETWORKS] == []
+
+
+@pytest.mark.asyncio
+async def test_options_flow_banned_ips_field_is_optional(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test the UI can submit the banned IP field as blank."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+    banned_schema = (
+        result["data_schema"].schema[ban_config_flow.SECTION_BANNED_IPS].schema
+    )
+    banned_marker = next(
+        marker for marker in banned_schema.schema if marker.schema == CONF_BANNED_IPS
+    )
+
+    assert isinstance(banned_marker, VolOptional)
+
+
+@pytest.mark.asyncio
+async def test_options_flow_confirms_clearing_all_banned_ips(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test clearing every exact IP ban requires explicit confirmation."""
+    entry = await setup_options_entry(hass, tmp_path)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.2"))
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.1"},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: ""},
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "confirm_clear_bans"
+    assert result["description_placeholders"] == {"ban_count": "1"}
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.2")}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_CONFIRM_CLEAR_BANS: False},
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "confirm_clear_bans"
+    assert result["errors"] == {"base": "confirmation_required"}
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("10.0.0.2")}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_CONFIRM_CLEAR_BANS: True},
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == expected_options_data(["192.168.1.1"])
+    assert ban_manager.ip_bans_lookup == {}
 
 
 @pytest.mark.asyncio

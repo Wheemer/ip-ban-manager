@@ -54,6 +54,7 @@ CONF_AUTO_BAN_CHECKBOX = "auto_ban"
 CONF_BAN_NOTIFICATIONS_CHECKBOX = "ban_notifications"
 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX = "allowlisted_login_notifications"
 CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX = "allowlisted_logins_can_ban"
+CONF_CONFIRM_CLEAR_BANS = "confirm_clear_bans"
 QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
@@ -632,6 +633,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         """Initialize options flow."""
         self._config_entry = config_entry
         self._detected_subnets: list[str] = []
+        self._pending_clear_bans: dict[str, Any] | None = None
 
     def _management_schema(self) -> vol.Schema:
         """Return the live management form schema."""
@@ -672,7 +674,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                                 CONF_BANNED_IPS_HELP,
                                 default=_banned_ips_help_text(),
                             ): _banned_ips_help_selector(),
-                            vol.Required(
+                            vol_optional(
                                 CONF_BANNED_IPS,
                                 default=_items_to_text(banned_ips),
                             ): _text_selector(),
@@ -689,6 +691,70 @@ class OptionsFlow(config_entries.OptionsFlow):
                     {"collapsed": True},
                 ),
             }
+        )
+
+    def _confirm_clear_bans_schema(self) -> vol.Schema:
+        """Return the confirmation schema for clearing every exact IP ban."""
+        return vol.Schema(
+            {
+                vol.Required(
+                    CONF_CONFIRM_CLEAR_BANS,
+                    default=False,
+                ): selector.BooleanSelector()
+            }
+        )
+
+    async def _async_save_management_changes(
+        self,
+        ip_addresses: list[str],
+        banned_ips: list[str],
+        blocked_networks: list[str],
+        auto_ban_enabled: bool,
+        ban_notifications_enabled: bool,
+        allowlisted_login_notifications_enabled: bool,
+        allowlisted_logins_can_ban: bool,
+        login_attempts_threshold: int,
+    ) -> config_entries.ConfigFlowResult:
+        """Persist validated options and apply them immediately."""
+        from . import (
+            _apply_ban_settings,
+            _async_replace_ip_bans,
+            _update_allowlist_entry,
+            _update_blocked_networks_entry,
+        )
+
+        self.hass.config_entries.async_update_entry(
+            self._config_entry,
+            options={
+                **self._config_entry.options,
+                CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+                CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+                    allowlisted_login_notifications_enabled
+                ),
+                CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+                CONF_BLOCKED_NETWORKS: blocked_networks,
+            },
+        )
+        _apply_ban_settings(self.hass, self._config_entry)
+        _update_allowlist_entry(self.hass, ip_addresses)
+        _update_blocked_networks_entry(self.hass, blocked_networks)
+        await _async_replace_ip_bans(self.hass, banned_ips)
+        self._pending_clear_bans = None
+        return self.async_create_entry(
+            title="",
+            data={
+                CONF_IP_ADDRESSES: ip_addresses,
+                CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+                CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+                    allowlisted_login_notifications_enabled
+                ),
+                CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+                CONF_BLOCKED_NETWORKS: blocked_networks,
+            },
         )
 
     def _description_placeholders(self) -> dict[str, str]:
@@ -723,12 +789,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Manage allowlisted and banned IP entries."""
-        from . import (
-            _apply_ban_settings,
-            _async_replace_ip_bans,
-            _update_allowlist_entry,
-            _update_blocked_networks_entry,
-        )
+        from . import current_status
 
         errors: dict[str, str] = {}
         self._detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
@@ -812,7 +873,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 errors[CONF_ALLOWED_IPS] = "invalid_ip_address"
 
             try:
-                banned_ips = _validate_banned_ips(banned_input[CONF_BANNED_IPS])
+                banned_ips = _validate_banned_ips(banned_input.get(CONF_BANNED_IPS, ""))
             except UnsafeBlockedNetworkError:
                 errors[CONF_BANNED_IPS] = "unsafe_blocked_network"
             except ValueError:
@@ -837,28 +898,14 @@ class OptionsFlow(config_entries.OptionsFlow):
                     errors[CONF_BANNED_IPS] = "banned_ip_allowlisted"
 
             if not errors:
-                self.hass.config_entries.async_update_entry(
-                    self._config_entry,
-                    options={
-                        **self._config_entry.options,
-                        CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
-                        CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
-                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
-                            allowlisted_login_notifications_enabled
-                        ),
-                        CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
-                        CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
-                        CONF_BLOCKED_NETWORKS: blocked_networks,
-                    },
+                current_bans = cast(
+                    list[dict[str, str]], current_status(self.hass)[ATTR_BANNED_IPS]
                 )
-                _apply_ban_settings(self.hass, self._config_entry)
-                _update_allowlist_entry(self.hass, ip_addresses)
-                _update_blocked_networks_entry(self.hass, blocked_networks)
-                await _async_replace_ip_bans(self.hass, banned_ips)
-                return self.async_create_entry(
-                    title="",
-                    data={
+                if current_bans and not banned_ips:
+                    self._pending_clear_bans = {
                         CONF_IP_ADDRESSES: ip_addresses,
+                        CONF_BANNED_IPS: banned_ips,
+                        CONF_BLOCKED_NETWORKS: blocked_networks,
                         CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
                         CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
                         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
@@ -866,13 +913,59 @@ class OptionsFlow(config_entries.OptionsFlow):
                         ),
                         CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
                         CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
-                        CONF_BLOCKED_NETWORKS: blocked_networks,
-                    },
+                        "ban_count": len(current_bans),
+                    }
+                    return self.async_show_form(
+                        step_id="confirm_clear_bans",
+                        data_schema=self._confirm_clear_bans_schema(),
+                        description_placeholders={"ban_count": str(len(current_bans))},
+                    )
+
+                return await self._async_save_management_changes(
+                    ip_addresses,
+                    banned_ips,
+                    blocked_networks,
+                    auto_ban_enabled,
+                    ban_notifications_enabled,
+                    allowlisted_login_notifications_enabled,
+                    allowlisted_logins_can_ban,
+                    login_attempts_threshold,
                 )
 
         return self.async_show_form(
             step_id="init",
             data_schema=self._management_schema(),
             description_placeholders=self._description_placeholders(),
+            errors=errors,
+        )
+
+    async def async_step_confirm_clear_bans(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Confirm clearing every exact IP ban."""
+        errors: dict[str, str] = {}
+        pending = self._pending_clear_bans
+        if pending is None:
+            return self.async_abort(reason="no_pending_clear_bans")
+
+        if user_input is not None:
+            if not user_input.get(CONF_CONFIRM_CLEAR_BANS, False):
+                errors["base"] = "confirmation_required"
+            else:
+                return await self._async_save_management_changes(
+                    cast(list[str], pending[CONF_IP_ADDRESSES]),
+                    cast(list[str], pending[CONF_BANNED_IPS]),
+                    cast(list[str], pending[CONF_BLOCKED_NETWORKS]),
+                    cast(bool, pending[CONF_AUTO_BAN_ENABLED]),
+                    cast(bool, pending[CONF_BAN_NOTIFICATIONS_ENABLED]),
+                    cast(bool, pending[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]),
+                    cast(bool, pending[CONF_ALLOWLISTED_LOGINS_CAN_BAN]),
+                    cast(int, pending[CONF_LOGIN_ATTEMPTS_THRESHOLD]),
+                )
+
+        return self.async_show_form(
+            step_id="confirm_clear_bans",
+            data_schema=self._confirm_clear_bans_schema(),
+            description_placeholders={"ban_count": str(pending["ban_count"])},
             errors=errors,
         )
