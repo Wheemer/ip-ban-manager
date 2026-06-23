@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.2.15** | Fixes HACS installs by shipping only the real `ip_ban_manager` integration folder; old `ban_allowlist` YAML is still absorbed by IP Ban Manager. |
 | **v1.2.14** | Fixes blank **Banned entries** submissions and adds a confirmation screen before clearing every exact IP ban. |
 | **v1.2.13** | Optional **Allow automatic bans inside Allowed IPs** setting for carrier/VPN subnet allowlists where individual failed-login sources should still become exact Home Assistant bans. |
 | **v1.2.12** | Safer legacy `ban_allowlist` cleanup: removes stale old-domain cards only after **IP Ban Manager** exists, with startup cleanup and regression tests. |
@@ -103,6 +104,8 @@ After installing, restart Home Assistant once so the custom integration is loade
 The visible integration name is **IP Ban Manager** and automation/service calls use `ip_ban_manager.*`. Normal setup is done from the UI; existing Home Assistant `http:` IP-ban settings can stay in `configuration.yaml`. Leftover `ban_allowlist:` allowlist YAML is absorbed automatically when IP Ban Manager first loads.
 
 YAML import is optional and mainly kept as a one-time migration path for advanced/manual installs, including leftover `ban_allowlist:` allowlist YAML. After IP Ban Manager imports those settings, remove the old integration YAML key and restart Home Assistant. If the old key is left behind, IP Ban Manager ignores it once the UI config entry already exists. Most users should add and manage IP Ban Manager from the UI.
+
+If you previously installed or manually copied an old `custom_components/ban_allowlist` folder, delete that folder. HACS should install only `custom_components/ip_ban_manager` from this repository.
 
 Home Assistant's built-in HTTP banning must still be enabled:
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.15
+
+IP Ban Manager 1.2.15 fixes HACS installation by shipping only the real `ip_ban_manager` integration folder.
+
+### Fixed
+
+- Removed the standalone legacy `custom_components/ban_allowlist` compatibility folder from the release package. HACS only supports one integration folder per repository and was installing `ban_allowlist` instead of `ip_ban_manager` for some users.
+- Kept legacy `ban_allowlist:` YAML absorption and stale old-domain config-entry cleanup inside the main `ip_ban_manager` integration.
+- Added regression coverage so the repository cannot accidentally ship more than one HACS-managed integration folder again.
+- Bumped the manifest to `1.2.15` for HACS update detection.
+
 ## v1.2.14
 
 IP Ban Manager 1.2.14 fixes blank banned-IP submissions and adds a safety confirmation before clearing every exact ban.

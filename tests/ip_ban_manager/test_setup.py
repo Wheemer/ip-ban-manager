@@ -82,6 +82,18 @@ def check_records(records: list[logging.LogRecord]) -> None:
             raise Exception(msg)
 
 
+def test_repository_ships_one_hacs_integration_folder() -> None:
+    """Test HACS can only discover the real integration folder."""
+    repo_root = Path(__file__).parents[2]
+    integration_folders = sorted(
+        path.name
+        for path in (repo_root / "custom_components").iterdir()
+        if path.is_dir() and not path.name.startswith("__")
+    )
+
+    assert integration_folders == [DOMAIN]
+
+
 async def setup_ip_ban_manager(hass: HomeAssistant) -> None:
     """Configure ip_ban_manager and dependencies."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
