@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.3.0
+
+IP Ban Manager 1.3.0 focuses on safer defaults and cleaner protection around real lockout risks.
+
+### Added
+
+- Default the detected local network checkbox on during first setup, so new users are less likely to lock themselves out when using local-only or block-heavy configurations.
+- Reject managed blocked-network settings that would cover a detected local Home Assistant network without a matching allowed local entry.
+
+### Improved
+
+- Capture more Home Assistant failed-login notification paths so IP Ban Manager can normalize the messages earlier and more consistently.
+- Narrow the clear-ban confirmation so it only appears when clearing multiple exact bans at once. Clearing the only remaining ban now saves directly.
+- Keep routine allowlist edits frictionless while still blocking settings that could realistically cut off local access.
+
 ## v1.2.15
 
 IP Ban Manager 1.2.15 fixes HACS installation by shipping only the real `ip_ban_manager` integration folder.
