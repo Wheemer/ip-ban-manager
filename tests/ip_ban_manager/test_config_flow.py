@@ -198,6 +198,15 @@ async def test_user_flow_can_add_detected_subnet(
     assert result["description_placeholders"]["home_assistant_subnets"] == (
         "192.168.1.0/24\n"
     )
+    quick_allowlist_marker = next(
+        marker
+        for marker in result["data_schema"].schema
+        if marker.schema == ban_config_flow.CONF_QUICK_ALLOWLIST
+    )
+    assert quick_allowlist_marker.default() == [
+        ban_config_flow.QUICK_ALLOW_LOCALHOST,
+        ban_config_flow.QUICK_ALLOW_LOCAL_NETWORK,
+    ]
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],

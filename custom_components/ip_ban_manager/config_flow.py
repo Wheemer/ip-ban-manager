@@ -378,10 +378,14 @@ def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Sc
         True,
         threshold,
     )
+    default_quick_allowlist = [
+        QUICK_ALLOW_LOCALHOST,
+        *([QUICK_ALLOW_LOCAL_NETWORK] if detected_subnets else []),
+    ]
     fields[
         vol_optional(
             CONF_QUICK_ALLOWLIST,
-            default=[QUICK_ALLOW_LOCALHOST],
+            default=default_quick_allowlist,
         )
     ] = _quick_allowlist_selector(
         [
