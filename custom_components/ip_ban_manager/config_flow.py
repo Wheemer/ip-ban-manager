@@ -55,6 +55,7 @@ CONF_BAN_NOTIFICATIONS_CHECKBOX = "ban_notifications"
 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX = "allowlisted_login_notifications"
 CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX = "allowlisted_logins_can_ban"
 CONF_CONFIRM_CLEAR_BANS = "confirm_clear_bans"
+CONF_CONFIRM_RISKY_CHANGES = "confirm_risky_changes"
 QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
@@ -71,6 +72,10 @@ class BannedAllowlistedIPError(ValueError):
 
 class UnsafeBlockedNetworkError(ValueError):
     """Raised when a blocked network would block every IP address."""
+
+
+class UnprotectedLocalBlockError(ValueError):
+    """Raised when a local network block has no matching allowed entry."""
 
 
 def _normalize_list(value: str | Iterable[str]) -> list[str]:
@@ -148,6 +153,68 @@ def _validate_ban_safety(
         for allowlist_network in allowlist_networks
     ):
         raise BannedAllowlistedIPError
+
+
+def _validate_local_block_safety(
+    allowlist: Iterable[str],
+    blocked_networks: Iterable[str],
+    detected_subnets: Iterable[str],
+) -> None:
+    """Reject local network blocks that have no local allowlist path back in."""
+    allowlist_networks = [parse_allowlist_network(network) for network in allowlist]
+    blocked = [parse_allowlist_network(network) for network in blocked_networks]
+    detected = [parse_allowlist_network(network) for network in detected_subnets]
+
+    for detected_network in detected:
+        for blocked_network in blocked:
+            if not blocked_network.overlaps(detected_network):
+                continue
+            if any(
+                allowed_network.overlaps(blocked_network)
+                for allowed_network in allowlist_networks
+            ):
+                continue
+            raise UnprotectedLocalBlockError
+
+
+def _risky_allowlist_changes(
+    previous_allowlist: Iterable[str],
+    allowlist: Iterable[str],
+    detected_subnets: Iterable[str],
+) -> list[str]:
+    """Return confirmation reasons for risky-but-valid allowlist changes."""
+    previous_values = list(previous_allowlist)
+    allowlist_values = list(allowlist)
+    if not allowlist_values:
+        return ["Allowed entries would be empty."]
+
+    previous_networks = [
+        parse_allowlist_network(network) for network in previous_values
+    ]
+    allowlist_networks = [
+        parse_allowlist_network(network) for network in allowlist_values
+    ]
+    reasons: list[str] = []
+    localhost = parse_allowlist_network(DEFAULT_ALLOWED_IPS[0])
+    had_localhost = any(network.overlaps(localhost) for network in previous_networks)
+    has_localhost = any(network.overlaps(localhost) for network in allowlist_networks)
+    if had_localhost and not has_localhost:
+        reasons.append("127.0.0.1 would no longer be allowed.")
+
+    for detected_subnet in detected_subnets:
+        detected_network = parse_allowlist_network(detected_subnet)
+        had_detected = any(
+            network.overlaps(detected_network) for network in previous_networks
+        )
+        has_detected = any(
+            network.overlaps(detected_network) for network in allowlist_networks
+        )
+        if had_detected and not has_detected:
+            reasons.append(
+                f"Detected local network {detected_subnet} would no longer be allowed."
+            )
+
+    return reasons
 
 
 def _items_to_text(items: Iterable[str]) -> str:
@@ -638,6 +705,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         self._config_entry = config_entry
         self._detected_subnets: list[str] = []
         self._pending_clear_bans: dict[str, Any] | None = None
+        self._pending_risky_changes: dict[str, Any] | None = None
 
     def _management_schema(self) -> vol.Schema:
         """Return the live management form schema."""
@@ -708,6 +776,17 @@ class OptionsFlow(config_entries.OptionsFlow):
             }
         )
 
+    def _confirm_risky_changes_schema(self) -> vol.Schema:
+        """Return the confirmation schema for risky allowlist changes."""
+        return vol.Schema(
+            {
+                vol.Required(
+                    CONF_CONFIRM_RISKY_CHANGES,
+                    default=False,
+                ): selector.BooleanSelector()
+            }
+        )
+
     async def _async_save_management_changes(
         self,
         ip_addresses: list[str],
@@ -746,6 +825,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         _update_blocked_networks_entry(self.hass, blocked_networks)
         await _async_replace_ip_bans(self.hass, banned_ips)
         self._pending_clear_bans = None
+        self._pending_risky_changes = None
         return self.async_create_entry(
             title="",
             data={
@@ -902,9 +982,48 @@ class OptionsFlow(config_entries.OptionsFlow):
                     errors[CONF_BANNED_IPS] = "banned_ip_allowlisted"
 
             if not errors:
+                try:
+                    _validate_local_block_safety(
+                        ip_addresses,
+                        blocked_networks,
+                        self._detected_subnets,
+                    )
+                except UnprotectedLocalBlockError:
+                    errors[CONF_BLOCKED_NETWORKS] = "local_network_block_unprotected"
+
+            if not errors:
                 current_bans = cast(
                     list[dict[str, str]], current_status(self.hass)[ATTR_BANNED_IPS]
                 )
+                risky_changes = _risky_allowlist_changes(
+                    _current_addresses(self._config_entry),
+                    ip_addresses,
+                    self._detected_subnets,
+                )
+                if risky_changes and not (current_bans and not banned_ips):
+                    self._pending_risky_changes = {
+                        CONF_IP_ADDRESSES: ip_addresses,
+                        CONF_BANNED_IPS: banned_ips,
+                        CONF_BLOCKED_NETWORKS: blocked_networks,
+                        CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+                        CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+                            allowlisted_login_notifications_enabled
+                        ),
+                        CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+                        CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+                        "risk_details": "\n".join(
+                            f"- {risk}" for risk in risky_changes
+                        ),
+                    }
+                    return self.async_show_form(
+                        step_id="confirm_risky_changes",
+                        data_schema=self._confirm_risky_changes_schema(),
+                        description_placeholders={
+                            "risk_details": self._pending_risky_changes["risk_details"]
+                        },
+                    )
+
                 if current_bans and not banned_ips:
                     self._pending_clear_bans = {
                         CONF_IP_ADDRESSES: ip_addresses,
@@ -971,5 +1090,36 @@ class OptionsFlow(config_entries.OptionsFlow):
             step_id="confirm_clear_bans",
             data_schema=self._confirm_clear_bans_schema(),
             description_placeholders={"ban_count": str(pending["ban_count"])},
+            errors=errors,
+        )
+
+    async def async_step_confirm_risky_changes(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Confirm risky allowlist changes before saving."""
+        errors: dict[str, str] = {}
+        pending = self._pending_risky_changes
+        if pending is None:
+            return self.async_abort(reason="no_pending_risky_changes")
+
+        if user_input is not None:
+            if not user_input.get(CONF_CONFIRM_RISKY_CHANGES, False):
+                errors["base"] = "confirmation_required"
+            else:
+                return await self._async_save_management_changes(
+                    cast(list[str], pending[CONF_IP_ADDRESSES]),
+                    cast(list[str], pending[CONF_BANNED_IPS]),
+                    cast(list[str], pending[CONF_BLOCKED_NETWORKS]),
+                    cast(bool, pending[CONF_AUTO_BAN_ENABLED]),
+                    cast(bool, pending[CONF_BAN_NOTIFICATIONS_ENABLED]),
+                    cast(bool, pending[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]),
+                    cast(bool, pending[CONF_ALLOWLISTED_LOGINS_CAN_BAN]),
+                    cast(int, pending[CONF_LOGIN_ATTEMPTS_THRESHOLD]),
+                )
+
+        return self.async_show_form(
+            step_id="confirm_risky_changes",
+            data_schema=self._confirm_risky_changes_schema(),
+            description_placeholders={"risk_details": str(pending["risk_details"])},
             errors=errors,
         )

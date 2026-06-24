@@ -505,6 +505,22 @@ async def test_options_flow_safe_default_checkboxes(
         },
     )
 
+    assert result["type"] == "form"
+    assert result["step_id"] == "confirm_risky_changes"
+    assert (
+        "127.0.0.1 would no longer be allowed."
+        in result["description_placeholders"]["risk_details"]
+    )
+    assert (
+        "Detected local network 192.168.1.0/24 would no longer be allowed."
+        in result["description_placeholders"]["risk_details"]
+    )
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_CONFIRM_RISKY_CHANGES: True},
+    )
+
     assert result["type"] == "create_entry"
     assert result["data"] == expected_options_data(["10.0.1.0/24"], threshold=5)
 
@@ -578,6 +594,18 @@ async def test_options_flow_can_clear_allowlist(
             CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: ""},
             CONF_BANNED_IPS: {CONF_BANNED_IPS: "", CONF_BLOCKED_NETWORKS: ""},
         },
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "confirm_risky_changes"
+    assert (
+        "Allowed entries would be empty."
+        in result["description_placeholders"]["risk_details"]
+    )
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_CONFIRM_RISKY_CHANGES: True},
     )
 
     assert result["type"] == "create_entry"
@@ -891,6 +919,89 @@ async def test_options_flow_accepts_wildcard_blocked_network(
     assert stored_entry.options[CONF_BLOCKED_NETWORKS] == ["192.168.1.0/24"]
     assert ip_address("192.168.1.50") in ban_manager.ip_bans_lookup
     assert ip_address("172.17.0.10") not in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
+async def test_options_flow_rejects_unprotected_local_blocked_network(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test local network blocks require a matching local allowlist entry."""
+    entry = await setup_options_entry(hass, tmp_path)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_subnets,
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "172.17.0.0/24"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "192.168.1.0/24",
+            },
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {
+        CONF_BLOCKED_NETWORKS: "local_network_block_unprotected"
+    }
+
+
+@pytest.mark.asyncio
+async def test_options_flow_confirms_removing_detected_local_allowlist(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test removing local allowlist coverage requires confirmation."""
+    entry = await setup_options_entry(hass, tmp_path)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_subnets,
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "172.17.0.0/24"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "confirm_risky_changes"
+    assert (
+        "Detected local network 192.168.1.0/24 would no longer be allowed."
+        in result["description_placeholders"]["risk_details"]
+    )
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_CONFIRM_RISKY_CHANGES: False},
+    )
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "confirm_risky_changes"
+    assert result["errors"] == {"base": "confirmation_required"}
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={ban_config_flow.CONF_CONFIRM_RISKY_CHANGES: True},
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == expected_options_data(["172.17.0.0/24"])
 
 
 @pytest.mark.asyncio

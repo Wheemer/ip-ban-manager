@@ -61,6 +61,13 @@
         "data": {
           "confirm_clear_bans": "Clear all exact IP bans"
         }
+      },
+      "confirm_risky_changes": {
+        "title": "Confirm allowlist changes",
+        "description": "These changes remove safety entries that can help prevent lockouts:\n\n{risk_details}\n\nCheck the box to confirm.",
+        "data": {
+          "confirm_risky_changes": "Apply these allowlist changes"
+        }
       }
     },
     "error": {
@@ -68,9 +75,10 @@
       "invalid_banned_ip": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 203.0.113.*.",
       "invalid_blocked_network": "Enter valid CIDR networks or IPv4 wildcard networks like 203.0.113.*.",
       "unsafe_blocked_network": "That blocked network would block every IP address. Use a narrower network.",
+      "local_network_block_unprotected": "That blocked network includes a detected local Home Assistant network, but no matching local entry is allowed.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
-      "confirmation_required": "Check the confirmation box before clearing every exact IP ban."
+      "confirmation_required": "Check the confirmation box before applying this change."
     }
   },
   "exceptions": {
