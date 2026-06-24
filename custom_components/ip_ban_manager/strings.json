@@ -61,13 +61,6 @@
         "data": {
           "confirm_clear_bans": "Clear all exact IP bans"
         }
-      },
-      "confirm_risky_changes": {
-        "title": "Confirm allowlist changes",
-        "description": "These changes remove safety entries that can help prevent lockouts:\n\n{risk_details}\n\nCheck the box to confirm.",
-        "data": {
-          "confirm_risky_changes": "Apply these allowlist changes"
-        }
       }
     },
     "error": {
@@ -78,7 +71,7 @@
       "local_network_block_unprotected": "That blocked network includes a detected local Home Assistant network, but no matching local entry is allowed.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
-      "confirmation_required": "Check the confirmation box before applying this change."
+      "confirmation_required": "Check the confirmation box before clearing every exact IP ban."
     }
   },
   "exceptions": {
