@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from collections.abc import Awaitable, Callable, Collection, Iterable
 from contextlib import suppress
 from datetime import datetime
@@ -492,6 +493,21 @@ def _install_wrong_login_patch() -> None:
     if http_ban.process_wrong_login is not _allowlist_process_wrong_login:
         http_ban.process_wrong_login = _allowlist_process_wrong_login
 
+    # Some Home Assistant auth modules import process_wrong_login directly during
+    # startup. Patch those already-imported references too so their persistent
+    # notifications go through the same branding and allowlist handling path.
+    for module_name in (
+        "homeassistant.components.auth.login_flow",
+        "homeassistant.components.websocket_api.auth",
+    ):
+        module = sys.modules.get(module_name)
+        if (
+            module is not None
+            and getattr(module, "process_wrong_login", None)
+            is not _allowlist_process_wrong_login
+        ):
+            setattr(module, "process_wrong_login", _allowlist_process_wrong_login)
+
 
 def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> None:
     """Install the IP ban hook for this Home Assistant app once."""
@@ -521,6 +537,18 @@ def _uninstall_patches(hass: HomeAssistant) -> None:
 
     if http_ban.process_wrong_login is _allowlist_process_wrong_login:
         http_ban.process_wrong_login = _ORIGINAL_PROCESS_WRONG_LOGIN
+
+    for module_name in (
+        "homeassistant.components.auth.login_flow",
+        "homeassistant.components.websocket_api.auth",
+    ):
+        module = sys.modules.get(module_name)
+        if (
+            module is not None
+            and getattr(module, "process_wrong_login", None)
+            is _allowlist_process_wrong_login
+        ):
+            setattr(module, "process_wrong_login", _ORIGINAL_PROCESS_WRONG_LOGIN)
 
     original_add_ban = app.pop(KEY_ORIGINAL_ADD_BAN, None)
     ban_manager = app.get(KEY_BAN_MANAGER)

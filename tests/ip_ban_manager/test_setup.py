@@ -620,6 +620,39 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notification(
 
 
 @pytest.mark.asyncio
+async def test_imported_auth_wrong_login_gets_branded_notification(
+    hass: HomeAssistant,
+) -> None:
+    """Test auth modules that imported the HA hook also use our wrapper."""
+    from homeassistant.components.auth import login_flow
+    from homeassistant.components.websocket_api import auth as websocket_auth
+
+    login_flow.process_wrong_login = _ORIGINAL_PROCESS_WRONG_LOGIN
+    websocket_auth.process_wrong_login = _ORIGINAL_PROCESS_WRONG_LOGIN
+
+    await setup_ip_ban_manager(hass)
+
+    assert login_flow.process_wrong_login is _allowlist_process_wrong_login
+    assert websocket_auth.process_wrong_login is _allowlist_process_wrong_login
+
+    class MockRequest:
+        remote = "10.0.0.50"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await login_flow.process_wrong_login(cast(Any, MockRequest()))
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert message.startswith("## <img ")
+    assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
+    assert "**Login attempt failed**" in message
+    assert "Open settings" in message
+
+
+@pytest.mark.asyncio
 async def test_allowlisted_wrong_login_can_become_exact_ban(
     hass: HomeAssistant,
 ) -> None:
@@ -913,6 +946,9 @@ async def test_unload_restores_home_assistant_hooks(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test unloading leaves Home Assistant's HTTP ban internals restored."""
+    from homeassistant.components.auth import login_flow
+    from homeassistant.components.websocket_api import auth as websocket_auth
+
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
@@ -920,6 +956,8 @@ async def test_unload_restores_home_assistant_hooks(
     original_add_ban = hass.http.app[KEY_ORIGINAL_ADD_BAN]
 
     assert http_ban.process_wrong_login is _allowlist_process_wrong_login
+    assert login_flow.process_wrong_login is _allowlist_process_wrong_login
+    assert websocket_auth.process_wrong_login is _allowlist_process_wrong_login
     assert patched_add_ban is not original_add_ban
 
     assert await hass.config_entries.async_unload(entry.entry_id)
@@ -927,6 +965,8 @@ async def test_unload_restores_home_assistant_hooks(
     check_records(caplog.records)
 
     assert http_ban.process_wrong_login is _ORIGINAL_PROCESS_WRONG_LOGIN
+    assert login_flow.process_wrong_login is _ORIGINAL_PROCESS_WRONG_LOGIN
+    assert websocket_auth.process_wrong_login is _ORIGINAL_PROCESS_WRONG_LOGIN
     assert ban_manager.async_add_ban is original_add_ban
     assert KEY_ALLOWLIST not in hass.http.app
     assert KEY_CONFIG_ENTRY not in hass.http.app
