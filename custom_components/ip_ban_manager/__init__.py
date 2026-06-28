@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import sys
 from collections.abc import Awaitable, Callable, Collection, Iterable
 from contextlib import suppress
@@ -117,6 +118,7 @@ KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ip_ban_manager_config_entry")
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
+KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
 
 PLATFORMS = ["sensor"]
 
@@ -896,6 +898,36 @@ def _async_remove_legacy_entries(hass: HomeAssistant) -> None:
         hass.async_create_task(_remove_legacy_entry())
 
 
+def _move_legacy_component_folder(hass: HomeAssistant) -> None:
+    """Move a stale legacy custom component folder out of Home Assistant's loader path."""
+    legacy_path = Path(hass.config.path("custom_components", LEGACY_DOMAIN))
+    if not legacy_path.is_dir():
+        return
+
+    manifest_path = legacy_path / "manifest.json"
+    if not manifest_path.is_file():
+        return
+
+    manifest = manifest_path.read_text(encoding="utf-8", errors="ignore")
+    if f'"domain": "{LEGACY_DOMAIN}"' not in manifest:
+        return
+
+    backup_root = Path(hass.config.path("ip_ban_manager_legacy_backup"))
+    backup_root.mkdir(exist_ok=True)
+    timestamp = dt_util.utcnow().strftime("%Y%m%d-%H%M%S")
+    destination = backup_root / f"{LEGACY_DOMAIN}-{timestamp}"
+    shutil.move(str(legacy_path), str(destination))
+    _LOGGER.info("Moved stale legacy ban_allowlist folder to %s", destination)
+
+
+async def _async_cleanup_legacy_component_folder(hass: HomeAssistant) -> None:
+    """Move stale legacy files once the new integration is running."""
+    if hass.data.get(KEY_LEGACY_FOLDER_CLEANED):
+        return
+    hass.data[KEY_LEGACY_FOLDER_CLEANED] = True
+    await hass.async_add_executor_job(_move_legacy_component_folder, hass)
+
+
 def _async_schedule_legacy_cleanup(hass: HomeAssistant) -> None:
     """Remove old-domain entries now and once Home Assistant has started."""
     _async_remove_legacy_entries(hass)
@@ -1199,6 +1231,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
     _async_cleanup_entry_metadata(hass, entry)
     _async_schedule_legacy_cleanup(hass)
+    await _async_cleanup_legacy_component_folder(hass)
     hass.http.app[KEY_CONFIG_ENTRY] = entry
     hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(_entry_ip_addresses(entry))
 

@@ -40,6 +40,7 @@ from custom_components.ip_ban_manager import (
     SilenceAllowlistedLoginNotificationsView,
     _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
+    _async_cleanup_legacy_component_folder,
     _async_remove_legacy_entries,
     current_status,
 )
@@ -234,6 +235,28 @@ async def test_setup_entry_removes_leftover_legacy_entry(
     check_records(caplog.records)
 
     assert not hass.config_entries.async_entries(LEGACY_DOMAIN)
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_moves_stale_legacy_component_folder(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test setup moves the old HACS-installed legacy folder out of the loader path."""
+    custom_components = tmp_path / "custom_components"
+    legacy_path = custom_components / LEGACY_DOMAIN
+    legacy_path.mkdir(parents=True)
+    (legacy_path / "manifest.json").write_text(
+        '{"domain": "ban_allowlist", "name": "IP Ban Manager"}',
+        encoding="utf-8",
+    )
+    hass.config.config_dir = str(tmp_path)
+
+    await _async_cleanup_legacy_component_folder(hass)
+
+    assert not legacy_path.exists()
+    backups = list((tmp_path / "ip_ban_manager_legacy_backup").iterdir())
+    assert len(backups) == 1
+    assert (backups[0] / "manifest.json").is_file()
 
 
 @pytest.mark.asyncio

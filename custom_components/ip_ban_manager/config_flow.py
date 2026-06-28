@@ -39,6 +39,7 @@ from .const import (
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
+    LEGACY_DOMAIN,
 )
 from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
@@ -565,6 +566,13 @@ def _current_addresses(config_entry: config_entries.ConfigEntry) -> list[str]:
     )
 
 
+def _legacy_entry_data(config_entry: config_entries.ConfigEntry) -> dict[str, Any]:
+    """Return a new-domain config payload from a legacy config entry."""
+    data = dict(config_entry.data)
+    data[CONF_IP_ADDRESSES] = _validate_ip_addresses(_current_addresses(config_entry))
+    return data
+
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for IP Ban Manager."""
 
@@ -574,6 +582,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Handle the initial step."""
+        if user_input is None and not self.hass.config_entries.async_entries(DOMAIN):
+            legacy_entry = next(
+                iter(self.hass.config_entries.async_entries(LEGACY_DOMAIN)),
+                None,
+            )
+            if legacy_entry is not None:
+                await self.async_set_unique_id(DOMAIN)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title="IP Ban Manager",
+                    data=_legacy_entry_data(legacy_entry),
+                )
+
         detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:

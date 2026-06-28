@@ -33,6 +33,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
+    LEGACY_DOMAIN,
 )
 
 
@@ -175,6 +176,28 @@ async def test_user_flow(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -
     assert result["type"] == "create_entry"
     assert result["title"] == "IP Ban Manager"
     assert result["data"] == expected_setup_data(DEFAULT_ALLOWED_IPS)
+
+
+@pytest.mark.asyncio
+async def test_user_flow_absorbs_legacy_entry(hass: HomeAssistant) -> None:
+    """Test Add Integration absorbs a stale old-domain config entry."""
+    await load_ip_ban_manager(hass)
+    legacy_entry = MockConfigEntry(
+        domain=LEGACY_DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["127.0.0.1"]},
+        options={CONF_IP_ADDRESSES: ["127.0.0.1", "192.168.1.0/24"]},
+    )
+    legacy_entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["title"] == "IP Ban Manager"
+    assert result["data"] == {CONF_IP_ADDRESSES: ["127.0.0.1", "192.168.1.0/24"]}
 
 
 @pytest.mark.asyncio

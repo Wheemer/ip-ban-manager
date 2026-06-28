@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.3.1** | Improves legacy cleanup by absorbing old `ban_allowlist` config entries from the new config flow and moving stale old folders out of Home Assistant's loader path. |
 | **v1.3.0** | Safer first-run defaults, local-network lockout validation, earlier failed-login notification capture, and smarter clear-ban confirmation only when multiple bans would be removed. |
 | **v1.2.15** | Fixes HACS installs by shipping only the real `ip_ban_manager` integration folder; old `ban_allowlist` YAML is still absorbed by IP Ban Manager. |
 | **v1.2.14** | Fixes blank **Banned entries** submissions and adds a confirmation screen before clearing every exact IP ban. |

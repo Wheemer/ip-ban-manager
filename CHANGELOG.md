@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.1
+
+IP Ban Manager 1.3.1 improves legacy cleanup for systems that previously installed the old `ban_allowlist` folder.
+
+### Fixed
+
+- Opening the new **IP Ban Manager** config flow now absorbs an existing legacy `ban_allowlist` config entry instead of leaving users stuck on the old domain.
+- Once the new integration is running, a verified stale `custom_components/ban_allowlist` folder is moved out of Home Assistant's loader path so future restarts do not keep loading the old integration.
+- Added regression coverage for both the legacy config-entry absorption path and stale-folder cleanup path.
+
 ## v1.3.0
 
 IP Ban Manager 1.3.0 focuses on safer defaults and cleaner protection around real lockout risks.
