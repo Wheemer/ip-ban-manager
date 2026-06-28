@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.2
+
+IP Ban Manager 1.3.2 tightens the local-network lockout safety check for managed blocked networks.
+
+### Fixed
+
+- Blocking a detected local Home Assistant network now requires an allowed entry that covers that detected local network, not just one allowlisted host inside it.
+- Mixed IPv4/IPv6 allowlists and blocked-network entries are handled cleanly during the local-network safety check.
+- Added regression coverage for the single-host allowlist case so the UI cannot accept a local subnet block that could still lock users out.
+
 ## v1.3.1
 
 IP Ban Manager 1.3.1 improves legacy cleanup for systems that previously installed the old `ban_allowlist` folder.

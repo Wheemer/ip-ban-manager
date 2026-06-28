@@ -947,6 +947,38 @@ async def test_options_flow_rejects_unprotected_local_blocked_network(
 
 
 @pytest.mark.asyncio
+async def test_options_flow_rejects_local_block_with_only_one_local_host_allowed(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test local network blocks require the detected local subnet to stay allowed."""
+    entry = await setup_options_entry(hass, tmp_path)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_subnets,
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.40"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "192.168.1.0/24",
+            },
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {
+        CONF_BLOCKED_NETWORKS: "local_network_block_unprotected"
+    }
+
+
+@pytest.mark.asyncio
 async def test_options_flow_can_allow_automatic_bans_inside_allowed_ips(
     hass: HomeAssistant, tmp_path: Path
 ) -> None:

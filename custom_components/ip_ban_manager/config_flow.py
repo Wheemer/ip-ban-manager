@@ -165,12 +165,28 @@ def _validate_local_block_safety(
     blocked = [parse_allowlist_network(network) for network in blocked_networks]
     detected = [parse_allowlist_network(network) for network in detected_subnets]
 
+    def _covers_detected_local_network(
+        allowed_network: IPNetwork, detected_network: IPNetwork
+    ) -> bool:
+        """Return whether an allowlist network keeps a detected local network open."""
+        if isinstance(allowed_network, IPv4Network) and isinstance(
+            detected_network, IPv4Network
+        ):
+            return detected_network.subnet_of(allowed_network)
+        if isinstance(allowed_network, IPv6Network) and isinstance(
+            detected_network, IPv6Network
+        ):
+            return detected_network.subnet_of(allowed_network)
+        return False
+
     for detected_network in detected:
         for blocked_network in blocked:
+            if blocked_network.version != detected_network.version:
+                continue
             if not blocked_network.overlaps(detected_network):
                 continue
             if any(
-                allowed_network.overlaps(blocked_network)
+                _covers_detected_local_network(allowed_network, detected_network)
                 for allowed_network in allowlist_networks
             ):
                 continue
