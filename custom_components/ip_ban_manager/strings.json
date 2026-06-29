@@ -104,6 +104,14 @@
     "ip_ban_disabled": {
       "title": "Enable HTTP IP banning",
       "description": "Home Assistant's built-in HTTP IP banning is currently disabled, so ban management and allowlist protection cannot run.\n\nSet this key inside your existing `http:` section in `configuration.yaml`, then restart Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "legacy_yaml_present": {
+      "title": "Remove old ban_allowlist YAML",
+      "description": "IP Ban Manager has already imported the old `ban_allowlist:` YAML settings into the UI config entry.\n\nRemove the old `ban_allowlist:` block from `configuration.yaml`, then restart Home Assistant. The integration will keep using the imported UI settings."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Legacy cleanup needs attention",
+      "description": "IP Ban Manager could not move one or more stale legacy folders out of Home Assistant's loader path:\n\n{paths}\n\nCheck file permissions, move those paths out of `custom_components`, then restart Home Assistant."
     }
   }
 }

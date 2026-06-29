@@ -87,6 +87,8 @@ IPNetwork = IPv4Network | IPv6Network
 AddBanCallable = Callable[[IPAddress], Awaitable[None]]
 
 IP_BAN_DISABLED_ISSUE_ID = "ip_ban_disabled"
+LEGACY_YAML_PRESENT_ISSUE_ID = "legacy_yaml_present"
+LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID = "legacy_folder_cleanup_failed"
 ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
@@ -119,6 +121,8 @@ KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
+LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
+LEGACY_CLEANUP_DIR = ".cleanup"
 
 PLATFORMS = ["sensor"]
 
@@ -731,6 +735,46 @@ def _async_delete_ip_ban_disabled_issue(hass: HomeAssistant) -> None:
     ir.async_delete_issue(hass, DOMAIN, IP_BAN_DISABLED_ISSUE_ID)
 
 
+def _async_update_legacy_yaml_issue(hass: HomeAssistant, config: ConfigType) -> None:
+    """Create a repair when old YAML remains after migration."""
+    if LEGACY_DOMAIN in config and hass.config_entries.async_entries(DOMAIN):
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            LEGACY_YAML_PRESENT_ISSUE_ID,
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=LEGACY_YAML_PRESENT_ISSUE_ID,
+        )
+        return
+
+    if LEGACY_DOMAIN not in config:
+        ir.async_delete_issue(hass, DOMAIN, LEGACY_YAML_PRESENT_ISSUE_ID)
+
+
+def _async_update_legacy_folder_cleanup_issue(
+    hass: HomeAssistant, failures: list[str]
+) -> None:
+    """Create or clear the repair for failed legacy folder cleanup."""
+    if failures:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
+            translation_placeholders={
+                "paths": "\n".join(f"- `{path}`" for path in failures)
+            },
+        )
+        return
+
+    ir.async_delete_issue(hass, DOMAIN, LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID)
+
+
 def _format_ip_ban(ip_ban: IpBan) -> dict[str, str]:
     """Return a stable UI/API representation of a ban entry."""
     return {
@@ -898,26 +942,75 @@ def _async_remove_legacy_entries(hass: HomeAssistant) -> None:
         hass.async_create_task(_remove_legacy_entry())
 
 
-def _move_legacy_component_folder(hass: HomeAssistant) -> None:
+def _cleanup_destination(cleanup_root: Path, name: str, timestamp: str) -> Path:
+    """Return a non-existing cleanup destination path."""
+    destination = cleanup_root / f"{name}-{timestamp}"
+    suffix = 2
+    while destination.exists():
+        destination = cleanup_root / f"{name}-{timestamp}-{suffix}"
+        suffix += 1
+    return destination
+
+
+def _move_to_cleanup(
+    cleanup_root: Path, source: Path, name: str, timestamp: str
+) -> str | None:
+    """Move a stale path into cleanup storage and return a failed source path."""
+    try:
+        cleanup_root.mkdir(parents=True, exist_ok=True)
+        destination = _cleanup_destination(cleanup_root, name, timestamp)
+        shutil.move(str(source), str(destination))
+    except (OSError, shutil.Error):
+        _LOGGER.warning("Could not move stale cleanup path %s", source, exc_info=True)
+        return str(source)
+
+    _LOGGER.info("Moved stale cleanup path %s to %s", source, destination)
+    return None
+
+
+def _move_legacy_component_folder(hass: HomeAssistant) -> list[str]:
     """Move a stale legacy custom component folder out of Home Assistant's loader path."""
+    integration_path = Path(hass.config.path("custom_components", DOMAIN))
+    cleanup_root = integration_path / LEGACY_CLEANUP_DIR
     legacy_path = Path(hass.config.path("custom_components", LEGACY_DOMAIN))
-    if not legacy_path.is_dir():
-        return
-
-    manifest_path = legacy_path / "manifest.json"
-    if not manifest_path.is_file():
-        return
-
-    manifest = manifest_path.read_text(encoding="utf-8", errors="ignore")
-    if f'"domain": "{LEGACY_DOMAIN}"' not in manifest:
-        return
-
-    backup_root = Path(hass.config.path("ip_ban_manager_legacy_backup"))
-    backup_root.mkdir(exist_ok=True)
     timestamp = dt_util.utcnow().strftime("%Y%m%d-%H%M%S")
-    destination = backup_root / f"{LEGACY_DOMAIN}-{timestamp}"
-    shutil.move(str(legacy_path), str(destination))
-    _LOGGER.info("Moved stale legacy ban_allowlist folder to %s", destination)
+    failures: list[str] = []
+
+    if legacy_path.is_dir():
+        manifest_path = legacy_path / "manifest.json"
+        if manifest_path.is_file():
+            try:
+                manifest = manifest_path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                _LOGGER.warning(
+                    "Could not inspect stale legacy folder %s",
+                    legacy_path,
+                    exc_info=True,
+                )
+                failures.append(str(legacy_path))
+            else:
+                if f'"domain": "{LEGACY_DOMAIN}"' in manifest:
+                    failure = _move_to_cleanup(
+                        cleanup_root,
+                        legacy_path,
+                        LEGACY_DOMAIN,
+                        timestamp,
+                    )
+                    if failure is not None:
+                        failures.append(failure)
+
+    old_backup_root = Path(hass.config.path(LEGACY_BACKUP_DIR))
+    if old_backup_root.is_dir():
+        failure = _move_to_cleanup(
+            cleanup_root,
+            old_backup_root,
+            LEGACY_BACKUP_DIR,
+            timestamp,
+        )
+        if failure is not None:
+            failures.append(failure)
+
+    return failures
 
 
 async def _async_cleanup_legacy_component_folder(hass: HomeAssistant) -> None:
@@ -925,7 +1018,8 @@ async def _async_cleanup_legacy_component_folder(hass: HomeAssistant) -> None:
     if hass.data.get(KEY_LEGACY_FOLDER_CLEANED):
         return
     hass.data[KEY_LEGACY_FOLDER_CLEANED] = True
-    await hass.async_add_executor_job(_move_legacy_component_folder, hass)
+    failures = await hass.async_add_executor_job(_move_legacy_component_folder, hass)
+    _async_update_legacy_folder_cleanup_issue(hass, failures)
 
 
 def _async_schedule_legacy_cleanup(hass: HomeAssistant) -> None:
@@ -1211,6 +1305,8 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
+    _async_update_legacy_yaml_issue(hass, config)
+
     if hass.config_entries.async_entries(DOMAIN):
         _async_schedule_legacy_cleanup(hass)
 

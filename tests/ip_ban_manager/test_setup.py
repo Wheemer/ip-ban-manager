@@ -36,12 +36,17 @@ from custom_components.ip_ban_manager import (
     KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
     KEY_ORIGINAL_ADD_BAN,
+    LEGACY_BACKUP_DIR,
+    LEGACY_CLEANUP_DIR,
+    LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
+    LEGACY_YAML_PRESENT_ISSUE_ID,
     NOTIFICATION_ICON_DATA_URL,
     SilenceAllowlistedLoginNotificationsView,
     _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
     _async_cleanup_legacy_component_folder,
     _async_remove_legacy_entries,
+    _cleanup_destination,
     current_status,
 )
 from custom_components.ip_ban_manager.const import (
@@ -93,6 +98,17 @@ def test_repository_ships_one_hacs_integration_folder() -> None:
     )
 
     assert integration_folders == [DOMAIN]
+
+
+def test_cleanup_destination_does_not_overwrite_existing_path(tmp_path: Path) -> None:
+    """Test cleanup destinations stay unique when a timestamp collides."""
+    cleanup_root = tmp_path / ".cleanup"
+    cleanup_root.mkdir()
+    (cleanup_root / "ban_allowlist-20260629-120000").mkdir()
+
+    assert _cleanup_destination(cleanup_root, "ban_allowlist", "20260629-120000") == (
+        cleanup_root / "ban_allowlist-20260629-120000-2"
+    )
 
 
 async def setup_ip_ban_manager(hass: HomeAssistant) -> None:
@@ -183,6 +199,59 @@ async def test_legacy_yaml_import_is_absorbed(
 
 
 @pytest.mark.asyncio
+async def test_legacy_yaml_still_present_after_import_creates_repair(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test old ban_allowlist YAML creates a cleanup repair after migration."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["127.0.0.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_setup_component(
+        hass,
+        DOMAIN,
+        {LEGACY_DOMAIN: {CONF_IP_ADDRESSES: ["192.168.1.1"]}},
+    )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, LEGACY_YAML_PRESENT_ISSUE_ID)
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.WARNING
+
+
+@pytest.mark.asyncio
+async def test_legacy_yaml_repair_clears_when_yaml_removed(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test old-YAML cleanup repair clears once legacy YAML is gone."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        LEGACY_YAML_PRESENT_ISSUE_ID,
+        is_fixable=False,
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=LEGACY_YAML_PRESENT_ISSUE_ID,
+    )
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert (
+        ir.async_get(hass).async_get_issue(DOMAIN, LEGACY_YAML_PRESENT_ISSUE_ID) is None
+    )
+
+
+@pytest.mark.asyncio
 async def test_setup_removes_leftover_legacy_entry(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -243,6 +312,8 @@ async def test_setup_entry_moves_stale_legacy_component_folder(
 ) -> None:
     """Test setup moves the old HACS-installed legacy folder out of the loader path."""
     custom_components = tmp_path / "custom_components"
+    integration_path = custom_components / DOMAIN
+    integration_path.mkdir(parents=True)
     legacy_path = custom_components / LEGACY_DOMAIN
     legacy_path.mkdir(parents=True)
     (legacy_path / "manifest.json").write_text(
@@ -254,9 +325,97 @@ async def test_setup_entry_moves_stale_legacy_component_folder(
     await _async_cleanup_legacy_component_folder(hass)
 
     assert not legacy_path.exists()
-    backups = list((tmp_path / "ip_ban_manager_legacy_backup").iterdir())
+    backups = list((integration_path / LEGACY_CLEANUP_DIR).iterdir())
     assert len(backups) == 1
     assert (backups[0] / "manifest.json").is_file()
+    assert not (tmp_path / LEGACY_BACKUP_DIR).exists()
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_moves_old_top_level_legacy_backup_folder(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test old IP Ban Manager cleanup folders are moved into the integration folder."""
+    integration_path = tmp_path / "custom_components" / DOMAIN
+    integration_path.mkdir(parents=True)
+    old_backup_path = tmp_path / LEGACY_BACKUP_DIR
+    old_backup_path.mkdir()
+    (old_backup_path / "legacy.txt").write_text("old backup", encoding="utf-8")
+    hass.config.config_dir = str(tmp_path)
+
+    await _async_cleanup_legacy_component_folder(hass)
+
+    assert not old_backup_path.exists()
+    backups = list((integration_path / LEGACY_CLEANUP_DIR).iterdir())
+    assert len(backups) == 1
+    assert (backups[0] / "legacy.txt").read_text(encoding="utf-8") == "old backup"
+
+
+@pytest.mark.asyncio
+async def test_legacy_folder_cleanup_failure_creates_repair(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test failed legacy folder cleanup creates a repair issue."""
+    custom_components = tmp_path / "custom_components"
+    integration_path = custom_components / DOMAIN
+    integration_path.mkdir(parents=True)
+    legacy_path = custom_components / LEGACY_DOMAIN
+    legacy_path.mkdir(parents=True)
+    (legacy_path / "manifest.json").write_text(
+        '{"domain": "ban_allowlist", "name": "IP Ban Manager"}',
+        encoding="utf-8",
+    )
+    hass.config.config_dir = str(tmp_path)
+
+    def _raise_move_error(source: str, destination: str) -> None:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(
+        "custom_components.ip_ban_manager.shutil.move", _raise_move_error
+    )
+
+    await _async_cleanup_legacy_component_folder(hass)
+
+    assert legacy_path.is_dir()
+    issue = ir.async_get(hass).async_get_issue(
+        DOMAIN, LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID
+    )
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.WARNING
+    assert issue.translation_placeholders is not None
+    assert str(legacy_path) in issue.translation_placeholders["paths"]
+    assert any("Could not move stale cleanup path" in msg for msg in caplog.messages)
+
+
+@pytest.mark.asyncio
+async def test_successful_legacy_folder_cleanup_clears_repair(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test successful legacy folder cleanup clears stale cleanup repairs."""
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
+        is_fixable=False,
+        is_persistent=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
+    )
+    integration_path = tmp_path / "custom_components" / DOMAIN
+    integration_path.mkdir(parents=True)
+    hass.config.config_dir = str(tmp_path)
+
+    await _async_cleanup_legacy_component_folder(hass)
+
+    assert (
+        ir.async_get(hass).async_get_issue(
+            DOMAIN, LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID
+        )
+        is None
+    )
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.3.3
+
+IP Ban Manager 1.3.3 adds Home Assistant Repairs for migration cleanup issues that need user attention.
+
+### Added
+
+- Added a Repair when old `ban_allowlist:` YAML is still present after IP Ban Manager has already imported it into the UI config entry.
+- Added a Repair when a stale legacy folder cannot be moved out of Home Assistant's loader path, including the affected path list.
+
+### Improved
+
+- Legacy cleanup files now stay contained under `custom_components/ip_ban_manager/.cleanup`.
+- Old top-level `ip_ban_manager_legacy_backup` folders are moved into the integration cleanup folder when possible.
+- Cleanup destinations are collision-safe, so repeated cleanup runs do not overwrite earlier saved folders.
+- Added regression coverage for legacy YAML Repairs, cleanup-failure Repairs, cleanup Repair clearing, and cleanup destination collisions.
+- Bumped the manifest version to `1.3.3` for HACS update detection.
+
 ## v1.3.2
 
 IP Ban Manager 1.3.2 tightens the local-network lockout safety check for managed blocked networks.

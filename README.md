@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.3.3** | Adds Home Assistant Repairs for leftover legacy YAML and failed legacy-folder cleanup, while keeping cleanup files contained under `custom_components/ip_ban_manager/.cleanup`. |
 | **v1.3.2** | Tightens local-network lockout safety: blocking a detected local network now requires an allowlist entry that keeps that detected network reachable, not just one host inside it. |
 | **v1.3.1** | Improves legacy cleanup by absorbing old `ban_allowlist` config entries from the new config flow and moving stale old folders out of Home Assistant's loader path. |
 | **v1.3.0** | Safer first-run defaults, local-network lockout validation, earlier failed-login notification capture, and smarter clear-ban confirmation only when multiple bans would be removed. |
@@ -108,7 +109,7 @@ The visible integration name is **IP Ban Manager** and automation/service calls 
 
 YAML import is optional and mainly kept as a one-time migration path for advanced/manual installs, including leftover `ban_allowlist:` allowlist YAML. After IP Ban Manager imports those settings, remove the old integration YAML key and restart Home Assistant. If the old key is left behind, IP Ban Manager ignores it once the UI config entry already exists. Most users should add and manage IP Ban Manager from the UI.
 
-If you previously installed or manually copied an old `custom_components/ban_allowlist` folder, delete that folder. HACS should install only `custom_components/ip_ban_manager` from this repository.
+If you previously installed or manually copied an old `custom_components/ban_allowlist` folder, IP Ban Manager moves that stale loader folder into `custom_components/ip_ban_manager/.cleanup` after the new integration starts. HACS should install only `custom_components/ip_ban_manager` from this repository.
 
 Home Assistant's built-in HTTP banning must still be enabled:
 
