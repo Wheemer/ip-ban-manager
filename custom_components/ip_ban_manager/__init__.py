@@ -85,6 +85,7 @@ _LOGGER = logging.getLogger(__name__)
 IPAddress = IPv4Address | IPv6Address
 IPNetwork = IPv4Network | IPv6Network
 AddBanCallable = Callable[[IPAddress], Awaitable[None]]
+LoadBansCallable = Callable[[], Awaitable[None]]
 
 IP_BAN_DISABLED_ISSUE_ID = "ip_ban_disabled"
 LEGACY_YAML_PRESENT_ISSUE_ID = "legacy_yaml_present"
@@ -118,6 +119,7 @@ KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_networks")
 KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_blocked_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ip_ban_manager_config_entry")
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
+KEY_ORIGINAL_LOAD_BANS = AppKey[LoadBansCallable]("ip_ban_manager_original_load_bans")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
@@ -177,6 +179,10 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
             return False
 
         return any(key in network for network in self.blocked_networks)
+
+    def __bool__(self) -> bool:
+        """Keep Home Assistant's ban middleware active for network-only blocks."""
+        return bool(dict.__len__(self) or self.blocked_networks)
 
 
 def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:
@@ -537,6 +543,20 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
     ban_manager.async_add_ban = allowlist_async_add_ban  # type: ignore[method-assign]
 
 
+def _install_load_bans_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> None:
+    """Keep managed network blocks applied after Home Assistant reloads bans."""
+    app = hass.http.app
+    app.setdefault(KEY_ORIGINAL_LOAD_BANS, ban_manager.async_load)
+
+    async def network_aware_async_load() -> None:
+        await app[KEY_ORIGINAL_LOAD_BANS]()
+        entry = app.get(KEY_CONFIG_ENTRY)
+        if entry is not None:
+            _apply_blocked_networks(hass, entry)
+
+    ban_manager.async_load = network_aware_async_load  # type: ignore[method-assign]
+
+
 def _uninstall_patches(hass: HomeAssistant) -> None:
     """Restore Home Assistant internals patched by this integration."""
     app = hass.http.app
@@ -557,9 +577,12 @@ def _uninstall_patches(hass: HomeAssistant) -> None:
             setattr(module, "process_wrong_login", _ORIGINAL_PROCESS_WRONG_LOGIN)
 
     original_add_ban = app.pop(KEY_ORIGINAL_ADD_BAN, None)
+    original_load_bans = app.pop(KEY_ORIGINAL_LOAD_BANS, None)
     ban_manager = app.get(KEY_BAN_MANAGER)
     if original_add_ban is not None and ban_manager is not None:
         ban_manager.async_add_ban = original_add_ban
+    if original_load_bans is not None and ban_manager is not None:
+        ban_manager.async_load = original_load_bans
     if ban_manager is not None and isinstance(
         ban_manager.ip_bans_lookup, NetworkAwareBanLookup
     ):
@@ -1343,6 +1366,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_register_static_assets(hass)
     hass.http.register_view(SilenceAllowlistedLoginNotificationsView())
     _LOGGER.debug("Ban manager %s", ban_manager)
+    _install_load_bans_patch(hass, ban_manager)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
     allowlist = hass.http.app[KEY_ALLOWLIST]
@@ -1351,8 +1375,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Not setting allowlist, as no IPs set")
     else:
         _LOGGER.info("Setting allowlist with %s", [str(ip) for ip in allowlist])
-
-    await _async_rewrite_ip_bans_file(hass, ban_manager)
 
     _install_wrong_login_patch()
     _install_add_ban_patch(hass, ban_manager)

@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.3.4
+
+IP Ban Manager 1.3.4 tightens the runtime ordering around Home Assistant's native IP ban manager.
+
+### Fixed
+
+- Managed blocked networks now keep working after Home Assistant reloads `ip_bans.yaml`. Home Assistant replaces its internal exact-ban lookup during that load, so IP Ban Manager now reapplies its network-aware lookup immediately afterward.
+- Network-only block lists now stay active even when there are no exact IP bans in `ip_bans.yaml`.
+
+### Improved
+
+- Integration setup no longer rewrites or deletes `ip_bans.yaml` just because IP Ban Manager loaded. Exact ban file writes now happen only when the user changes exact bans through the UI or services.
+- Added unload cleanup for the new ban-load hook so integration reloads restore Home Assistant internals cleanly.
+
+### Validation
+
+- Added regression coverage for network-only blocking, Home Assistant ban-file reload ordering, and hook restoration on unload.
+- Bumped the manifest version to `1.3.4` for HACS update detection.
+
 ## v1.3.3
 
 IP Ban Manager 1.3.3 adds Home Assistant Repairs for migration cleanup issues that need user attention.

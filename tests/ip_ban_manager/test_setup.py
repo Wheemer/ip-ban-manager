@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
+from aiohttp.web import Response
+from aiohttp.web_exceptions import HTTPForbidden
 from homeassistant.components import persistent_notification
 from homeassistant.components.http import ban as http_ban
 from homeassistant.components.http.ban import (
@@ -36,6 +38,7 @@ from custom_components.ip_ban_manager import (
     KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
     KEY_ORIGINAL_ADD_BAN,
+    KEY_ORIGINAL_LOAD_BANS,
     LEGACY_BACKUP_DIR,
     LEGACY_CLEANUP_DIR,
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
@@ -539,6 +542,92 @@ async def test_setup_applies_blocked_networks_with_allowlist_precedence(
     ]
     assert ip_address("203.0.113.25") in ban_manager.ip_bans_lookup
     assert ip_address("203.0.113.10") not in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
+async def test_network_only_blocks_keep_ban_middleware_active(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test blocked networks work even when there are no exact IP bans."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["127.0.0.1", "192.168.1.0/24"],
+            CONF_BLOCKED_NETWORKS: ["0.0.0.0/1", "128.0.0.0/1"],
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    assert ban_manager.ip_bans_lookup == {}
+    assert bool(ban_manager.ip_bans_lookup)
+
+    async def handler(request: Any) -> Response:
+        return Response(text="ok")
+
+    class BlockedRequest:
+        app = hass.http.app
+        remote = "8.8.8.8"
+
+    with pytest.raises(HTTPForbidden):
+        await http_ban.ban_middleware(cast(Any, BlockedRequest()), handler)
+
+    class AllowedRequest:
+        app = hass.http.app
+        remote = "192.168.1.42"
+
+    response = cast(
+        Response,
+        await http_ban.ban_middleware(cast(Any, AllowedRequest()), handler),
+    )
+    assert response.text == "ok"
+
+
+@pytest.mark.asyncio
+async def test_ban_load_keeps_managed_network_blocks(
+    hass: HomeAssistant, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test HA ban file reloads do not drop managed network blocks."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    ban_path = tmp_path / "ip_bans.yaml"
+    ban_path.write_text(
+        "10.0.0.2:\n  banned_at: '2026-06-01T00:00:00+00:00'\n",
+        encoding="utf-8",
+    )
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(ban_path)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["192.168.1.0/24"],
+            CONF_BLOCKED_NETWORKS: ["10.0.0.0/24"],
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert ip_address("10.0.0.3") in ban_manager.ip_bans_lookup
+    assert ip_address("192.168.1.42") not in ban_manager.ip_bans_lookup
+
+    await ban_manager.async_load()
+
+    assert ip_address("10.0.0.2") in ban_manager.ip_bans_lookup
+    assert ip_address("10.0.0.3") in ban_manager.ip_bans_lookup
+    assert ip_address("192.168.1.42") not in ban_manager.ip_bans_lookup
 
 
 @pytest.mark.asyncio
@@ -1136,11 +1225,14 @@ async def test_unload_restores_home_assistant_hooks(
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     patched_add_ban = ban_manager.async_add_ban
     original_add_ban = hass.http.app[KEY_ORIGINAL_ADD_BAN]
+    patched_load_bans = ban_manager.async_load
+    original_load_bans = hass.http.app[KEY_ORIGINAL_LOAD_BANS]
 
     assert http_ban.process_wrong_login is _allowlist_process_wrong_login
     assert login_flow.process_wrong_login is _allowlist_process_wrong_login
     assert websocket_auth.process_wrong_login is _allowlist_process_wrong_login
     assert patched_add_ban is not original_add_ban
+    assert patched_load_bans is not original_load_bans
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
@@ -1150,9 +1242,11 @@ async def test_unload_restores_home_assistant_hooks(
     assert login_flow.process_wrong_login is _ORIGINAL_PROCESS_WRONG_LOGIN
     assert websocket_auth.process_wrong_login is _ORIGINAL_PROCESS_WRONG_LOGIN
     assert ban_manager.async_add_ban is original_add_ban
+    assert ban_manager.async_load is original_load_bans
     assert KEY_ALLOWLIST not in hass.http.app
     assert KEY_CONFIG_ENTRY not in hass.http.app
     assert KEY_ORIGINAL_ADD_BAN not in hass.http.app
+    assert KEY_ORIGINAL_LOAD_BANS not in hass.http.app
 
 
 @pytest.mark.asyncio

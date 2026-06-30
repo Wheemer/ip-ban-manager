@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.3.4** | Fixes managed blocked-network enforcement after Home Assistant reloads `ip_bans.yaml`, and avoids rewriting the native ban file during integration setup. |
 | **v1.3.3** | Adds Home Assistant Repairs for leftover legacy YAML and failed legacy-folder cleanup, while keeping cleanup files contained under `custom_components/ip_ban_manager/.cleanup`. |
 | **v1.3.2** | Tightens local-network lockout safety: blocking a detected local network now requires an allowlist entry that keeps that detected network reachable, not just one host inside it. |
 | **v1.3.1** | Improves legacy cleanup by absorbing old `ban_allowlist` config entries from the new config flow and moving stale old folders out of Home Assistant's loader path. |
