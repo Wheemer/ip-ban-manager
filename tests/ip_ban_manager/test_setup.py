@@ -67,6 +67,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
+    CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
     LEGACY_DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
@@ -871,7 +872,7 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notification(
     assert "IP Ban Manager icon" not in login_message
     assert "Open settings" not in login_message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL in login_message
-    assert ALLOWLISTED_LOGIN_SILENCE_URL in login_message
+    assert f"{ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1" in login_message
     assert NOTIFICATION_ID_BAN not in existing_notifications
 
     messages = []
@@ -1024,6 +1025,93 @@ async def test_silence_allowlisted_login_notifications_view(
     assert response.status == 200
     assert entry.options[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED] is False
     assert NOTIFICATION_ID_LOGIN not in notifications
+
+
+@pytest.mark.asyncio
+async def test_silence_allowlisted_login_notifications_view_can_silence_address(
+    hass: HomeAssistant,
+) -> None:
+    """Test the notification link can silence one allowlisted address."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 5
+
+    persistent_notification.async_create(
+        hass,
+        "Allowlisted login failed",
+        "IP Ban Manager",
+        NOTIFICATION_ID_LOGIN,
+    )
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert NOTIFICATION_ID_LOGIN in notifications
+
+    class MockViewRequest:
+        app = hass.http.app
+        query = {ATTR_IP_ADDRESS: "192.168.1.1"}
+
+    response = await SilenceAllowlistedLoginNotificationsView().get(
+        cast(Any, MockViewRequest())
+    )
+
+    assert response.status == 200
+    assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
+    assert NOTIFICATION_ID_LOGIN not in notifications
+
+    class SilencedLoginRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, SilencedLoginRequest()))
+    assert NOTIFICATION_ID_LOGIN not in notifications
+
+    class OtherLoginRequest:
+        remote = "172.17.0.5"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, OtherLoginRequest()))
+    assert NOTIFICATION_ID_LOGIN in notifications
+    assert "172.17.0.5" in notifications[NOTIFICATION_ID_LOGIN]["message"]
+
+
+@pytest.mark.asyncio
+async def test_silenced_allowlisted_login_address_escalates_after_repeated_failures(
+    hass: HomeAssistant,
+) -> None:
+    """Test per-address allowlisted notification silence still escalates."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["192.168.1.1"]}
+    )
+
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 5
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = (
+        ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD - 2
+    )
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    assert NOTIFICATION_ID_LOGIN not in notifications
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "Repeated allowlisted login failures" in message
+    assert f"{ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD} times" in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+    assert NOTIFICATION_ID_BAN not in notifications
 
 
 @pytest.mark.asyncio

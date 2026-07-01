@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.3.5
+
+IP Ban Manager 1.3.5 makes allowlisted failed-login notifications less noisy without hiding real trouble.
+
+### Added
+
+- Allowlisted failed-login notifications now include a **Don't show for this address again** link for the specific source IP.
+- Silenced allowlisted addresses are saved in the integration options, so the choice survives restarts and future Configure saves.
+
+### Safety
+
+- Per-address silencing only suppresses low-priority allowlisted login notices. IP Ban Manager still escalates if that trusted address repeatedly fails authentication.
+
+### Validation
+
+- Added regression coverage for per-address notification silencing, preserving notifications for other allowlisted addresses, and repeated-failure escalation.
+- Bumped the manifest version to `1.3.5` for HACS update detection.
+
 ## v1.3.4
 
 IP Ban Manager 1.3.4 tightens the runtime ordering around Home Assistant's native IP ban manager.

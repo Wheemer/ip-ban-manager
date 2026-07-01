@@ -19,6 +19,7 @@ from ipaddress import (
 from pathlib import Path
 from socket import gethostbyaddr, herror
 from tempfile import NamedTemporaryFile
+from urllib.parse import urlencode
 
 import voluptuous as vol
 import yaml
@@ -69,6 +70,7 @@ from .const import (
     CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
     LEGACY_DOMAIN,
@@ -99,7 +101,7 @@ CONFIG_ENTRY_URL_TEMPLATE = (
     f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
 )
 NOTIFICATION_LINK_LABEL = "Open settings"
-ALLOWLISTED_LOGIN_SILENCE_LABEL = "Allowlisted login notifications"
+ALLOWLISTED_LOGIN_SILENCE_LABEL = "Don't show for this address again"
 ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
 ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
@@ -320,13 +322,19 @@ def _with_manager_link(hass: HomeAssistant, message: str) -> str:
     return f"{message}\n\n{_manager_notification_link(hass)}"
 
 
-def _with_allowlisted_login_silence_link(message: str) -> str:
+def _allowlisted_login_silence_url(remote_addr: IPAddress) -> str:
+    """Return the per-address allowlisted-login silence URL."""
+    return f"{ALLOWLISTED_LOGIN_SILENCE_URL}?{urlencode({ATTR_IP_ADDRESS: str(remote_addr)})}"
+
+
+def _with_allowlisted_login_silence_link(message: str, remote_addr: IPAddress) -> str:
     """Append the allowlisted-login silence link once."""
     if ALLOWLISTED_LOGIN_SILENCE_LABEL in message:
         return message
     return (
         f"{message}\n\n"
-        f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]({ALLOWLISTED_LOGIN_SILENCE_URL})"
+        f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
+        f"({_allowlisted_login_silence_url(remote_addr)})"
     )
 
 
@@ -367,13 +375,34 @@ def _with_notification_heading(heading: str, message: str) -> str:
     return f"{brand_header}\n\n{heading_line}\n\n{message}"
 
 
-def _should_notify_allowlisted_login(hass: HomeAssistant, attempts: int) -> bool:
+def _entry_silenced_allowlisted_login_ips(entry: ConfigEntry) -> set[IPAddress]:
+    """Return allowlisted addresses with low-priority login notices silenced."""
+    values = entry.options.get(
+        CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
+        entry.data.get(CONF_SILENCED_ALLOWLISTED_LOGIN_IPS, []),
+    )
+    silenced: set[IPAddress] = set()
+    for value in values if isinstance(values, list) else []:
+        with suppress(ValueError):
+            silenced.add(ip_address(value))
+    return silenced
+
+
+def _should_notify_allowlisted_login(
+    hass: HomeAssistant, remote_addr: IPAddress, attempts: int
+) -> bool:
     """Return whether an allowlisted failed login should notify the user."""
-    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
-    if entry is None or _entry_allowlisted_login_notifications_enabled(entry):
+    if attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
         return True
 
-    return attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None:
+        return True
+
+    if remote_addr in _entry_silenced_allowlisted_login_ips(entry):
+        return False
+
+    return _entry_allowlisted_login_notifications_enabled(entry)
 
 
 def _create_allowlisted_login_notification(
@@ -385,7 +414,7 @@ def _create_allowlisted_login_notification(
     failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
     attempts = int(failed_attempts.get(remote_addr, 0))
     threshold = int(hass.http.app.get(KEY_LOGIN_THRESHOLD, 0))
-    if not _should_notify_allowlisted_login(hass, attempts):
+    if not _should_notify_allowlisted_login(hass, remote_addr, attempts):
         return
 
     details = [base_message]
@@ -415,7 +444,7 @@ def _create_allowlisted_login_notification(
 
     message = _with_notification_heading(heading, "\n\n".join(details))
     if attempts < ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
-        message = _with_allowlisted_login_silence_link(message)
+        message = _with_allowlisted_login_silence_link(message, remote_addr)
     persistent_notification.async_create(
         hass,
         message,
@@ -464,13 +493,43 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
     url = ALLOWLISTED_LOGIN_SILENCE_URL
 
     async def get(self, request: Request) -> Response:
-        """Disable allowlisted failed-login notifications and dismiss the current notification."""
+        """Silence allowlisted failed-login notifications and dismiss the current notification."""
         from homeassistant.components import persistent_notification
 
         hass = request.app[KEY_HASS]
         entry = hass.http.app.get(KEY_CONFIG_ENTRY)
         if entry is None:
             return Response(text="IP Ban Manager is not loaded.", status=404)
+
+        ip_address_value = getattr(request, "query", {}).get(ATTR_IP_ADDRESS)
+        if ip_address_value:
+            try:
+                remote_addr = ip_address(ip_address_value)
+            except ValueError:
+                return Response(text="Invalid IP address.", status=400)
+
+            silenced_ips = [
+                str(address) for address in _entry_silenced_allowlisted_login_ips(entry)
+            ]
+            if str(remote_addr) not in silenced_ips:
+                silenced_ips.append(str(remote_addr))
+
+            hass.config_entries.async_update_entry(
+                entry,
+                options={
+                    **entry.options,
+                    CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
+                },
+            )
+            persistent_notification.async_dismiss(hass, NOTIFICATION_ID_LOGIN)
+            return Response(
+                text=(
+                    f"Allowlisted login notifications from {remote_addr} are now "
+                    "silenced. IP Ban Manager will still notify after repeated "
+                    "failures."
+                ),
+                content_type="text/plain",
+            )
 
         hass.config_entries.async_update_entry(
             entry,

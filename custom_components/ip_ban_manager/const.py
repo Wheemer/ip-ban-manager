@@ -23,6 +23,7 @@ CONF_BANNED_IPS = "banned_ips"
 CONF_BLOCKED_NETWORKS = "blocked_networks"
 CONF_IP_ADDRESSES = "ip_addresses"
 CONF_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
+CONF_SILENCED_ALLOWLISTED_LOGIN_IPS = "silenced_allowlisted_login_ips"
 DOMAIN = "ip_ban_manager"
 LEGACY_DOMAIN = "ban_allowlist"
 
