@@ -25,11 +25,11 @@ IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https:
 
 ## Changelog At A Glance
 
-IP Ban Manager turns the original YAML-only allowlist wrapper into a practical management panel for Home Assistant IP banning. Exact IP bans stay in Home Assistant's native live ban manager and `ip_bans.yaml` workflow; IP Ban Manager adds the UI, allowlist, managed network blocks, safety checks, diagnostics, and services around it.
+IP Ban Manager turns the original YAML-only allowlist wrapper into a practical management panel for Home Assistant IP banning. Exact IP bans stay in Home Assistant's native live ban manager and `ip_bans.yaml` workflow; IP Ban Manager adds the live panel, optional sidebar access, allowlist, managed network blocks, safety checks, diagnostics, and services around it.
 
 | Release | Highlights |
 | --- | --- |
-| **v1.4.0** | Adds guarded default-deny mode with **Block everything outside Allowed IPs**, local-subnet lockout protection, and a separate **Advanced** area for riskier controls. |
+| **v1.4.0** | Adds the dedicated live management panel, optional sidebar access, guarded default-deny mode, local-subnet lockout protection, and a separate **Advanced** area for riskier controls. |
 | **v1.3.5** | Adds per-address muting for low-priority allowlisted failed-login notifications, while still escalating repeated failures from trusted sources. |
 | **v1.3.4** | Fixes managed blocked-network enforcement after Home Assistant reloads `ip_bans.yaml`, and avoids rewriting the native ban file during integration setup. |
 | **v1.3.3** | Adds Home Assistant Repairs for leftover legacy YAML and failed legacy-folder cleanup, while keeping cleanup files contained under `custom_components/ip_ban_manager/.cleanup`. |
@@ -59,6 +59,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 Core management features include:
 
+- **Live panel:** manage Allowed IPs, Blocked IPs, Blocked networks, and options from a dedicated IP Ban Manager page, with optional Home Assistant sidebar access.
 - **Setup:** UI setup with automatic-ban controls, `127.0.0.1` safe default, detected local subnet selected by default, and YAML import for existing users.
 - **Allowed IPs:** live editable trusted IPs, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
 - **Blocked IPs:** live exact-IP block review, add, remove, and clear actions without restarting Home Assistant. Existing block timestamps are shown as readable local times and preserved when unchanged, with confirmation before clearing every blocked IP.
@@ -75,6 +76,11 @@ Core management features include:
 ## Examples
 
 <table>
+  <tr>
+    <td colspan="2">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel.png" width="100%">
+    </td>
+  </tr>
   <tr>
     <td width="50%">
       <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png" width="100%">
