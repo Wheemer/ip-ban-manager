@@ -55,6 +55,7 @@ from .const import (
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
     ATTR_CONFIRM,
+    ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
     ATTR_LOGIN_ATTEMPTS_THRESHOLD,
@@ -68,8 +69,10 @@ from .const import (
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
+    CONF_DEFAULT_DENY_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
@@ -107,6 +110,9 @@ ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
+PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v9"
+PANEL_JS_URL = f"/api/{DOMAIN}/panel-v9.js"
+DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
     "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
     "viewBox='0%200%2064%2064'%3E%3Cpath%20fill='%231ea8d1'%20"
@@ -120,9 +126,11 @@ NOTIFICATION_ICON_DATA_URL = (
 KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_networks")
 KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_blocked_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ip_ban_manager_config_entry")
+KEY_DEFAULT_DENY = AppKey[bool]("ip_ban_manager_default_deny")
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
 KEY_ORIGINAL_LOAD_BANS = AppKey[LoadBansCallable]("ip_ban_manager_original_load_bans")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
+KEY_PANEL_REGISTERED = AppKey[bool]("ip_ban_manager_panel_registered")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
 LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
@@ -163,11 +171,13 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         values: dict[IPAddress, IpBan],
         blocked_networks: tuple[IPNetwork, ...],
         allowlist: tuple[IPNetwork, ...],
+        default_deny_enabled: bool,
     ) -> None:
         """Initialize the lookup from Home Assistant's exact IP bans."""
         super().__init__(values)
         self.blocked_networks = blocked_networks
         self.allowlist = allowlist
+        self.default_deny_enabled = default_deny_enabled
 
     def __contains__(self, key: object) -> bool:
         """Return whether an IP is exactly banned or blocked by network."""
@@ -180,11 +190,16 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         if _is_allowed(key, self.allowlist):
             return False
 
-        return any(key in network for network in self.blocked_networks)
+        if any(key in network for network in self.blocked_networks):
+            return True
+
+        return self.default_deny_enabled
 
     def __bool__(self) -> bool:
         """Keep Home Assistant's ban middleware active for network-only blocks."""
-        return bool(dict.__len__(self) or self.blocked_networks)
+        return bool(
+            dict.__len__(self) or self.blocked_networks or self.default_deny_enabled
+        )
 
 
 def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:
@@ -336,6 +351,27 @@ def _with_allowlisted_login_silence_link(message: str, remote_addr: IPAddress) -
         f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
         f"({_allowlisted_login_silence_url(remote_addr)})"
     )
+
+
+def _dismiss_allowlisted_login_notifications(
+    hass: HomeAssistant, remote_addr: IPAddress | None = None
+) -> None:
+    """Dismiss allowlisted-login notifications, including rewritten variants."""
+    from homeassistant.components import persistent_notification
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    matching_ids = {NOTIFICATION_ID_LOGIN}
+    for notification_id, notification in notifications.items():
+        message = notification["message"]
+        if ALLOWLISTED_LOGIN_SILENCE_URL in message or (
+            remote_addr is not None
+            and str(remote_addr) in message
+            and "Allowlisted login" in message
+        ):
+            matching_ids.add(notification_id)
+
+    for notification_id in matching_ids:
+        persistent_notification.async_dismiss(hass, notification_id)
 
 
 def _notification_heading(notification_id: str, message: str) -> str:
@@ -494,8 +530,6 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
 
     async def get(self, request: Request) -> Response:
         """Silence allowlisted failed-login notifications and dismiss the current notification."""
-        from homeassistant.components import persistent_notification
-
         hass = request.app[KEY_HASS]
         entry = hass.http.app.get(KEY_CONFIG_ENTRY)
         if entry is None:
@@ -521,7 +555,7 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
                     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
                 },
             )
-            persistent_notification.async_dismiss(hass, NOTIFICATION_ID_LOGIN)
+            _dismiss_allowlisted_login_notifications(hass, remote_addr)
             return Response(
                 text=(
                     f"Allowlisted login notifications from {remote_addr} are now "
@@ -538,7 +572,7 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
                 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False,
             },
         )
-        persistent_notification.async_dismiss(hass, NOTIFICATION_ID_LOGIN)
+        _dismiss_allowlisted_login_notifications(hass)
         return Response(
             text=(
                 "Allowlisted login notifications are now silenced. "
@@ -546,6 +580,87 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
             ),
             content_type="text/plain",
         )
+
+
+class IPBanManagerStatusView(HomeAssistantView):
+    """Return live IP Ban Manager state for the bundled panel."""
+
+    name = "api:ip_ban_manager:status"
+    url = f"/api/{DOMAIN}/status"
+
+    async def get(self, request: Request) -> Response:
+        """Return live status and persisted editable values."""
+        hass = request.app[KEY_HASS]
+        entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+        if entry is None:
+            return self.json_message("IP Ban Manager is not loaded.", status_code=404)
+
+        return self.json(
+            {
+                "status": current_status(hass),
+                "settings": {
+                    CONF_IP_ADDRESSES: _entry_ip_addresses(entry),
+                    CONF_BLOCKED_NETWORKS: _entry_blocked_networks(entry),
+                    CONF_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry),
+                    CONF_BAN_NOTIFICATIONS_ENABLED: (
+                        _entry_ban_notifications_enabled(entry)
+                    ),
+                    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+                        _entry_allowlisted_login_notifications_enabled(entry)
+                    ),
+                    CONF_ALLOWLISTED_LOGINS_CAN_BAN: (
+                        _entry_allowlisted_logins_can_ban(entry)
+                    ),
+                    CONF_DEFAULT_DENY_ENABLED: _entry_default_deny_enabled(entry),
+                    CONF_LOGIN_ATTEMPTS_THRESHOLD: _entry_login_threshold(entry, hass),
+                    CONF_SIDEBAR_PANEL_ENABLED: _entry_sidebar_panel_enabled(entry),
+                },
+            }
+        )
+
+
+class IPBanManagerManageView(HomeAssistantView):
+    """Apply live IP Ban Manager changes from the bundled panel."""
+
+    name = "api:ip_ban_manager:manage"
+    url = f"/api/{DOMAIN}/manage"
+
+    async def post(self, request: Request) -> Response:
+        """Apply one validated panel action."""
+        hass = request.app[KEY_HASS]
+        user = request.get("hass_user")
+        if user is None or not user.is_admin:
+            return self.json_message("Administrator access is required.", 403)
+
+        try:
+            data = await request.json()
+        except ValueError:
+            return self.json_message("Expected JSON request body.", 400)
+
+        action = data.get("action")
+        value = str(data.get("value", "")).strip()
+
+        try:
+            if action == "add_allowlist":
+                await _async_panel_add_allowlist_network(hass, value)
+            elif action == "remove_allowlist":
+                await _async_panel_remove_allowlist_network(hass, value)
+            elif action == "add_ban":
+                await _async_add_ip_ban(hass, value)
+            elif action == "remove_ban":
+                await _async_remove_ip_ban(hass, value)
+            elif action == "add_blocked_network":
+                await _async_panel_add_blocked_network(hass, value)
+            elif action == "remove_blocked_network":
+                await _async_panel_remove_blocked_network(hass, value)
+            elif action == "set_options":
+                await _async_panel_set_options(hass, data.get("options", {}))
+            else:
+                return self.json_message("Unknown action.", 400)
+        except (HomeAssistantError, ValueError) as err:
+            return self.json_message(str(err), 400)
+
+        return self.json({"status": current_status(hass)})
 
 
 def _manager_config_url(hass: HomeAssistant) -> str:
@@ -674,6 +789,16 @@ def _entry_blocked_networks(entry: ConfigEntry) -> list[str]:
     )
 
 
+def _entry_default_deny_enabled(entry: ConfigEntry) -> bool:
+    """Return whether addresses outside the allowlist should be blocked."""
+    return bool(
+        entry.options.get(
+            CONF_DEFAULT_DENY_ENABLED,
+            entry.data.get(CONF_DEFAULT_DENY_ENABLED, False),
+        )
+    )
+
+
 def _native_ip_banning_enabled(hass: HomeAssistant) -> bool:
     """Return whether Home Assistant loaded its native IP ban manager."""
     return hass.http is not None and KEY_BAN_MANAGER in hass.http.app
@@ -715,6 +840,16 @@ def _entry_allowlisted_logins_can_ban(entry: ConfigEntry) -> bool:
         entry.options.get(
             CONF_ALLOWLISTED_LOGINS_CAN_BAN,
             entry.data.get(CONF_ALLOWLISTED_LOGINS_CAN_BAN, False),
+        )
+    )
+
+
+def _entry_sidebar_panel_enabled(entry: ConfigEntry) -> bool:
+    """Return whether the IP Ban Manager sidebar panel should be registered."""
+    return bool(
+        entry.options.get(
+            CONF_SIDEBAR_PANEL_ENABLED,
+            entry.data.get(CONF_SIDEBAR_PANEL_ENABLED, DEFAULT_SIDEBAR_PANEL_ENABLED),
         )
     )
 
@@ -764,8 +899,10 @@ def _apply_ban_settings(hass: HomeAssistant, entry: ConfigEntry) -> None:
 def _apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Apply blocked network settings to Home Assistant's live ban lookup."""
     blocked_networks = _parse_blocked_networks(_entry_blocked_networks(entry))
+    default_deny_enabled = _entry_default_deny_enabled(entry)
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
     hass.http.app[KEY_BLOCKED_NETWORKS] = blocked_networks
+    hass.http.app[KEY_DEFAULT_DENY] = default_deny_enabled
 
     if not _native_ip_banning_enabled(hass):
         return
@@ -775,10 +912,11 @@ def _apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
     if isinstance(lookup, NetworkAwareBanLookup):
         lookup.blocked_networks = blocked_networks
         lookup.allowlist = allowlist
+        lookup.default_deny_enabled = default_deny_enabled
         return
 
     ban_manager.ip_bans_lookup = NetworkAwareBanLookup(
-        dict(lookup), blocked_networks, allowlist
+        dict(lookup), blocked_networks, allowlist, default_deny_enabled
     )
 
 
@@ -917,6 +1055,9 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ATTR_BLOCKED_NETWORKS: [
             str(network) for network in hass.http.app.get(KEY_BLOCKED_NETWORKS, ())
         ],
+        ATTR_DEFAULT_DENY_ENABLED: (
+            _entry_default_deny_enabled(entry) if entry else False
+        ),
         ATTR_BANNED_IPS: [
             _format_ip_ban(ip_ban)
             for ip_ban in (_chronological_ip_bans(ban_manager) if ban_manager else ())
@@ -988,6 +1129,146 @@ def _current_allowlist_strings(hass: HomeAssistant) -> list[str]:
 def _current_blocked_network_strings(hass: HomeAssistant) -> list[str]:
     """Return the persisted blocked network strings."""
     return _entry_blocked_networks(hass.http.app[KEY_CONFIG_ENTRY])
+
+
+async def _async_validate_panel_network_safety(
+    hass: HomeAssistant,
+    allowlist: list[str],
+    blocked_networks: list[str],
+    default_deny_enabled: bool,
+) -> None:
+    """Validate panel network edits against detected local access paths."""
+    from .config_flow import (
+        UnprotectedLocalBlockError,
+        _async_detect_home_assistant_subnets,
+        _validate_local_block_safety,
+    )
+
+    try:
+        _validate_local_block_safety(
+            allowlist,
+            blocked_networks,
+            await _async_detect_home_assistant_subnets(hass),
+            default_deny_enabled,
+        )
+    except UnprotectedLocalBlockError as err:
+        raise HomeAssistantError(
+            "That would block a detected local Home Assistant network without "
+            "a matching allowed entry."
+        ) from err
+
+
+async def _async_panel_add_allowlist_network(
+    hass: HomeAssistant, network_value: str
+) -> None:
+    """Add an allowlist network from the panel."""
+    _async_add_allowlist_network(hass, network_value)
+
+
+async def _async_panel_remove_allowlist_network(
+    hass: HomeAssistant, network_value: str
+) -> None:
+    """Remove an allowlist network from the panel after safety checks."""
+    network = parse_allowlist_network(network_value)
+    remaining_networks = [
+        current_network
+        for current_network in _current_allowlist_strings(hass)
+        if parse_allowlist_network(current_network) != network
+    ]
+    await _async_validate_panel_network_safety(
+        hass,
+        remaining_networks,
+        _current_blocked_network_strings(hass),
+        bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+    )
+    _update_allowlist_entry(hass, remaining_networks)
+
+
+async def _async_panel_add_blocked_network(
+    hass: HomeAssistant, network_value: str
+) -> None:
+    """Add a managed blocked network from the panel."""
+    network = parse_allowlist_network(network_value)
+    if network.prefixlen == 0:
+        raise HomeAssistantError("Blocking every address belongs in default-deny mode.")
+
+    current = _current_blocked_network_strings(hass)
+    normalized_network = str(network)
+    current_networks = {
+        parse_allowlist_network(current_network) for current_network in current
+    }
+    if network in current_networks:
+        return
+
+    updated = [*current, normalized_network]
+    await _async_validate_panel_network_safety(
+        hass,
+        _current_allowlist_strings(hass),
+        updated,
+        bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+    )
+    _update_blocked_networks_entry(hass, updated)
+
+
+async def _async_panel_remove_blocked_network(
+    hass: HomeAssistant, network_value: str
+) -> None:
+    """Remove a managed blocked network from the panel."""
+    network = parse_allowlist_network(network_value)
+    remaining_networks = [
+        current_network
+        for current_network in _current_blocked_network_strings(hass)
+        if parse_allowlist_network(current_network) != network
+    ]
+    _update_blocked_networks_entry(hass, remaining_networks)
+
+
+async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None:
+    """Persist and apply panel-managed booleans and threshold."""
+    if not isinstance(options, dict):
+        raise HomeAssistantError("Options must be a JSON object.")
+
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    current_options = {
+        CONF_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry),
+        CONF_BAN_NOTIFICATIONS_ENABLED: _entry_ban_notifications_enabled(entry),
+        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+            _entry_allowlisted_login_notifications_enabled(entry)
+        ),
+        CONF_ALLOWLISTED_LOGINS_CAN_BAN: _entry_allowlisted_logins_can_ban(entry),
+        CONF_DEFAULT_DENY_ENABLED: _entry_default_deny_enabled(entry),
+        CONF_LOGIN_ATTEMPTS_THRESHOLD: _entry_login_threshold(entry, hass),
+        CONF_SIDEBAR_PANEL_ENABLED: _entry_sidebar_panel_enabled(entry),
+    }
+    for key in (
+        CONF_AUTO_BAN_ENABLED,
+        CONF_BAN_NOTIFICATIONS_ENABLED,
+        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+        CONF_ALLOWLISTED_LOGINS_CAN_BAN,
+        CONF_DEFAULT_DENY_ENABLED,
+        CONF_SIDEBAR_PANEL_ENABLED,
+    ):
+        if key in options:
+            current_options[key] = bool(options[key])
+
+    if CONF_LOGIN_ATTEMPTS_THRESHOLD in options:
+        current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = max(
+            0, int(options[CONF_LOGIN_ATTEMPTS_THRESHOLD])
+        )
+
+    await _async_validate_panel_network_safety(
+        hass,
+        _current_allowlist_strings(hass),
+        _current_blocked_network_strings(hass),
+        bool(current_options[CONF_DEFAULT_DENY_ENABLED]),
+    )
+    _update_entry_options(hass, **current_options)
+    _apply_ban_settings(hass, entry)
+    _apply_blocked_networks(hass, entry)
+    if current_options[CONF_SIDEBAR_PANEL_ENABLED]:
+        await _async_register_panel(hass)
+    else:
+        _async_remove_panel(hass)
 
 
 def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -1363,6 +1644,7 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
         return
 
     icon_path = str(Path(__file__).with_name("icon.png"))
+    panel_path = str(Path(__file__).with_name("panel.js"))
     if hasattr(hass.http, "async_register_static_paths"):
         from homeassistant.components.http import StaticPathConfig
 
@@ -1372,7 +1654,12 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
                     NOTIFICATION_ICON_URL,
                     icon_path,
                     cache_headers=True,
-                )
+                ),
+                StaticPathConfig(
+                    PANEL_JS_URL,
+                    panel_path,
+                    cache_headers=False,
+                ),
             ]
         )
     else:
@@ -1382,7 +1669,42 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
             icon_path,
             cache_headers=True,
         )
+        register_static_path(
+            PANEL_JS_URL,
+            panel_path,
+            cache_headers=False,
+        )
     hass.http.app[KEY_STATIC_PATH_REGISTERED] = True
+
+
+async def _async_register_panel(hass: HomeAssistant) -> None:
+    """Register the bundled IP Ban Manager panel."""
+    if hass.data.get(KEY_PANEL_REGISTERED):
+        return
+
+    from homeassistant.components import panel_custom
+
+    await panel_custom.async_register_panel(
+        hass,
+        frontend_url_path=DOMAIN,
+        webcomponent_name=PANEL_WEB_COMPONENT,
+        sidebar_title=ENTRY_TITLE,
+        sidebar_icon="mdi:shield-lock-outline",
+        module_url=PANEL_JS_URL,
+        require_admin=True,
+        config_panel_domain=DOMAIN,
+    )
+    hass.data[KEY_PANEL_REGISTERED] = True
+
+
+def _async_remove_panel(hass: HomeAssistant) -> None:
+    """Remove the bundled panel during unload."""
+    if not hass.data.pop(KEY_PANEL_REGISTERED, False):
+        return
+
+    from homeassistant.components import frontend
+
+    frontend.async_remove_panel(hass, DOMAIN, warn_if_unknown=False)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -1423,7 +1745,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
     _async_delete_ip_ban_disabled_issue(hass)
     await _async_register_static_assets(hass)
+    if _entry_sidebar_panel_enabled(entry):
+        await _async_register_panel(hass)
     hass.http.register_view(SilenceAllowlistedLoginNotificationsView())
+    hass.http.register_view(IPBanManagerStatusView())
+    hass.http.register_view(IPBanManagerManageView())
     _LOGGER.debug("Ban manager %s", ban_manager)
     _install_load_bans_patch(hass, ban_manager)
     _apply_ban_settings(hass, entry)
@@ -1447,6 +1773,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
+    _async_remove_panel(hass)
     _uninstall_patches(hass)
     hass.http.app.pop(KEY_ALLOWLIST, None)
     hass.http.app.pop(KEY_BLOCKED_NETWORKS, None)

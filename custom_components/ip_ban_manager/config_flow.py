@@ -23,6 +23,7 @@ from .const import (
     ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
+    ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_IP_ADDRESS,
     ATTR_LOGIN_ATTEMPTS_THRESHOLD,
@@ -35,8 +36,10 @@ from .const import (
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
+    CONF_DEFAULT_DENY_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_SIDEBAR_PANEL_ENABLED,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
     LEGACY_DOMAIN,
@@ -51,10 +54,13 @@ CONF_BANNED_IPS_HELP = "banned_ips_help"
 CONF_BLOCKED_NETWORKS_HELP = "blocked_networks_help"
 CONF_ALLOWED_IPS_HELP = "allowed_ips_help"
 CONF_BAN_OPTIONS = "ban_options"
+CONF_ADVANCED_BAN_OPTIONS = "advanced_ban_options"
 CONF_AUTO_BAN_CHECKBOX = "auto_ban"
 CONF_BAN_NOTIFICATIONS_CHECKBOX = "ban_notifications"
 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX = "allowlisted_login_notifications"
 CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX = "allowlisted_logins_can_ban"
+CONF_DEFAULT_DENY_CHECKBOX = "default_deny"
+CONF_SIDEBAR_PANEL_CHECKBOX = "sidebar_panel"
 CONF_CONFIRM_CLEAR_BANS = "confirm_clear_bans"
 QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
@@ -159,6 +165,7 @@ def _validate_local_block_safety(
     allowlist: Iterable[str],
     blocked_networks: Iterable[str],
     detected_subnets: Iterable[str],
+    default_deny_enabled: bool = False,
 ) -> None:
     """Reject local network blocks that have no local allowlist path back in."""
     allowlist_networks = [parse_allowlist_network(network) for network in allowlist]
@@ -180,15 +187,19 @@ def _validate_local_block_safety(
         return False
 
     for detected_network in detected:
+        local_network_is_allowed = any(
+            _covers_detected_local_network(allowed_network, detected_network)
+            for allowed_network in allowlist_networks
+        )
+        if default_deny_enabled and not local_network_is_allowed:
+            raise UnprotectedLocalBlockError
+
         for blocked_network in blocked:
             if blocked_network.version != detected_network.version:
                 continue
             if not blocked_network.overlaps(detected_network):
                 continue
-            if any(
-                _covers_detected_local_network(allowed_network, detected_network)
-                for allowed_network in allowlist_networks
-            ):
+            if local_network_is_allowed:
                 continue
             raise UnprotectedLocalBlockError
 
@@ -253,9 +264,9 @@ def _allowed_ips_help_selector() -> selector.ConstantSelector:
 def _banned_ips_help_text() -> str:
     """Return static guidance for the banned entries textarea."""
     return (
-        "Currently banned IP addresses. Existing rows show the ban time for "
+        "Currently blocked IP addresses. Existing rows show the block time for "
         "review; new rows can be just an IP. Leave this empty to clear all "
-        "exact IP bans."
+        "blocked IPs."
     )
 
 
@@ -285,9 +296,9 @@ def _ban_option_values(
     auto_ban_enabled: bool,
     notifications_enabled: bool,
     allowlisted_login_notifications_enabled: bool,
-    allowlisted_logins_can_ban: bool,
+    sidebar_panel_enabled: bool = True,
 ) -> list[str]:
-    """Return selected automatic-ban option values."""
+    """Return selected standard option values."""
     values: list[str] = []
     if auto_ban_enabled:
         values.append(CONF_AUTO_BAN_CHECKBOX)
@@ -295,30 +306,81 @@ def _ban_option_values(
         values.append(CONF_BAN_NOTIFICATIONS_CHECKBOX)
     if allowlisted_login_notifications_enabled:
         values.append(CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX)
+    if sidebar_panel_enabled:
+        values.append(CONF_SIDEBAR_PANEL_CHECKBOX)
+    return values
+
+
+def _advanced_ban_option_values(
+    allowlisted_logins_can_ban: bool,
+    default_deny_enabled: bool,
+) -> list[str]:
+    """Return selected advanced ban option values."""
+    values: list[str] = []
     if allowlisted_logins_can_ban:
         values.append(CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX)
+    if default_deny_enabled:
+        values.append(CONF_DEFAULT_DENY_CHECKBOX)
     return values
 
 
 def _ban_options_selector() -> selector.SelectSelector:
-    """Return the compact automatic-ban checkbox group."""
+    """Return the compact standard option checkbox group."""
     options: list[selector.SelectOptionDict] = [
         {
             "value": CONF_AUTO_BAN_CHECKBOX,
-            "label": "Automatic bans",
+            "label": "Automatic bans - block failed login sources",
         },
         {
             "value": CONF_BAN_NOTIFICATIONS_CHECKBOX,
-            "label": "Automatic ban notifications",
+            "label": "Automatic ban notifications - show alerts when IPs are blocked",
         },
         {
             "value": CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
-            "label": "Allowlisted login notifications",
+            "label": "Allowlisted login notifications - alert on failed trusted logins",
         },
         {
-            "value": CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
-            "label": "Automatic bans inside Allowed IPs",
+            "value": CONF_SIDEBAR_PANEL_CHECKBOX,
+            "label": "Show in sidebar - add the left menu page",
         },
+    ]
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=options,
+            multiple=True,
+            mode=selector.SelectSelectorMode.LIST,
+        )
+    )
+
+
+def _advanced_ban_options_selector() -> selector.SelectSelector:
+    """Return the advanced option checkbox group."""
+    options: list[selector.SelectOptionDict] = [
+        {
+            "value": CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
+            "label": "Advanced: Bans inside Allowed IPs - trusted IPs can be blocked",
+        },
+        {
+            "value": CONF_DEFAULT_DENY_CHECKBOX,
+            "label": "Advanced: Block everything outside Allowed IPs - be careful",
+        },
+    ]
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=options,
+            multiple=True,
+            mode=selector.SelectSelectorMode.LIST,
+        )
+    )
+
+
+def _initial_ban_options_selector() -> selector.SelectSelector:
+    """Return the first-run automatic-ban checkbox group."""
+    options: list[selector.SelectOptionDict] = [
+        {
+            "value": CONF_AUTO_BAN_CHECKBOX,
+            "label": "Automatic bans - block failed login sources",
+        }
     ]
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
@@ -348,7 +410,11 @@ def _ban_option_enabled(
 ) -> bool:
     """Return whether a ban option is selected from new or legacy form data."""
     if CONF_BAN_OPTIONS in user_input:
-        return checkbox in cast(list[str], user_input.get(CONF_BAN_OPTIONS, []))
+        standard_options = cast(list[str], user_input.get(CONF_BAN_OPTIONS, []))
+        advanced_options = cast(
+            list[str], user_input.get(CONF_ADVANCED_BAN_OPTIONS, [])
+        )
+        return checkbox in standard_options or checkbox in advanced_options
     return checkbox in cast(
         list[str], user_input.get(legacy_key, [checkbox] if default else [])
     )
@@ -369,6 +435,8 @@ def _ban_settings_fields(
     notifications_enabled: bool = True,
     allowlisted_login_notifications_enabled: bool = True,
     allowlisted_logins_can_ban: bool = False,
+    default_deny_enabled: bool = False,
+    sidebar_panel_enabled: bool = True,
 ) -> dict[Any, Any]:
     """Return the auto-ban settings fields."""
     return {
@@ -378,9 +446,16 @@ def _ban_settings_fields(
                 auto_ban_enabled,
                 notifications_enabled,
                 allowlisted_login_notifications_enabled,
-                allowlisted_logins_can_ban,
+                sidebar_panel_enabled,
             ),
         ): _ban_options_selector(),
+        vol_optional(
+            CONF_ADVANCED_BAN_OPTIONS,
+            default=_advanced_ban_option_values(
+                allowlisted_logins_can_ban,
+                default_deny_enabled,
+            ),
+        ): _advanced_ban_options_selector(),
         vol.Required(
             CONF_LOGIN_ATTEMPTS_THRESHOLD,
             default=threshold,
@@ -394,6 +469,8 @@ def _ban_settings_schema(
     notifications_enabled: bool = True,
     allowlisted_login_notifications_enabled: bool = True,
     allowlisted_logins_can_ban: bool = False,
+    default_deny_enabled: bool = False,
+    sidebar_panel_enabled: bool = True,
 ) -> vol.Schema:
     """Return the auto-ban settings schema."""
     return vol.Schema(
@@ -403,6 +480,8 @@ def _ban_settings_schema(
             notifications_enabled,
             allowlisted_login_notifications_enabled,
             allowlisted_logins_can_ban,
+            default_deny_enabled,
+            sidebar_panel_enabled,
         )
     )
 
@@ -417,10 +496,16 @@ def _local_network_option_label(detected_subnets: list[str]) -> str:
 
 def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Schema:
     """Return the first-run setup schema."""
-    fields = _ban_settings_fields(
-        True,
-        threshold,
-    )
+    fields: dict[Any, Any] = {
+        vol_optional(
+            CONF_BAN_OPTIONS,
+            default=[CONF_AUTO_BAN_CHECKBOX],
+        ): _initial_ban_options_selector(),
+        vol.Required(
+            CONF_LOGIN_ATTEMPTS_THRESHOLD,
+            default=threshold,
+        ): _login_attempts_threshold_selector(),
+    }
     default_quick_allowlist = [
         QUICK_ALLOW_LOCALHOST,
         *([QUICK_ALLOW_LOCAL_NETWORK] if detected_subnets else []),
@@ -598,7 +683,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Handle the initial step."""
-        if user_input is None and not self.hass.config_entries.async_entries(DOMAIN):
+        if user_input is None and self.hass.config_entries.async_entries(DOMAIN):
+            return self.async_abort(reason="already_configured")
+
+        if user_input is None:
             legacy_entry = next(
                 iter(self.hass.config_entries.async_entries(LEGACY_DOMAIN)),
                 None,
@@ -614,43 +702,54 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:
+            errors: dict[str, str] = {}
             ip_addresses = []
             quick_input = cast(list[str], user_input.get(CONF_QUICK_ALLOWLIST, []))
             if QUICK_ALLOW_LOCALHOST in quick_input:
                 ip_addresses.extend(DEFAULT_ALLOWED_IPS)
             if QUICK_ALLOW_LOCAL_NETWORK in quick_input:
                 ip_addresses.extend(detected_subnets)
+            ip_addresses = _dedupe_items(ip_addresses)
+            default_deny_enabled = False
+            try:
+                _validate_local_block_safety(
+                    ip_addresses,
+                    [],
+                    detected_subnets,
+                    default_deny_enabled,
+                )
+            except UnprotectedLocalBlockError:
+                errors[CONF_QUICK_ALLOWLIST] = "local_network_block_unprotected"
+
+            if errors:
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=_initial_setup_schema(
+                        detected_subnets, _current_login_threshold(self.hass)
+                    ),
+                    description_placeholders={
+                        "home_assistant_subnets": _items_to_text(detected_subnets)
+                        or "None"
+                    },
+                    errors=errors,
+                )
 
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
             return self.async_create_entry(
                 title="IP Ban Manager",
                 data={
-                    CONF_IP_ADDRESSES: _dedupe_items(ip_addresses),
+                    CONF_IP_ADDRESSES: ip_addresses,
                     CONF_AUTO_BAN_ENABLED: _ban_option_enabled(
                         user_input,
                         CONF_AUTO_BAN_ENABLED,
                         CONF_AUTO_BAN_CHECKBOX,
                         True,
                     ),
-                    CONF_BAN_NOTIFICATIONS_ENABLED: _ban_option_enabled(
-                        user_input,
-                        CONF_BAN_NOTIFICATIONS_ENABLED,
-                        CONF_BAN_NOTIFICATIONS_CHECKBOX,
-                        True,
-                    ),
-                    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: _ban_option_enabled(
-                        user_input,
-                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
-                        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
-                        True,
-                    ),
-                    CONF_ALLOWLISTED_LOGINS_CAN_BAN: _ban_option_enabled(
-                        user_input,
-                        CONF_ALLOWLISTED_LOGINS_CAN_BAN,
-                        CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
-                        False,
-                    ),
+                    CONF_BAN_NOTIFICATIONS_ENABLED: True,
+                    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: True,
+                    CONF_ALLOWLISTED_LOGINS_CAN_BAN: False,
+                    CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
                     CONF_LOGIN_ATTEMPTS_THRESHOLD: int(
                         user_input.get(
                             CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -736,6 +835,15 @@ class OptionsFlow(config_entries.OptionsFlow):
                                     status[ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]
                                 ),
                                 bool(status[ATTR_ALLOWLISTED_LOGINS_CAN_BAN]),
+                                bool(status[ATTR_DEFAULT_DENY_ENABLED]),
+                                bool(
+                                    self._config_entry.options.get(
+                                        CONF_SIDEBAR_PANEL_ENABLED,
+                                        self._config_entry.data.get(
+                                            CONF_SIDEBAR_PANEL_ENABLED, True
+                                        ),
+                                    )
+                                ),
                             ),
                             vol_optional(
                                 CONF_BANNED_IPS_HELP,
@@ -780,11 +888,15 @@ class OptionsFlow(config_entries.OptionsFlow):
         ban_notifications_enabled: bool,
         allowlisted_login_notifications_enabled: bool,
         allowlisted_logins_can_ban: bool,
+        default_deny_enabled: bool,
+        sidebar_panel_enabled: bool,
         login_attempts_threshold: int,
     ) -> config_entries.ConfigFlowResult:
         """Persist validated options and apply them immediately."""
         from . import (
             _apply_ban_settings,
+            _async_register_panel,
+            _async_remove_panel,
             _async_replace_ip_bans,
             _update_allowlist_entry,
             _update_blocked_networks_entry,
@@ -800,11 +912,17 @@ class OptionsFlow(config_entries.OptionsFlow):
                     allowlisted_login_notifications_enabled
                 ),
                 CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+                CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
+                CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                 CONF_BLOCKED_NETWORKS: blocked_networks,
             },
         )
         _apply_ban_settings(self.hass, self._config_entry)
+        if sidebar_panel_enabled:
+            await _async_register_panel(self.hass)
+        else:
+            _async_remove_panel(self.hass)
         _update_allowlist_entry(self.hass, ip_addresses)
         _update_blocked_networks_entry(self.hass, blocked_networks)
         await _async_replace_ip_bans(self.hass, banned_ips)
@@ -819,6 +937,8 @@ class OptionsFlow(config_entries.OptionsFlow):
                     allowlisted_login_notifications_enabled
                 ),
                 CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+                CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
+                CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                 CONF_BLOCKED_NETWORKS: blocked_networks,
             },
@@ -846,6 +966,9 @@ class OptionsFlow(config_entries.OptionsFlow):
             ATTR_NETWORKS: "\n".join(cast(list[str], status[ATTR_NETWORKS])) or "None",
             ATTR_BANNED_IPS: _format_banned_ip_details(banned_ips),
             ATTR_BLOCKED_NETWORKS: "\n".join(blocked_networks) or "None",
+            ATTR_DEFAULT_DENY_ENABLED: (
+                "Enabled" if status[ATTR_DEFAULT_DENY_ENABLED] else "Disabled"
+            ),
             ATTR_FAILED_LOGIN_ATTEMPTS: "\n".join(
                 f"{ip}: {count}" for ip, count in failed_login_attempts.items()
             )
@@ -914,6 +1037,30 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
                 current_allowlisted_logins_can_ban,
             )
+            current_default_deny_enabled = bool(
+                self._config_entry.options.get(
+                    CONF_DEFAULT_DENY_ENABLED,
+                    self._config_entry.data.get(CONF_DEFAULT_DENY_ENABLED, False),
+                )
+            )
+            default_deny_enabled = _ban_option_enabled(
+                banned_input,
+                CONF_DEFAULT_DENY_ENABLED,
+                CONF_DEFAULT_DENY_CHECKBOX,
+                current_default_deny_enabled,
+            )
+            current_sidebar_panel_enabled = bool(
+                self._config_entry.options.get(
+                    CONF_SIDEBAR_PANEL_ENABLED,
+                    self._config_entry.data.get(CONF_SIDEBAR_PANEL_ENABLED, True),
+                )
+            )
+            sidebar_panel_enabled = _ban_option_enabled(
+                banned_input,
+                CONF_SIDEBAR_PANEL_ENABLED,
+                CONF_SIDEBAR_PANEL_CHECKBOX,
+                current_sidebar_panel_enabled,
+            )
             login_attempts_threshold = int(
                 banned_input.get(
                     CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -970,6 +1117,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                         ip_addresses,
                         blocked_networks,
                         self._detected_subnets,
+                        default_deny_enabled,
                     )
                 except UnprotectedLocalBlockError:
                     errors[CONF_BLOCKED_NETWORKS] = "local_network_block_unprotected"
@@ -989,6 +1137,8 @@ class OptionsFlow(config_entries.OptionsFlow):
                             allowlisted_login_notifications_enabled
                         ),
                         CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+                        CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
+                        CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
                         CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                         "ban_count": len(current_bans),
                     }
@@ -1006,6 +1156,8 @@ class OptionsFlow(config_entries.OptionsFlow):
                     ban_notifications_enabled,
                     allowlisted_login_notifications_enabled,
                     allowlisted_logins_can_ban,
+                    default_deny_enabled,
+                    sidebar_panel_enabled,
                     login_attempts_threshold,
                 )
 
@@ -1037,6 +1189,8 @@ class OptionsFlow(config_entries.OptionsFlow):
                     cast(bool, pending[CONF_BAN_NOTIFICATIONS_ENABLED]),
                     cast(bool, pending[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]),
                     cast(bool, pending[CONF_ALLOWLISTED_LOGINS_CAN_BAN]),
+                    cast(bool, pending[CONF_DEFAULT_DENY_ENABLED]),
+                    cast(bool, pending[CONF_SIDEBAR_PANEL_ENABLED]),
                     cast(int, pending[CONF_LOGIN_ATTEMPTS_THRESHOLD]),
                 )
 

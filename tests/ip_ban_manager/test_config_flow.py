@@ -15,6 +15,7 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from voluptuous.schema_builder import Optional as VolOptional
 
+import custom_components.ip_ban_manager as ipbm
 from custom_components.ip_ban_manager import KEY_ALLOWLIST
 from custom_components.ip_ban_manager import config_flow as ban_config_flow
 from custom_components.ip_ban_manager.config_flow import (
@@ -30,8 +31,10 @@ from custom_components.ip_ban_manager.const import (
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
+    CONF_DEFAULT_DENY_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_SIDEBAR_PANEL_ENABLED,
     DOMAIN,
     LEGACY_DOMAIN,
 )
@@ -45,6 +48,7 @@ def expected_setup_data(ip_addresses: list[str]) -> dict[str, object]:
         CONF_BAN_NOTIFICATIONS_ENABLED: True,
         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: True,
         CONF_ALLOWLISTED_LOGINS_CAN_BAN: False,
+        CONF_DEFAULT_DENY_ENABLED: False,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
     }
 
@@ -59,6 +63,8 @@ def expected_options_data(
         CONF_BAN_NOTIFICATIONS_ENABLED: True,
         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: True,
         CONF_ALLOWLISTED_LOGINS_CAN_BAN: False,
+        CONF_DEFAULT_DENY_ENABLED: False,
+        CONF_SIDEBAR_PANEL_ENABLED: True,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: threshold,
         CONF_BLOCKED_NETWORKS: [],
     }
@@ -248,44 +254,28 @@ async def test_user_flow_can_add_detected_subnet(
 
 
 @pytest.mark.asyncio
-async def test_user_flow_can_allow_automatic_bans_inside_allowed_ips(
+async def test_user_flow_only_shows_safe_first_run_options(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test first-run setup can opt into exact bans inside allowed networks."""
+    """Test first-run setup keeps advanced options out of the initial flow."""
     await load_ip_ban_manager(hass)
     monkeypatch.setattr(
         ban_config_flow,
         "_async_detect_home_assistant_subnets",
-        no_detected_subnets,
+        detected_subnets,
     )
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
         context={"source": "user"},
     )
-
     assert result["type"] == "form"
-
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"],
-        user_input={
-            ban_config_flow.CONF_QUICK_ALLOWLIST: [
-                ban_config_flow.QUICK_ALLOW_LOCALHOST
-            ],
-            ban_config_flow.CONF_BAN_OPTIONS: [
-                ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
-                ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
-                ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
-                ban_config_flow.CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
-            ],
-        },
+    ban_options_marker = next(
+        marker
+        for marker in result["data_schema"].schema
+        if marker.schema == ban_config_flow.CONF_BAN_OPTIONS
     )
-
-    assert result["type"] == "create_entry"
-    assert result["data"] == {
-        **expected_setup_data(DEFAULT_ALLOWED_IPS),
-        CONF_ALLOWLISTED_LOGINS_CAN_BAN: True,
-    }
+    assert ban_options_marker.default() == [ban_config_flow.CONF_AUTO_BAN_CHECKBOX]
 
 
 @pytest.mark.asyncio
@@ -310,11 +300,7 @@ async def test_user_flow_can_skip_localhost(
         for marker in result["data_schema"].schema
         if marker.schema == ban_config_flow.CONF_BAN_OPTIONS
     )
-    assert ban_options_marker.default() == [
-        ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
-        ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
-        ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
-    ]
+    assert ban_options_marker.default() == [ban_config_flow.CONF_AUTO_BAN_CHECKBOX]
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -351,6 +337,35 @@ async def test_user_flow_is_single_instance(
         DOMAIN,
         context={"source": "user"},
         data={CONF_IP_ADDRESSES: "172.17.0.0/24"},
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "already_configured"
+
+
+@pytest.mark.asyncio
+async def test_user_flow_aborts_before_form_when_already_configured(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test Add Integration does not show a setup form after configuration."""
+    await load_ip_ban_manager(hass)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        no_detected_subnets,
+    )
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        unique_id=DOMAIN,
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
     )
 
     assert result["type"] == "abort"
@@ -443,6 +458,94 @@ async def test_options_flow_edits_live_lists(
 
 
 @pytest.mark.asyncio
+async def test_options_flow_accepts_unchanged_submit(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test Configure can be submitted without changing any values."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.SECTION_ALLOWED_IPS: {
+                CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24",
+            },
+            ban_config_flow.SECTION_BANNED_IPS: {
+                ban_config_flow.CONF_BAN_OPTIONS: [
+                    ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
+                    ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX,
+                ],
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == expected_options_data(["192.168.1.1", "172.17.0.0/24"])
+
+
+@pytest.mark.asyncio
+async def test_options_flow_can_hide_sidebar_panel(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test Configure can hide the optional sidebar panel."""
+    entry = await setup_options_entry(hass, tmp_path)
+    remove_called = False
+
+    def mock_remove_panel(hass: HomeAssistant) -> None:
+        nonlocal remove_called
+        remove_called = True
+
+    monkeypatch.setattr(ipbm, "_async_remove_panel", mock_remove_panel)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+    banned_schema = (
+        result["data_schema"].schema[ban_config_flow.SECTION_BANNED_IPS].schema
+    )
+    options_marker = next(
+        marker
+        for marker in banned_schema.schema
+        if marker.schema == ban_config_flow.CONF_BAN_OPTIONS
+    )
+    assert ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX in options_marker.default()
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.SECTION_ALLOWED_IPS: {
+                CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24",
+            },
+            ban_config_flow.SECTION_BANNED_IPS: {
+                ban_config_flow.CONF_BAN_OPTIONS: [
+                    ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
+                    ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                ],
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {
+        **expected_options_data(["192.168.1.1", "172.17.0.0/24"]),
+        CONF_SIDEBAR_PANEL_ENABLED: False,
+    }
+    assert cast(Any, entry).options[CONF_SIDEBAR_PANEL_ENABLED] is False
+    assert remove_called is True
+
+
+@pytest.mark.asyncio
 async def test_options_flow_safe_default_checkboxes(
     hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -488,6 +591,7 @@ async def test_options_flow_safe_default_checkboxes(
                     ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
                     ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
                     ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX,
                 ],
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
                 CONF_BANNED_IPS: "",
@@ -520,6 +624,7 @@ async def test_options_flow_safe_default_checkboxes(
                     ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
                     ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
                     ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX,
                 ],
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: 5,
                 CONF_BANNED_IPS: "",
@@ -915,6 +1020,59 @@ async def test_options_flow_accepts_wildcard_blocked_network(
 
 
 @pytest.mark.asyncio
+async def test_options_flow_can_enable_default_deny(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test Configure can block all non-allowlisted addresses."""
+    entry = await setup_options_entry(hass, tmp_path)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_subnets,
+    )
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {
+                ban_config_flow.CONF_QUICK_ALLOWLIST: [
+                    ban_config_flow.QUICK_ALLOW_LOCAL_NETWORK
+                ],
+                CONF_ALLOWED_IPS: "",
+            },
+            CONF_BANNED_IPS: {
+                ban_config_flow.CONF_BAN_OPTIONS: [
+                    ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
+                    ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX,
+                ],
+                ban_config_flow.CONF_ADVANCED_BAN_OPTIONS: [
+                    ban_config_flow.CONF_DEFAULT_DENY_CHECKBOX,
+                ],
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {
+        **expected_options_data(["192.168.1.0/24"]),
+        CONF_DEFAULT_DENY_ENABLED: True,
+    }
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_DEFAULT_DENY_ENABLED] is True
+    assert ip_address("8.8.8.8") in ban_manager.ip_bans_lookup
+    assert ip_address("192.168.1.42") not in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
 async def test_options_flow_rejects_unprotected_local_blocked_network(
     hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -936,6 +1094,46 @@ async def test_options_flow_rejects_unprotected_local_blocked_network(
             CONF_BANNED_IPS: {
                 CONF_BANNED_IPS: "",
                 CONF_BLOCKED_NETWORKS: "192.168.1.0/24",
+            },
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {
+        CONF_BLOCKED_NETWORKS: "local_network_block_unprotected"
+    }
+
+
+@pytest.mark.asyncio
+async def test_options_flow_rejects_unprotected_default_deny(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test default-deny mode requires the detected local subnet to stay allowed."""
+    entry = await setup_options_entry(hass, tmp_path)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_subnets,
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "172.17.0.0/24"},
+            CONF_BANNED_IPS: {
+                ban_config_flow.CONF_BAN_OPTIONS: [
+                    ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
+                    ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                ],
+                ban_config_flow.CONF_ADVANCED_BAN_OPTIONS: [
+                    ban_config_flow.CONF_DEFAULT_DENY_CHECKBOX,
+                ],
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
             },
         },
     )
@@ -997,6 +1195,9 @@ async def test_options_flow_can_allow_automatic_bans_inside_allowed_ips(
                     ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
                     ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
                     ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX,
+                ],
+                ban_config_flow.CONF_ADVANCED_BAN_OPTIONS: [
                     ban_config_flow.CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
                 ],
                 CONF_BANNED_IPS: "",

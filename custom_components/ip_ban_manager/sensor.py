@@ -16,6 +16,7 @@ from . import current_status
 from .const import (
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
+    ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_NETWORKS,
 )
@@ -58,6 +59,7 @@ SENSOR_DESCRIPTIONS = (
         value_fn=lambda status: len(cast(list[object], status[ATTR_BLOCKED_NETWORKS])),
         attributes_fn=lambda status: {
             ATTR_BLOCKED_NETWORKS: status[ATTR_BLOCKED_NETWORKS],
+            ATTR_DEFAULT_DENY_ENABLED: status[ATTR_DEFAULT_DENY_ENABLED],
         },
     ),
     IPBanManagerSensorDescription(

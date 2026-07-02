@@ -3,6 +3,7 @@
     "step": {
       "user": {
         "title": "Set up IP Ban Manager",
+        "description": "Choose safe starting defaults. After setup, use the IP Ban Manager panel or Configure screen to manage live bans, blocked networks, default-deny mode, and notification behavior.",
         "data": {
           "quick_allowlist": "Allowlist safe defaults",
           "ban_options": "Options",
@@ -10,7 +11,9 @@
           "auto_ban_enabled": "Automatic bans",
           "ban_notifications_enabled": "Automatic ban notifications",
           "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
-          "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs"
+          "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
+          "default_deny_enabled": "Block everything outside Allowed IPs",
+          "sidebar_panel_enabled": "Show in sidebar"
         }
       }
     },
@@ -20,7 +23,7 @@
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]",
+      "already_configured": "IP Ban Manager is already configured.",
       "unsafe_allowlist_network": "The imported allowlist contains an entry that would trust every IP address."
     }
   },
@@ -39,16 +42,19 @@
             }
           },
           "banned_ips": {
-            "name": "Banned IPs",
+            "name": "Blocked IPs",
             "data": {
               "auto_ban_enabled": "Automatic bans",
               "ban_options": "Options",
+              "advanced_ban_options": "Advanced",
               "ban_notifications_enabled": "Automatic ban notifications",
               "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
               "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
+              "default_deny_enabled": "Block everything outside Allowed IPs",
+              "sidebar_panel_enabled": "Show in sidebar",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips_help": "",
-              "banned_ips": "Banned entries",
+              "banned_ips": "Blocked entries",
               "blocked_networks_help": "",
               "blocked_networks": "Blocked networks"
             }
@@ -56,10 +62,10 @@
         }
       },
       "confirm_clear_bans": {
-        "title": "Clear banned IPs?",
-        "description": "This will remove {ban_count} exact IP ban(s) from Home Assistant and rewrite ip_bans.yaml. Check the box to confirm.",
+        "title": "Clear blocked IPs?",
+        "description": "This will remove {ban_count} blocked IP(s) from Home Assistant and rewrite ip_bans.yaml. Check the box to confirm.",
         "data": {
-          "confirm_clear_bans": "Clear all exact IP bans"
+          "confirm_clear_bans": "Clear all blocked IPs"
         }
       }
     },
@@ -68,10 +74,10 @@
       "invalid_banned_ip": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 203.0.113.*.",
       "invalid_blocked_network": "Enter valid CIDR networks or IPv4 wildcard networks like 203.0.113.*.",
       "unsafe_blocked_network": "That blocked network would block every IP address. Use a narrower network.",
-      "local_network_block_unprotected": "That blocked network includes a detected local Home Assistant network, but no matching local entry is allowed.",
+      "local_network_block_unprotected": "That setting would block a detected local Home Assistant network, but no matching local entry is allowed.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
-      "confirmation_required": "Check the confirmation box before clearing every exact IP ban."
+      "confirmation_required": "Check the confirmation box before clearing every blocked IP."
     }
   },
   "exceptions": {

@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.4.0
+
+IP Ban Manager 1.4.0 adds a guarded default-deny mode for users who want to allow only trusted addresses and networks, while separating lockout-sensitive controls from everyday options.
+
+### Added
+
+- Added **Block everything outside Allowed IPs** to setup and Configure.
+- Default-deny mode blocks any source address that is not covered by Allowed IPs, while exact IP bans and specific Blocked networks continue to work normally.
+- The Blocked Networks diagnostic sensor now reports whether default-deny mode is enabled.
+- Split potentially disruptive controls into an **Advanced** group in setup, Configure, and the live panel so risky choices stand apart from normal notification/sidebar options.
+
+### Safety
+
+- Default-deny mode refuses to save when it would block a detected local Home Assistant subnet without a matching Allowed IPs entry.
+- `127.0.0.1` remains available as a setup safe default, and the detected local subnet checkbox is selected by default on first setup.
+- The live panel marks risky controls with short **Be careful** descriptions instead of mixing them in with routine settings.
+
+### Validation
+
+- Added regression coverage for setup and Configure default-deny safety, live lookup behavior, allowlist precedence, and diagnostic attributes.
+- Bumped the manifest version to `1.4.0` for HACS update detection.
+
 ## v1.3.5
 
 IP Ban Manager 1.3.5 makes allowlisted failed-login notifications less noisy without hiding real trouble.
