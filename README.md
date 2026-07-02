@@ -78,7 +78,7 @@ Core management features include:
 <table>
   <tr>
     <td>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel.png" width="100%">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel-v1.4.png" width="100%">
     </td>
   </tr>
 </table>
