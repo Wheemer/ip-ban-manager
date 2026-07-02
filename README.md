@@ -77,23 +77,9 @@ Core management features include:
 
 <table>
   <tr>
-    <td colspan="2">
+    <td>
       <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel.png" width="100%">
     </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png" width="100%">
-    </td>
-    <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/allowed-ips-options.png" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/banned-ips-options.png" width="100%">
-    </td>
-    <td width="50%"></td>
   </tr>
 </table>
 
