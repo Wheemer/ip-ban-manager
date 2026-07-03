@@ -568,6 +568,10 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
     async def get(self, request: Request) -> Response:
         """Silence allowlisted failed-login notifications and dismiss the current notification."""
         hass = request.app[KEY_HASS]
+        user = request.get("hass_user")
+        if user is None or not user.is_admin:
+            return self.json_message("Administrator access is required.", 403)
+
         entry = hass.http.app.get(KEY_CONFIG_ENTRY)
         if entry is None:
             return Response(text="IP Ban Manager is not loaded.", status=404)
@@ -628,6 +632,10 @@ class IPBanManagerStatusView(HomeAssistantView):
     async def get(self, request: Request) -> Response:
         """Return live status and persisted editable values."""
         hass = request.app[KEY_HASS]
+        user = request.get("hass_user")
+        if user is None or not user.is_admin:
+            return self.json_message("Administrator access is required.", 403)
+
         entry = hass.http.app.get(KEY_CONFIG_ENTRY)
         if entry is None:
             return self.json_message("IP Ban Manager is not loaded.", status_code=404)

@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.4.5
+
+IP Ban Manager 1.4.5 locks down the live management API used by the bundled panel and notification actions.
+
+### Security
+
+- The live status endpoint now explicitly requires a Home Assistant administrator.
+- The allowlisted-login notification silence endpoint now explicitly requires a Home Assistant administrator before changing integration options.
+
+### Validation
+
+- Added regression coverage for admin-only access on the status and notification-silence endpoints.
+- Bumped the manifest version to `1.4.5` for HACS update detection.
+
 ## v1.4.4
 
 IP Ban Manager 1.4.4 tightens the safety rails around default-deny mode, service calls, and direct panel/API option writes.

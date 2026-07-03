@@ -49,6 +49,7 @@ from custom_components.ip_ban_manager import (
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
     LEGACY_YAML_PRESENT_ISSUE_ID,
     NOTIFICATION_ICON_DATA_URL,
+    IPBanManagerStatusView,
     SilenceAllowlistedLoginNotificationsView,
     _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
@@ -88,6 +89,40 @@ from custom_components.ip_ban_manager.const import (
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
     SERVICE_REMOVE_IP_BAN,
 )
+
+
+class MockAdminUser:
+    """Minimal admin user for direct HomeAssistantView tests."""
+
+    is_admin = True
+
+
+class MockNonAdminUser:
+    """Minimal non-admin user for direct HomeAssistantView tests."""
+
+    is_admin = False
+
+
+class MockViewRequest:
+    """Minimal request object for direct HomeAssistantView tests."""
+
+    def __init__(
+        self,
+        app: dict[Any, Any],
+        *,
+        user: object | None = None,
+        query: dict[str, str] | None = None,
+    ) -> None:
+        """Initialize the mock view request."""
+        self.app = app
+        self.query = query or {}
+        self._user = user if user is not None else MockAdminUser()
+
+    def get(self, key: str, default: object | None = None) -> object | None:
+        """Return request-scoped Home Assistant auth data."""
+        if key == "hass_user":
+            return self._user
+        return default
 
 
 def check_records(records: list[logging.LogRecord]) -> None:
@@ -1334,16 +1369,27 @@ async def test_silence_allowlisted_login_notifications_view(
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert NOTIFICATION_ID_LOGIN in notifications
 
-    class MockRequest:
-        app = hass.http.app
-
     response = await SilenceAllowlistedLoginNotificationsView().get(
-        cast(Any, MockRequest())
+        cast(Any, MockViewRequest(hass.http.app))
     )
 
     assert response.status == 200
     assert entry.options[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED] is False
     assert NOTIFICATION_ID_LOGIN not in notifications
+
+
+@pytest.mark.asyncio
+async def test_silence_allowlisted_login_notifications_view_requires_admin(
+    hass: HomeAssistant,
+) -> None:
+    """Test the notification silence endpoint requires an admin user."""
+    await setup_ip_ban_manager(hass)
+
+    response = await SilenceAllowlistedLoginNotificationsView().get(
+        cast(Any, MockViewRequest(hass.http.app, user=MockNonAdminUser()))
+    )
+
+    assert response.status == 403
 
 
 @pytest.mark.asyncio
@@ -1364,12 +1410,11 @@ async def test_silence_allowlisted_login_notifications_view_can_silence_address(
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert NOTIFICATION_ID_LOGIN in notifications
 
-    class MockViewRequest:
-        app = hass.http.app
-        query = {ATTR_IP_ADDRESS: "192.168.1.1"}
-
     response = await SilenceAllowlistedLoginNotificationsView().get(
-        cast(Any, MockViewRequest())
+        cast(
+            Any,
+            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.1"}),
+        )
     )
 
     assert response.status == 200
@@ -1417,17 +1462,40 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_matching_n
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert "ip_ban_manager_custom_allowlisted_login" in notifications
 
-    class MockViewRequest:
-        app = hass.http.app
-        query = {ATTR_IP_ADDRESS: "192.168.1.1"}
-
     response = await SilenceAllowlistedLoginNotificationsView().get(
-        cast(Any, MockViewRequest())
+        cast(
+            Any,
+            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.1"}),
+        )
     )
 
     assert response.status == 200
     assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
     assert "ip_ban_manager_custom_allowlisted_login" not in notifications
+
+
+@pytest.mark.asyncio
+async def test_status_view_requires_admin(hass: HomeAssistant) -> None:
+    """Test the panel status endpoint requires an admin user."""
+    await setup_ip_ban_manager(hass)
+
+    response = await IPBanManagerStatusView().get(
+        cast(Any, MockViewRequest(hass.http.app, user=MockNonAdminUser()))
+    )
+
+    assert response.status == 403
+
+
+@pytest.mark.asyncio
+async def test_status_view_returns_state_for_admin(hass: HomeAssistant) -> None:
+    """Test the panel status endpoint returns live state for an admin user."""
+    await setup_ip_ban_manager(hass)
+
+    response = await IPBanManagerStatusView().get(
+        cast(Any, MockViewRequest(hass.http.app))
+    )
+
+    assert response.status == 200
 
 
 @pytest.mark.asyncio

@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.4.5** | Locks down the live panel status API and notification-silence action so both explicitly require a Home Assistant administrator. |
 | **v1.4.4** | Tightens backend lockout safety for default-deny mode, service calls, and panel/API option writes, with server-side threshold clamping. |
 | **v1.4.3** | Adds the `/config/ip_ban_manager.disabled` emergency file alongside `ip_ban_manager: disabled`, so SMB/file access can disable only IP Ban Manager without editing YAML. |
 | **v1.4.2** | Cleans up the emergency YAML disable path to `ip_ban_manager: disabled`, updates the Repair/README wording, and keeps the earlier emergency key accepted for compatibility. |
