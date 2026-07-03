@@ -1147,6 +1147,41 @@ async def test_options_flow_rejects_unprotected_default_deny(
 
 
 @pytest.mark.asyncio
+async def test_options_flow_rejects_default_deny_without_detected_subnet(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test default-deny mode is not enabled when no local subnet can be proven."""
+    entry = await setup_options_entry(hass, tmp_path)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        no_detected_subnets,
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "192.168.1.0/24"},
+            CONF_BANNED_IPS: {
+                ban_config_flow.CONF_ADVANCED_BAN_OPTIONS: [
+                    ban_config_flow.CONF_DEFAULT_DENY_CHECKBOX,
+                ],
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {
+        CONF_BLOCKED_NETWORKS: "local_network_block_unprotected"
+    }
+
+
+@pytest.mark.asyncio
 async def test_options_flow_rejects_local_block_with_only_one_local_host_allowed(
     hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

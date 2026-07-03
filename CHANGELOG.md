@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.4.4
+
+IP Ban Manager 1.4.4 tightens the safety rails around default-deny mode, service calls, and direct panel/API option writes.
+
+### Safety
+
+- Prevented the `remove_allowlist_network` service from removing the only local allowlist path when default-deny mode or managed network blocks would leave Home Assistant unreachable.
+- Default-deny mode now refuses to enable unless Home Assistant can detect a local subnet and verify that the subnet stays allowed.
+- Login-attempt thresholds are now clamped in backend code from every entry point, so setup, Configure, and the live panel/API all enforce the same `0` to `100` range.
+
+### Improved
+
+- Cleaned up internal emergency-disable naming so the code reflects both supported recovery paths: `ip_ban_manager: disabled` and `/config/ip_ban_manager.disabled`.
+
+### Validation
+
+- Added regression coverage for service-level allowlist lockout prevention, default-deny without a detected local subnet, and backend threshold clamping.
+- Bumped the manifest version to `1.4.4` for HACS update detection.
+
 ## v1.4.3
 
 IP Ban Manager 1.4.3 adds a second emergency recovery path for users who can reach Home Assistant files over SMB, Studio Code Server, terminal, or another local file-access method.

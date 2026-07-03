@@ -19,6 +19,7 @@ from ipaddress import (
 from pathlib import Path
 from socket import gethostbyaddr, herror
 from tempfile import NamedTemporaryFile
+from typing import Any
 from urllib.parse import urlencode
 
 import voluptuous as vol
@@ -80,6 +81,7 @@ from .const import (
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
     LEGACY_DOMAIN,
+    MAX_LOGIN_ATTEMPTS_THRESHOLD,
     SERVICE_ADD_ALLOWLIST_NETWORK,
     SERVICE_ADD_IP_BAN,
     SERVICE_REMOVE_ALL_IP_BANS,
@@ -137,7 +139,7 @@ KEY_ORIGINAL_LOAD_BANS = AppKey[LoadBansCallable]("ip_ban_manager_original_load_
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
 KEY_PANEL_REGISTERED = AppKey[bool]("ip_ban_manager_panel_registered")
 KEY_PANEL_SIDEBAR_ENABLED = AppKey[bool]("ip_ban_manager_panel_sidebar_enabled")
-KEY_DISABLED_BY_YAML = AppKey[bool]("ip_ban_manager_disabled_by_yaml")
+KEY_EMERGENCY_DISABLED = AppKey[bool]("ip_ban_manager_emergency_disabled")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
 LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
@@ -899,14 +901,19 @@ def _current_login_threshold(hass: HomeAssistant) -> int:
     """Return Home Assistant's current live login-attempt threshold."""
     if hass.http is None:
         return DEFAULT_LOGIN_ATTEMPTS_THRESHOLD
-    return max(
-        0, int(hass.http.app.get(KEY_LOGIN_THRESHOLD, DEFAULT_LOGIN_ATTEMPTS_THRESHOLD))
+    return _normalize_login_attempts_threshold(
+        hass.http.app.get(KEY_LOGIN_THRESHOLD, DEFAULT_LOGIN_ATTEMPTS_THRESHOLD)
     )
+
+
+def _normalize_login_attempts_threshold(value: Any) -> int:
+    """Return a login-attempt threshold inside the supported backend range."""
+    return min(MAX_LOGIN_ATTEMPTS_THRESHOLD, max(0, int(value)))
 
 
 def _entry_login_threshold(entry: ConfigEntry, hass: HomeAssistant) -> int:
     """Return the configured login-attempt threshold for a config entry."""
-    return int(
+    return _normalize_login_attempts_threshold(
         entry.options.get(
             CONF_LOGIN_ATTEMPTS_THRESHOLD,
             entry.data.get(
@@ -1014,11 +1021,11 @@ def _emergency_disable_requested(hass: HomeAssistant, config: ConfigType) -> boo
     return _yaml_disable_ban_manager(config) or _emergency_disable_file_exists(hass)
 
 
-def _async_update_disabled_by_yaml_issue(
-    hass: HomeAssistant, disabled_by_yaml: bool
+def _async_update_emergency_disabled_issue(
+    hass: HomeAssistant, emergency_disabled: bool
 ) -> None:
-    """Create or clear the Repair for the YAML emergency kill switch."""
-    if disabled_by_yaml:
+    """Create or clear the Repair for the emergency kill switch."""
+    if emergency_disabled:
         ir.async_create_issue(
             hass,
             DOMAIN,
@@ -1330,8 +1337,8 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
             current_options[key] = bool(options[key])
 
     if CONF_LOGIN_ATTEMPTS_THRESHOLD in options:
-        current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = max(
-            0, int(options[CONF_LOGIN_ATTEMPTS_THRESHOLD])
+        current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = (
+            _normalize_login_attempts_threshold(options[CONF_LOGIN_ATTEMPTS_THRESHOLD])
         )
 
     await _async_validate_panel_network_safety(
@@ -1647,7 +1654,9 @@ def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> Non
         _update_allowlist_entry(hass, [*current, normalized_network])
 
 
-def _async_remove_allowlist_network(hass: HomeAssistant, network_value: str) -> None:
+async def _async_remove_allowlist_network(
+    hass: HomeAssistant, network_value: str
+) -> None:
     """Remove an allowlist network immediately."""
     try:
         network = parse_allowlist_network(network_value)
@@ -1663,6 +1672,15 @@ def _async_remove_allowlist_network(hass: HomeAssistant, network_value: str) -> 
         for current_network in _current_allowlist_strings(hass)
         if parse_allowlist_network(current_network) != network
     ]
+    try:
+        await _async_validate_panel_network_safety(
+            hass,
+            remaining_networks,
+            _current_blocked_network_strings(hass),
+            bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+        )
+    except HomeAssistantError as err:
+        raise ServiceValidationError(str(err)) from err
     _update_allowlist_entry(hass, remaining_networks)
 
 
@@ -1687,7 +1705,7 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
         _async_add_allowlist_network(hass, call.data[ATTR_NETWORK])
 
     async def remove_allowlist_network(call: ServiceCall) -> None:
-        _async_remove_allowlist_network(hass, call.data[ATTR_NETWORK])
+        await _async_remove_allowlist_network(hass, call.data[ATTR_NETWORK])
 
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_IP_BAN, add_ip_ban, schema=IP_ADDRESS_SCHEMA
@@ -1797,8 +1815,8 @@ def _async_remove_panel(hass: HomeAssistant) -> None:
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
     emergency_disabled = _emergency_disable_requested(hass, config)
-    hass.data[KEY_DISABLED_BY_YAML] = emergency_disabled
-    _async_update_disabled_by_yaml_issue(hass, emergency_disabled)
+    hass.data[KEY_EMERGENCY_DISABLED] = emergency_disabled
+    _async_update_emergency_disabled_issue(hass, emergency_disabled)
     if emergency_disabled:
         _LOGGER.warning("IP Ban Manager is disabled by emergency override")
         return True
@@ -1823,11 +1841,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
-    if hass.data.get(KEY_DISABLED_BY_YAML):
+    if hass.data.get(KEY_EMERGENCY_DISABLED):
         _LOGGER.warning(
             "IP Ban Manager config entry setup skipped because ip_ban_manager is disabled"
         )
-        _async_update_disabled_by_yaml_issue(hass, True)
+        _async_update_emergency_disabled_issue(hass, True)
         return True
 
     _async_cleanup_entry_metadata(hass, entry)

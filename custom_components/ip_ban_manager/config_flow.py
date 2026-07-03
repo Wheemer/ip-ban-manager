@@ -43,6 +43,7 @@ from .const import (
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     DOMAIN,
     LEGACY_DOMAIN,
+    MAX_LOGIN_ATTEMPTS_THRESHOLD,
 )
 from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
@@ -171,6 +172,8 @@ def _validate_local_block_safety(
     allowlist_networks = [parse_allowlist_network(network) for network in allowlist]
     blocked = [parse_allowlist_network(network) for network in blocked_networks]
     detected = [parse_allowlist_network(network) for network in detected_subnets]
+    if default_deny_enabled and not detected:
+        raise UnprotectedLocalBlockError
 
     def _covers_detected_local_network(
         allowed_network: IPNetwork, detected_network: IPNetwork
@@ -424,9 +427,14 @@ def _current_login_threshold(hass: HomeAssistant) -> int:
     """Return Home Assistant's current live login-attempt threshold."""
     if hass.http is None:
         return DEFAULT_LOGIN_ATTEMPTS_THRESHOLD
-    return max(
-        0, int(hass.http.app.get(KEY_LOGIN_THRESHOLD, DEFAULT_LOGIN_ATTEMPTS_THRESHOLD))
+    return _normalize_login_attempts_threshold(
+        hass.http.app.get(KEY_LOGIN_THRESHOLD, DEFAULT_LOGIN_ATTEMPTS_THRESHOLD)
     )
+
+
+def _normalize_login_attempts_threshold(value: Any) -> int:
+    """Return a login-attempt threshold inside the supported backend range."""
+    return min(MAX_LOGIN_ATTEMPTS_THRESHOLD, max(0, int(value)))
 
 
 def _ban_settings_fields(
@@ -750,7 +758,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: True,
                     CONF_ALLOWLISTED_LOGINS_CAN_BAN: False,
                     CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
-                    CONF_LOGIN_ATTEMPTS_THRESHOLD: int(
+                    CONF_LOGIN_ATTEMPTS_THRESHOLD: _normalize_login_attempts_threshold(
                         user_input.get(
                             CONF_LOGIN_ATTEMPTS_THRESHOLD,
                             _current_login_threshold(self.hass),
@@ -1057,7 +1065,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_SIDEBAR_PANEL_CHECKBOX,
                 current_sidebar_panel_enabled,
             )
-            login_attempts_threshold = int(
+            login_attempts_threshold = _normalize_login_attempts_threshold(
                 banned_input.get(
                     CONF_LOGIN_ATTEMPTS_THRESHOLD,
                     self._config_entry.options.get(

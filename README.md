@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.4.4** | Tightens backend lockout safety for default-deny mode, service calls, and panel/API option writes, with server-side threshold clamping. |
 | **v1.4.3** | Adds the `/config/ip_ban_manager.disabled` emergency file alongside `ip_ban_manager: disabled`, so SMB/file access can disable only IP Ban Manager without editing YAML. |
 | **v1.4.2** | Cleans up the emergency YAML disable path to `ip_ban_manager: disabled`, updates the Repair/README wording, and keeps the earlier emergency key accepted for compatibility. |
 | **v1.4.1** | Adds an emergency YAML disable switch, fixes hostname/default-deny matching for IPv4-mapped addresses, and keeps Configure opening the panel when the sidebar entry is hidden. |
@@ -73,7 +74,7 @@ Core management features include:
 - **Emergency disable:** `ip_ban_manager: disabled` or `/config/ip_ban_manager.disabled` lets local file access disable IP Ban Manager if you need a recovery path after a bad setting.
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
 - **Notifications:** branded IP Ban Manager login/ban notifications include an embedded compact icon header, direct settings link where action is useful, stale-notification cleanup when bans are removed, optional automatic-ban notification suppression, earlier failed-login capture, and quieter allowlisted-login notifications that can still escalate if a trusted source keeps failing authentication.
-- **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, and unconfirmed multi-ban clear actions are rejected before anything is written.
+- **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, unsafe default-deny changes, and unconfirmed multi-ban clear actions are rejected before anything is written.
 - **Automation:** `ip_ban_manager.*` services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
 - **Diagnostics:** sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources.
 
@@ -165,7 +166,7 @@ This gives you the practical behavior people expect from subnet banning without 
 
 Existing exact banned IP rows are shown as `IP - local ban time`, oldest first. You can leave those timestamps in place when submitting; IP Ban Manager preserves the original ban date for unchanged bans. New exact banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are submitted. When the ban file is rewritten, entries are written oldest first so new exact bans appear at the bottom in both the UI and `ip_bans.yaml`.
 
-The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist or blocked-network entries, IPs that are both allowed and exactly banned, and malformed entries. Service calls use the same safety posture for risky operations, including typo removals, allowlist networks that contain active exact bans, and clear-all ban requests without `confirm: true`.
+The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist or blocked-network entries, IPs that are both allowed and exactly banned, unsafe default-deny changes, and malformed entries. Login-attempt thresholds are clamped server-side, so setup, Configure, and the live panel/API enforce the same range. Service calls use the same safety posture for risky operations, including typo removals, removing the only detected local allowlist path, allowlist networks that contain active exact bans, and clear-all ban requests without `confirm: true`.
 
 The live hooks are installed at setup even if the initial allowlist is empty, so adding your first allowed IP later works immediately. If the integration is unloaded, those hooks are restored so Home Assistant is left in its normal state.
 

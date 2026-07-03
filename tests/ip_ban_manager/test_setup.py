@@ -27,6 +27,7 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 import custom_components.ip_ban_manager as ipbm
+import custom_components.ip_ban_manager.config_flow as ban_config_flow
 from custom_components.ip_ban_manager import (
     _ORIGINAL_PROCESS_WRONG_LOGIN,
     ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD,
@@ -76,6 +77,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_DISABLE_BAN_MANAGER,
     CONF_DISABLED,
     CONF_IP_ADDRESSES,
+    CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
@@ -145,6 +147,11 @@ async def setup_ip_ban_manager(hass: HomeAssistant) -> None:
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def detected_local_subnets(hass: HomeAssistant) -> list[str]:
+    """Return a detected local subnet for setup tests."""
+    return ["192.168.1.0/24"]
 
 
 @pytest.mark.asyncio
@@ -858,6 +865,27 @@ async def test_panel_options_can_disable_sidebar_panel(
     assert entry.options[CONF_SIDEBAR_PANEL_ENABLED] is False
     assert hass.data[KEY_PANEL_REGISTERED] is True
     assert hass.data[KEY_PANEL_SIDEBAR_ENABLED] is False
+
+
+@pytest.mark.asyncio
+async def test_panel_options_clamp_login_threshold(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test direct panel/API writes cannot bypass threshold limits."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+
+    await _async_panel_set_options(hass, {CONF_LOGIN_ATTEMPTS_THRESHOLD: 999})
+    check_records(caplog.records)
+
+    assert entry.options[CONF_LOGIN_ATTEMPTS_THRESHOLD] == 100
+    assert hass.http.app[KEY_LOGIN_THRESHOLD] == 100
+
+    await _async_panel_set_options(hass, {CONF_LOGIN_ATTEMPTS_THRESHOLD: -10})
+    check_records(caplog.records)
+
+    assert entry.options[CONF_LOGIN_ATTEMPTS_THRESHOLD] == 0
+    assert hass.http.app[KEY_LOGIN_THRESHOLD] == 0
 
 
 @pytest.mark.asyncio
@@ -2031,6 +2059,49 @@ async def test_allowlist_service_can_remove_final_entry(
 
     assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == []
     assert hass.http.app[KEY_ALLOWLIST] == ()
+
+
+@pytest.mark.asyncio
+async def test_allowlist_service_rejects_removing_only_local_path(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test service calls cannot remove the allowlist path that prevents lockout."""
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_local_subnets,
+    )
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_IP_ADDRESSES: ["192.168.1.0/24"],
+            CONF_DEFAULT_DENY_ENABLED: True,
+        },
+        options={},
+    )
+    entry.add_to_hass(hass)
+    await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_REMOVE_ALLOWLIST_NETWORK,
+            {ATTR_NETWORK: "192.168.1.0/24"},
+            blocking=True,
+        )
+    check_records(caplog.records)
+
+    assert (
+        hass.config_entries.async_entries(DOMAIN)[0].options.get(CONF_IP_ADDRESSES)
+        is None
+    )
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.1.0/24"]
 
 
 @pytest.mark.asyncio

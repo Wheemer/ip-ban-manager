@@ -33,6 +33,7 @@ DOMAIN = "ip_ban_manager"
 LEGACY_DOMAIN = "ban_allowlist"
 
 DEFAULT_LOGIN_ATTEMPTS_THRESHOLD = 5
+MAX_LOGIN_ATTEMPTS_THRESHOLD = 100
 
 SERVICE_ADD_ALLOWLIST_NETWORK = "add_allowlist_network"
 SERVICE_ADD_IP_BAN = "add_ip_ban"
