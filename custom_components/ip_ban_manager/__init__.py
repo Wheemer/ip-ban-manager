@@ -46,6 +46,7 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from voluptuous.schema_builder import Optional as vol_optional
+from voluptuous.validators import Any as vol_any
 
 from .const import (
     ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
@@ -71,6 +72,7 @@ from .const import (
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_DISABLE_BAN_MANAGER,
+    CONF_DISABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_SIDEBAR_PANEL_ENABLED,
@@ -146,17 +148,27 @@ _ORIGINAL_PROCESS_WRONG_LOGIN = http_ban.process_wrong_login
 
 CONFIG_SCHEMA = vol.Schema(
     {
-        vol_optional(DOMAIN): vol.Schema(
-            {
-                vol_optional(CONF_DISABLE_BAN_MANAGER, default=False): cv.boolean,
-                vol_optional(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
-            }
+        vol_optional(DOMAIN): vol_any(
+            CONF_DISABLED,
+            vol.Schema(
+                {
+                    vol_optional(CONF_DISABLE_BAN_MANAGER, default=False): cv.boolean,
+                    vol_optional(CONF_IP_ADDRESSES): vol.All(
+                        cv.ensure_list, [cv.string]
+                    ),
+                }
+            ),
         ),
-        vol_optional(LEGACY_DOMAIN): vol.Schema(
-            {
-                vol_optional(CONF_DISABLE_BAN_MANAGER, default=False): cv.boolean,
-                vol_optional(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
-            }
+        vol_optional(LEGACY_DOMAIN): vol_any(
+            CONF_DISABLED,
+            vol.Schema(
+                {
+                    vol_optional(CONF_DISABLE_BAN_MANAGER, default=False): cv.boolean,
+                    vol_optional(CONF_IP_ADDRESSES): vol.All(
+                        cv.ensure_list, [cv.string]
+                    ),
+                }
+            ),
         ),
     },
     extra=vol.ALLOW_EXTRA,
@@ -981,9 +993,11 @@ def _yaml_disable_ban_manager(config: ConfigType) -> bool:
     """Return whether YAML requested the emergency integration kill switch."""
     for domain in (DOMAIN, LEGACY_DOMAIN):
         domain_config = config.get(domain)
-        if isinstance(domain_config, dict) and domain_config.get(
-            CONF_DISABLE_BAN_MANAGER
-        ):
+        if domain_config == CONF_DISABLED:
+            return True
+        if not isinstance(domain_config, dict):
+            continue
+        if domain_config.get(CONF_DISABLE_BAN_MANAGER):
             return True
 
     return False
@@ -1802,7 +1816,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
     if hass.data.get(KEY_DISABLED_BY_YAML):
         _LOGGER.warning(
-            "IP Ban Manager config entry setup skipped because disable_ban_manager is true"
+            "IP Ban Manager config entry setup skipped because ip_ban_manager is disabled"
         )
         _async_update_disabled_by_yaml_issue(hass, True)
         return True

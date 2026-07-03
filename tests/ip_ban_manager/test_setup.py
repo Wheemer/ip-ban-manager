@@ -74,6 +74,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_DISABLE_BAN_MANAGER,
+    CONF_DISABLED,
     CONF_IP_ADDRESSES,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
@@ -103,7 +104,7 @@ def check_records(records: list[logging.LogRecord]) -> None:
                     "IP Ban Manager is disabled by configuration.yaml emergency override"
                 )
                 or msg.startswith(
-                    "IP Ban Manager config entry setup skipped because disable_ban_manager is true"
+                    "IP Ban Manager config entry setup skipped because ip_ban_manager is disabled"
                 )
             ):
                 continue
@@ -206,7 +207,7 @@ async def test_yaml_disable_ban_manager_creates_repair_without_import(
     assert await async_setup_component(
         hass,
         DOMAIN,
-        {DOMAIN: {CONF_DISABLE_BAN_MANAGER: True}},
+        {DOMAIN: CONF_DISABLED},
     )
     await hass.async_block_till_done()
     check_records(caplog.records)
@@ -237,7 +238,7 @@ async def test_yaml_disable_ban_manager_skips_existing_entry_setup(
     assert await async_setup_component(
         hass,
         DOMAIN,
-        {DOMAIN: {CONF_DISABLE_BAN_MANAGER: True}},
+        {DOMAIN: CONF_DISABLED},
     )
     await hass.async_block_till_done()
     check_records(caplog.records)
@@ -246,6 +247,31 @@ async def test_yaml_disable_ban_manager_skips_existing_entry_setup(
     assert KEY_CONFIG_ENTRY not in hass.http.app
     assert KEY_ALLOWLIST not in hass.http.app
     assert KEY_PANEL_REGISTERED not in hass.data
+
+
+@pytest.mark.asyncio
+async def test_yaml_disable_ban_manager_accepts_legacy_key(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test the previous emergency disable key remains accepted."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    assert await async_setup_component(
+        hass,
+        DOMAIN,
+        {DOMAIN: {CONF_DISABLE_BAN_MANAGER: True}},
+    )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert not hass.config_entries.async_entries(DOMAIN)
+    assert (
+        ir.async_get(hass).async_get_issue(
+            DOMAIN, INTEGRATION_DISABLED_BY_YAML_ISSUE_ID
+        )
+        is not None
+    )
 
 
 @pytest.mark.asyncio

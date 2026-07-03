@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.4.2
+
+IP Ban Manager 1.4.2 cleans up the emergency recovery YAML so the documented escape hatch is simple and obvious.
+
+### Fixed
+
+- Replaced the awkward emergency-disable example with the cleaner supported form:
+
+  ```yaml
+  ip_ban_manager: disabled
+  ```
+
+- Updated the Home Assistant Repair text to show the same clean recovery key.
+- Clarified in the README that the emergency switch only disables IP Ban Manager. It does not uninstall the integration or remove Home Assistant's native exact bans from `ip_bans.yaml`.
+
+### Compatibility
+
+- Kept the earlier `disable_ban_manager: true` emergency key accepted quietly, so anyone who already copied the old snippet is not stranded during recovery.
+
+### Validation
+
+- Added regression coverage for the clean emergency-disable YAML form and the legacy compatibility key.
+- Bumped the manifest version to `1.4.2` for HACS update detection.
+
 ## v1.4.1
 
 IP Ban Manager 1.4.1 tightens the new default-deny and sidebar behavior, and adds a local-file emergency disable option for recovery.
