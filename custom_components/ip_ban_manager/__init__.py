@@ -107,6 +107,7 @@ INTEGRATION_CONFIG_URL = f"/config/integrations/integration/{DOMAIN}"
 CONFIG_ENTRY_URL_TEMPLATE = (
     f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
 )
+EMERGENCY_DISABLE_FILENAME = "ip_ban_manager.disabled"
 NOTIFICATION_LINK_LABEL = "Open settings"
 ALLOWLISTED_LOGIN_SILENCE_LABEL = "Don't show for this address again"
 ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
@@ -1003,6 +1004,16 @@ def _yaml_disable_ban_manager(config: ConfigType) -> bool:
     return False
 
 
+def _emergency_disable_file_exists(hass: HomeAssistant) -> bool:
+    """Return whether the emergency disable file exists."""
+    return Path(hass.config.path(EMERGENCY_DISABLE_FILENAME)).is_file()
+
+
+def _emergency_disable_requested(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Return whether any supported emergency disable path is active."""
+    return _yaml_disable_ban_manager(config) or _emergency_disable_file_exists(hass)
+
+
 def _async_update_disabled_by_yaml_issue(
     hass: HomeAssistant, disabled_by_yaml: bool
 ) -> None:
@@ -1785,13 +1796,11 @@ def _async_remove_panel(hass: HomeAssistant) -> None:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
-    disabled_by_yaml = _yaml_disable_ban_manager(config)
-    hass.data[KEY_DISABLED_BY_YAML] = disabled_by_yaml
-    _async_update_disabled_by_yaml_issue(hass, disabled_by_yaml)
-    if disabled_by_yaml:
-        _LOGGER.warning(
-            "IP Ban Manager is disabled by configuration.yaml emergency override"
-        )
+    emergency_disabled = _emergency_disable_requested(hass, config)
+    hass.data[KEY_DISABLED_BY_YAML] = emergency_disabled
+    _async_update_disabled_by_yaml_issue(hass, emergency_disabled)
+    if emergency_disabled:
+        _LOGGER.warning("IP Ban Manager is disabled by emergency override")
         return True
 
     _async_update_legacy_yaml_issue(hass, config)

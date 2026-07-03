@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.4.3
+
+IP Ban Manager 1.4.3 adds a second emergency recovery path for users who can reach Home Assistant files over SMB, Studio Code Server, terminal, or another local file-access method.
+
+### Added
+
+- Added `/config/ip_ban_manager.disabled` as an emergency disable file. If the file exists when Home Assistant starts, IP Ban Manager stands down without installing runtime hooks, panel, services, sensors, managed blocked networks, or default-deny handling.
+- Kept `ip_ban_manager: disabled` as the YAML emergency option. Either recovery path works by itself; if both are present, IP Ban Manager still stands down.
+
+### Improved
+
+- Updated the Repair message to tell users how to re-enable IP Ban Manager from either emergency path.
+- Updated the README emergency section to prefer the file-based escape hatch for SMB-friendly recovery, while still documenting the YAML option.
+
+### Validation
+
+- Added regression coverage for the emergency disable file by itself and together with the YAML disable option.
+- Bumped the manifest version to `1.4.3` for HACS update detection.
+
 ## v1.4.2
 
 IP Ban Manager 1.4.2 cleans up the emergency recovery YAML so the documented escape hatch is simple and obvious.

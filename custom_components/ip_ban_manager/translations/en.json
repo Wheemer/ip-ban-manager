@@ -113,7 +113,7 @@
     },
     "integration_disabled_by_yaml": {
       "title": "IP Ban Manager is disabled",
-      "description": "The emergency YAML disable switch is enabled, so IP Ban Manager did not install its runtime hooks, panel, services, sensors, managed blocked networks, or default-deny handling.\n\nWhen you are ready to use IP Ban Manager again, remove this key, then restart Home Assistant:\n\n```yaml\nip_ban_manager: disabled\n```"
+      "description": "The emergency disable switch is active, so IP Ban Manager did not install its runtime hooks, panel, services, sensors, managed blocked networks, or default-deny handling.\n\nWhen you are ready to use IP Ban Manager again, remove `ip_ban_manager: disabled` from `configuration.yaml` or delete `/config/ip_ban_manager.disabled`, then restart Home Assistant."
     },
     "legacy_yaml_present": {
       "title": "Remove old ban_allowlist YAML",

@@ -100,9 +100,7 @@ def check_records(records: list[logging.LogRecord]) -> None:
                 or msg.startswith(
                     "We found a custom integration ban_allowlist which has not been tested by Home Assistant"
                 )
-                or msg.startswith(
-                    "IP Ban Manager is disabled by configuration.yaml emergency override"
-                )
+                or msg.startswith("IP Ban Manager is disabled by emergency override")
                 or msg.startswith(
                     "IP Ban Manager config entry setup skipped because ip_ban_manager is disabled"
                 )
@@ -272,6 +270,71 @@ async def test_yaml_disable_ban_manager_accepts_legacy_key(
         )
         is not None
     )
+
+
+@pytest.mark.asyncio
+async def test_emergency_disable_file_creates_repair_without_import(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test the emergency disable file disables setup without importing."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    disable_file = Path(hass.config.path("ip_ban_manager.disabled"))
+    disable_file.touch()
+    try:
+        await async_setup_component(hass, "http", {})
+
+        assert await async_setup_component(
+            hass,
+            DOMAIN,
+            {DOMAIN: {CONF_IP_ADDRESSES: ["192.168.1.1"]}},
+        )
+        await hass.async_block_till_done()
+        check_records(caplog.records)
+
+        assert not hass.config_entries.async_entries(DOMAIN)
+        assert (
+            ir.async_get(hass).async_get_issue(
+                DOMAIN, INTEGRATION_DISABLED_BY_YAML_ISSUE_ID
+            )
+            is not None
+        )
+    finally:
+        disable_file.unlink(missing_ok=True)
+
+
+@pytest.mark.asyncio
+async def test_emergency_disable_file_and_yaml_together_skip_existing_entry_setup(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test either emergency disable path can keep an entry from loading hooks."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    disable_file = Path(hass.config.path("ip_ban_manager.disabled"))
+    disable_file.touch()
+    try:
+        await async_setup_component(hass, "http", {})
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="IP Ban Manager",
+            data={CONF_IP_ADDRESSES: ["127.0.0.1"]},
+        )
+        entry.add_to_hass(hass)
+
+        assert await async_setup_component(
+            hass,
+            DOMAIN,
+            {DOMAIN: CONF_DISABLED},
+        )
+        await hass.async_block_till_done()
+        check_records(caplog.records)
+
+        assert not hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+        assert KEY_CONFIG_ENTRY not in hass.http.app
+        assert KEY_ALLOWLIST not in hass.http.app
+        assert KEY_PANEL_REGISTERED not in hass.data
+    finally:
+        disable_file.unlink(missing_ok=True)
 
 
 @pytest.mark.asyncio
