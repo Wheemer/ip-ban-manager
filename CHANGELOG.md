@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.4.1
+
+IP Ban Manager 1.4.1 tightens the new default-deny and sidebar behavior, and adds a local-file emergency disable option for recovery.
+
+### Added
+
+- Added a YAML emergency kill switch: `ip_ban_manager: disable_ban_manager: true`. When enabled, IP Ban Manager skips its runtime hooks, panel, services, sensors, managed blocked networks, and default-deny handling, then creates a Repair warning so the disabled state is visible after Home Assistant starts.
+
+### Fixed
+
+- Fixed default-deny allowlist matching for IPv4-mapped IPv6 addresses, so hostname access paths like `::ffff:192.168.1.x` still match IPv4 Allowed IPs such as `192.168.1.0/24`.
+- Fixed **Show in sidebar** so it hides only the left-menu entry. The IP Ban Manager panel remains registered for **Settings > Devices & services > IP Ban Manager > Configure**.
+
+### Validation
+
+- Added regression coverage for the emergency YAML disable path, IPv4-mapped IPv6 allowlist matching, and sidebar-hidden Configure access.
+
 ## v1.4.0
 
 IP Ban Manager 1.4.0 adds a guarded default-deny mode for users who want to allow only trusted addresses and networks, while separating lockout-sensitive controls from everyday options.

@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.4.1** | Adds an emergency YAML disable switch, fixes hostname/default-deny matching for IPv4-mapped addresses, and keeps Configure opening the panel when the sidebar entry is hidden. |
 | **v1.4.0** | Adds the dedicated live management panel, optional sidebar access, guarded default-deny mode, local-subnet lockout protection, and a separate **Advanced** area for riskier controls. |
 | **v1.3.5** | Adds per-address muting for low-priority allowlisted failed-login notifications, while still escalating repeated failures from trusted sources. |
 | **v1.3.4** | Fixes managed blocked-network enforcement after Home Assistant reloads `ip_bans.yaml`, and avoids rewriting the native ban file during integration setup. |
@@ -67,6 +68,7 @@ Core management features include:
 - **Default deny:** optionally block everything outside **Allowed IPs** with a guarded checkbox instead of manually entering global block ranges.
 - **Allowed subnet auto-bans:** optional exact automatic bans for failed logins inside allowed IP ranges, useful when a broad trusted carrier/VPN subnet should bypass network blocks but individual bad-login sources should still be banned.
 - **Advanced controls:** lockout-sensitive choices are separated from everyday options and marked clearly in the live panel.
+- **Emergency disable:** `disable_ban_manager: true` in `configuration.yaml` lets local file access disable IP Ban Manager if you need a recovery path after a bad setting.
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
 - **Notifications:** branded IP Ban Manager login/ban notifications include an embedded compact icon header, direct settings link where action is useful, stale-notification cleanup when bans are removed, optional automatic-ban notification suppression, earlier failed-login capture, and quieter allowlisted-login notifications that can still escalate if a trusted source keeps failing authentication.
 - **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, and unconfirmed multi-ban clear actions are rejected before anything is written.
@@ -118,6 +120,17 @@ http:
 The login-attempt threshold is managed from IP Ban Manager setup and Configure after Home Assistant's native IP banning is enabled.
 
 If IP banning is not enabled, IP Ban Manager creates a Home Assistant repair warning with the required YAML and a link to the official HTTP documentation. It does not edit `configuration.yaml` automatically; that keeps existing `http:` settings, includes, comments, proxy configuration, and package layouts safe.
+
+### Emergency Disable
+
+If you accidentally lock yourself out with IP Ban Manager settings, you can disable only this integration from `configuration.yaml` and restart Home Assistant:
+
+```yaml
+ip_ban_manager:
+  disable_ban_manager: true
+```
+
+This is a local-file escape hatch for SMB, Studio Code Server, terminal access, or any other path that can edit `configuration.yaml` without using the Home Assistant UI. When enabled, IP Ban Manager skips its runtime hooks, panel, services, sensors, managed blocked networks, and default-deny handling. Home Assistant will show a Repair warning until you remove the key or set it back to `false` and restart.
 
 ## Live Management
 

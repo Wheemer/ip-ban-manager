@@ -34,6 +34,7 @@ from custom_components.ip_ban_manager import (
     ALLOWLISTED_LOGIN_SILENCE_URL,
     CONFIG_ENTRY_URL_TEMPLATE,
     INTEGRATION_CONFIG_URL,
+    INTEGRATION_DISABLED_BY_YAML_ISSUE_ID,
     IP_BAN_DISABLED_ISSUE_ID,
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
@@ -41,6 +42,7 @@ from custom_components.ip_ban_manager import (
     KEY_ORIGINAL_ADD_BAN,
     KEY_ORIGINAL_LOAD_BANS,
     KEY_PANEL_REGISTERED,
+    KEY_PANEL_SIDEBAR_ENABLED,
     LEGACY_BACKUP_DIR,
     LEGACY_CLEANUP_DIR,
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
@@ -71,6 +73,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
+    CONF_DISABLE_BAN_MANAGER,
     CONF_IP_ADDRESSES,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
@@ -89,10 +92,19 @@ def check_records(records: list[logging.LogRecord]) -> None:
     for record in records:
         if record.levelno >= logging.WARNING:
             msg = record.getMessage()
-            if msg.startswith(
-                "We found a custom integration ip_ban_manager which has not been tested by Home Assistant"
-            ) or msg.startswith(
-                "We found a custom integration ban_allowlist which has not been tested by Home Assistant"
+            if (
+                msg.startswith(
+                    "We found a custom integration ip_ban_manager which has not been tested by Home Assistant"
+                )
+                or msg.startswith(
+                    "We found a custom integration ban_allowlist which has not been tested by Home Assistant"
+                )
+                or msg.startswith(
+                    "IP Ban Manager is disabled by configuration.yaml emergency override"
+                )
+                or msg.startswith(
+                    "IP Ban Manager config entry setup skipped because disable_ban_manager is true"
+                )
             ):
                 continue
             raise Exception(msg)
@@ -181,6 +193,59 @@ async def test_yaml_import_normalizes_ipv4_wildcard(
     assert len(entries) == 1
     assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.0/24"]}
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.1.0/24"]
+
+
+@pytest.mark.asyncio
+async def test_yaml_disable_ban_manager_creates_repair_without_import(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test the YAML emergency kill switch disables setup without importing."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    assert await async_setup_component(
+        hass,
+        DOMAIN,
+        {DOMAIN: {CONF_DISABLE_BAN_MANAGER: True}},
+    )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert not hass.config_entries.async_entries(DOMAIN)
+    issue = ir.async_get(hass).async_get_issue(
+        DOMAIN, INTEGRATION_DISABLED_BY_YAML_ISSUE_ID
+    )
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.WARNING
+
+
+@pytest.mark.asyncio
+async def test_yaml_disable_ban_manager_skips_existing_entry_setup(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test the YAML emergency kill switch keeps an entry from loading hooks."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["127.0.0.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_setup_component(
+        hass,
+        DOMAIN,
+        {DOMAIN: {CONF_DISABLE_BAN_MANAGER: True}},
+    )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert not hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+    assert KEY_CONFIG_ENTRY not in hass.http.app
+    assert KEY_ALLOWLIST not in hass.http.app
+    assert KEY_PANEL_REGISTERED not in hass.data
 
 
 @pytest.mark.asyncio
@@ -623,8 +688,11 @@ async def test_default_deny_blocks_everything_outside_allowlist(
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
     assert bool(ban_manager.ip_bans_lookup)
     assert ip_address("8.8.8.8") in ban_manager.ip_bans_lookup
+    assert ip_address("::ffff:8.8.8.8") in ban_manager.ip_bans_lookup
     assert ip_address("192.168.1.42") not in ban_manager.ip_bans_lookup
+    assert ip_address("::ffff:192.168.1.42") not in ban_manager.ip_bans_lookup
     assert ip_address("127.0.0.1") not in ban_manager.ip_bans_lookup
+    assert ip_address("::ffff:127.0.0.1") not in ban_manager.ip_bans_lookup
 
     blocked_networks = hass.states.get("sensor.ip_ban_manager_blocked_networks")
     assert blocked_networks is not None
@@ -637,12 +705,16 @@ async def test_setup_entry_can_skip_sidebar_panel(
     caplog: pytest.LogCaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Test the sidebar panel is optional at setup."""
-    register_called = False
+    """Test setup can register the configure panel without a sidebar entry."""
+    registered_sidebar_enabled: bool | None = None
 
-    async def mock_register_panel(hass: HomeAssistant) -> None:
-        nonlocal register_called
-        register_called = True
+    async def mock_register_panel(
+        hass: HomeAssistant, *, sidebar_enabled: bool = True
+    ) -> None:
+        nonlocal registered_sidebar_enabled
+        registered_sidebar_enabled = sidebar_enabled
+        hass.data[KEY_PANEL_REGISTERED] = True
+        hass.data[KEY_PANEL_SIDEBAR_ENABLED] = sidebar_enabled
 
     monkeypatch.setattr(ipbm, "_async_register_panel", mock_register_panel)
     hass.data[DATA_CUSTOM_COMPONENTS] = None
@@ -662,25 +734,29 @@ async def test_setup_entry_can_skip_sidebar_panel(
     await hass.async_block_till_done()
     check_records(caplog.records)
 
-    assert register_called is False
+    assert registered_sidebar_enabled is False
+    assert hass.data[KEY_PANEL_REGISTERED] is True
+    assert hass.data[KEY_PANEL_SIDEBAR_ENABLED] is False
 
 
 @pytest.mark.asyncio
 async def test_panel_options_can_disable_sidebar_panel(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test the panel API can hide the sidebar entry without unloading the manager."""
+    """Test the panel API can hide the sidebar entry without removing Configure."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
-    hass.data[KEY_PANEL_REGISTERED] = True
-    remove_called = False
+    registered_sidebar_enabled: bool | None = None
 
-    def mock_remove_panel(hass: HomeAssistant) -> None:
-        nonlocal remove_called
-        remove_called = True
-        hass.data.pop(KEY_PANEL_REGISTERED, None)
+    async def mock_register_panel(
+        hass: HomeAssistant, *, sidebar_enabled: bool = True
+    ) -> None:
+        nonlocal registered_sidebar_enabled
+        registered_sidebar_enabled = sidebar_enabled
+        hass.data[KEY_PANEL_REGISTERED] = True
+        hass.data[KEY_PANEL_SIDEBAR_ENABLED] = sidebar_enabled
 
-    monkeypatch.setattr(ipbm, "_async_remove_panel", mock_remove_panel)
+    monkeypatch.setattr(ipbm, "_async_register_panel", mock_register_panel)
 
     await _async_panel_set_options(
         hass,
@@ -689,9 +765,10 @@ async def test_panel_options_can_disable_sidebar_panel(
         },
     )
 
-    assert remove_called is True
+    assert registered_sidebar_enabled is False
     assert entry.options[CONF_SIDEBAR_PANEL_ENABLED] is False
-    assert hass.data.get(KEY_PANEL_REGISTERED) is None
+    assert hass.data[KEY_PANEL_REGISTERED] is True
+    assert hass.data[KEY_PANEL_SIDEBAR_ENABLED] is False
 
 
 @pytest.mark.asyncio
@@ -991,6 +1068,29 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notification(
         "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
         "Allowlisted address 192.168.1.1 failed authentication but was not banned",
     ]
+
+
+@pytest.mark.asyncio
+async def test_ipv4_mapped_allowlisted_wrong_login_does_not_become_ban(
+    hass: HomeAssistant,
+) -> None:
+    """Test IPv4-mapped IPv6 clients still match IPv4 allowlist entries."""
+    await setup_ip_ban_manager(hass)
+
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 1
+
+    class MockRequest:
+        remote = "::ffff:192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] == 1
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    assert remote_addr not in ban_manager.ip_bans_lookup
 
 
 @pytest.mark.asyncio

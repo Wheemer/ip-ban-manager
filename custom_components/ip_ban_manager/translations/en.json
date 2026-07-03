@@ -111,6 +111,10 @@
       "title": "Enable HTTP IP banning",
       "description": "Home Assistant's built-in HTTP IP banning is currently disabled, so ban management and allowlist protection cannot run.\n\nSet this key inside your existing `http:` section in `configuration.yaml`, then restart Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
     },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager is disabled",
+      "description": "The emergency YAML kill switch is enabled, so IP Ban Manager did not install its runtime hooks, panel, services, sensors, managed blocked networks, or default-deny handling.\n\nWhen you are ready to use IP Ban Manager again, remove this key or set it to `false`, then restart Home Assistant:\n\n```yaml\nip_ban_manager:\n  disable_ban_manager: false\n```"
+    },
     "legacy_yaml_present": {
       "title": "Remove old ban_allowlist YAML",
       "description": "IP Ban Manager has already imported the old `ban_allowlist:` YAML settings into the UI config entry.\n\nRemove the old `ban_allowlist:` block from `configuration.yaml`, then restart Home Assistant. The integration will keep using the imported UI settings."

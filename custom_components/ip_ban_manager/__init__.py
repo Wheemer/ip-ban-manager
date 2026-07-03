@@ -70,6 +70,7 @@ from .const import (
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
+    CONF_DISABLE_BAN_MANAGER,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_SIDEBAR_PANEL_ENABLED,
@@ -93,6 +94,7 @@ AddBanCallable = Callable[[IPAddress], Awaitable[None]]
 LoadBansCallable = Callable[[], Awaitable[None]]
 
 IP_BAN_DISABLED_ISSUE_ID = "ip_ban_disabled"
+INTEGRATION_DISABLED_BY_YAML_ISSUE_ID = "integration_disabled_by_yaml"
 LEGACY_YAML_PRESENT_ISSUE_ID = "legacy_yaml_present"
 LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID = "legacy_folder_cleanup_failed"
 ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
@@ -131,6 +133,8 @@ KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
 KEY_ORIGINAL_LOAD_BANS = AppKey[LoadBansCallable]("ip_ban_manager_original_load_bans")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
 KEY_PANEL_REGISTERED = AppKey[bool]("ip_ban_manager_panel_registered")
+KEY_PANEL_SIDEBAR_ENABLED = AppKey[bool]("ip_ban_manager_panel_sidebar_enabled")
+KEY_DISABLED_BY_YAML = AppKey[bool]("ip_ban_manager_disabled_by_yaml")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
 LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
@@ -144,12 +148,14 @@ CONFIG_SCHEMA = vol.Schema(
     {
         vol_optional(DOMAIN): vol.Schema(
             {
-                vol.Required(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
+                vol_optional(CONF_DISABLE_BAN_MANAGER, default=False): cv.boolean,
+                vol_optional(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
             }
         ),
         vol_optional(LEGACY_DOMAIN): vol.Schema(
             {
-                vol.Required(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
+                vol_optional(CONF_DISABLE_BAN_MANAGER, default=False): cv.boolean,
+                vol_optional(CONF_IP_ADDRESSES): vol.All(cv.ensure_list, [cv.string]),
             }
         ),
     },
@@ -187,10 +193,14 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         if not isinstance(key, (IPv4Address, IPv6Address)):
             return False
 
-        if _is_allowed(key, self.allowlist):
+        remote_addr = _normalize_remote_addr(key)
+        if remote_addr != key and dict.__contains__(self, remote_addr):
+            return True
+
+        if _is_allowed(remote_addr, self.allowlist):
             return False
 
-        if any(key in network for network in self.blocked_networks):
+        if _is_blocked(remote_addr, self.blocked_networks):
             return True
 
         return self.default_deny_enabled
@@ -202,16 +212,28 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         )
 
 
+def _normalize_remote_addr(remote_addr: IPAddress) -> IPAddress:
+    """Normalize runtime addresses into the family users configured."""
+    if isinstance(remote_addr, IPv6Address) and remote_addr.ipv4_mapped is not None:
+        return remote_addr.ipv4_mapped
+
+    return remote_addr
+
+
 def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:
     """Return whether a remote address is covered by the allowlist."""
-    return any(remote_addr in allowed_network for allowed_network in allowlist)
+    normalized_addr = _normalize_remote_addr(remote_addr)
+    return any(normalized_addr in allowed_network for allowed_network in allowlist)
 
 
 def _is_blocked(
     remote_addr: IPAddress, blocked_networks: tuple[IPNetwork, ...]
 ) -> bool:
     """Return whether a remote address is covered by blocked networks."""
-    return any(remote_addr in blocked_network for blocked_network in blocked_networks)
+    normalized_addr = _normalize_remote_addr(remote_addr)
+    return any(
+        normalized_addr in blocked_network for blocked_network in blocked_networks
+    )
 
 
 def _request_remote_ip(request: Request) -> IPAddress | None:
@@ -220,7 +242,7 @@ def _request_remote_ip(request: Request) -> IPAddress | None:
         return None
 
     try:
-        return ip_address(request.remote)
+        return _normalize_remote_addr(ip_address(request.remote))
     except ValueError:
         _LOGGER.debug(
             "Ignoring invalid remote address from request: %s", request.remote
@@ -955,6 +977,37 @@ def _async_delete_ip_ban_disabled_issue(hass: HomeAssistant) -> None:
     ir.async_delete_issue(hass, DOMAIN, IP_BAN_DISABLED_ISSUE_ID)
 
 
+def _yaml_disable_ban_manager(config: ConfigType) -> bool:
+    """Return whether YAML requested the emergency integration kill switch."""
+    for domain in (DOMAIN, LEGACY_DOMAIN):
+        domain_config = config.get(domain)
+        if isinstance(domain_config, dict) and domain_config.get(
+            CONF_DISABLE_BAN_MANAGER
+        ):
+            return True
+
+    return False
+
+
+def _async_update_disabled_by_yaml_issue(
+    hass: HomeAssistant, disabled_by_yaml: bool
+) -> None:
+    """Create or clear the Repair for the YAML emergency kill switch."""
+    if disabled_by_yaml:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            INTEGRATION_DISABLED_BY_YAML_ISSUE_ID,
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=INTEGRATION_DISABLED_BY_YAML_ISSUE_ID,
+        )
+        return
+
+    ir.async_delete_issue(hass, DOMAIN, INTEGRATION_DISABLED_BY_YAML_ISSUE_ID)
+
+
 def _async_update_legacy_yaml_issue(hass: HomeAssistant, config: ConfigType) -> None:
     """Create a repair when old YAML remains after migration."""
     if LEGACY_DOMAIN in config and hass.config_entries.async_entries(DOMAIN):
@@ -1265,10 +1318,9 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
     _update_entry_options(hass, **current_options)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
-    if current_options[CONF_SIDEBAR_PANEL_ENABLED]:
-        await _async_register_panel(hass)
-    else:
-        _async_remove_panel(hass)
+    await _async_register_panel(
+        hass, sidebar_enabled=bool(current_options[CONF_SIDEBAR_PANEL_ENABLED])
+    )
 
 
 def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -1677,10 +1729,18 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
     hass.http.app[KEY_STATIC_PATH_REGISTERED] = True
 
 
-async def _async_register_panel(hass: HomeAssistant) -> None:
+async def _async_register_panel(
+    hass: HomeAssistant, *, sidebar_enabled: bool = True
+) -> None:
     """Register the bundled IP Ban Manager panel."""
-    if hass.data.get(KEY_PANEL_REGISTERED):
+    if (
+        hass.data.get(KEY_PANEL_REGISTERED)
+        and hass.data.get(KEY_PANEL_SIDEBAR_ENABLED) == sidebar_enabled
+    ):
         return
+
+    if hass.data.get(KEY_PANEL_REGISTERED):
+        _async_remove_panel(hass)
 
     from homeassistant.components import panel_custom
 
@@ -1688,19 +1748,21 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         hass,
         frontend_url_path=DOMAIN,
         webcomponent_name=PANEL_WEB_COMPONENT,
-        sidebar_title=ENTRY_TITLE,
-        sidebar_icon="mdi:shield-lock-outline",
+        sidebar_title=ENTRY_TITLE if sidebar_enabled else None,
+        sidebar_icon="mdi:shield-lock-outline" if sidebar_enabled else None,
         module_url=PANEL_JS_URL,
         require_admin=True,
         config_panel_domain=DOMAIN,
     )
     hass.data[KEY_PANEL_REGISTERED] = True
+    hass.data[KEY_PANEL_SIDEBAR_ENABLED] = sidebar_enabled
 
 
 def _async_remove_panel(hass: HomeAssistant) -> None:
     """Remove the bundled panel during unload."""
     if not hass.data.pop(KEY_PANEL_REGISTERED, False):
         return
+    hass.data.pop(KEY_PANEL_SIDEBAR_ENABLED, None)
 
     from homeassistant.components import frontend
 
@@ -1709,18 +1771,27 @@ def _async_remove_panel(hass: HomeAssistant) -> None:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
+    disabled_by_yaml = _yaml_disable_ban_manager(config)
+    hass.data[KEY_DISABLED_BY_YAML] = disabled_by_yaml
+    _async_update_disabled_by_yaml_issue(hass, disabled_by_yaml)
+    if disabled_by_yaml:
+        _LOGGER.warning(
+            "IP Ban Manager is disabled by configuration.yaml emergency override"
+        )
+        return True
+
     _async_update_legacy_yaml_issue(hass, config)
 
     if hass.config_entries.async_entries(DOMAIN):
         _async_schedule_legacy_cleanup(hass)
 
     yaml_config = config.get(DOMAIN) or config.get(LEGACY_DOMAIN)
-    if yaml_config is not None:
+    if yaml_config is not None and CONF_IP_ADDRESSES in yaml_config:
         hass.async_create_task(
             hass.config_entries.flow.async_init(
                 DOMAIN,
                 context={"source": SOURCE_IMPORT},
-                data=dict(yaml_config),
+                data={CONF_IP_ADDRESSES: yaml_config[CONF_IP_ADDRESSES]},
             )
         )
 
@@ -1729,6 +1800,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
+    if hass.data.get(KEY_DISABLED_BY_YAML):
+        _LOGGER.warning(
+            "IP Ban Manager config entry setup skipped because disable_ban_manager is true"
+        )
+        _async_update_disabled_by_yaml_issue(hass, True)
+        return True
+
     _async_cleanup_entry_metadata(hass, entry)
     _async_schedule_legacy_cleanup(hass)
     await _async_cleanup_legacy_component_folder(hass)
@@ -1745,8 +1823,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
     _async_delete_ip_ban_disabled_issue(hass)
     await _async_register_static_assets(hass)
-    if _entry_sidebar_panel_enabled(entry):
-        await _async_register_panel(hass)
+    await _async_register_panel(
+        hass, sidebar_enabled=_entry_sidebar_panel_enabled(entry)
+    )
     hass.http.register_view(SilenceAllowlistedLoginNotificationsView())
     hass.http.register_view(IPBanManagerStatusView())
     hass.http.register_view(IPBanManagerManageView())
@@ -1785,6 +1864,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         SERVICE_REMOVE_ALLOWLIST_NETWORK,
         SERVICE_REMOVE_IP_BAN,
     ):
-        hass.services.async_remove(DOMAIN, service)
+        if hass.services.has_service(DOMAIN, service):
+            hass.services.async_remove(DOMAIN, service)
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     return True

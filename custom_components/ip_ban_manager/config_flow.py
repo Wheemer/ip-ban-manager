@@ -896,7 +896,6 @@ class OptionsFlow(config_entries.OptionsFlow):
         from . import (
             _apply_ban_settings,
             _async_register_panel,
-            _async_remove_panel,
             _async_replace_ip_bans,
             _update_allowlist_entry,
             _update_blocked_networks_entry,
@@ -919,10 +918,7 @@ class OptionsFlow(config_entries.OptionsFlow):
             },
         )
         _apply_ban_settings(self.hass, self._config_entry)
-        if sidebar_panel_enabled:
-            await _async_register_panel(self.hass)
-        else:
-            _async_remove_panel(self.hass)
+        await _async_register_panel(self.hass, sidebar_enabled=sidebar_panel_enabled)
         _update_allowlist_entry(self.hass, ip_addresses)
         _update_blocked_networks_entry(self.hass, blocked_networks)
         await _async_replace_ip_bans(self.hass, banned_ips)

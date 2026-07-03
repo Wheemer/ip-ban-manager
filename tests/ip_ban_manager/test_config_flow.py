@@ -495,15 +495,17 @@ async def test_options_flow_accepts_unchanged_submit(
 async def test_options_flow_can_hide_sidebar_panel(
     hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test Configure can hide the optional sidebar panel."""
+    """Test Configure can hide the sidebar while keeping the panel registered."""
     entry = await setup_options_entry(hass, tmp_path)
-    remove_called = False
+    registered_sidebar_enabled: bool | None = None
 
-    def mock_remove_panel(hass: HomeAssistant) -> None:
-        nonlocal remove_called
-        remove_called = True
+    async def mock_register_panel(
+        hass: HomeAssistant, *, sidebar_enabled: bool = True
+    ) -> None:
+        nonlocal registered_sidebar_enabled
+        registered_sidebar_enabled = sidebar_enabled
 
-    monkeypatch.setattr(ipbm, "_async_remove_panel", mock_remove_panel)
+    monkeypatch.setattr(ipbm, "_async_register_panel", mock_register_panel)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
@@ -542,7 +544,7 @@ async def test_options_flow_can_hide_sidebar_panel(
         CONF_SIDEBAR_PANEL_ENABLED: False,
     }
     assert cast(Any, entry).options[CONF_SIDEBAR_PANEL_ENABLED] is False
-    assert remove_called is True
+    assert registered_sidebar_enabled is False
 
 
 @pytest.mark.asyncio
