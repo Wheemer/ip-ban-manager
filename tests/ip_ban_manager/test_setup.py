@@ -79,6 +79,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_DISABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_NOTIFICATION_ACTION_TOKEN,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
@@ -111,16 +112,20 @@ class MockViewRequest:
         app: dict[Any, Any],
         *,
         user: object | None = None,
+        has_user: bool = True,
         query: dict[str, str] | None = None,
     ) -> None:
         """Initialize the mock view request."""
         self.app = app
         self.query = query or {}
+        self._has_user = has_user
         self._user = user if user is not None else MockAdminUser()
 
     def get(self, key: str, default: object | None = None) -> object | None:
         """Return request-scoped Home Assistant auth data."""
         if key == "hass_user":
+            if not self._has_user:
+                return default
             return self._user
         return default
 
@@ -1204,6 +1209,7 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notification(
     assert "Open settings" not in login_message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL in login_message
     assert f"{ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1" in login_message
+    assert "&token=" in login_message
     assert NOTIFICATION_ID_BAN not in existing_notifications
 
     messages = []
@@ -1220,6 +1226,62 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notification(
         "Setting allowlist with ['192.168.1.1/32', '172.17.0.0/24']",
         "Allowlisted address 192.168.1.1 failed authentication but was not banned",
     ]
+
+
+@pytest.mark.asyncio
+async def test_allowlisted_wrong_login_does_not_duplicate_numeric_reverse_name(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test numeric reverse names are not shown as duplicated host/IP text."""
+    await setup_ip_ban_manager(hass)
+    monkeypatch.setattr(
+        ipbm,
+        "gethostbyaddr",
+        lambda remote: (remote, [], [remote]),
+    )
+
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 3
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 1
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "192.168.1.1 (192.168.1.1)" not in message
+    assert "from 192.168.1.1." in message
+    assert "2/3" in message
+
+
+@pytest.mark.asyncio
+async def test_allowlisted_wrong_login_keeps_real_reverse_name(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test real reverse names still show with the numeric address."""
+    await setup_ip_ban_manager(hass)
+    monkeypatch.setattr(
+        ipbm,
+        "gethostbyaddr",
+        lambda remote: ("server.lan", [], [remote]),
+    )
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "from server.lan (192.168.1.1)." in message
 
 
 @pytest.mark.asyncio
@@ -1393,6 +1455,96 @@ async def test_silence_allowlisted_login_notifications_view_requires_admin(
 
 
 @pytest.mark.asyncio
+async def test_silence_allowlisted_login_notifications_view_accepts_action_token(
+    hass: HomeAssistant,
+) -> None:
+    """Test notification action links work without a request user."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
+    )
+    login_message = (
+        "Allowlisted login failed\n\n"
+        "192.168.1.1 is allowlisted.\n\n"
+        f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
+        f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1&token="
+        f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
+    )
+    persistent_notification.async_create(
+        hass,
+        login_message,
+        " ",
+        NOTIFICATION_ID_LOGIN,
+    )
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert NOTIFICATION_ID_LOGIN in notifications
+
+    response = await SilenceAllowlistedLoginNotificationsView().get(
+        cast(
+            Any,
+            MockViewRequest(
+                hass.http.app,
+                has_user=False,
+                query={
+                    ATTR_IP_ADDRESS: "192.168.1.1",
+                    "token": entry.data[CONF_NOTIFICATION_ACTION_TOKEN],
+                },
+            ),
+        )
+    )
+
+    assert response.status == 200
+    assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
+    assert NOTIFICATION_ID_LOGIN not in notifications
+
+
+@pytest.mark.asyncio
+async def test_silence_allowlisted_login_notifications_view_dismisses_generated_notice(
+    hass: HomeAssistant,
+) -> None:
+    """Test the generated notification action dismisses the visible notification."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
+    )
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 5
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert NOTIFICATION_ID_LOGIN in notifications
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
+
+    response = await SilenceAllowlistedLoginNotificationsView().get(
+        cast(
+            Any,
+            MockViewRequest(
+                hass.http.app,
+                has_user=False,
+                query={
+                    ATTR_IP_ADDRESS: str(remote_addr),
+                    "token": entry.data[CONF_NOTIFICATION_ACTION_TOKEN],
+                },
+            ),
+        )
+    )
+
+    assert response.status == 200
+    assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == [str(remote_addr)]
+    assert NOTIFICATION_ID_LOGIN not in notifications
+
+
+@pytest.mark.asyncio
 async def test_silence_allowlisted_login_notifications_view_can_silence_address(
     hass: HomeAssistant,
 ) -> None:
@@ -1448,13 +1600,17 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_matching_n
     """Test per-address silence dismisses matching rewritten notifications."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
+    )
     persistent_notification.async_create(
         hass,
         (
             "Allowlisted login failed\n\n"
             "192.168.1.1 is allowlisted.\n\n"
             f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1)"
+            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1&token="
+            f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
         ),
         " ",
         "ip_ban_manager_custom_allowlisted_login",
@@ -1472,6 +1628,86 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_matching_n
     assert response.status == 200
     assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
     assert "ip_ban_manager_custom_allowlisted_login" not in notifications
+
+
+@pytest.mark.asyncio
+async def test_silence_allowlisted_login_notifications_preserves_order(
+    hass: HomeAssistant,
+) -> None:
+    """Test per-address silence appends without reordering saved addresses."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: [
+                "192.168.1.2",
+                "192.168.1.1",
+            ]
+        },
+    )
+
+    response = await SilenceAllowlistedLoginNotificationsView().get(
+        cast(
+            Any,
+            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.3"}),
+        )
+    )
+
+    assert response.status == 200
+    assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == [
+        "192.168.1.2",
+        "192.168.1.1",
+        "192.168.1.3",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_silence_allowlisted_login_notifications_keeps_other_address_notices(
+    hass: HomeAssistant,
+) -> None:
+    """Test per-address silence only dismisses notices for that address."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
+    )
+    persistent_notification.async_create(
+        hass,
+        (
+            "Allowlisted login failed\n\n"
+            "192.168.1.1 is allowlisted.\n\n"
+            f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
+            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1&token="
+            f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
+        ),
+        " ",
+        "ip_ban_manager_custom_allowlisted_login_1",
+    )
+    persistent_notification.async_create(
+        hass,
+        (
+            "Allowlisted login failed\n\n"
+            "192.168.1.2 is allowlisted.\n\n"
+            f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
+            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.2&token="
+            f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
+        ),
+        " ",
+        "ip_ban_manager_custom_allowlisted_login_2",
+    )
+
+    response = await SilenceAllowlistedLoginNotificationsView().get(
+        cast(
+            Any,
+            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.1"}),
+        )
+    )
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert response.status == 200
+    assert "ip_ban_manager_custom_allowlisted_login_1" not in notifications
+    assert "ip_ban_manager_custom_allowlisted_login_2" in notifications
 
 
 @pytest.mark.asyncio
@@ -1559,6 +1795,72 @@ async def test_setup_entry_rewrites_existing_http_notifications(
     assert "**Login attempt failed**" in message
     assert "Open settings" in message
     assert "IP Ban Manager icon" not in message
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_rewrites_stale_allowlisted_notification_action(
+    hass: HomeAssistant,
+) -> None:
+    """Test stale allowlisted notifications get the per-address silence action."""
+    persistent_notification.async_create(
+        hass,
+        (
+            "## IP Ban Manager\n\n"
+            "**Allowlisted login failed**\n\n"
+            "Login attempt or request with invalid authentication from "
+            "192.168.0.108 (192.168.0.108). See the log for details.\n\n"
+            "Current failed-login count: 2/3. 192.168.0.108 is allowlisted, "
+            "so it will not be banned.\n\n"
+            "[Allowlisted login notifications](/config/integrations/"
+            "integration/ip_ban_manager)"
+        ),
+        "IP Ban Manager",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    await setup_ip_ban_manager(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "Allowlisted login notifications" not in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
+    assert f"{ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.0.108" in message
+    assert "&token=" in message
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_rewrites_stale_allowlisted_ipv6_notification_action(
+    hass: HomeAssistant,
+) -> None:
+    """Test stale IPv6 allowlisted notifications get the silence action."""
+    persistent_notification.async_create(
+        hass,
+        (
+            "## IP Ban Manager\n\n"
+            "**Allowlisted login failed**\n\n"
+            "Login attempt or request with invalid authentication from "
+            "localhost (::1). See the log for details.\n\n"
+            "Current failed-login count: 2/3. ::1 is allowlisted, "
+            "so it will not be banned.\n\n"
+            "[Allowlisted login notifications](/config/integrations/"
+            "integration/ip_ban_manager)"
+        ),
+        "IP Ban Manager",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    await setup_ip_ban_manager(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "Allowlisted login notifications" not in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
+    assert f"{ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=%3A%3A1" in message
+    assert "&token=" in message
 
 
 @pytest.mark.asyncio
@@ -2048,6 +2350,63 @@ async def test_allowlist_services_normalize_ipv4_wildcard(
     )
     check_records(caplog.records)
 
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_services_support_ipv6_bans_and_allowlist_networks(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test services accept IPv6 exact bans and allowlist networks."""
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "2001:db8::/64"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+        "2001:db8::/64",
+    ]
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_IP_BAN,
+        {ATTR_IP_ADDRESS: "2001:db8:1::25"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+
+    assert ip_address("2001:db8:1::25") in ban_manager.ip_bans_lookup
+    assert "2001:db8:1::25" in Path(ban_manager.path).read_text(encoding="utf8")
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_IP_BAN,
+        {ATTR_IP_ADDRESS: "2001:db8:1::25"},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "2001:db8::/64"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+
+    assert ip_address("2001:db8:1::25") not in ban_manager.ip_bans_lookup
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
         "192.168.1.1/32",
         "172.17.0.0/24",

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import shutil
 import sys
 from collections.abc import Awaitable, Callable, Collection, Iterable
@@ -17,6 +18,7 @@ from ipaddress import (
     ip_address,
 )
 from pathlib import Path
+from secrets import token_urlsafe
 from socket import gethostbyaddr, herror
 from tempfile import NamedTemporaryFile
 from typing import Any
@@ -76,6 +78,7 @@ from .const import (
     CONF_DISABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_NOTIFICATION_ACTION_TOKEN,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
@@ -113,6 +116,11 @@ EMERGENCY_DISABLE_FILENAME = "ip_ban_manager.disabled"
 NOTIFICATION_LINK_LABEL = "Open settings"
 ALLOWLISTED_LOGIN_SILENCE_LABEL = "Don't show for this address again"
 ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
+ATTR_TOKEN = "token"
+IPV4_IN_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])")
+IPV6_IN_TEXT = re.compile(
+    r"(?<![0-9A-Fa-f:.])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f:.%]*(?![0-9A-Fa-f:.])"
+)
 ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
@@ -294,15 +302,16 @@ async def _process_allowlisted_wrong_login(
 ) -> None:
     """Record an allowlisted failed login without letting it become a ban."""
     hass = request.app[KEY_HASS]
-    remote_host = request.remote or str(remote_addr)
+    remote_host = request.remote
     with suppress(herror):
         remote_host, _, _ = await hass.async_add_executor_job(
             gethostbyaddr, str(remote_addr)
         )
 
+    remote_display = _format_remote_display(remote_host, remote_addr)
     base_msg = (
         "Login attempt or request with invalid authentication from"
-        f" {remote_host} ({remote_addr})."
+        f" {remote_display}."
     )
     user_agent = request.headers.get("user-agent")
     log_msg = f"{base_msg} Requested URL: '{request.rel_url}'. ({user_agent})"
@@ -314,6 +323,14 @@ async def _process_allowlisted_wrong_login(
         request.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] += 1
 
     _create_allowlisted_login_notification(hass, remote_addr, notification_msg)
+
+
+def _format_remote_display(remote_host: str | None, remote_addr: IPAddress) -> str:
+    """Return a readable remote identity without duplicating numeric addresses."""
+    remote_ip = str(remote_addr)
+    if remote_host is None or remote_host == remote_ip:
+        return remote_ip
+    return f"{remote_host} ({remote_ip})"
 
 
 def _notifications_enabled(hass: HomeAssistant) -> bool:
@@ -374,20 +391,70 @@ def _with_manager_link(hass: HomeAssistant, message: str) -> str:
     return f"{message}\n\n{_manager_notification_link(hass)}"
 
 
-def _allowlisted_login_silence_url(remote_addr: IPAddress) -> str:
+def _notification_action_token(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    """Return a persistent token for notification action links."""
+    token = entry.data.get(CONF_NOTIFICATION_ACTION_TOKEN)
+    if isinstance(token, str) and token:
+        return token
+
+    token = token_urlsafe(24)
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: token}
+    )
+    return token
+
+
+def _allowlisted_login_silence_url(
+    hass: HomeAssistant, entry: ConfigEntry, remote_addr: IPAddress
+) -> str:
     """Return the per-address allowlisted-login silence URL."""
-    return f"{ALLOWLISTED_LOGIN_SILENCE_URL}?{urlencode({ATTR_IP_ADDRESS: str(remote_addr)})}"
+    query = urlencode(
+        {
+            ATTR_IP_ADDRESS: str(remote_addr),
+            ATTR_TOKEN: _notification_action_token(hass, entry),
+        }
+    )
+    return f"{ALLOWLISTED_LOGIN_SILENCE_URL}?{query}"
 
 
-def _with_allowlisted_login_silence_link(message: str, remote_addr: IPAddress) -> str:
+def _with_allowlisted_login_silence_link(
+    hass: HomeAssistant, entry: ConfigEntry, message: str, remote_addr: IPAddress
+) -> str:
     """Append the allowlisted-login silence link once."""
+    message = _strip_notification_action_links(message)
     if ALLOWLISTED_LOGIN_SILENCE_LABEL in message:
         return message
     return (
         f"{message}\n\n"
         f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-        f"({_allowlisted_login_silence_url(remote_addr)})"
+        f"({_allowlisted_login_silence_url(hass, entry, remote_addr)})"
     )
+
+
+def _strip_notification_action_links(message: str) -> str:
+    """Remove old action links before adding the current action."""
+    action_labels = (
+        NOTIFICATION_LINK_LABEL,
+        "Open integrations",
+        "Allowlisted login notifications",
+        ALLOWLISTED_LOGIN_SILENCE_LABEL,
+    )
+    return "\n".join(
+        line
+        for line in message.splitlines()
+        if not any(line.startswith(f"[{label}](") for label in action_labels)
+    ).rstrip()
+
+
+def _first_ip_address_in_text(message: str) -> IPAddress | None:
+    """Return the first IP address in notification text."""
+    for match in IPV4_IN_TEXT.findall(message):
+        with suppress(ValueError):
+            return ip_address(match)
+    for match in IPV6_IN_TEXT.findall(message):
+        with suppress(ValueError):
+            return ip_address(match.strip("[]").split("%", 1)[0])
+    return None
 
 
 def _dismiss_allowlisted_login_notifications(
@@ -400,10 +467,15 @@ def _dismiss_allowlisted_login_notifications(
     matching_ids = {NOTIFICATION_ID_LOGIN}
     for notification_id, notification in notifications.items():
         message = notification["message"]
-        if ALLOWLISTED_LOGIN_SILENCE_URL in message or (
-            remote_addr is not None
-            and str(remote_addr) in message
-            and "Allowlisted login" in message
+        message_lower = message.lower()
+        if remote_addr is None and ALLOWLISTED_LOGIN_SILENCE_URL in message:
+            matching_ids.add(notification_id)
+            continue
+        if remote_addr is None:
+            continue
+        if str(remote_addr) in message and (
+            ALLOWLISTED_LOGIN_SILENCE_URL in message
+            or "allowlisted login" in message_lower
         ):
             matching_ids.add(notification_id)
 
@@ -415,8 +487,13 @@ def _notification_heading(notification_id: str, message: str) -> str:
     """Return the short message heading for a Home Assistant HTTP notification."""
     if notification_id == NOTIFICATION_ID_BAN:
         return "IP banned"
-    if "allowlisted" in message.lower():
-        if "threshold" in message.lower():
+    message_lower = message.lower()
+    if "allowlisted" in message_lower:
+        if (
+            "repeated allowlisted login failures" in message_lower
+            or "trusted source should be reviewed" in message_lower
+            or "threshold" in message_lower
+        ):
             return "Repeated allowlisted login failures"
         return "Allowlisted login failed"
     return "Login attempt failed"
@@ -448,17 +525,29 @@ def _with_notification_heading(heading: str, message: str) -> str:
     return f"{brand_header}\n\n{heading_line}\n\n{message}"
 
 
-def _entry_silenced_allowlisted_login_ips(entry: ConfigEntry) -> set[IPAddress]:
-    """Return allowlisted addresses with low-priority login notices silenced."""
+def _entry_silenced_allowlisted_login_ip_strings(entry: ConfigEntry) -> list[str]:
+    """Return normalized silenced allowlisted-login addresses in stored order."""
     values = entry.options.get(
         CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
         entry.data.get(CONF_SILENCED_ALLOWLISTED_LOGIN_IPS, []),
     )
-    silenced: set[IPAddress] = set()
+    silenced: list[str] = []
+    seen: set[IPAddress] = set()
     for value in values if isinstance(values, list) else []:
         with suppress(ValueError):
-            silenced.add(ip_address(value))
+            address = ip_address(value)
+            if address not in seen:
+                silenced.append(str(address))
+                seen.add(address)
     return silenced
+
+
+def _entry_silenced_allowlisted_login_ips(entry: ConfigEntry) -> set[IPAddress]:
+    """Return allowlisted addresses with low-priority login notices silenced."""
+    return {
+        ip_address(address)
+        for address in _entry_silenced_allowlisted_login_ip_strings(entry)
+    }
 
 
 def _should_notify_allowlisted_login(
@@ -490,6 +579,7 @@ def _create_allowlisted_login_notification(
     if not _should_notify_allowlisted_login(hass, remote_addr, attempts):
         return
 
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     details = [base_message]
     if attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
         heading = "Repeated allowlisted login failures"
@@ -516,8 +606,10 @@ def _create_allowlisted_login_notification(
             details.append(f"{remote_addr} is allowlisted, so it will not be banned.")
 
     message = _with_notification_heading(heading, "\n\n".join(details))
-    if attempts < ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
-        message = _with_allowlisted_login_silence_link(message, remote_addr)
+    if entry is not None and attempts < ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
+        message = _with_allowlisted_login_silence_link(
+            hass, entry, message, remote_addr
+        )
     persistent_notification.async_create(
         hass,
         message,
@@ -541,9 +633,18 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         heading = _notification_heading(notification_id, notification["message"])
         message = _with_notification_heading(heading, notification["message"])
         if (
-            notification_id != NOTIFICATION_ID_LOGIN
-            or "allowlisted" not in message.lower()
+            notification_id == NOTIFICATION_ID_LOGIN
+            and "allowlisted" in message.lower()
         ):
+            if heading == "Allowlisted login failed":
+                remote_addr = _first_ip_address_in_text(message)
+                if remote_addr is not None:
+                    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+                    if entry is not None:
+                        message = _with_allowlisted_login_silence_link(
+                            hass, entry, message, remote_addr
+                        )
+        else:
             message = _with_manager_link(hass, message)
         if (
             message == notification["message"]
@@ -568,13 +669,17 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
     async def get(self, request: Request) -> Response:
         """Silence allowlisted failed-login notifications and dismiss the current notification."""
         hass = request.app[KEY_HASS]
-        user = request.get("hass_user")
-        if user is None or not user.is_admin:
-            return self.json_message("Administrator access is required.", 403)
-
         entry = hass.http.app.get(KEY_CONFIG_ENTRY)
         if entry is None:
             return Response(text="IP Ban Manager is not loaded.", status=404)
+
+        user = request.get("hass_user")
+        token = getattr(request, "query", {}).get(ATTR_TOKEN)
+        token_is_valid = bool(
+            token and token == entry.data.get(CONF_NOTIFICATION_ACTION_TOKEN)
+        )
+        if (user is None or not user.is_admin) and not token_is_valid:
+            return self.json_message("Administrator access is required.", 403)
 
         ip_address_value = getattr(request, "query", {}).get(ATTR_IP_ADDRESS)
         if ip_address_value:
@@ -583,9 +688,7 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
             except ValueError:
                 return Response(text="Invalid IP address.", status=400)
 
-            silenced_ips = [
-                str(address) for address in _entry_silenced_allowlisted_login_ips(entry)
-            ]
+            silenced_ips = _entry_silenced_allowlisted_login_ip_strings(entry)
             if str(remote_addr) not in silenced_ips:
                 silenced_ips.append(str(remote_addr))
 

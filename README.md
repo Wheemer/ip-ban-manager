@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.4.6** | Completes the IPv4/IPv6 polish pass with dual-stack local subnet detection, IPv6 notification actions, clearer exact-IP wording, and tighter per-address notification silencing. |
 | **v1.4.5** | Locks down the live panel status API and notification-silence action so both explicitly require a Home Assistant administrator. |
 | **v1.4.4** | Tightens backend lockout safety for default-deny mode, service calls, and panel/API option writes, with server-side threshold clamping. |
 | **v1.4.3** | Adds the `/config/ip_ban_manager.disabled` emergency file alongside `ip_ban_manager: disabled`, so SMB/file access can disable only IP Ban Manager without editing YAML. |
@@ -65,10 +66,10 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 Core management features include:
 
 - **Live panel:** manage Allowed IPs, Blocked IPs, Blocked networks, and options from a dedicated IP Ban Manager page, with optional Home Assistant sidebar access.
-- **Setup:** UI setup with automatic-ban controls, `127.0.0.1` safe default, detected local subnet selected by default, and YAML import for existing users.
-- **Allowed IPs:** live editable trusted IPs, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
-- **Blocked IPs:** live exact-IP block review, add, remove, and clear actions without restarting Home Assistant. Existing block timestamps are shown as readable local times and preserved when unchanged, with confirmation before clearing every blocked IP.
-- **Blocked networks:** managed CIDR or wildcard network blocks, enforced behind Home Assistant's native ban lookup without pretending `ip_bans.yaml` supports ranges.
+- **Setup:** UI setup with automatic-ban controls, `127.0.0.1` safe default, detected local IPv4/IPv6 subnets selected by default, and YAML import for existing users.
+- **Allowed IPs:** live editable trusted IPv4/IPv6 addresses, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
+- **Blocked IPs:** live exact IPv4/IPv6 block review, add, remove, and clear actions without restarting Home Assistant. Existing block timestamps are shown as readable local times and preserved when unchanged, with confirmation before clearing every blocked IP.
+- **Blocked networks:** managed IPv4/IPv6 CIDR or IPv4 wildcard network blocks, enforced behind Home Assistant's native ban lookup without pretending `ip_bans.yaml` supports ranges.
 - **Default deny:** optionally block everything outside **Allowed IPs** with a guarded checkbox instead of manually entering global block ranges.
 - **Allowed subnet auto-bans:** optional exact automatic bans for failed logins inside allowed IP ranges, useful when a broad trusted carrier/VPN subnet should bypass network blocks but individual bad-login sources should still be banned.
 - **Advanced controls:** lockout-sensitive choices are separated from everyday options and marked clearly in the live panel.
@@ -106,7 +107,7 @@ If the button does not work, add `Wheemer/ip-ban-manager` to HACS manually as a 
 
 ## Config
 
-After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. Setup starts with the important controls only: automatic bans, the login-attempt threshold, and allowlist safe defaults for `127.0.0.1` plus, when detected, Home Assistant's local subnet. Both safe defaults are selected by default when available. Add or remove trusted LAN and remote IPs from **Configure** after setup.
+After installing, restart Home Assistant once so the custom integration is loaded. Then add the integration from **Settings > Devices & services > Add integration**. Setup starts with the important controls only: automatic bans, the login-attempt threshold, and allowlist safe defaults for `127.0.0.1` plus, when detected, Home Assistant's local IPv4/IPv6 subnets. Both safe defaults are selected by default when available. Add or remove trusted LAN and remote IPs from **Configure** after setup.
 
 The visible integration name is **IP Ban Manager** and automation/service calls use `ip_ban_manager.*`. Normal setup is done from the UI; existing Home Assistant `http:` IP-ban settings can stay in `configuration.yaml`. Leftover `ban_allowlist:` allowlist YAML is absorbed automatically when IP Ban Manager first loads.
 
@@ -152,16 +153,16 @@ The options UI is the main workspace. Allowlist, ban list, and automatic-ban set
 Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 
 - add safe defaults with checkboxes inside **Allowed IPs**
-- edit **Allowed IPs**, one IP address, CIDR network, or IPv4 wildcard network per line
+- edit **Allowed IPs**, one IPv4/IPv6 address, CIDR network, or IPv4 wildcard network per line
 - enable or disable new automatic bans, automatic ban notifications, and the login-attempt threshold under **Blocked IPs**
 - optionally allow automatic exact bans inside **Allowed IPs** for broad trusted subnets
 - edit **Blocked entries**, one exact IP address per line
-- edit **Blocked networks**, one CIDR network or IPv4 wildcard network per line
+- edit **Blocked networks**, one IPv4/IPv6 CIDR network or IPv4 wildcard network per line
 - enable **Block everything outside Allowed IPs** for guarded default-deny mode
 - view existing block timestamps as readable local times in **Blocked IPs**
 - clear exact bans or managed blocked networks by emptying the matching field and submitting
 
-Wildcard blocked-network entries such as `192.168.1.*` are saved as `192.168.1.0/24`. Exact banned IPs stay in Home Assistant's native live ban manager and `ip_bans.yaml`; CIDR and wildcard blocked networks are stored by IP Ban Manager and enforced behind the same native ban lookup. Allowed entries win over managed blocked networks, so you can block a subnet while keeping a trusted address allowed.
+Wildcard blocked-network entries such as `192.168.1.*` are saved as `192.168.1.0/24`. IPv6 entries should be entered as normal addresses or CIDR networks, such as `2001:db8::1` or `2001:db8::/64`. Exact banned IPs stay in Home Assistant's native live ban manager and `ip_bans.yaml`; CIDR and wildcard blocked networks are stored by IP Ban Manager and enforced behind the same native ban lookup. Allowed entries win over managed blocked networks, so you can block a subnet while keeping a trusted address allowed.
 
 This gives you the practical behavior people expect from subnet banning without pretending Home Assistant's native `ip_bans.yaml` supports ranges. Exact IPs remain ordinary Home Assistant bans; managed networks are a small runtime layer that checks the same request path and still respects the allowlist first.
 

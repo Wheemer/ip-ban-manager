@@ -254,9 +254,9 @@ class IPBanManagerPanel extends HTMLElement {
       ${this._error ? `<div class="error">${this._escape(this._error)}</div>` : ""}
       <div class="grid">
         ${this._optionsSection(settings)}
-        ${this._listSection("Allowed IPs", "Trusted addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IP address, CIDR, or wildcard")}
+        ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard")}
         ${this._banSection(status.banned_ips)}
-        ${this._listSection("Blocked Networks", "Managed CIDR or wildcard networks blocked without writing them into ip_bans.yaml.", settings.blocked_networks, "remove_blocked_network", "add_blocked_network", "CIDR or wildcard network")}
+        ${this._listSection("Blocked Networks", "Managed IPv4/IPv6 CIDR or IPv4 wildcard networks, enforced without writing ranges into ip_bans.yaml.", settings.blocked_networks, "remove_blocked_network", "add_blocked_network", "CIDR or IPv4 wildcard network")}
       </div>
     `;
     this._wireEvents();
@@ -288,10 +288,10 @@ class IPBanManagerPanel extends HTMLElement {
       <section>
         <h2>Blocked IPs</h2>
         <div class="body">
-          <p class="hint">Home Assistant's native blocked IP list, written oldest first in ip_bans.yaml.</p>
+          <p class="hint">Home Assistant's native exact IPv4/IPv6 block list, written oldest first in ip_bans.yaml.</p>
           ${this._rows(rows, "remove_ban")}
           <form data-action="add_ban">
-            <input name="value" placeholder="IP address" autocomplete="off">
+            <input name="value" placeholder="IPv4/IPv6 address" autocomplete="off">
             <button class="primary" ${this._busy ? "disabled" : ""}>Block</button>
           </form>
         </div>

@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.4.6
+
+IP Ban Manager 1.4.6 tightens the notification action path and completes the IPv4/IPv6 polish pass before the next public release.
+
+### Fixed
+
+- The **Don't show for this address again** notification action now preserves the saved silenced-address order instead of rebuilding it from an unordered set.
+- Per-address allowlisted-login notification silencing now dismisses only matching notifications for that IP address.
+- Rewritten allowlisted-login notifications now detect IPv6 addresses when adding the per-address silence action.
+- Exact blocked-IP validation text now correctly says exact IPv4 or IPv6 addresses only; CIDR ranges and wildcards belong in **Blocked networks**.
+
+### Improved
+
+- First-run local-network detection now considers useful IPv4 and IPv6 subnets from Home Assistant's enabled/default adapters.
+- Loopback, link-local, multicast, and unspecified detected networks are still ignored so the automatic safe default stays conservative.
+- README and service descriptions now spell out IPv4/IPv6 support clearly, while keeping IPv4 wildcard shorthand documented as IPv4-only.
+
+### Validation
+
+- Added regression coverage for dual-stack local subnet detection and first-run setup imports.
+- Added regression coverage for IPv6 Allowed IPs, exact Blocked IPs, Blocked Networks, services, and allowlisted-login notification actions.
+- Bumped the manifest version to `1.4.6` for HACS update detection.
+
 ## v1.4.5
 
 IP Ban Manager 1.4.5 locks down the live management API used by the bundled panel and notification actions.

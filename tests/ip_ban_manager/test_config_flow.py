@@ -80,6 +80,11 @@ async def detected_subnets(hass: HomeAssistant) -> list[str]:
     return ["192.168.1.0/24"]
 
 
+async def detected_dual_stack_subnets(hass: HomeAssistant) -> list[str]:
+    """Return detected IPv4 and IPv6 subnets for config-flow tests."""
+    return ["192.168.1.0/24", "fd12:3456:789a::/64"]
+
+
 async def mixed_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
     """Return mixed network adapters for subnet detection tests."""
     return [
@@ -90,7 +95,7 @@ async def mixed_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
             "auto": True,
             "default": False,
             "ipv4": [{"address": "127.0.0.1", "network_prefix": 8}],
-            "ipv6": [],
+            "ipv6": [{"address": "::1", "network_prefix": 128}],
         },
         {
             "name": "eth0",
@@ -99,7 +104,10 @@ async def mixed_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
             "auto": True,
             "default": True,
             "ipv4": [{"address": "192.168.1.40", "network_prefix": 24}],
-            "ipv6": [],
+            "ipv6": [
+                {"address": "fe80::1234", "network_prefix": 64},
+                {"address": "fd12:3456:789a::40", "network_prefix": 64},
+            ],
         },
         {
             "name": "fallback",
@@ -108,7 +116,7 @@ async def mixed_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
             "auto": True,
             "default": False,
             "ipv4": [{"address": "169.254.1.2", "network_prefix": 16}],
-            "ipv6": [],
+            "ipv6": [{"address": "ff02::1", "network_prefix": 16}],
         },
     ]
 
@@ -144,11 +152,12 @@ async def setup_options_entry(hass: HomeAssistant, tmp_path: Path) -> MockConfig
 async def test_detect_home_assistant_subnets(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test subnet detection keeps only useful enabled IPv4 networks."""
+    """Test subnet detection keeps only useful enabled local networks."""
     monkeypatch.setattr(ban_config_flow, "async_get_adapters", mixed_adapters)
 
     assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
-        "192.168.1.0/24"
+        "192.168.1.0/24",
+        "fd12:3456:789a::/64",
     ]
 
 
@@ -250,6 +259,44 @@ async def test_user_flow_can_add_detected_subnet(
     assert result["type"] == "create_entry"
     assert result["data"] == expected_setup_data(
         [*DEFAULT_ALLOWED_IPS, "192.168.1.0/24"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_user_flow_can_add_detected_ipv4_and_ipv6_subnets(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test first-run setup can add detected IPv4 and IPv6 local subnets."""
+    await load_ip_ban_manager(hass)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_dual_stack_subnets,
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+    )
+
+    assert result["type"] == "form"
+    assert result["description_placeholders"]["home_assistant_subnets"] == (
+        "192.168.1.0/24\nfd12:3456:789a::/64\n"
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.CONF_QUICK_ALLOWLIST: [
+                ban_config_flow.QUICK_ALLOW_LOCALHOST,
+                ban_config_flow.QUICK_ALLOW_LOCAL_NETWORK,
+            ],
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == expected_setup_data(
+        [*DEFAULT_ALLOWED_IPS, "192.168.1.0/24", "fd12:3456:789a::/64"]
     )
 
 
@@ -660,6 +707,42 @@ async def test_options_flow_normalizes_ipv4_wildcard_addresses(
     assert result["type"] == "create_entry"
     assert result["data"] == expected_options_data(["192.168.50.0/24"])
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.50.0/24"]
+
+
+@pytest.mark.asyncio
+async def test_options_flow_accepts_ipv6_addresses_and_networks(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test Configure accepts IPv6 allowed entries, exact bans, and networks."""
+    entry = await setup_options_entry(hass, tmp_path)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "2001:db8::/64\n::1"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "2001:db8:1::25",
+                CONF_BLOCKED_NETWORKS: "2001:db8:2::/64",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {
+        **expected_options_data(["2001:db8::/64", "::1"]),
+        CONF_BLOCKED_NETWORKS: ["2001:db8:2::/64"],
+    }
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "2001:db8::/64",
+        "::1/128",
+    ]
+    assert ip_address("2001:db8:1::25") in ban_manager.ip_bans_lookup
+    assert ip_address("2001:db8:2::10") in ban_manager.ip_bans_lookup
+    assert ip_address("2001:db8::10") not in ban_manager.ip_bans_lookup
 
 
 @pytest.mark.asyncio

@@ -630,20 +630,20 @@ def _apply_quick_allowlist_options(
 
 
 async def _async_detect_home_assistant_subnets(hass: HomeAssistant) -> list[str]:
-    """Detect local IPv4 networks from Home Assistant's enabled adapters."""
+    """Detect useful local networks from Home Assistant's enabled adapters."""
     adapters = await async_get_adapters(hass)
     enabled_adapters = [adapter for adapter in adapters if adapter["enabled"]]
     default_adapters = [
         adapter
         for adapter in enabled_adapters
-        if adapter["default"] and adapter["ipv4"]
+        if adapter["default"] and (adapter["ipv4"] or adapter["ipv6"])
     ]
     candidate_adapters = default_adapters or enabled_adapters
     networks: list[str] = []
     seen: set[str] = set()
 
     for adapter in candidate_adapters:
-        for address in adapter["ipv4"]:
+        for address in (*adapter["ipv4"], *adapter["ipv6"]):
             interface = ip_interface(
                 f"{address['address']}/{address['network_prefix']}"
             )
