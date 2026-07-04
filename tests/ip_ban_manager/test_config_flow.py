@@ -212,7 +212,10 @@ async def test_user_flow_absorbs_legacy_entry(hass: HomeAssistant) -> None:
 
     assert result["type"] == "create_entry"
     assert result["title"] == "IP Ban Manager"
-    assert result["data"] == {CONF_IP_ADDRESSES: ["127.0.0.1", "192.168.1.0/24"]}
+    assert result["data"] == {
+        CONF_IP_ADDRESSES: ["127.0.0.1", "192.168.1.0/24"],
+        ban_config_flow.CONF_LEGACY_ENTRY_ID: legacy_entry.entry_id,
+    }
 
 
 @pytest.mark.asyncio

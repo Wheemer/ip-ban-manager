@@ -38,6 +38,7 @@ from .const import (
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_IP_ADDRESSES,
+    CONF_LEGACY_ENTRY_ID,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_SIDEBAR_PANEL_ENABLED,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
@@ -679,6 +680,7 @@ def _legacy_entry_data(config_entry: config_entries.ConfigEntry) -> dict[str, An
     """Return a new-domain config payload from a legacy config entry."""
     data = dict(config_entry.data)
     data[CONF_IP_ADDRESSES] = _validate_ip_addresses(_current_addresses(config_entry))
+    data[CONF_LEGACY_ENTRY_ID] = config_entry.entry_id
     return data
 
 

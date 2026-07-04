@@ -77,6 +77,7 @@ from .const import (
     CONF_DISABLE_BAN_MANAGER,
     CONF_DISABLED,
     CONF_IP_ADDRESSES,
+    CONF_LEGACY_ENTRY_ID,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_NOTIFICATION_ACTION_TOKEN,
     CONF_SIDEBAR_PANEL_ENABLED,
@@ -1468,6 +1469,11 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
 
 def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Clean stale options without changing live ban state."""
+    data = dict(entry.data)
+    legacy_entry_id = data.pop(CONF_LEGACY_ENTRY_ID, None)
+    if legacy_entry_id is not None:
+        hass.config_entries.async_update_entry(entry, data=data)
+
     if entry.title in LEGACY_ENTRY_TITLES:
         hass.config_entries.async_update_entry(entry, title=ENTRY_TITLE)
 
@@ -1475,6 +1481,19 @@ def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> No
         options = dict(entry.options)
         options.pop(CONF_BANNED_IPS, None)
         hass.config_entries.async_update_entry(entry, options=options)
+
+    if isinstance(legacy_entry_id, str):
+        legacy_entry = hass.config_entries.async_get_entry(legacy_entry_id)
+        if legacy_entry is not None and legacy_entry.domain == LEGACY_DOMAIN:
+            _LOGGER.info("Removing migrated legacy ban_allowlist config entry")
+
+            async def _remove_migrated_legacy_entry() -> None:
+                if hass.config_entries.async_get_entry(legacy_entry_id) is None:
+                    return
+                with suppress(UnknownEntry):
+                    await hass.config_entries.async_remove(legacy_entry_id)
+
+            hass.async_create_task(_remove_migrated_legacy_entry())
 
 
 @callback

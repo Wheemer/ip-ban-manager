@@ -78,6 +78,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_DISABLE_BAN_MANAGER,
     CONF_DISABLED,
     CONF_IP_ADDRESSES,
+    CONF_LEGACY_ENTRY_ID,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_NOTIFICATION_ACTION_TOKEN,
     CONF_SIDEBAR_PANEL_ENABLED,
@@ -514,6 +515,40 @@ async def test_setup_entry_removes_leftover_legacy_entry(
     await hass.async_block_till_done()
     check_records(caplog.records)
 
+    assert not hass.config_entries.async_entries(LEGACY_DOMAIN)
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_removes_migrated_legacy_entry_and_cleans_marker(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test setup removes the exact legacy entry captured by config flow."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    legacy_entry = MockConfigEntry(
+        domain=LEGACY_DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    legacy_entry.add_to_hass(hass)
+    target_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["192.168.1.1"],
+            CONF_LEGACY_ENTRY_ID: legacy_entry.entry_id,
+        },
+    )
+    target_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(target_entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    stored_entry = hass.config_entries.async_get_entry(target_entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.data == {CONF_IP_ADDRESSES: ["192.168.1.1"]}
     assert not hass.config_entries.async_entries(LEGACY_DOMAIN)
 
 

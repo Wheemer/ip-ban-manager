@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.4.7
+
+IP Ban Manager 1.4.7 tightens the legacy upgrade path so old installs finish migrating without leaving a dead `ban_allowlist` card behind.
+
+### Fixed
+
+- When the UI setup flow absorbs an old `ban_allowlist` config entry, IP Ban Manager now records that exact legacy entry and removes it automatically after the new `ip_ban_manager` entry starts.
+- The one-time migration marker is scrubbed from the new config entry immediately after setup, so the stored entry stays clean after migration.
+- Existing fallback cleanup for leftover legacy entries and stale `custom_components/ban_allowlist` folders remains in place.
+
+### Validation
+
+- Added regression coverage for config-flow legacy absorption, exact old-entry removal, and migration-marker cleanup.
+- Bumped the manifest version to `1.4.7` for HACS update detection.
+
 ## v1.4.6
 
 IP Ban Manager 1.4.6 tightens the notification action path and completes the IPv4/IPv6 polish pass before the next public release.
