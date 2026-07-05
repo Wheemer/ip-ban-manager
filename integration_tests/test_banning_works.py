@@ -109,6 +109,20 @@ def configure_ha(allowlist: list[str], ip_ban_enabled: bool = True) -> None:
         )
 
     subprocess.check_call([*DOCKER_COMPOSE, "down"])
+    subprocess.check_call(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "-v",
+            f"{config_folder.resolve()}:/config",
+            f"ghcr.io/home-assistant/home-assistant:{os.environ['HA_VERSION']}",
+            "chown",
+            "-R",
+            f"{os.getuid()}:{os.getgid()}",
+            "/config",
+        ]
+    )
 
     for dirpath, dirnames, filenames in config_folder.walk(top_down=True):
         if "custom_components" in dirnames:
