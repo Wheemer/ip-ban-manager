@@ -4,7 +4,6 @@ import os
 import shutil
 import subprocess
 import time
-from importlib.util import find_spec
 from pathlib import Path
 
 import requests
@@ -46,29 +45,6 @@ if new_custom_components.exists():
 shutil.copytree(
     root.joinpath("custom_components", "ip_ban_manager"), new_custom_components
 )
-
-
-def prepare_dependency(package_name: str) -> None:
-    """Copy a test dependency into Home Assistant's config deps folder."""
-    spec = find_spec(package_name)
-    if spec is None or spec.origin is None:
-        raise RuntimeError(f"{package_name} is required for integration tests")
-
-    package_path = Path(spec.origin).parent
-    deps_folder.mkdir(exist_ok=True)
-    target_path = deps_folder / package_path.name
-    if target_path.exists():
-        shutil.rmtree(target_path)
-    shutil.copytree(package_path, target_path)
-
-    for dist_info in package_path.parent.glob(f"{package_name}-*.dist-info"):
-        target_dist_info = deps_folder / dist_info.name
-        if target_dist_info.exists():
-            shutil.rmtree(target_dist_info)
-        shutil.copytree(dist_info, target_dist_info)
-
-
-prepare_dependency("maxminddb")
 
 
 def wait_for_http(port: int, host: str = "localhost", timeout: float = 20.0):
@@ -160,7 +136,7 @@ def configure_ha(allowlist: list[str], ip_ban_enabled: bool = True) -> None:
 
     subprocess.check_call(
         [*DOCKER_COMPOSE, "up", "-d"],
-        env={**os.environ, "UID": str(os.getuid()), "GID": str(os.getgid())},
+        env=os.environ.copy(),
     )
     wait_for_http(8123)
     wait_for_log_line("Home Assistant initialized")
