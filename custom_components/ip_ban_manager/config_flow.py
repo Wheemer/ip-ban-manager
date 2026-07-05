@@ -252,9 +252,9 @@ def _text_selector() -> selector.TextSelector:
 def _allowed_ips_help_text() -> str:
     """Return static guidance for the allowed entries textarea."""
     return (
-        "Trusted IP addresses or networks that should never be banned. Use "
-        "one entry per line. CIDR and IPv4 wildcard networks like "
-        "192.168.1.* are supported."
+        "Trusted IPv4/IPv6 addresses and networks that should never be "
+        "banned. Use one entry per line. CIDR networks and IPv4 wildcards "
+        "like 192.168.1.* are supported."
     )
 
 
@@ -268,9 +268,9 @@ def _allowed_ips_help_selector() -> selector.ConstantSelector:
 def _banned_ips_help_text() -> str:
     """Return static guidance for the banned entries textarea."""
     return (
-        "Currently blocked IP addresses. Existing rows show the block time for "
-        "review; new rows can be just an IP. Leave this empty to clear all "
-        "blocked IPs."
+        "Currently blocked exact IPv4/IPv6 addresses. Existing rows show the "
+        "block time for review; new rows can be just an IP. Leave this empty "
+        "to clear all blocked IPs."
     )
 
 
@@ -284,8 +284,9 @@ def _banned_ips_help_selector() -> selector.ConstantSelector:
 def _blocked_networks_help_text() -> str:
     """Return static guidance for the blocked network textarea."""
     return (
-        "CIDR networks or IPv4 wildcard networks to block without writing them "
-        "to Home Assistant's ip_bans.yaml. Allowed entries still win."
+        "IPv4/IPv6 CIDR networks or IPv4 wildcard networks to block without "
+        "writing them to Home Assistant's ip_bans.yaml. Allowed entries still "
+        "win."
     )
 
 

@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.4.8** | Bumps the bundled panel asset so Home Assistant reloads the IPv4/IPv6 panel wording, and aligns Configure helper text with the live panel. |
 | **v1.4.7** | Tightens the legacy upgrade path so old `ban_allowlist` config entries are absorbed and removed automatically after IP Ban Manager starts. |
 | **v1.4.6** | Completes the IPv4/IPv6 polish pass with dual-stack local subnet detection, IPv6 notification actions, clearer exact-IP wording, and tighter per-address notification silencing. |
 | **v1.4.5** | Locks down the live panel status API and notification-silence action so both explicitly require a Home Assistant administrator. |

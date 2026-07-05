@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.4.8
+
+IP Ban Manager 1.4.8 makes the already-published IPv4/IPv6 UI wording reliably visible after HACS updates.
+
+### Fixed
+
+- Bumped the bundled panel web component and static asset URL from `panel-v9.js` to `panel-v10.js`, forcing Home Assistant and browsers to load the current panel instead of a stale cached copy.
+- Updated the Configure dialog helper text so **Allowed IPs**, **Blocked IPs**, and **Blocked networks** all explicitly describe IPv4/IPv6 support.
+
+### Validation
+
+- Verified the panel asset served from Home Assistant includes the IPv4/IPv6 wording and `ip-ban-manager-panel-v10` after installation.
+- Bumped the manifest version to `1.4.8` for HACS update detection.
+
 ## v1.4.7
 
 IP Ban Manager 1.4.7 tightens the legacy upgrade path so old installs finish migrating without leaving a dead `ban_allowlist` card behind.

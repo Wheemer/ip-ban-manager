@@ -432,4 +432,4 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define("ip-ban-manager-panel-v9", IPBanManagerPanel);
+customElements.define("ip-ban-manager-panel-v10", IPBanManagerPanel);
