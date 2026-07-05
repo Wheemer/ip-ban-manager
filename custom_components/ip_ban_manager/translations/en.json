@@ -13,6 +13,7 @@
           "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
           "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
           "default_deny_enabled": "Block everything outside Allowed IPs",
+          "geoip_enabled": "GeoIP location labels",
           "sidebar_panel_enabled": "Show in sidebar"
         }
       }
@@ -51,6 +52,7 @@
               "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
               "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
               "default_deny_enabled": "Block everything outside Allowed IPs",
+              "geoip_enabled": "GeoIP location labels",
               "sidebar_panel_enabled": "Show in sidebar",
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips_help": "",

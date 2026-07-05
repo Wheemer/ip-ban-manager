@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.5.0
+
+IP Ban Manager 1.5.0 adds optional local GeoIP location labels for public IP addresses and tightens the allowlisted-login notification action.
+
+### Added
+
+- Added a **GeoIP location labels** option to the live panel and Configure flow.
+- When enabled, IP Ban Manager downloads DB-IP City Lite to `/config/ip_ban_manager/geoip/dbip-city-lite.mmdb` and reads it locally.
+- Blocked-IP rows and IP Ban Manager notifications can show approximate city/country labels for public IPs, with a quiet DB-IP attribution footer in notifications and a linked DB-IP City Lite credit in the panel.
+
+### Fixed
+
+- Hardened **Don't show for this address again** so it dismisses matching allowlisted-login notifications even when the visible message has been rebranded, rewritten, or only carries the address inside the action URL.
+- New **Don't show for this address again** links now open the admin-only IP Ban Manager panel and use the admin-protected manage API; the token endpoint remains only as a compatibility fallback for older notifications.
+- The bundled panel is registered with Home Assistant's `require_admin` flag, so non-admin users cannot open the IP Ban Manager panel.
+- Bumped the bundled panel web component and static asset URL to `panel-v18.js` so Home Assistant loads the current GeoIP panel wording, credit area, quiet background refreshes, and admin-only notification action.
+
+### Privacy
+
+- No online IP lookup is made while handling logins, bans, notifications, or panel status.
+- Private, loopback, and local-network addresses are skipped.
+
+### Validation
+
+- Added regression coverage for GeoIP panel status, enabling the option, notification location text, and encoded allowlisted-login notification action dismissal.
+- Bumped the manifest version to `1.5.0` for HACS update detection.
+
 ## v1.4.8
 
 IP Ban Manager 1.4.8 makes the already-published IPv4/IPv6 UI wording reliably visible after HACS updates.

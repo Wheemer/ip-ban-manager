@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import time
+from importlib.util import find_spec
 from pathlib import Path
 
 import requests
@@ -35,6 +36,7 @@ DOCKER_COMPOSE = docker_compose_command()
 
 config_folder = Path("config")
 ban_ip_path = config_folder.joinpath("ip_bans.yaml")
+deps_folder = config_folder.joinpath("deps")
 
 root = Path(__file__).parent.parent
 new_custom_components = config_folder.joinpath("custom_components", "ip_ban_manager")
@@ -44,6 +46,29 @@ if new_custom_components.exists():
 shutil.copytree(
     root.joinpath("custom_components", "ip_ban_manager"), new_custom_components
 )
+
+
+def prepare_dependency(package_name: str) -> None:
+    """Copy a test dependency into Home Assistant's config deps folder."""
+    spec = find_spec(package_name)
+    if spec is None or spec.origin is None:
+        raise RuntimeError(f"{package_name} is required for integration tests")
+
+    package_path = Path(spec.origin).parent
+    deps_folder.mkdir(exist_ok=True)
+    target_path = deps_folder / package_path.name
+    if target_path.exists():
+        shutil.rmtree(target_path)
+    shutil.copytree(package_path, target_path)
+
+    for dist_info in package_path.parent.glob(f"{package_name}-*.dist-info"):
+        target_dist_info = deps_folder / dist_info.name
+        if target_dist_info.exists():
+            shutil.rmtree(target_dist_info)
+        shutil.copytree(dist_info, target_dist_info)
+
+
+prepare_dependency("maxminddb")
 
 
 def wait_for_http(port: int, host: str = "localhost", timeout: float = 20.0):
@@ -112,6 +137,8 @@ def configure_ha(allowlist: list[str], ip_ban_enabled: bool = True) -> None:
     for dirpath, dirnames, filenames in config_folder.walk(top_down=True):
         if "custom_components" in dirnames:
             dirnames.remove("custom_components")
+        if "deps" in dirnames:
+            dirnames.remove("deps")
         keep_filenames = {
             "configuration.yaml.j2",
             "configuration.yaml",

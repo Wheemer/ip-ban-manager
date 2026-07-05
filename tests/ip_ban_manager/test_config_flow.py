@@ -32,6 +32,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
+    CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_SIDEBAR_PANEL_ENABLED,
@@ -65,6 +66,7 @@ def expected_options_data(
         CONF_ALLOWLISTED_LOGINS_CAN_BAN: False,
         CONF_DEFAULT_DENY_ENABLED: False,
         CONF_SIDEBAR_PANEL_ENABLED: True,
+        CONF_GEOIP_ENABLED: False,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: threshold,
         CONF_BLOCKED_NETWORKS: [],
     }
@@ -595,6 +597,55 @@ async def test_options_flow_can_hide_sidebar_panel(
     }
     assert cast(Any, entry).options[CONF_SIDEBAR_PANEL_ENABLED] is False
     assert registered_sidebar_enabled is False
+
+
+@pytest.mark.asyncio
+async def test_options_flow_can_enable_geoip(
+    hass: HomeAssistant, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test Configure can enable GeoIP after downloading the local database."""
+    entry = await setup_options_entry(hass, tmp_path)
+    downloaded = False
+
+    async def mock_download_geoip_database(mock_hass: HomeAssistant) -> None:
+        nonlocal downloaded
+        downloaded = mock_hass is hass
+
+    monkeypatch.setattr(
+        ipbm, "_async_download_geoip_database", mock_download_geoip_database
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.SECTION_ALLOWED_IPS: {
+                CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24",
+            },
+            ban_config_flow.SECTION_BANNED_IPS: {
+                ban_config_flow.CONF_BAN_OPTIONS: [
+                    ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
+                    ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX,
+                    ban_config_flow.CONF_GEOIP_CHECKBOX,
+                ],
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == {
+        **expected_options_data(["192.168.1.1", "172.17.0.0/24"]),
+        CONF_GEOIP_ENABLED: True,
+    }
+    assert downloaded
+    assert cast(Any, entry).options[CONF_GEOIP_ENABLED] is True
 
 
 @pytest.mark.asyncio

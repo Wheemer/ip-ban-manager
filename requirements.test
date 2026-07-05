@@ -223,6 +223,8 @@ mashumaro==3.22
     # via
     #   aiohasupervisor
     #   webrtc-models
+maxminddb==3.1.1
+    # via -r requirements.test.in
 mock-open==1.4.0
     # via pytest-homeassistant-custom-component
 multidict==6.7.1

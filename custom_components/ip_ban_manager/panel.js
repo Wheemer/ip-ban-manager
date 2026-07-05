@@ -9,7 +9,9 @@ class IPBanManagerPanel extends HTMLElement {
 
     if (!this._loaded) {
       this._loaded = true;
-      this._load();
+      if (!this._handleInitialAction()) {
+        this._load();
+      }
     }
   }
 
@@ -34,27 +36,39 @@ class IPBanManagerPanel extends HTMLElement {
       headers: { "Content-Type": "application/json" },
       body: data ? JSON.stringify(data) : undefined,
     });
-    const body = await response.json();
+    const body = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(body.message || response.statusText);
+      throw new Error(body.message || response.statusText || `HTTP ${response.status}`);
     }
     return body;
   }
 
-  async _load() {
-    if (this._busy || this._isEditing()) {
+  async _load({ silent = false } = {}) {
+    if (this._busy || this._loading || this._isEditing()) {
       return;
     }
-    this._busy = true;
-    this._error = "";
-    this._render();
+    const canStayQuiet = silent && this._data;
+    let loaded = false;
+    this._loading = true;
+    if (!canStayQuiet) {
+      this._busy = true;
+      this._error = "";
+      this._render();
+    }
     try {
       this._data = await this._api("GET", "ip_ban_manager/status");
+      this._error = "";
+      loaded = true;
     } catch (err) {
-      this._error = err.message || String(err);
+      if (!canStayQuiet) {
+        this._error = this._errorMessage(err);
+      }
     } finally {
+      this._loading = false;
       this._busy = false;
-      this._render();
+      if (!canStayQuiet || loaded) {
+        this._render();
+      }
     }
   }
 
@@ -63,7 +77,7 @@ class IPBanManagerPanel extends HTMLElement {
       return;
     }
     window.clearTimeout(this._loadTimer);
-    this._loadTimer = window.setTimeout(() => this._load(), 300);
+    this._loadTimer = window.setTimeout(() => this._load({ silent: true }), 300);
   }
 
   async _post(action, extra = {}) {
@@ -74,11 +88,56 @@ class IPBanManagerPanel extends HTMLElement {
       await this._api("POST", "ip_ban_manager/manage", { action, ...extra });
       this._data = await this._api("GET", "ip_ban_manager/status");
     } catch (err) {
-      this._error = err.message || String(err);
+      this._error = this._errorMessage(err);
     } finally {
       this._busy = false;
       this._render();
     }
+  }
+
+  _handleInitialAction() {
+    if (this._initialActionHandled) {
+      return false;
+    }
+    this._initialActionHandled = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    if (action !== "silence_allowlisted_login") {
+      return false;
+    }
+
+    const ipAddress = params.get("ip_address");
+    if (!ipAddress) {
+      return false;
+    }
+
+    this._runInitialAction(action, {
+      value: ipAddress,
+      notification_id: params.get("notification_id") || undefined,
+    });
+    return true;
+  }
+
+  async _runInitialAction(action, payload) {
+    await this._post(action, payload);
+    window.history.replaceState(null, "", window.location.pathname);
+  }
+
+  _errorMessage(err) {
+    if (typeof err === "string") {
+      return err;
+    }
+    if (err?.message) {
+      return err.message;
+    }
+    if (err?.body?.message) {
+      return err.body.message;
+    }
+    if (err?.error) {
+      return err.error;
+    }
+    return "Request failed.";
   }
 
   _renderShell() {
@@ -198,6 +257,39 @@ class IPBanManagerPanel extends HTMLElement {
           margin-top: 14px;
           max-width: 180px;
         }
+        .geoip-status {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-top: 14px;
+          padding: 10px 12px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+        }
+        .geoip-status div { display: grid; gap: 2px; }
+        .geoip-status small {
+          color: var(--secondary-text-color);
+          font-size: 13px;
+          line-height: 1.35;
+        }
+        .geoip-status a {
+          color: var(--primary-color);
+          text-decoration: none;
+        }
+        .geoip-status a:hover { text-decoration: underline; }
+        .subsection {
+          margin-top: 18px;
+          padding: 12px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+        }
+        .subsection h3 {
+          margin: 0 0 8px;
+          font-size: 15px;
+        }
         .actions {
           display: flex;
           justify-content: flex-end;
@@ -216,6 +308,7 @@ class IPBanManagerPanel extends HTMLElement {
           .grid, .options { grid-template-columns: 1fr; }
           form { grid-template-columns: 1fr; }
           .threshold { max-width: none; }
+          .geoip-status { align-items: flex-start; flex-direction: column; }
         }
       </style>
       <div class="wrap">
@@ -254,7 +347,7 @@ class IPBanManagerPanel extends HTMLElement {
       ${this._error ? `<div class="error">${this._escape(this._error)}</div>` : ""}
       <div class="grid">
         ${this._optionsSection(settings)}
-        ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard")}
+        ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard", this._silencedAllowlistedLogins(settings))}
         ${this._banSection(status.banned_ips)}
         ${this._listSection("Blocked Networks", "Managed IPv4/IPv6 CIDR or IPv4 wildcard networks, enforced without writing ranges into ip_bans.yaml.", settings.blocked_networks, "remove_blocked_network", "add_blocked_network", "CIDR or IPv4 wildcard network")}
       </div>
@@ -262,7 +355,7 @@ class IPBanManagerPanel extends HTMLElement {
     this._wireEvents();
   }
 
-  _listSection(title, hint, rows, removeAction, addAction, placeholder) {
+  _listSection(title, hint, rows, removeAction, addAction, placeholder, extra = "") {
     return `
       <section>
         <h2>${title}</h2>
@@ -273,6 +366,7 @@ class IPBanManagerPanel extends HTMLElement {
             <input name="value" placeholder="${placeholder}" autocomplete="off">
             <button class="primary" ${this._busy ? "disabled" : ""}>Add</button>
           </form>
+          ${extra}
         </div>
       </section>
     `;
@@ -281,7 +375,7 @@ class IPBanManagerPanel extends HTMLElement {
   _banSection(bans) {
     const rows = bans.map((ban) => ({
       label: ban.ip_address,
-      detail: this._formatDate(ban.banned_at),
+      detail: [this._formatDate(ban.banned_at), ban.location].filter(Boolean).join(" - "),
       value: ban.ip_address,
     }));
     return `
@@ -300,6 +394,7 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _optionsSection(settings) {
+    const geoip = this._data.geoip || {};
     return `
       <section>
         <h2>Options</h2>
@@ -309,7 +404,9 @@ class IPBanManagerPanel extends HTMLElement {
             ${this._checkbox("ban_notifications_enabled", "Automatic ban notifications", "Show alerts when IPs are blocked.", settings.ban_notifications_enabled)}
             ${this._checkbox("allowlisted_login_notifications_enabled", "Allowlisted login notifications", "Alert on failed trusted logins.", settings.allowlisted_login_notifications_enabled)}
             ${this._checkbox("sidebar_panel_enabled", "Show in sidebar", "Add the left menu page.", settings.sidebar_panel_enabled)}
+            ${this._checkbox("geoip_enabled", "GeoIP location labels", "Show approximate public-IP locations. If the local database is missing, Apply downloads it.", settings.geoip_enabled)}
           </div>
+          ${this._geoipStatus(geoip)}
           <div class="advanced-title">Advanced</div>
           <div class="options">
             ${this._checkbox("allowlisted_logins_can_ban", "Bans inside Allowed IPs", "Be careful: trusted IPs can be blocked.", settings.allowlisted_logins_can_ban, true)}
@@ -326,6 +423,40 @@ class IPBanManagerPanel extends HTMLElement {
           </div>
         </div>
       </section>
+    `;
+  }
+
+  _geoipStatus(geoip) {
+    const installed = Boolean(geoip.geoip_database_present);
+    const updated = geoip.geoip_database_updated ? this._formatDate(geoip.geoip_database_updated) : "Not installed";
+    const status = installed ? `Installed - ${this._escape(updated)}` : "Enable GeoIP and Apply to download";
+    return `
+      <div class="geoip-status">
+        <div>
+          <strong>GeoIP database</strong>
+          <small>${status}</small>
+          <small>Location data: <a href="https://db-ip.com" target="_blank" rel="noreferrer">DB-IP City Lite</a></small>
+        </div>
+        ${installed ? `<button data-action="update_geoip" ${this._busy ? "disabled" : ""}>Update</button>` : ""}
+      </div>
+    `;
+  }
+
+  _silencedAllowlistedLogins(settings) {
+    const silencedRows = this._rows(
+      settings.silenced_allowlisted_login_ips || [],
+      "unsilence_allowlisted_login"
+    );
+    return `
+      <div class="subsection">
+        <h3>Silenced allowlisted-login notifications</h3>
+        <p class="hint">Addresses silenced from allowlisted-login alerts.</p>
+        ${silencedRows}
+        <form data-action="unsilence_allowlisted_login">
+          <input name="value" placeholder="IPv4/IPv6 address" autocomplete="off">
+          <button class="primary" ${this._busy ? "disabled" : ""}>Remove</button>
+        </form>
+      </div>
     `;
   }
 
@@ -432,4 +563,4 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define("ip-ban-manager-panel-v10", IPBanManagerPanel);
+customElements.define("ip-ban-manager-panel-v18", IPBanManagerPanel);

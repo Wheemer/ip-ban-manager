@@ -25,6 +25,7 @@ from .const import (
     ATTR_BLOCKED_NETWORKS,
     ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
+    ATTR_GEOIP_ENABLED,
     ATTR_IP_ADDRESS,
     ATTR_LOGIN_ATTEMPTS_THRESHOLD,
     ATTR_NATIVE_IP_BAN_ENABLED,
@@ -37,6 +38,7 @@ from .const import (
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
+    CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LEGACY_ENTRY_ID,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -62,6 +64,7 @@ CONF_BAN_NOTIFICATIONS_CHECKBOX = "ban_notifications"
 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX = "allowlisted_login_notifications"
 CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX = "allowlisted_logins_can_ban"
 CONF_DEFAULT_DENY_CHECKBOX = "default_deny"
+CONF_GEOIP_CHECKBOX = "geoip"
 CONF_SIDEBAR_PANEL_CHECKBOX = "sidebar_panel"
 CONF_CONFIRM_CLEAR_BANS = "confirm_clear_bans"
 QUICK_ALLOW_LOCALHOST = "localhost"
@@ -302,6 +305,7 @@ def _ban_option_values(
     notifications_enabled: bool,
     allowlisted_login_notifications_enabled: bool,
     sidebar_panel_enabled: bool = True,
+    geoip_enabled: bool = False,
 ) -> list[str]:
     """Return selected standard option values."""
     values: list[str] = []
@@ -313,6 +317,8 @@ def _ban_option_values(
         values.append(CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX)
     if sidebar_panel_enabled:
         values.append(CONF_SIDEBAR_PANEL_CHECKBOX)
+    if geoip_enabled:
+        values.append(CONF_GEOIP_CHECKBOX)
     return values
 
 
@@ -347,6 +353,10 @@ def _ban_options_selector() -> selector.SelectSelector:
         {
             "value": CONF_SIDEBAR_PANEL_CHECKBOX,
             "label": "Show in sidebar - add the left menu page",
+        },
+        {
+            "value": CONF_GEOIP_CHECKBOX,
+            "label": "GeoIP location labels - download a local DB-IP database",
         },
     ]
     return selector.SelectSelector(
@@ -447,6 +457,7 @@ def _ban_settings_fields(
     allowlisted_logins_can_ban: bool = False,
     default_deny_enabled: bool = False,
     sidebar_panel_enabled: bool = True,
+    geoip_enabled: bool = False,
 ) -> dict[Any, Any]:
     """Return the auto-ban settings fields."""
     return {
@@ -457,6 +468,7 @@ def _ban_settings_fields(
                 notifications_enabled,
                 allowlisted_login_notifications_enabled,
                 sidebar_panel_enabled,
+                geoip_enabled,
             ),
         ): _ban_options_selector(),
         vol_optional(
@@ -481,6 +493,7 @@ def _ban_settings_schema(
     allowlisted_logins_can_ban: bool = False,
     default_deny_enabled: bool = False,
     sidebar_panel_enabled: bool = True,
+    geoip_enabled: bool = False,
 ) -> vol.Schema:
     """Return the auto-ban settings schema."""
     return vol.Schema(
@@ -492,6 +505,7 @@ def _ban_settings_schema(
             allowlisted_logins_can_ban,
             default_deny_enabled,
             sidebar_panel_enabled,
+            geoip_enabled,
         )
     )
 
@@ -855,6 +869,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                                         ),
                                     )
                                 ),
+                                bool(status[ATTR_GEOIP_ENABLED]),
                             ),
                             vol_optional(
                                 CONF_BANNED_IPS_HELP,
@@ -901,17 +916,22 @@ class OptionsFlow(config_entries.OptionsFlow):
         allowlisted_logins_can_ban: bool,
         default_deny_enabled: bool,
         sidebar_panel_enabled: bool,
+        geoip_enabled: bool,
         login_attempts_threshold: int,
     ) -> config_entries.ConfigFlowResult:
         """Persist validated options and apply them immediately."""
         from . import (
             _apply_ban_settings,
+            _async_download_geoip_database,
             _async_register_panel,
             _async_replace_ip_bans,
+            _geoip_database_path,
             _update_allowlist_entry,
             _update_blocked_networks_entry,
         )
 
+        if geoip_enabled and not _geoip_database_path(self.hass).is_file():
+            await _async_download_geoip_database(self.hass)
         self.hass.config_entries.async_update_entry(
             self._config_entry,
             options={
@@ -924,6 +944,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
                 CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
                 CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
+                CONF_GEOIP_ENABLED: geoip_enabled,
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                 CONF_BLOCKED_NETWORKS: blocked_networks,
             },
@@ -946,6 +967,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
                 CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
                 CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
+                CONF_GEOIP_ENABLED: geoip_enabled,
                 CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                 CONF_BLOCKED_NETWORKS: blocked_networks,
             },
@@ -1068,6 +1090,18 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_SIDEBAR_PANEL_CHECKBOX,
                 current_sidebar_panel_enabled,
             )
+            current_geoip_enabled = bool(
+                self._config_entry.options.get(
+                    CONF_GEOIP_ENABLED,
+                    self._config_entry.data.get(CONF_GEOIP_ENABLED, False),
+                )
+            )
+            geoip_enabled = _ban_option_enabled(
+                banned_input,
+                CONF_GEOIP_ENABLED,
+                CONF_GEOIP_CHECKBOX,
+                current_geoip_enabled,
+            )
             login_attempts_threshold = _normalize_login_attempts_threshold(
                 banned_input.get(
                     CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -1146,6 +1180,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                         CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
                         CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
                         CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
+                        CONF_GEOIP_ENABLED: geoip_enabled,
                         CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
                         "ban_count": len(current_bans),
                     }
@@ -1165,6 +1200,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                     allowlisted_logins_can_ban,
                     default_deny_enabled,
                     sidebar_panel_enabled,
+                    geoip_enabled,
                     login_attempts_threshold,
                 )
 
@@ -1198,6 +1234,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                     cast(bool, pending[CONF_ALLOWLISTED_LOGINS_CAN_BAN]),
                     cast(bool, pending[CONF_DEFAULT_DENY_ENABLED]),
                     cast(bool, pending[CONF_SIDEBAR_PANEL_ENABLED]),
+                    cast(bool, pending[CONF_GEOIP_ENABLED]),
                     cast(int, pending[CONF_LOGIN_ATTEMPTS_THRESHOLD]),
                 )
 

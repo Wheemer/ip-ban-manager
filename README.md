@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.5.0** | Adds optional local GeoIP location labels for public IPs using a downloaded DB-IP City Lite database and hardens the **Don't show for this address again** notification action. No live IP lookups are made during login or ban handling. |
 | **v1.4.8** | Bumps the bundled panel asset so Home Assistant reloads the IPv4/IPv6 panel wording, and aligns Configure helper text with the live panel. |
 | **v1.4.7** | Tightens the legacy upgrade path so old `ban_allowlist` config entries are absorbed and removed automatically after IP Ban Manager starts. |
 | **v1.4.6** | Completes the IPv4/IPv6 polish pass with dual-stack local subnet detection, IPv6 notification actions, clearer exact-IP wording, and tighter per-address notification silencing. |
@@ -78,6 +79,7 @@ Core management features include:
 - **Emergency disable:** `ip_ban_manager: disabled` or `/config/ip_ban_manager.disabled` lets local file access disable IP Ban Manager if you need a recovery path after a bad setting.
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
 - **Notifications:** branded IP Ban Manager login/ban notifications include an embedded compact icon header, direct settings link where action is useful, stale-notification cleanup when bans are removed, optional automatic-ban notification suppression, earlier failed-login capture, and quieter allowlisted-login notifications that can still escalate if a trusted source keeps failing authentication.
+- **GeoIP labels:** optional local DB-IP City Lite lookups can show approximate city/country labels for public IPs in notifications and the live panel, with no online lookup during request handling.
 - **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, unsafe default-deny changes, and unconfirmed multi-ban clear actions are rejected before anything is written.
 - **Automation:** `ip_ban_manager.*` services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
 - **Diagnostics:** sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources.
@@ -161,6 +163,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 - edit **Blocked entries**, one exact IP address per line
 - edit **Blocked networks**, one IPv4/IPv6 CIDR network or IPv4 wildcard network per line
 - enable **Block everything outside Allowed IPs** for guarded default-deny mode
+- enable **GeoIP location labels** and download/update the local DB-IP City Lite database
 - view existing block timestamps as readable local times in **Blocked IPs**
 - clear exact bans or managed blocked networks by emptying the matching field and submitting
 
@@ -169,6 +172,8 @@ Wildcard blocked-network entries such as `192.168.1.*` are saved as `192.168.1.0
 This gives you the practical behavior people expect from subnet banning without pretending Home Assistant's native `ip_bans.yaml` supports ranges. Exact IPs remain ordinary Home Assistant bans; managed networks are a small runtime layer that checks the same request path and still respects the allowlist first.
 
 Existing exact banned IP rows are shown as `IP - local ban time`, oldest first. You can leave those timestamps in place when submitting; IP Ban Manager preserves the original ban date for unchanged bans. New exact banned IP rows can be entered as just the IP address, and Home Assistant records the current ban time when they are submitted. When the ban file is rewritten, entries are written oldest first so new exact bans appear at the bottom in both the UI and `ip_bans.yaml`.
+
+GeoIP location labels are optional. When enabled, IP Ban Manager downloads the free DB-IP City Lite MMDB database to `/config/ip_ban_manager/geoip/dbip-city-lite.mmdb` and reads it locally. Public IP notifications and blocked-IP rows can then show approximate location labels. Private, loopback, and local-network addresses are not looked up. The database is not bundled with the integration and no online IP lookup is made while handling logins or bans. Location data is provided by DB-IP.com and should be treated as approximate.
 
 The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist or blocked-network entries, IPs that are both allowed and exactly banned, unsafe default-deny changes, and malformed entries. Login-attempt thresholds are clamped server-side, so setup, Configure, and the live panel/API enforce the same range. Service calls use the same safety posture for risky operations, including typo removals, removing the only detected local allowlist path, allowlist networks that contain active exact bans, and clear-all ban requests without `confirm: true`.
 

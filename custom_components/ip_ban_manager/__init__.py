@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
 import shutil
+import socket
+import ssl
 import sys
-from collections.abc import Awaitable, Callable, Collection, Iterable
-from contextlib import suppress
-from datetime import datetime
+from collections.abc import Awaitable, Callable, Collection, Iterable, Iterator
+from contextlib import contextmanager, suppress
+from datetime import datetime, timedelta
+from gzip import BadGzipFile, GzipFile
+from http.client import HTTPResponse
 from ipaddress import (
     IPv4Address,
     IPv4Network,
@@ -19,11 +24,15 @@ from ipaddress import (
 )
 from pathlib import Path
 from secrets import token_urlsafe
-from socket import gethostbyaddr, herror
+from socket import getaddrinfo, gethostbyaddr, herror
 from tempfile import NamedTemporaryFile
-from typing import Any
-from urllib.parse import urlencode
+from typing import Any, cast
+from urllib.error import URLError
+from urllib.parse import quote, urlencode, urlsplit
+from urllib.request import Request as UrlRequest
+from urllib.request import urlopen
 
+import maxminddb
 import voluptuous as vol
 import yaml
 from aiohttp.web import AppKey, Request, Response
@@ -61,6 +70,11 @@ from .const import (
     ATTR_CONFIRM,
     ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
+    ATTR_GEOIP_ATTRIBUTION,
+    ATTR_GEOIP_DATABASE_PRESENT,
+    ATTR_GEOIP_DATABASE_SOURCE,
+    ATTR_GEOIP_DATABASE_UPDATED,
+    ATTR_GEOIP_ENABLED,
     ATTR_IP_ADDRESS,
     ATTR_LOGIN_ATTEMPTS_THRESHOLD,
     ATTR_NATIVE_IP_BAN_ENABLED,
@@ -76,6 +90,7 @@ from .const import (
     CONF_DEFAULT_DENY_ENABLED,
     CONF_DISABLE_BAN_MANAGER,
     CONF_DISABLED,
+    CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LEGACY_ENTRY_ID,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
@@ -106,6 +121,16 @@ INTEGRATION_DISABLED_BY_YAML_ISSUE_ID = "integration_disabled_by_yaml"
 LEGACY_YAML_PRESENT_ISSUE_ID = "legacy_yaml_present"
 LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID = "legacy_folder_cleanup_failed"
 ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
+DBIP_ATTRIBUTION = "IP geolocation by DB-IP.com"
+DBIP_DOWNLOAD_MAX_BYTES = 250 * 1024 * 1024
+DBIP_DOWNLOAD_TIMEOUT = 120
+DBIP_DOWNLOAD_USER_AGENT = "IPBanManager/1.5"
+DBIP_SOURCE_NAME = "DB-IP City Lite"
+DNS_OVER_HTTPS_URL = (
+    "https://cloudflare-dns.com/dns-query?name=download.db-ip.com&type=A"
+)
+GEOIP_DIR = "geoip"
+GEOIP_FILENAME = "dbip-city-lite.mmdb"
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
@@ -117,6 +142,9 @@ EMERGENCY_DISABLE_FILENAME = "ip_ban_manager.disabled"
 NOTIFICATION_LINK_LABEL = "Open settings"
 ALLOWLISTED_LOGIN_SILENCE_LABEL = "Don't show for this address again"
 ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
+PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN = "silence_allowlisted_login"
+PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN = "unsilence_allowlisted_login"
+ATTR_NOTIFICATION_ID = "notification_id"
 ATTR_TOKEN = "token"
 IPV4_IN_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])")
 IPV6_IN_TEXT = re.compile(
@@ -126,8 +154,8 @@ ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
-PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v10"
-PANEL_JS_URL = f"/api/{DOMAIN}/panel-v10.js"
+PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v18"
+PANEL_JS_URL = f"/api/{DOMAIN}/panel-v18.js"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
     "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
@@ -151,6 +179,8 @@ KEY_PANEL_SIDEBAR_ENABLED = AppKey[bool]("ip_ban_manager_panel_sidebar_enabled")
 KEY_EMERGENCY_DISABLED = AppKey[bool]("ip_ban_manager_emergency_disabled")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
+KEY_GEOIP_READER = AppKey[object]("ip_ban_manager_geoip_reader")
+KEY_GEOIP_READER_MTIME = AppKey[float]("ip_ban_manager_geoip_reader_mtime")
 LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
 LEGACY_CLEANUP_DIR = ".cleanup"
 
@@ -406,20 +436,48 @@ def _notification_action_token(hass: HomeAssistant, entry: ConfigEntry) -> str:
 
 
 def _allowlisted_login_silence_url(
-    hass: HomeAssistant, entry: ConfigEntry, remote_addr: IPAddress
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    remote_addr: IPAddress,
+    notification_id: str = NOTIFICATION_ID_LOGIN,
 ) -> str:
     """Return the per-address allowlisted-login silence URL."""
     query = urlencode(
         {
             ATTR_IP_ADDRESS: str(remote_addr),
+            ATTR_NOTIFICATION_ID: notification_id,
             ATTR_TOKEN: _notification_action_token(hass, entry),
         }
     )
     return f"{ALLOWLISTED_LOGIN_SILENCE_URL}?{query}"
 
 
+def _allowlisted_login_silence_panel_url(
+    remote_addr: IPAddress,
+    notification_id: str = NOTIFICATION_ID_LOGIN,
+) -> str:
+    """Return the panel URL that silences one allowlisted-login address."""
+    query = urlencode(
+        {
+            "action": PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN,
+            ATTR_IP_ADDRESS: str(remote_addr),
+            ATTR_NOTIFICATION_ID: notification_id,
+        }
+    )
+    return f"/{DOMAIN}?{query}"
+
+
+def _notification_action_response() -> Response:
+    """Acknowledge notification-link actions without navigating the frontend."""
+    return Response(status=204)
+
+
 def _with_allowlisted_login_silence_link(
-    hass: HomeAssistant, entry: ConfigEntry, message: str, remote_addr: IPAddress
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    message: str,
+    remote_addr: IPAddress,
+    notification_id: str = NOTIFICATION_ID_LOGIN,
 ) -> str:
     """Append the allowlisted-login silence link once."""
     message = _strip_notification_action_links(message)
@@ -428,7 +486,7 @@ def _with_allowlisted_login_silence_link(
     return (
         f"{message}\n\n"
         f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-        f"({_allowlisted_login_silence_url(hass, entry, remote_addr)})"
+        f"({_allowlisted_login_silence_panel_url(remote_addr, notification_id)})"
     )
 
 
@@ -465,23 +523,83 @@ def _dismiss_allowlisted_login_notifications(
     from homeassistant.components import persistent_notification
 
     notifications = persistent_notification._async_get_or_create_notifications(hass)
-    matching_ids = {NOTIFICATION_ID_LOGIN}
+    matching_ids = set()
     for notification_id, notification in notifications.items():
         message = notification["message"]
         message_lower = message.lower()
-        if remote_addr is None and ALLOWLISTED_LOGIN_SILENCE_URL in message:
+        if notification_id == NOTIFICATION_ID_LOGIN:
             matching_ids.add(notification_id)
             continue
         if remote_addr is None:
+            if (
+                ALLOWLISTED_LOGIN_SILENCE_URL in message
+                or ALLOWLISTED_LOGIN_SILENCE_LABEL in message
+                or "allowlisted login" in message_lower
+            ):
+                matching_ids.add(notification_id)
             continue
-        if str(remote_addr) in message and (
+
+        remote_addr_text = str(remote_addr)
+        encoded_remote_addr = quote(remote_addr_text, safe="")
+        if (
+            remote_addr_text in message
+            or f"{ATTR_IP_ADDRESS}={encoded_remote_addr}" in message
+        ) and (
             ALLOWLISTED_LOGIN_SILENCE_URL in message
+            or ALLOWLISTED_LOGIN_SILENCE_LABEL in message
             or "allowlisted login" in message_lower
+            or "is allowlisted" in message_lower
+            or "will not be banned" in message_lower
         ):
             matching_ids.add(notification_id)
 
     for notification_id in matching_ids:
         persistent_notification.async_dismiss(hass, notification_id)
+
+
+def _silence_allowlisted_login_notifications(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    remote_addr: IPAddress,
+    notification_id: str | None = None,
+) -> None:
+    """Persist per-address silence and dismiss matching notifications."""
+    silenced_ips = _entry_silenced_allowlisted_login_ip_strings(entry)
+    if str(remote_addr) not in silenced_ips:
+        silenced_ips.append(str(remote_addr))
+
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
+        },
+    )
+    if notification_id:
+        from homeassistant.components import persistent_notification
+
+        persistent_notification.async_dismiss(hass, notification_id)
+    _dismiss_allowlisted_login_notifications(hass, remote_addr)
+
+
+def _unsilence_allowlisted_login_notifications(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    remote_addr: IPAddress,
+) -> None:
+    """Remove per-address silence for allowlisted login notifications."""
+    silenced_ips = [
+        ip_value
+        for ip_value in _entry_silenced_allowlisted_login_ip_strings(entry)
+        if ip_value != str(remote_addr)
+    ]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
+        },
+    )
 
 
 def _notification_heading(notification_id: str, message: str) -> str:
@@ -524,6 +642,25 @@ def _with_notification_heading(heading: str, message: str) -> str:
     if message.startswith(heading_line):
         return f"{brand_header}\n\n{message}"
     return f"{brand_header}\n\n{heading_line}\n\n{message}"
+
+
+def _with_geoip_attribution_footer(message: str) -> str:
+    """Append the DB-IP attribution as a quiet notification footer."""
+    if DBIP_ATTRIBUTION in message:
+        return message
+    return f"{message}\n\n<small><sub>{DBIP_ATTRIBUTION}</sub></small>"
+
+
+def _geoip_notification_detail(
+    hass: HomeAssistant, remote_addr: IPAddress | None
+) -> str | None:
+    """Return a GeoIP notification detail line when local data is available."""
+    if remote_addr is None:
+        return None
+    location = _geoip_location_for_ip(hass, remote_addr)
+    if location is None:
+        return None
+    return f"Location: {location}"
 
 
 def _entry_silenced_allowlisted_login_ip_strings(entry: ConfigEntry) -> list[str]:
@@ -582,6 +719,10 @@ def _create_allowlisted_login_notification(
 
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     details = [base_message]
+    has_geoip_detail = False
+    if geoip_detail := _geoip_notification_detail(hass, remote_addr):
+        details.append(geoip_detail)
+        has_geoip_detail = True
     if attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
         heading = "Repeated allowlisted login failures"
         details.append(
@@ -611,6 +752,8 @@ def _create_allowlisted_login_notification(
         message = _with_allowlisted_login_silence_link(
             hass, entry, message, remote_addr
         )
+    if has_geoip_detail:
+        message = _with_geoip_attribution_footer(message)
     persistent_notification.async_create(
         hass,
         message,
@@ -633,20 +776,30 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
 
         heading = _notification_heading(notification_id, notification["message"])
         message = _with_notification_heading(heading, notification["message"])
+        remote_addr = _first_ip_address_in_text(message)
+        has_geoip_detail = False
+        if (
+            remote_addr is not None
+            and "Location:" not in message
+            and (geoip_detail := _geoip_notification_detail(hass, remote_addr))
+        ):
+            message = f"{message}\n\n{geoip_detail}"
+            has_geoip_detail = True
         if (
             notification_id == NOTIFICATION_ID_LOGIN
             and "allowlisted" in message.lower()
         ):
             if heading == "Allowlisted login failed":
-                remote_addr = _first_ip_address_in_text(message)
                 if remote_addr is not None:
                     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
                     if entry is not None:
                         message = _with_allowlisted_login_silence_link(
-                            hass, entry, message, remote_addr
+                            hass, entry, message, remote_addr, notification_id
                         )
         else:
             message = _with_manager_link(hass, message)
+        if has_geoip_detail:
+            message = _with_geoip_attribution_footer(message)
         if (
             message == notification["message"]
             and notification["title"] == NOTIFICATION_TITLE
@@ -666,6 +819,7 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
 
     name = "api:ip_ban_manager:silence_allowlisted_login_notifications"
     url = ALLOWLISTED_LOGIN_SILENCE_URL
+    requires_auth = False
 
     async def get(self, request: Request) -> Response:
         """Silence allowlisted failed-login notifications and dismiss the current notification."""
@@ -689,26 +843,14 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
             except ValueError:
                 return Response(text="Invalid IP address.", status=400)
 
-            silenced_ips = _entry_silenced_allowlisted_login_ip_strings(entry)
-            if str(remote_addr) not in silenced_ips:
-                silenced_ips.append(str(remote_addr))
-
-            hass.config_entries.async_update_entry(
+            notification_id = getattr(request, "query", {}).get(ATTR_NOTIFICATION_ID)
+            _silence_allowlisted_login_notifications(
+                hass,
                 entry,
-                options={
-                    **entry.options,
-                    CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
-                },
+                remote_addr,
+                notification_id if isinstance(notification_id, str) else None,
             )
-            _dismiss_allowlisted_login_notifications(hass, remote_addr)
-            return Response(
-                text=(
-                    f"Allowlisted login notifications from {remote_addr} are now "
-                    "silenced. IP Ban Manager will still notify after repeated "
-                    "failures."
-                ),
-                content_type="text/plain",
-            )
+            return _notification_action_response()
 
         hass.config_entries.async_update_entry(
             entry,
@@ -718,13 +860,7 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
             },
         )
         _dismiss_allowlisted_login_notifications(hass)
-        return Response(
-            text=(
-                "Allowlisted login notifications are now silenced. "
-                "IP Ban Manager will still notify after repeated failures."
-            ),
-            content_type="text/plain",
-        )
+        return _notification_action_response()
 
 
 class IPBanManagerStatusView(HomeAssistantView):
@@ -763,7 +899,12 @@ class IPBanManagerStatusView(HomeAssistantView):
                     CONF_DEFAULT_DENY_ENABLED: _entry_default_deny_enabled(entry),
                     CONF_LOGIN_ATTEMPTS_THRESHOLD: _entry_login_threshold(entry, hass),
                     CONF_SIDEBAR_PANEL_ENABLED: _entry_sidebar_panel_enabled(entry),
+                    CONF_GEOIP_ENABLED: _entry_geoip_enabled(entry),
+                    CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: (
+                        _entry_silenced_allowlisted_login_ip_strings(entry)
+                    ),
                 },
+                "geoip": _geoip_status(hass, entry),
             }
         )
 
@@ -804,6 +945,14 @@ class IPBanManagerManageView(HomeAssistantView):
                 await _async_panel_remove_blocked_network(hass, value)
             elif action == "set_options":
                 await _async_panel_set_options(hass, data.get("options", {}))
+            elif action == "update_geoip":
+                await _async_download_geoip_database(hass)
+            elif action == PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN:
+                _panel_silence_allowlisted_login_notification(
+                    hass, value, data.get(ATTR_NOTIFICATION_ID)
+                )
+            elif action == PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN:
+                _panel_unsilence_allowlisted_login_notification(hass, value)
             else:
                 return self.json_message("Unknown action.", 400)
         except (HomeAssistantError, ValueError) as err:
@@ -1003,6 +1152,16 @@ def _entry_sidebar_panel_enabled(entry: ConfigEntry) -> bool:
     )
 
 
+def _entry_geoip_enabled(entry: ConfigEntry) -> bool:
+    """Return whether local GeoIP labels should be shown when a database exists."""
+    return bool(
+        entry.options.get(
+            CONF_GEOIP_ENABLED,
+            entry.data.get(CONF_GEOIP_ENABLED, False),
+        )
+    )
+
+
 def _allowlisted_logins_can_ban(hass: HomeAssistant) -> bool:
     """Return whether the current entry allows exact bans inside the allowlist."""
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
@@ -1192,12 +1351,15 @@ def _async_update_legacy_folder_cleanup_issue(
     ir.async_delete_issue(hass, DOMAIN, LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID)
 
 
-def _format_ip_ban(ip_ban: IpBan) -> dict[str, str]:
+def _format_ip_ban(hass: HomeAssistant, ip_ban: IpBan) -> dict[str, str]:
     """Return a stable UI/API representation of a ban entry."""
-    return {
+    formatted = {
         ATTR_IP_ADDRESS: str(ip_ban.ip_address),
         ATTR_BANNED_AT: ip_ban.banned_at.isoformat(),
     }
+    if location := _geoip_location_for_ip(hass, ip_ban.ip_address):
+        formatted["location"] = location
+    return formatted
 
 
 def _atomic_write_text(path: str, content: str) -> None:
@@ -1222,6 +1384,289 @@ def _atomic_write_text(path: str, content: str) -> None:
     finally:
         if temp_path is not None and os.path.exists(temp_path):
             os.unlink(temp_path)
+
+
+def _geoip_database_path(hass: HomeAssistant) -> Path:
+    """Return the local GeoIP database path owned by this integration."""
+    return Path(hass.config.path(DOMAIN, GEOIP_DIR, GEOIP_FILENAME))
+
+
+def _path_is_file(path: Path) -> bool:
+    """Return whether a path is a file."""
+    return path.is_file()
+
+
+def _geoip_database_updated(path: Path) -> str | None:
+    """Return the database file modification time for status surfaces."""
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, dt_util.UTC).isoformat()
+    except OSError:
+        return None
+
+
+def _geoip_download_months(now: datetime | None = None) -> list[str]:
+    """Return current and previous DB-IP release month strings."""
+    now = now or dt_util.utcnow()
+    current = now.strftime("%Y-%m")
+    previous_day = now.replace(day=1) - timedelta(days=1)
+    previous = previous_day.strftime("%Y-%m")
+    return [current] if current == previous else [current, previous]
+
+
+def _geoip_download_urls(now: datetime | None = None) -> list[str]:
+    """Return DB-IP Lite MMDB download URLs to try."""
+    return [
+        f"https://download.db-ip.com/free/dbip-city-lite-{month}.mmdb.gz"
+        for month in _geoip_download_months(now)
+    ]
+
+
+def _geoip_download_host_is_blocked(host: str) -> bool:
+    """Return whether DNS resolved the download host to unusable sinkhole addresses."""
+    try:
+        addresses = {item[4][0] for item in getaddrinfo(host, 443)}
+    except OSError:
+        return False
+    return bool(addresses) and all(
+        address in {"0.0.0.0", "::"} for address in addresses
+    )
+
+
+def _geoip_resolve_download_host_via_https() -> list[str]:
+    """Resolve the DB-IP download host without using Home Assistant's local DNS."""
+    request = UrlRequest(
+        DNS_OVER_HTTPS_URL,
+        headers={
+            "Accept": "application/dns-json",
+            "User-Agent": DBIP_DOWNLOAD_USER_AGENT,
+        },
+    )
+    with urlopen(request, timeout=DBIP_DOWNLOAD_TIMEOUT) as response:
+        payload = json.loads(response.read().decode())
+
+    addresses = []
+    for answer in payload.get("Answer", []):
+        address = answer.get("data")
+        if answer.get("type") == 1 and isinstance(address, str):
+            addresses.append(address)
+    if not addresses:
+        raise HomeAssistantError("Could not resolve the GeoIP download host.")
+    return addresses
+
+
+@contextmanager
+def _open_geoip_download_url(url: str) -> Iterator[HTTPResponse]:
+    """Open a GeoIP download URL, bypassing local DNS only when it is sinkholed."""
+    parsed = urlsplit(url)
+    host = parsed.hostname or "download.db-ip.com"
+    if not _geoip_download_host_is_blocked(host):
+        request = UrlRequest(url, headers={"User-Agent": DBIP_DOWNLOAD_USER_AGENT})
+        with urlopen(request, timeout=DBIP_DOWNLOAD_TIMEOUT) as response:
+            yield response
+        return
+
+    _LOGGER.warning(
+        "GeoIP database download host %s resolves to 0.0.0.0 or ::; "
+        "resolving with DNS-over-HTTPS fallback",
+        host,
+    )
+    last_error: Exception | None = None
+    target = parsed.path or "/"
+    if parsed.query:
+        target = f"{target}?{parsed.query}"
+    context = ssl.create_default_context()
+    for address in _geoip_resolve_download_host_via_https():
+        fallback_response: HTTPResponse | None = None
+        tls_socket = None
+        try:
+            raw_socket = socket.create_connection(
+                (address, parsed.port or 443), timeout=DBIP_DOWNLOAD_TIMEOUT
+            )
+            tls_socket = context.wrap_socket(raw_socket, server_hostname=host)
+            tls_socket.sendall(
+                (
+                    f"GET {target} HTTP/1.1\r\n"
+                    f"Host: {host}\r\n"
+                    f"User-Agent: {DBIP_DOWNLOAD_USER_AGENT}\r\n"
+                    "Accept: application/octet-stream\r\n"
+                    "Connection: close\r\n\r\n"
+                ).encode("ascii")
+            )
+            fallback_response = HTTPResponse(tls_socket)
+            fallback_response.begin()
+            if fallback_response.status != 200:
+                raise HomeAssistantError(
+                    "GeoIP database download returned HTTP "
+                    f"{fallback_response.status}."
+                )
+            yield fallback_response
+            return
+        except (OSError, HomeAssistantError) as err:
+            last_error = err
+            if fallback_response is not None:
+                fallback_response.close()
+            elif tls_socket is not None:
+                tls_socket.close()
+
+    raise HomeAssistantError(
+        f"Could not connect to the GeoIP download host: {last_error}"
+    ) from last_error
+
+
+def _download_geoip_database_to_path(path: Path) -> None:
+    """Download and install the DB-IP City Lite database atomically."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    last_error: Exception | None = None
+
+    for url in _geoip_download_urls():
+        temp_path: str | None = None
+        try:
+            with (
+                _open_geoip_download_url(url) as response,
+                GzipFile(fileobj=response) as gzip_file,
+                NamedTemporaryFile(
+                    "wb",
+                    dir=path.parent,
+                    prefix=f".{path.name}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as temp_file,
+            ):
+                temp_path = temp_file.name
+                total = 0
+                while chunk := gzip_file.read(1024 * 1024):
+                    total += len(chunk)
+                    if total > DBIP_DOWNLOAD_MAX_BYTES:
+                        raise HomeAssistantError(
+                            "GeoIP database download is too large."
+                        )
+                    temp_file.write(chunk)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+            os.replace(temp_path, path)
+            return
+        except (BadGzipFile, EOFError, OSError, URLError, HomeAssistantError) as err:
+            last_error = err
+            _LOGGER.warning("GeoIP database download failed from %s: %s", url, err)
+            if temp_path is not None and os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+    raise HomeAssistantError(
+        f"Could not download the GeoIP database: {last_error}"
+    ) from last_error
+
+
+async def _async_download_geoip_database(hass: HomeAssistant) -> None:
+    """Download the local GeoIP database without blocking the event loop."""
+    path = _geoip_database_path(hass)
+    await hass.async_add_executor_job(_download_geoip_database_to_path, path)
+    await _async_prepare_geoip_reader(hass)
+
+
+def _close_geoip_reader(hass: HomeAssistant) -> None:
+    """Close any cached GeoIP database reader."""
+    reader = hass.http.app.pop(KEY_GEOIP_READER, None)
+    hass.http.app.pop(KEY_GEOIP_READER_MTIME, None)
+    close = getattr(reader, "close", None)
+    if callable(close):
+        close()
+
+
+def _open_geoip_reader(path: Path) -> tuple[object, float] | None:
+    """Open the local MMDB reader from an executor thread."""
+    if not path.is_file():
+        return None
+
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        return None
+
+    try:
+        reader = maxminddb.open_database(str(path))
+    except (OSError, RuntimeError):
+        _LOGGER.warning("Could not open GeoIP database %s", path, exc_info=True)
+        return None
+    return reader, mtime
+
+
+async def _async_prepare_geoip_reader(hass: HomeAssistant) -> None:
+    """Prepare the local MMDB reader without blocking the event loop."""
+    result = await hass.async_add_executor_job(
+        _open_geoip_reader, _geoip_database_path(hass)
+    )
+    _close_geoip_reader(hass)
+    if result is None:
+        return
+
+    reader, mtime = result
+    hass.http.app[KEY_GEOIP_READER] = reader
+    hass.http.app[KEY_GEOIP_READER_MTIME] = mtime
+
+
+def _geoip_reader(hass: HomeAssistant) -> object | None:
+    """Return the prepared MMDB reader if it is available."""
+    return hass.http.app.get(KEY_GEOIP_READER)
+
+
+def _localized_geoip_name(value: object) -> str | None:
+    """Return an English GeoIP display name from a DB-IP/MaxMind-style field."""
+    if not isinstance(value, dict):
+        return None
+    names = value.get("names")
+    if isinstance(names, dict):
+        name = names.get("en") or next(
+            (item for item in names.values() if isinstance(item, str) and item),
+            None,
+        )
+        if isinstance(name, str) and name:
+            return name
+    name = value.get("name")
+    return name if isinstance(name, str) and name else None
+
+
+def _geoip_location_for_ip(hass: HomeAssistant, remote_addr: IPAddress) -> str | None:
+    """Return a human-readable local GeoIP location for a public IP address."""
+    normalized_addr = _normalize_remote_addr(remote_addr)
+    if normalized_addr.is_private or normalized_addr.is_loopback:
+        return None
+
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is not None and not _entry_geoip_enabled(entry):
+        return None
+
+    reader = _geoip_reader(hass)
+    if reader is None:
+        return None
+
+    try:
+        result = cast(Any, reader).get(str(normalized_addr))
+    except (ValueError, OSError, RuntimeError):
+        return None
+    if not isinstance(result, dict):
+        return None
+
+    city = _localized_geoip_name(result.get("city"))
+    country = _localized_geoip_name(result.get("country"))
+    country_code = None
+    country_data = result.get("country")
+    if isinstance(country_data, dict) and isinstance(country_data.get("iso_code"), str):
+        country_code = country_data["iso_code"]
+
+    parts = [part for part in (city, country or country_code) if part]
+    return ", ".join(parts) if parts else None
+
+
+def _geoip_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
+    """Return GeoIP state for the live panel."""
+    database_path = _geoip_database_path(hass)
+    return {
+        ATTR_GEOIP_ENABLED: _entry_geoip_enabled(entry),
+        ATTR_GEOIP_DATABASE_PRESENT: database_path.is_file(),
+        ATTR_GEOIP_DATABASE_SOURCE: DBIP_SOURCE_NAME,
+        ATTR_GEOIP_DATABASE_UPDATED: _geoip_database_updated(database_path),
+        ATTR_GEOIP_ATTRIBUTION: DBIP_ATTRIBUTION,
+    }
 
 
 def current_status(hass: HomeAssistant) -> dict[str, object]:
@@ -1255,8 +1700,10 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ATTR_DEFAULT_DENY_ENABLED: (
             _entry_default_deny_enabled(entry) if entry else False
         ),
+        ATTR_GEOIP_ENABLED: _entry_geoip_enabled(entry) if entry else False,
+        ATTR_GEOIP_DATABASE_PRESENT: _geoip_database_path(hass).is_file(),
         ATTR_BANNED_IPS: [
-            _format_ip_ban(ip_ban)
+            _format_ip_ban(hass, ip_ban)
             for ip_ban in (_chronological_ip_bans(ban_manager) if ban_manager else ())
         ],
         ATTR_FAILED_LOGIN_ATTEMPTS: {
@@ -1434,6 +1881,7 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         ),
         CONF_ALLOWLISTED_LOGINS_CAN_BAN: _entry_allowlisted_logins_can_ban(entry),
         CONF_DEFAULT_DENY_ENABLED: _entry_default_deny_enabled(entry),
+        CONF_GEOIP_ENABLED: _entry_geoip_enabled(entry),
         CONF_LOGIN_ATTEMPTS_THRESHOLD: _entry_login_threshold(entry, hass),
         CONF_SIDEBAR_PANEL_ENABLED: _entry_sidebar_panel_enabled(entry),
     }
@@ -1443,6 +1891,7 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
         CONF_ALLOWLISTED_LOGINS_CAN_BAN,
         CONF_DEFAULT_DENY_ENABLED,
+        CONF_GEOIP_ENABLED,
         CONF_SIDEBAR_PANEL_ENABLED,
     ):
         if key in options:
@@ -1459,12 +1908,54 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         _current_blocked_network_strings(hass),
         bool(current_options[CONF_DEFAULT_DENY_ENABLED]),
     )
+    if current_options[CONF_GEOIP_ENABLED]:
+        geoip_path = _geoip_database_path(hass)
+        if await hass.async_add_executor_job(_path_is_file, geoip_path):
+            await _async_prepare_geoip_reader(hass)
+        else:
+            await _async_download_geoip_database(hass)
+    else:
+        _close_geoip_reader(hass)
     _update_entry_options(hass, **current_options)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
     await _async_register_panel(
         hass, sidebar_enabled=bool(current_options[CONF_SIDEBAR_PANEL_ENABLED])
     )
+
+
+def _panel_silence_allowlisted_login_notification(
+    hass: HomeAssistant,
+    ip_address_value: str,
+    notification_id: object,
+) -> None:
+    """Silence allowlisted login notifications from a panel action link."""
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    try:
+        remote_addr = ip_address(ip_address_value)
+    except ValueError as err:
+        raise HomeAssistantError("Invalid IP address.") from err
+
+    _silence_allowlisted_login_notifications(
+        hass,
+        entry,
+        remote_addr,
+        notification_id if isinstance(notification_id, str) else None,
+    )
+
+
+def _panel_unsilence_allowlisted_login_notification(
+    hass: HomeAssistant,
+    ip_address_value: str,
+) -> None:
+    """Unsilence allowlisted login notifications from the admin panel API."""
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    try:
+        remote_addr = ip_address(ip_address_value)
+    except ValueError as err:
+        raise HomeAssistantError("Invalid IP address.") from err
+
+    _unsilence_allowlisted_login_notifications(hass, entry, remote_addr)
 
 
 def _async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -2004,6 +2495,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _install_load_bans_patch(hass, ban_manager)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
+    if _entry_geoip_enabled(entry):
+        await _async_prepare_geoip_reader(hass)
     allowlist = hass.http.app[KEY_ALLOWLIST]
 
     if len(allowlist) == 0:
@@ -2024,6 +2517,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
     _async_remove_panel(hass)
+    _close_geoip_reader(hass)
     _uninstall_patches(hass)
     hass.http.app.pop(KEY_ALLOWLIST, None)
     hass.http.app.pop(KEY_BLOCKED_NETWORKS, None)
