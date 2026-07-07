@@ -9,13 +9,24 @@ IP Ban Manager 1.5.0 adds optional local GeoIP location labels for public IP add
 - Added a **GeoIP location labels** option to the live panel and Configure flow.
 - When enabled, IP Ban Manager downloads DB-IP City Lite to `/config/ip_ban_manager/geoip/dbip-city-lite.mmdb` and reads it locally.
 - Blocked-IP rows and IP Ban Manager notifications can show approximate city/country labels for public IPs, with a quiet DB-IP attribution footer in notifications and a linked DB-IP City Lite credit in the panel.
+- Added a lightweight panel health check for IP-ban setup, panel registration, legacy cleanup, GeoIP readiness, and ban-file access.
+- Added small rolling snapshots before IP Ban Manager rewrites `ip_bans.yaml`.
+- Added internal panel/API metrics so diagnostics can show write activity, API errors, snapshots, GeoIP lookups, and reverse-DNS cache use.
 
 ### Fixed
 
 - Hardened **Don't show for this address again** so it dismisses matching allowlisted-login notifications even when the visible message has been rebranded, rewritten, or only carries the address inside the action URL.
+- Silenced allowlisted addresses now stay quiet even after repeated failed-login escalation would normally create a stronger notification.
 - New **Don't show for this address again** links now open the admin-only IP Ban Manager panel and use the admin-protected manage API; the token endpoint remains only as a compatibility fallback for older notifications.
 - The bundled panel is registered with Home Assistant's `require_admin` flag, so non-admin users cannot open the IP Ban Manager panel.
 - Bumped the bundled panel web component and static asset URL to `panel-v18.js` so Home Assistant loads the current GeoIP panel wording, credit area, quiet background refreshes, and admin-only notification action.
+- Moved legacy-folder cleanup and GeoIP reader warmup off the startup-critical setup path while keeping the ban hooks and safety checks applied immediately.
+- Panel API responses now return a consistent success/error shape so the UI can show clean messages without falling back to raw object errors.
+- Reverse-DNS names are cached briefly for allowlisted-login notifications so repeated failures do not keep hitting the resolver.
+- Health checks now read panel registration from Home Assistant's real panel state and stay quiet when everything is healthy.
+- Snapshot metrics are updated on the Home Assistant event loop, not from the file-writing executor thread.
+- Repeated panel option saves now skip unchanged config-entry writes and apply follow-up live settings from the updated entry state.
+- Allowlisted-login silence actions now use the same guarded option writer, so repeated clicks can dismiss matching notifications without rewriting unchanged options.
 
 ### Privacy
 
@@ -25,6 +36,9 @@ IP Ban Manager 1.5.0 adds optional local GeoIP location labels for public IP add
 ### Validation
 
 - Added regression coverage for GeoIP panel status, enabling the option, notification location text, and encoded allowlisted-login notification action dismissal.
+- Added regression coverage for panel health, structured panel API errors, live API payloads, and ban-file snapshots.
+- Added regression coverage for unchanged panel option saves so they do not churn config storage.
+- Added regression coverage for repeated per-address silence actions dismissing notices without extra config writes.
 - Bumped the manifest version to `1.5.0` for HACS update detection.
 
 ## v1.4.8

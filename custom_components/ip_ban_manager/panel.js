@@ -37,8 +37,8 @@ class IPBanManagerPanel extends HTMLElement {
       body: data ? JSON.stringify(data) : undefined,
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(body.message || response.statusText || `HTTP ${response.status}`);
+    if (!response.ok || body?.ok === false) {
+      throw new Error(body.error || body.message || response.statusText || `HTTP ${response.status}`);
     }
     return body;
   }
@@ -84,15 +84,22 @@ class IPBanManagerPanel extends HTMLElement {
     this._busy = true;
     this._error = "";
     this._render();
+    let ok = false;
     try {
-      await this._api("POST", "ip_ban_manager/manage", { action, ...extra });
-      this._data = await this._api("GET", "ip_ban_manager/status");
+      const result = await this._api("POST", "ip_ban_manager/manage", { action, ...extra });
+      if (result?.status && result?.settings) {
+        this._data = result;
+      } else {
+        this._data = await this._api("GET", "ip_ban_manager/status");
+      }
+      ok = true;
     } catch (err) {
       this._error = this._errorMessage(err);
     } finally {
       this._busy = false;
       this._render();
     }
+    return ok;
   }
 
   _handleInitialAction() {
@@ -211,6 +218,20 @@ class IPBanManagerPanel extends HTMLElement {
         }
         .body { padding: 16px; }
         .hint { color: var(--secondary-text-color); margin: 0 0 14px; }
+        .health {
+          margin-bottom: 14px;
+          padding: 10px 12px;
+          border-radius: 6px;
+          font-size: 13px;
+        }
+        .health.warn {
+          border: 1px solid var(--warning-color, #ffa600);
+          background: rgba(255, 152, 0, 0.10);
+        }
+        .health ul {
+          margin: 6px 0 0;
+          padding-left: 18px;
+        }
         .rows { display: grid; gap: 8px; margin-bottom: 14px; }
         .row {
           display: grid;
@@ -399,6 +420,7 @@ class IPBanManagerPanel extends HTMLElement {
       <section>
         <h2>Options</h2>
         <div class="body">
+          ${this._healthSummary(this._data.status.health)}
           <div class="options">
             ${this._checkbox("auto_ban_enabled", "Automatic bans", "Block failed login sources.", settings.auto_ban_enabled)}
             ${this._checkbox("ban_notifications_enabled", "Automatic ban notifications", "Show alerts when IPs are blocked.", settings.ban_notifications_enabled)}
@@ -442,6 +464,22 @@ class IPBanManagerPanel extends HTMLElement {
     `;
   }
 
+  _healthSummary(health) {
+    if (!health) {
+      return "";
+    }
+    const issues = health.health_issues || [];
+    if (!issues.length) {
+      return "";
+    }
+    return `
+      <div class="health warn">
+        <strong>Health check needs attention</strong>
+        <ul>${issues.map((issue) => `<li>${this._escape(issue)}</li>`).join("")}</ul>
+      </div>
+    `;
+  }
+
   _silencedAllowlistedLogins(settings) {
     const silencedRows = this._rows(
       settings.silenced_allowlisted_login_ips || [],
@@ -452,10 +490,6 @@ class IPBanManagerPanel extends HTMLElement {
         <h3>Silenced allowlisted-login notifications</h3>
         <p class="hint">Addresses silenced from allowlisted-login alerts.</p>
         ${silencedRows}
-        <form data-action="unsilence_allowlisted_login">
-          <input name="value" placeholder="IPv4/IPv6 address" autocomplete="off">
-          <button class="primary" ${this._busy ? "disabled" : ""}>Remove</button>
-        </form>
       </div>
     `;
   }
@@ -497,8 +531,11 @@ class IPBanManagerPanel extends HTMLElement {
         event.preventDefault();
         const value = new FormData(form).get("value");
         if (value) {
-          this._post(form.dataset.action, { value });
-          form.reset();
+          this._post(form.dataset.action, { value }).then((ok) => {
+            if (ok) {
+              form.reset();
+            }
+          });
         }
       });
     });

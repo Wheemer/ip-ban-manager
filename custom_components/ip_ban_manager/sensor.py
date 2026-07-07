@@ -108,13 +108,18 @@ class IPBanManagerSensor(SensorEntity):
         self._attr_icon = description.icon
         self._attr_name = description.name
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._status = cast(dict[str, Any], current_status(hass))
+
+    async def async_update(self) -> None:
+        """Refresh the cached diagnostic status."""
+        self._status = cast(dict[str, Any], current_status(self.hass))
 
     @property
     def native_value(self) -> int:
         """Return the diagnostic count."""
-        return self._description.value_fn(current_status(self.hass))
+        return self._description.value_fn(self._status)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return details behind the diagnostic count."""
-        return self._description.attributes_fn(current_status(self.hass))
+        return self._description.attributes_fn(self._status)

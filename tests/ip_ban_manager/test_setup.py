@@ -2,6 +2,7 @@
 
 import json
 import logging
+from asyncio import Event, wait_for
 from ipaddress import IPv4Address, ip_address
 from pathlib import Path
 from typing import Any, cast
@@ -42,10 +43,13 @@ from custom_components.ip_ban_manager import (
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
+    KEY_HEALTH,
+    KEY_METRICS,
     KEY_ORIGINAL_ADD_BAN,
     KEY_ORIGINAL_LOAD_BANS,
     KEY_PANEL_REGISTERED,
     KEY_PANEL_SIDEBAR_ENABLED,
+    KEY_REVERSE_DNS_CACHE,
     LEGACY_BACKUP_DIR,
     LEGACY_CLEANUP_DIR,
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
@@ -60,6 +64,7 @@ from custom_components.ip_ban_manager import (
     _async_panel_set_options,
     _async_register_panel,
     _async_remove_legacy_entries,
+    _async_update_health_issue,
     _cleanup_destination,
     _create_allowlisted_login_notification,
     current_status,
@@ -73,7 +78,11 @@ from custom_components.ip_ban_manager.const import (
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_GEOIP_DATABASE_PRESENT,
     ATTR_GEOIP_ENABLED,
+    ATTR_HEALTH,
+    ATTR_HEALTH_ISSUES,
     ATTR_IP_ADDRESS,
+    ATTR_LAST_CONFIG_WRITE,
+    ATTR_METRICS,
     ATTR_NETWORK,
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
@@ -201,6 +210,75 @@ async def setup_ip_ban_manager(hass: HomeAssistant) -> None:
     )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_does_not_wait_for_legacy_folder_cleanup(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test stale-folder cleanup does not hold the setup path."""
+    cleanup_started = Event()
+    cleanup_can_finish = Event()
+
+    async def slow_cleanup(mock_hass: HomeAssistant) -> None:
+        cleanup_started.set()
+        await cleanup_can_finish.wait()
+
+    monkeypatch.setattr(ipbm, "_async_cleanup_legacy_component_folder", slow_cleanup)
+
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+    await wait_for(cleanup_started.wait(), timeout=1)
+
+    cleanup_can_finish.set()
+    await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_does_not_wait_for_geoip_reader_prepare(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test GeoIP reader warmup does not hold the setup path."""
+    prepare_started = Event()
+    prepare_can_finish = Event()
+
+    async def slow_prepare(mock_hass: HomeAssistant) -> None:
+        prepare_started.set()
+        await prepare_can_finish.wait()
+
+    monkeypatch.setattr(ipbm, "_async_prepare_geoip_reader", slow_prepare)
+
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["192.168.1.1"],
+            CONF_GEOIP_ENABLED: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+    await wait_for(prepare_started.wait(), timeout=1)
+
+    prepare_can_finish.set()
     await hass.async_block_till_done()
 
 
@@ -1358,6 +1436,62 @@ async def test_allowlisted_wrong_login_keeps_real_reverse_name(
 
 
 @pytest.mark.asyncio
+async def test_allowlisted_wrong_login_caches_reverse_dns_name(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test repeated allowlisted failures do not repeat reverse-DNS lookups."""
+    await setup_ip_ban_manager(hass)
+    lookup_count = 0
+
+    def fake_gethostbyaddr(remote: str) -> tuple[str, list[str], list[str]]:
+        nonlocal lookup_count
+        lookup_count += 1
+        return "server.lan", [], [remote]
+
+    monkeypatch.setattr(ipbm, "gethostbyaddr", fake_gethostbyaddr)
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    assert lookup_count == 1
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert (
+        "from server.lan (192.168.1.1)."
+        in notifications[NOTIFICATION_ID_LOGIN]["message"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_allowlisted_wrong_login_skips_generic_notification_rewrite(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test allowlisted failures do not reprocess already-branded notifications."""
+    await setup_ip_ban_manager(hass)
+
+    def fail_rewrite(mock_hass: HomeAssistant) -> None:
+        raise AssertionError("allowlisted path should create its own notification")
+
+    monkeypatch.setattr(ipbm, "_handle_http_notifications", fail_rewrite)
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    assert "Allowlisted login failed" in notifications[NOTIFICATION_ID_LOGIN]["message"]
+
+
+@pytest.mark.asyncio
 async def test_ipv4_mapped_allowlisted_wrong_login_does_not_become_ban(
     hass: HomeAssistant,
 ) -> None:
@@ -1483,7 +1617,8 @@ async def test_quiet_allowlisted_wrong_logins_escalate_after_repeated_failures(
     assert "Repeated allowlisted login failures" in message
     assert f"{ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD} times" in message
     assert "Open settings" not in message
-    assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
+    assert f"/{DOMAIN}?action=silence_allowlisted_login" in message
     assert NOTIFICATION_ID_BAN not in notifications
 
 
@@ -1862,7 +1997,29 @@ async def test_status_view_returns_state_for_admin(hass: HomeAssistant) -> None:
     assert response.text is not None
     data = json.loads(response.text)
     assert response.status == 200
+    assert data["ok"] is True
+    assert data["status"][ATTR_HEALTH]["ok"] is True
+    assert data["status"][ATTR_HEALTH][ATTR_HEALTH_ISSUES] == []
+    assert data["status"][ATTR_METRICS]["panel_api_calls"] == 1
     assert data["settings"][CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
+
+
+@pytest.mark.asyncio
+async def test_status_view_reports_health_issue_for_panel_registration(
+    hass: HomeAssistant,
+) -> None:
+    """Test the status payload exposes actionable health issues."""
+    await setup_ip_ban_manager(hass)
+    hass.data.pop(KEY_PANEL_REGISTERED)
+
+    _async_update_health_issue(hass)
+    status = current_status(hass)
+    health = cast(dict[str, Any], status[ATTR_HEALTH])
+
+    assert health["ok"] is False
+    assert "The IP Ban Manager panel is not registered." in cast(
+        list[str], health[ATTR_HEALTH_ISSUES]
+    )
 
 
 @pytest.mark.asyncio
@@ -1887,6 +2044,62 @@ async def test_manage_view_requires_admin_for_notification_silence(
     )
 
     assert response.status == 403
+
+
+@pytest.mark.asyncio
+async def test_manage_view_returns_structured_error(
+    hass: HomeAssistant,
+) -> None:
+    """Test panel API errors are machine readable."""
+    await setup_ip_ban_manager(hass)
+
+    response = await IPBanManagerManageView().post(
+        cast(
+            Any,
+            MockViewRequest(
+                hass.http.app,
+                data={"action": "does_not_exist"},
+            ),
+        )
+    )
+
+    assert response.status == 400
+    assert response.text is not None
+    data = json.loads(response.text)
+    assert data["ok"] is False
+    assert data["error"] == "Unknown action."
+    metrics = cast(dict[str, Any], current_status(hass)[ATTR_METRICS])
+    assert metrics["panel_api_errors"] == 1
+
+
+@pytest.mark.asyncio
+async def test_manage_view_skips_unchanged_option_write(
+    hass: HomeAssistant,
+) -> None:
+    """Test repeated option saves do not churn config storage."""
+    await setup_ip_ban_manager(hass)
+
+    status_response = await IPBanManagerStatusView().get(
+        cast(Any, MockViewRequest(hass.http.app))
+    )
+    assert status_response.text is not None
+    settings = json.loads(status_response.text)["settings"]
+
+    request = MockViewRequest(
+        hass.http.app,
+        data={"action": "set_options", "options": settings},
+    )
+    response = await IPBanManagerManageView().post(cast(Any, request))
+    assert response.status == 200
+    writes_after_first_save = cast(dict[str, Any], current_status(hass)[ATTR_METRICS])[
+        "config_writes"
+    ]
+
+    response = await IPBanManagerManageView().post(cast(Any, request))
+
+    assert response.status == 200
+    metrics = cast(dict[str, Any], current_status(hass)[ATTR_METRICS])
+    assert metrics["config_writes"] == writes_after_first_save
 
 
 @pytest.mark.asyncio
@@ -1920,8 +2133,45 @@ async def test_manage_view_can_silence_allowlisted_login_address(
     )
 
     assert response.status == 200
+    assert response.text is not None
+    data = json.loads(response.text)
+    assert data["ok"] is True
+    assert data["status"][ATTR_HEALTH]["ok"] is True
+    assert data["status"][ATTR_HEALTH][ATTR_HEALTH_ISSUES] == []
+    assert data["settings"][CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
     assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
     assert NOTIFICATION_ID_LOGIN not in notifications
+    writes_after_first_silence = cast(
+        dict[str, Any], current_status(hass)[ATTR_METRICS]
+    )["config_writes"]
+
+    persistent_notification.async_create(
+        hass,
+        "Allowlisted login failed\n\n192.168.1.1 is allowlisted.",
+        " ",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    response = await IPBanManagerManageView().post(
+        cast(
+            Any,
+            MockViewRequest(
+                hass.http.app,
+                data={
+                    "action": "silence_allowlisted_login",
+                    "value": "192.168.1.1",
+                    ATTR_NOTIFICATION_ID: NOTIFICATION_ID_LOGIN,
+                },
+            ),
+        )
+    )
+
+    assert response.status == 200
+    assert NOTIFICATION_ID_LOGIN not in notifications
+    assert (
+        cast(dict[str, Any], current_status(hass)[ATTR_METRICS])["config_writes"]
+        == writes_after_first_silence
+    )
 
 
 @pytest.mark.asyncio
@@ -2031,10 +2281,10 @@ async def test_allowlisted_notification_includes_geoip_location(
 
 
 @pytest.mark.asyncio
-async def test_silenced_allowlisted_login_address_escalates_after_repeated_failures(
+async def test_silenced_allowlisted_login_address_stays_silenced_after_repeated_failures(
     hass: HomeAssistant,
 ) -> None:
-    """Test per-address allowlisted notification silence still escalates."""
+    """Test per-address allowlisted notification silence suppresses repeated alerts."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     hass.config_entries.async_update_entry(
@@ -2059,11 +2309,7 @@ async def test_silenced_allowlisted_login_address_escalates_after_repeated_failu
     assert NOTIFICATION_ID_LOGIN not in notifications
 
     await http_ban.process_wrong_login(cast(Any, MockRequest()))
-    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
-    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
-    assert "Repeated allowlisted login failures" in message
-    assert f"{ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD} times" in message
-    assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+    assert NOTIFICATION_ID_LOGIN not in notifications
     assert NOTIFICATION_ID_BAN not in notifications
 
 
@@ -2358,6 +2604,9 @@ async def test_unload_restores_home_assistant_hooks(
     assert KEY_CONFIG_ENTRY not in hass.http.app
     assert KEY_ORIGINAL_ADD_BAN not in hass.http.app
     assert KEY_ORIGINAL_LOAD_BANS not in hass.http.app
+    assert KEY_REVERSE_DNS_CACHE not in hass.http.app
+    assert KEY_HEALTH not in hass.data
+    assert KEY_METRICS not in hass.data
 
 
 @pytest.mark.asyncio
@@ -2392,6 +2641,17 @@ async def test_live_ban_services_update_memory_and_file(
 
     assert ip_address("10.0.0.1") not in ban_manager.ip_bans_lookup
     assert not Path(ban_manager.path).exists()
+
+    snapshots = sorted(Path(hass.config.path(DOMAIN, "snapshots")).glob("*.bak"))
+    assert snapshots
+    assert any(
+        "10.0.0.1" in snapshot.read_text(encoding="utf8") for snapshot in snapshots
+    )
+
+    metrics = cast(dict[str, Any], current_status(hass)[ATTR_METRICS])
+    assert metrics["config_writes"] >= 1
+    assert metrics["snapshots_created"] >= 1
+    assert metrics[ATTR_LAST_CONFIG_WRITE] is not None
 
 
 @pytest.mark.asyncio
@@ -2846,9 +3106,14 @@ async def test_current_status_lists_live_state(
     check_records(caplog.records)
 
     status = current_status(hass)
+    health = cast(dict[str, Any], status[ATTR_HEALTH])
+    metrics = cast(dict[str, Any], status[ATTR_METRICS])
 
     assert status[ATTR_ALLOWLISTED_LOGINS_CAN_BAN] is False
     assert status[ATTR_DEFAULT_DENY_ENABLED] is False
+    assert health["ok"] is True
+    assert health[ATTR_HEALTH_ISSUES] == []
+    assert "config_writes" in metrics
     assert status[ATTR_NETWORKS] == ["192.168.1.1/32", "172.17.0.0/24"]
     assert status[ATTR_BANNED_IPS] == [
         {

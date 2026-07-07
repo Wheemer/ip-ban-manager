@@ -124,6 +124,10 @@
     "legacy_folder_cleanup_failed": {
       "title": "Legacy cleanup needs attention",
       "description": "IP Ban Manager could not move one or more stale legacy folders out of Home Assistant's loader path:\n\n{paths}\n\nCheck file permissions, move those paths out of `custom_components`, then restart Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "IP Ban Manager health check needs attention",
+      "description": "IP Ban Manager found one or more setup issues that can affect live ban management:\n\n{issues}\n\nOpen the IP Ban Manager panel after fixing these items to refresh the health check."
     }
   }
 }
