@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.5.3** | Clean HACS packaging recovery release: ships the release zip with the integration files at the zip root and adds workflow validation so bad zip layouts cannot be uploaded silently. |
 | **v1.5.0** | Adds optional local GeoIP location labels for public IPs using a downloaded DB-IP City Lite database and hardens the **Don't show for this address again** notification action. No live IP lookups are made during login or ban handling. |
 | **v1.4.8** | Bumps the bundled panel asset so Home Assistant reloads the IPv4/IPv6 panel wording, and aligns Configure helper text with the live panel. |
 | **v1.4.7** | Tightens the legacy upgrade path so old `ban_allowlist` config entries are absorbed and removed automatically after IP Ban Manager starts. |

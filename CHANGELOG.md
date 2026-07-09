@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.3
+
+IP Ban Manager 1.5.3 is a clean packaging recovery release for HACS installs after the first `v1.5.2` zip was generated with the wrong folder layout.
+
+### Fixed
+
+- Fixed the HACS release zip layout so `manifest.json` and the integration files are at the zip root, where HACS expects them for `zip_release` installs.
+- Added release-zip validation to the GitHub release workflow so future packages fail before upload if they contain `custom_components/` nesting, miss required root files, or include Python cache files.
+- Bumped the manifest version to `1.5.3` so HACS users get a clean update path instead of wondering whether they have the corrected `v1.5.2` asset.
+
 ## v1.5.2
 
 IP Ban Manager 1.5.2 is a packaging-only release that switches HACS updates to a dedicated release zip so GitHub can count future HACS downloads correctly.
