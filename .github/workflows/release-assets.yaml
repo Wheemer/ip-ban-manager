@@ -20,7 +20,10 @@ jobs:
     - name: Build HACS release zip
       run: |
         cd custom_components/ip_ban_manager
-        zip -r "${GITHUB_WORKSPACE}/ip-ban-manager.zip" . -x '*/__pycache__/*' '*.pyc'
+        zip -r "${GITHUB_WORKSPACE}/ip-ban-manager.zip" . -x '*/__pycache__/*' '*/__pycache__' '__pycache__/*' '__pycache__' '*.pyc'
+    - name: Validate HACS release zip
+      run: |
+        python scripts/validate_hacs_zip.py ip-ban-manager.zip
     - name: Upload release asset
       env:
         GH_TOKEN: ${{ github.token }}
