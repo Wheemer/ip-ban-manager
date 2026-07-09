@@ -135,11 +135,14 @@ class IPBanManagerPanel extends HTMLElement {
     if (typeof err === "string") {
       return err;
     }
-    if (err?.message) {
-      return err.message;
+    if (err?.body?.error) {
+      return err.body.error;
     }
     if (err?.body?.message) {
       return err.body.message;
+    }
+    if (err?.message) {
+      return err.message;
     }
     if (err?.error) {
       return err.error;

@@ -23,6 +23,7 @@ from ipaddress import (
     IPv6Address,
     IPv6Network,
     ip_address,
+    ip_network,
 )
 from pathlib import Path
 from secrets import token_urlsafe
@@ -140,6 +141,8 @@ GEOIP_DIR = "geoip"
 GEOIP_FILENAME = "dbip-city-lite.mmdb"
 SNAPSHOT_DIR = "snapshots"
 SNAPSHOT_KEEP = 3
+SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (IPv4Network("172.30.32.0/23"),)
+SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
@@ -302,22 +305,29 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         blocked_networks: tuple[IPNetwork, ...],
         allowlist: tuple[IPNetwork, ...],
         default_deny_enabled: bool,
+        internal_bypass_networks: tuple[IPNetwork, ...] | None = None,
     ) -> None:
         """Initialize the lookup from Home Assistant's exact IP bans."""
         super().__init__(values)
         self.blocked_networks = blocked_networks
         self.allowlist = allowlist
         self.default_deny_enabled = default_deny_enabled
+        self.internal_bypass_networks = (
+            internal_bypass_networks or _supervisor_internal_networks()
+        )
 
     def __contains__(self, key: object) -> bool:
         """Return whether an IP is exactly banned or blocked by network."""
-        if dict.__contains__(self, key):
-            return True
-
         if not isinstance(key, (IPv4Address, IPv6Address)):
             return False
 
         remote_addr = _normalize_remote_addr(key)
+        if _is_allowed(remote_addr, self.internal_bypass_networks):
+            return False
+
+        if dict.__contains__(self, key):
+            return True
+
         if remote_addr != key and dict.__contains__(self, remote_addr):
             return True
 
@@ -334,6 +344,38 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         return bool(
             dict.__len__(self) or self.blocked_networks or self.default_deny_enabled
         )
+
+
+def _supervisor_internal_networks() -> tuple[IPNetwork, ...]:
+    """Return narrow internal networks that should not be blocked by managed rules."""
+    networks = list(SUPERVISOR_INTERNAL_NETWORKS)
+    supervisor_host = _supervisor_host_from_env()
+    if supervisor_host is None:
+        return tuple(networks)
+
+    with suppress(ValueError):
+        supervisor_addr = ip_address(supervisor_host)
+        if isinstance(supervisor_addr, IPv4Address):
+            if supervisor_addr in SUPERVISOR_DOCKER_PARENT_NETWORK:
+                networks.insert(0, ip_network(f"{supervisor_addr}/23", strict=False))
+            else:
+                networks.insert(0, IPv4Network(f"{supervisor_addr}/32"))
+        else:
+            networks.insert(0, IPv6Network(f"{supervisor_addr}/128"))
+
+    return tuple(dict.fromkeys(networks))
+
+
+def _supervisor_host_from_env() -> str | None:
+    """Return the Supervisor host from Home Assistant's Supervisor environment."""
+    supervisor = os.environ.get("SUPERVISOR")
+    if not supervisor:
+        return None
+    if "://" in supervisor:
+        return urlsplit(supervisor).hostname
+    if supervisor.count(":") == 1 and "." in supervisor:
+        return supervisor.split(":", 1)[0]
+    return supervisor
 
 
 def _normalize_remote_addr(remote_addr: IPAddress) -> IPAddress:
@@ -2058,7 +2100,8 @@ async def _async_validate_panel_network_safety(
     except UnprotectedLocalBlockError as err:
         raise HomeAssistantError(
             "That would block a detected local Home Assistant network without "
-            "a matching allowed entry."
+            "a matching allowed entry. Add the detected local network to Allowed "
+            "IPs before enabling this option."
         ) from err
 
 

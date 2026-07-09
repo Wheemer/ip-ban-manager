@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.5.1
+
+IP Ban Manager 1.5.1 is a focused fix release for numeric diagnostics, Supervisor update compatibility, and the default-deny panel option.
+
+### Fixed
+
+- Diagnostic count sensors now advertise `state_class: measurement` and an empty unit so Home Assistant treats them as numeric and can graph them.
+- Default-deny safety checks now ignore Home Assistant Supervisor's internal Docker network while still preserving Supervisor readiness checks during Core updates.
+- The live panel now surfaces backend validation text instead of a raw `Response error: 400` when a safety check rejects a change.
+
 ## v1.5.0
 
 IP Ban Manager 1.5.0 adds optional local GeoIP location labels for public IP addresses and tightens the allowlisted-login notification action.

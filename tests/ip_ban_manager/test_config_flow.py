@@ -123,6 +123,30 @@ async def mixed_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
     ]
 
 
+async def supervised_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
+    """Return local and Supervisor-style internal adapters."""
+    return [
+        {
+            "name": "eth0",
+            "index": 2,
+            "enabled": True,
+            "auto": True,
+            "default": True,
+            "ipv4": [{"address": "192.168.1.40", "network_prefix": 24}],
+            "ipv6": [],
+        },
+        {
+            "name": "hassio",
+            "index": 3,
+            "enabled": True,
+            "auto": True,
+            "default": True,
+            "ipv4": [{"address": "172.30.32.1", "network_prefix": 23}],
+            "ipv6": [],
+        },
+    ]
+
+
 async def load_ip_ban_manager(hass: HomeAssistant) -> None:
     """Load the custom integration."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
@@ -160,6 +184,18 @@ async def test_detect_home_assistant_subnets(
     assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
         "192.168.1.0/24",
         "fd12:3456:789a::/64",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_detect_home_assistant_subnets_ignores_supervisor_internal_network(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test Supervisor internal networks are not treated as user access paths."""
+    monkeypatch.setattr(ban_config_flow, "async_get_adapters", supervised_adapters)
+
+    assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
+        "192.168.1.0/24",
     ]
 
 

@@ -71,6 +71,7 @@ QUICK_ALLOW_LOCALHOST = "localhost"
 QUICK_ALLOW_LOCAL_NETWORK = "local_network"
 
 IPNetwork = IPv4Network | IPv6Network
+SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
 
 
 class UnsafeAllowlistError(ValueError):
@@ -175,7 +176,13 @@ def _validate_local_block_safety(
     """Reject local network blocks that have no local allowlist path back in."""
     allowlist_networks = [parse_allowlist_network(network) for network in allowlist]
     blocked = [parse_allowlist_network(network) for network in blocked_networks]
-    detected = [parse_allowlist_network(network) for network in detected_subnets]
+    detected = [
+        network
+        for network in (
+            parse_allowlist_network(network) for network in detected_subnets
+        )
+        if not _is_supervisor_internal_network(network)
+    ]
     if default_deny_enabled and not detected:
         raise UnprotectedLocalBlockError
 
@@ -209,6 +216,13 @@ def _validate_local_block_safety(
             if local_network_is_allowed:
                 continue
             raise UnprotectedLocalBlockError
+
+
+def _is_supervisor_internal_network(network: IPNetwork) -> bool:
+    """Return whether a detected subnet is Home Assistant's internal Supervisor LAN."""
+    return isinstance(network, IPv4Network) and network.subnet_of(
+        SUPERVISOR_DOCKER_PARENT_NETWORK
+    )
 
 
 def _items_to_text(items: Iterable[str]) -> str:
@@ -669,6 +683,7 @@ async def _async_detect_home_assistant_subnets(hass: HomeAssistant) -> list[str]
                 or network.is_link_local
                 or network.is_multicast
                 or network.is_unspecified
+                or _is_supervisor_internal_network(network)
             ):
                 continue
 

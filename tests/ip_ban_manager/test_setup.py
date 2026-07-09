@@ -18,9 +18,10 @@ from homeassistant.components.http.ban import (
     KEY_LOGIN_THRESHOLD,
     NOTIFICATION_ID_BAN,
     NOTIFICATION_ID_LOGIN,
+    IpBan,
     IpBanManager,
 )
-from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT, EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import issue_registry as ir
@@ -67,6 +68,7 @@ from custom_components.ip_ban_manager import (
     _async_update_health_issue,
     _cleanup_destination,
     _create_allowlisted_login_notification,
+    _supervisor_internal_networks,
     current_status,
 )
 from custom_components.ip_ban_manager.const import (
@@ -963,6 +965,71 @@ async def test_default_deny_blocks_everything_outside_allowlist(
 
 
 @pytest.mark.asyncio
+async def test_default_deny_preserves_supervisor_frontend_check(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test default-deny mode does not block Supervisor's readiness check."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["127.0.0.1"],
+            CONF_DEFAULT_DENY_ENABLED: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    supervisor_addr = ip_address("172.30.32.2")
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.ip_bans_lookup[supervisor_addr] = IpBan(supervisor_addr)
+
+    assert supervisor_addr not in ban_manager.ip_bans_lookup
+    assert ip_address("172.30.33.254") not in ban_manager.ip_bans_lookup
+    assert ip_address("172.30.34.1") in ban_manager.ip_bans_lookup
+
+
+def test_supervisor_internal_networks_uses_supervisor_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test Supervisor bypass networks adapt to the Supervisor environment."""
+    monkeypatch.setenv("SUPERVISOR", "172.30.40.2")
+    networks = _supervisor_internal_networks()
+
+    assert ip_address("172.30.40.2") in networks[0]
+    assert ip_address("172.30.41.254") in networks[0]
+    assert ip_address("172.30.42.1") not in networks[0]
+
+
+def test_supervisor_internal_networks_keeps_non_docker_env_exact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test unusual Supervisor addresses are not expanded into broad bypasses."""
+    monkeypatch.setenv("SUPERVISOR", "192.0.2.10:8123")
+    networks = _supervisor_internal_networks()
+
+    assert str(networks[0]) == "192.0.2.10/32"
+    assert ip_address("192.0.2.11") not in networks[0]
+
+
+def test_supervisor_internal_networks_supports_ipv6_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test IPv6 Supervisor addresses are preserved as exact bypasses."""
+    monkeypatch.setenv("SUPERVISOR", "fd00::10")
+    networks = _supervisor_internal_networks()
+
+    assert str(networks[0]) == "fd00::10/128"
+    assert ip_address("fd00::11") not in networks[0]
+
+
+@pytest.mark.asyncio
 async def test_setup_entry_can_skip_sidebar_panel(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
@@ -1032,6 +1099,34 @@ async def test_panel_options_can_disable_sidebar_panel(
     assert entry.options[CONF_SIDEBAR_PANEL_ENABLED] is False
     assert hass.data[KEY_PANEL_REGISTERED] is True
     assert hass.data[KEY_PANEL_SIDEBAR_ENABLED] is False
+
+
+@pytest.mark.asyncio
+async def test_panel_options_can_enable_default_deny_with_supervisor_network(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test default-deny ignores Supervisor internals when checking lockout safety."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    ipbm._update_allowlist_entry(hass, ["192.168.1.0/24"])
+
+    async def detected_with_supervisor_network(hass: HomeAssistant) -> list[str]:
+        return ["192.168.1.0/24", "172.30.32.0/23"]
+
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        detected_with_supervisor_network,
+    )
+
+    await _async_panel_set_options(
+        hass,
+        {
+            CONF_DEFAULT_DENY_ENABLED: True,
+        },
+    )
+
+    assert entry.options[CONF_DEFAULT_DENY_ENABLED] is True
 
 
 @pytest.mark.asyncio
@@ -1274,6 +1369,15 @@ async def test_diagnostic_sensors_expose_counts(
     assert failed_login_sources is not None
     assert failed_login_sources.state == "0"
     assert failed_login_sources.attributes[ATTR_FAILED_LOGIN_ATTEMPTS] == {}
+
+    for state in (
+        active_bans,
+        allowlisted_networks,
+        blocked_networks,
+        failed_login_sources,
+    ):
+        assert state.attributes["state_class"] == "measurement"
+        assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == ""
 
 
 @pytest.mark.asyncio
