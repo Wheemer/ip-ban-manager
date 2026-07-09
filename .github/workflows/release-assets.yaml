@@ -1,0 +1,27 @@
+---
+name: Release assets
+
+on:
+  release:
+    types:
+    - published
+
+permissions:
+  contents: write
+
+jobs:
+  upload-hacs-zip:
+    name: Upload HACS zip
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event.release.tag_name }}
+    - name: Build HACS release zip
+      run: |
+        zip -r ip-ban-manager.zip custom_components/ip_ban_manager -x '*/__pycache__/*' '*.pyc'
+    - name: Upload release asset
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release upload "${{ github.event.release.tag_name }}" ip-ban-manager.zip --clobber

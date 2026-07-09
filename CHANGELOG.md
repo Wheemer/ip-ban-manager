@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.5.2
+
+IP Ban Manager 1.5.2 is a packaging-only release that switches HACS updates to a dedicated release zip so GitHub can count future HACS downloads correctly.
+
+### Fixed
+
+- Added HACS `zip_release` metadata for `ip-ban-manager.zip`.
+- Added an automated release asset workflow so future GitHub releases attach the HACS zip consistently.
+
 ## v1.5.1
 
 IP Ban Manager 1.5.1 is a focused fix release for numeric diagnostics, Supervisor update compatibility, and the default-deny panel option.
