@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 from zipfile import ZipFile
 
-
 REQUIRED_ROOT_FILES = {
     "__init__.py",
     "config_flow.py",
