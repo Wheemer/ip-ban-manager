@@ -19,7 +19,8 @@ jobs:
         ref: ${{ github.event.release.tag_name }}
     - name: Build HACS release zip
       run: |
-        zip -r ip-ban-manager.zip custom_components/ip_ban_manager -x '*/__pycache__/*' '*.pyc'
+        cd custom_components/ip_ban_manager
+        zip -r "${GITHUB_WORKSPACE}/ip-ban-manager.zip" . -x '*/__pycache__/*' '*.pyc'
     - name: Upload release asset
       env:
         GH_TOKEN: ${{ github.token }}
