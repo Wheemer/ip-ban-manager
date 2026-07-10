@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.5.5** | Keeps Home Assistant OS add-ons and Supervisor Docker traffic out of managed blocks/default-deny without exposing those internal addresses in Allowed IPs. |
 | **v1.5.4** | Corrects default-deny safety validation so Home Assistant's own addresses are protected internally while valid local allowlists are not rejected for unrelated detected adapter paths. |
 | **v1.5.3** | Clean HACS packaging recovery release: ships the release zip with the integration files at the zip root and adds workflow validation so bad zip layouts cannot be uploaded silently. |
 | **v1.5.0** | Adds optional local GeoIP location labels for public IPs using a downloaded DB-IP City Lite database and hardens the **Don't show for this address again** notification action. No live IP lookups are made during login or ban handling. |
@@ -82,7 +83,7 @@ Core management features include:
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
 - **Notifications:** branded IP Ban Manager login/ban notifications include an embedded compact icon header, direct settings link where action is useful, stale-notification cleanup when bans are removed, optional automatic-ban notification suppression, earlier failed-login capture, and quieter allowlisted-login notifications that can still escalate if a trusted source keeps failing authentication.
 - **GeoIP labels:** optional local DB-IP City Lite lookups can show approximate city/country labels for public IPs in notifications and the live panel, with no online lookup during request handling.
-- **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, unsafe default-deny changes, and unconfirmed multi-ban clear actions are rejected before anything is written. Home Assistant's own exact interface addresses are protected internally without turning the whole local network into a hidden allowlist.
+- **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, unsafe default-deny changes, and unconfirmed multi-ban clear actions are rejected before anything is written. Home Assistant's own exact interface addresses plus Supervisor/add-on internals are protected without turning the whole local network into a hidden allowlist.
 - **Automation:** `ip_ban_manager.*` services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
 - **Diagnostics:** sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources.
 

@@ -143,8 +143,10 @@ GEOIP_DIR = "geoip"
 GEOIP_FILENAME = "dbip-city-lite.mmdb"
 SNAPSHOT_DIR = "snapshots"
 SNAPSHOT_KEEP = 3
-SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (IPv4Network("172.30.32.0/23"),)
 SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
+SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (
+    SUPERVISOR_DOCKER_PARENT_NETWORK,
+)
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
@@ -362,7 +364,7 @@ def _supervisor_internal_networks() -> tuple[IPNetwork, ...]:
         supervisor_addr = ip_address(supervisor_host)
         if isinstance(supervisor_addr, IPv4Address):
             if supervisor_addr in SUPERVISOR_DOCKER_PARENT_NETWORK:
-                networks.insert(0, ip_network(f"{supervisor_addr}/23", strict=False))
+                networks.insert(0, SUPERVISOR_DOCKER_PARENT_NETWORK)
             else:
                 networks.insert(0, IPv4Network(f"{supervisor_addr}/32"))
         else:

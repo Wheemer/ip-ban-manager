@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.5.5
+
+IP Ban Manager 1.5.5 widens the hidden Home Assistant internal bypass used by managed network blocks and default-deny mode.
+
+### Fixed
+
+- Default-deny mode now bypasses the full Home Assistant Supervisor Docker parent network (`172.30.0.0/16`) instead of only the narrower Supervisor readiness subnet.
+- This keeps add-ons and other Home Assistant OS internal callers out of IP Ban Manager's managed block/default-deny path without adding those internal addresses to the visible allowlist.
+
+### Validation
+
+- Updated regression coverage so Supervisor/add-on Docker addresses stay reachable while nearby non-internal addresses are still blocked by default-deny mode.
+- Bumped the manifest version to `1.5.5` for HACS update detection.
+
 ## v1.5.4
 
 IP Ban Manager 1.5.4 corrects the default-deny safety path so valid local allowlists are not rejected just because Home Assistant reports another adapter path.

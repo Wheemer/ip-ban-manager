@@ -992,7 +992,8 @@ async def test_default_deny_preserves_supervisor_frontend_check(
 
     assert supervisor_addr not in ban_manager.ip_bans_lookup
     assert ip_address("172.30.33.254") not in ban_manager.ip_bans_lookup
-    assert ip_address("172.30.34.1") in ban_manager.ip_bans_lookup
+    assert ip_address("172.30.34.1") not in ban_manager.ip_bans_lookup
+    assert ip_address("172.31.0.1") in ban_manager.ip_bans_lookup
 
 
 def test_supervisor_internal_networks_uses_supervisor_env(
@@ -1003,8 +1004,8 @@ def test_supervisor_internal_networks_uses_supervisor_env(
     networks = _supervisor_internal_networks()
 
     assert ip_address("172.30.40.2") in networks[0]
-    assert ip_address("172.30.41.254") in networks[0]
-    assert ip_address("172.30.42.1") not in networks[0]
+    assert ip_address("172.30.255.254") in networks[0]
+    assert ip_address("172.31.0.1") not in networks[0]
 
 
 def test_supervisor_internal_networks_keeps_non_docker_env_exact(
