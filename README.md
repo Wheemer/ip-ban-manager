@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.5.4** | Corrects default-deny safety validation so Home Assistant's own addresses are protected internally while valid local allowlists are not rejected for unrelated detected adapter paths. |
 | **v1.5.3** | Clean HACS packaging recovery release: ships the release zip with the integration files at the zip root and adds workflow validation so bad zip layouts cannot be uploaded silently. |
 | **v1.5.0** | Adds optional local GeoIP location labels for public IPs using a downloaded DB-IP City Lite database and hardens the **Don't show for this address again** notification action. No live IP lookups are made during login or ban handling. |
 | **v1.4.8** | Bumps the bundled panel asset so Home Assistant reloads the IPv4/IPv6 panel wording, and aligns Configure helper text with the live panel. |
@@ -81,7 +82,7 @@ Core management features include:
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
 - **Notifications:** branded IP Ban Manager login/ban notifications include an embedded compact icon header, direct settings link where action is useful, stale-notification cleanup when bans are removed, optional automatic-ban notification suppression, earlier failed-login capture, and quieter allowlisted-login notifications that can still escalate if a trusted source keeps failing authentication.
 - **GeoIP labels:** optional local DB-IP City Lite lookups can show approximate city/country labels for public IPs in notifications and the live panel, with no online lookup during request handling.
-- **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, unsafe default-deny changes, and unconfirmed multi-ban clear actions are rejected before anything is written.
+- **Safety checks:** malformed entries, all-Internet allowlist or block entries, exactly banned IPs that are also allowed, local-network lockout risks, unsafe default-deny changes, and unconfirmed multi-ban clear actions are rejected before anything is written. Home Assistant's own exact interface addresses are protected internally without turning the whole local network into a hidden allowlist.
 - **Automation:** `ip_ban_manager.*` services for adding, removing, and clearing exact bans plus adding and removing allowlist entries.
 - **Diagnostics:** sensors for active bans, allowlisted networks, managed blocked networks, and failed-login sources.
 
@@ -176,7 +177,7 @@ Existing exact banned IP rows are shown as `IP - local ban time`, oldest first. 
 
 GeoIP location labels are optional. When enabled, IP Ban Manager downloads the free DB-IP City Lite MMDB database to `/config/ip_ban_manager/geoip/dbip-city-lite.mmdb` and reads it locally. Public IP notifications and blocked-IP rows can then show approximate location labels. Private, loopback, and local-network addresses are not looked up. The database is not bundled with the integration and no online IP lookup is made while handling logins or bans. Location data is provided by DB-IP.com and should be treated as approximate.
 
-The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist or blocked-network entries, IPs that are both allowed and exactly banned, unsafe default-deny changes, and malformed entries. Login-attempt thresholds are clamped server-side, so setup, Configure, and the live panel/API enforce the same range. Service calls use the same safety posture for risky operations, including typo removals, removing the only detected local allowlist path, allowlist networks that contain active exact bans, and clear-all ban requests without `confirm: true`.
+The options UI validates edits before changing Home Assistant. It rejects all-Internet allowlist or blocked-network entries, IPs that are both allowed and exactly banned, unsafe default-deny changes, and malformed entries. Login-attempt thresholds are clamped server-side, so setup, Configure, and the live panel/API enforce the same range. Service calls use the same safety posture for risky operations, including typo removals, removing the only detected local allowlist path, allowlist networks that contain active exact bans, and clear-all ban requests without `confirm: true`. Default-deny mode also protects Home Assistant's own exact interface addresses internally, so users do not need to expose those implementation details in **Allowed IPs**.
 
 The live hooks are installed at setup even if the initial allowlist is empty, so adding your first allowed IP later works immediately. If the integration is unloaded, those hooks are restored so Home Assistant is left in its normal state.
 

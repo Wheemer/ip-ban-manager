@@ -3,7 +3,7 @@
 import json
 import logging
 from asyncio import Event, wait_for
-from ipaddress import IPv4Address, ip_address
+from ipaddress import IPv4Address, IPv4Network, ip_address
 from pathlib import Path
 from typing import Any, cast
 
@@ -1126,6 +1126,29 @@ async def test_panel_options_can_enable_default_deny_with_supervisor_network(
         },
     )
 
+    assert entry.options[CONF_DEFAULT_DENY_ENABLED] is True
+
+
+@pytest.mark.asyncio
+async def test_default_deny_does_not_block_home_assistant_self_address(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test default-deny still bypasses exact Home Assistant self-addresses."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    ipbm._update_allowlist_entry(hass, ["10.10.10.0/24"])
+
+    async def mock_self_networks(hass: HomeAssistant) -> tuple[IPv4Network, ...]:
+        return (IPv4Network("192.168.1.40/32"),)
+
+    monkeypatch.setattr(ipbm, "_async_home_assistant_self_networks", mock_self_networks)
+
+    await _async_panel_set_options(hass, {CONF_DEFAULT_DENY_ENABLED: True})
+
+    lookup = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER]).ip_bans_lookup
+    assert isinstance(lookup, ipbm.NetworkAwareBanLookup)
+    assert IPv4Address("192.168.1.40") not in lookup
+    assert IPv4Address("192.168.1.41") in lookup
     assert entry.options[CONF_DEFAULT_DENY_ENABLED] is True
 
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.5.4
+
+IP Ban Manager 1.5.4 corrects the default-deny safety path so valid local allowlists are not rejected just because Home Assistant reports another adapter path.
+
+### Fixed
+
+- Protected Home Assistant's own exact interface addresses and Supervisor/internal paths from managed blocked networks and default-deny checks without adding those addresses to the visible allowlist.
+- Relaxed default-deny validation so it requires a real local access path, not every detected Home Assistant-facing subnet.
+- Kept explicit blocked-network validation strict when a managed block overlaps a detected local access path without an allowed route back in.
+- Reworded setup, Configure, and panel/API safety errors so they describe the actual local access-path risk instead of blaming a vague detected Home Assistant network.
+
+### Validation
+
+- Added regression coverage for default-deny setups with one valid visible local path, empty detected-subnet results, explicit local block rejection, and Home Assistant self-address bypass.
+- Bumped the manifest version to `1.5.4` for HACS update detection.
+
 ## v1.5.3
 
 IP Ban Manager 1.5.3 is a clean packaging recovery release for HACS installs after the first `v1.5.2` zip was generated with the wrong folder layout.

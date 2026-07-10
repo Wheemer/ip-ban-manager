@@ -76,7 +76,7 @@
       "invalid_banned_ip": "Enter one exact IPv4 or IPv6 address per line. CIDR networks and wildcards belong in Blocked networks.",
       "invalid_blocked_network": "Enter valid IPv4/IPv6 CIDR networks or IPv4 wildcard networks like 203.0.113.*.",
       "unsafe_blocked_network": "That blocked network would block every IP address. Use a narrower network.",
-      "local_network_block_unprotected": "That setting would block a detected local Home Assistant network, but no matching local entry is allowed.",
+      "local_network_block_unprotected": "That setting would block every detected local access path. Add a current local network to Allowed IPs first.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
       "confirmation_required": "Check the confirmation box before clearing every blocked IP."

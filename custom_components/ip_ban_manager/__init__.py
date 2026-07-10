@@ -23,6 +23,7 @@ from ipaddress import (
     IPv6Address,
     IPv6Network,
     ip_address,
+    ip_interface,
     ip_network,
 )
 from pathlib import Path
@@ -52,6 +53,7 @@ from homeassistant.components.http.ban import (
     IpBanManager,
 )
 from homeassistant.components.http.const import KEY_HASS
+from homeassistant.components.network import async_get_adapters
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry, UnknownEntry
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -183,6 +185,9 @@ KEY_ALLOWLIST = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_networks")
 KEY_BLOCKED_NETWORKS = AppKey[tuple[IPNetwork, ...]]("ip_ban_manager_blocked_networks")
 KEY_CONFIG_ENTRY = AppKey[ConfigEntry]("ip_ban_manager_config_entry")
 KEY_DEFAULT_DENY = AppKey[bool]("ip_ban_manager_default_deny")
+KEY_INTERNAL_BYPASS_NETWORKS = AppKey[tuple[IPNetwork, ...]](
+    "ip_ban_manager_internal_bypass_networks"
+)
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
 KEY_ORIGINAL_LOAD_BANS = AppKey[LoadBansCallable]("ip_ban_manager_original_load_bans")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
@@ -364,6 +369,40 @@ def _supervisor_internal_networks() -> tuple[IPNetwork, ...]:
             networks.insert(0, IPv6Network(f"{supervisor_addr}/128"))
 
     return tuple(dict.fromkeys(networks))
+
+
+async def _async_home_assistant_self_networks(
+    hass: HomeAssistant,
+) -> tuple[IPNetwork, ...]:
+    """Return exact Home Assistant-owned addresses that managed rules must not block."""
+    networks = list(_supervisor_internal_networks())
+
+    for adapter in await async_get_adapters(hass):
+        if not adapter["enabled"]:
+            continue
+
+        for address in (*adapter["ipv4"], *adapter["ipv6"]):
+            interface = ip_interface(
+                f"{address['address']}/{address['network_prefix']}"
+            )
+            host_prefix = 32 if isinstance(interface.ip, IPv4Address) else 128
+            networks.append(ip_network(f"{interface.ip}/{host_prefix}"))
+
+    return tuple(dict.fromkeys(networks))
+
+
+async def _async_update_internal_bypass_networks(hass: HomeAssistant) -> None:
+    """Refresh exact Home Assistant self-addresses protected from managed rules."""
+    networks = await _async_home_assistant_self_networks(hass)
+    hass.http.app[KEY_INTERNAL_BYPASS_NETWORKS] = networks
+
+    try:
+        lookup = hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup
+    except KeyError:
+        return
+
+    if isinstance(lookup, NetworkAwareBanLookup):
+        lookup.internal_bypass_networks = networks
 
 
 def _supervisor_host_from_env() -> str | None:
@@ -1151,6 +1190,16 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
     app.setdefault(KEY_ORIGINAL_ADD_BAN, ban_manager.async_add_ban)
 
     async def allowlist_async_add_ban(remote_addr: IPAddress) -> None:
+        if _is_allowed(
+            remote_addr,
+            app.get(KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()),
+        ):
+            _LOGGER.info(
+                "Not adding %s to ban list, as it's a Home Assistant internal address",
+                remote_addr,
+            )
+            return
+
         allowlist = app.get(KEY_ALLOWLIST, ())
         if _is_allowed(remote_addr, allowlist) and not _allowlisted_logins_can_ban(
             hass
@@ -1378,10 +1427,19 @@ def _apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         lookup.blocked_networks = blocked_networks
         lookup.allowlist = allowlist
         lookup.default_deny_enabled = default_deny_enabled
+        lookup.internal_bypass_networks = hass.http.app.get(
+            KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
+        )
         return
 
     ban_manager.ip_bans_lookup = NetworkAwareBanLookup(
-        dict(lookup), blocked_networks, allowlist, default_deny_enabled
+        dict(lookup),
+        blocked_networks,
+        allowlist,
+        default_deny_enabled,
+        hass.http.app.get(
+            KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
+        ),
     )
 
 
@@ -2084,6 +2142,8 @@ async def _async_validate_panel_network_safety(
     default_deny_enabled: bool,
 ) -> None:
     """Validate panel network edits against detected local access paths."""
+    await _async_update_internal_bypass_networks(hass)
+
     from .config_flow import (
         UnprotectedLocalBlockError,
         _async_detect_home_assistant_subnets,
@@ -2098,11 +2158,7 @@ async def _async_validate_panel_network_safety(
             default_deny_enabled,
         )
     except UnprotectedLocalBlockError as err:
-        raise HomeAssistantError(
-            "That would block a detected local Home Assistant network without "
-            "a matching allowed entry. Add the detected local network to Allowed "
-            "IPs before enabling this option."
-        ) from err
+        raise HomeAssistantError(str(err)) from err
 
 
 async def _async_panel_add_allowlist_network(
@@ -2459,6 +2515,16 @@ async def _async_add_ip_ban(hass: HomeAssistant, ip_address_value: str) -> None:
             translation_key="invalid_ip_address",
             translation_placeholders={ATTR_IP_ADDRESS: ip_address_value},
         ) from err
+
+    if _is_allowed(
+        remote_addr,
+        hass.http.app.get(
+            KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
+        ),
+    ):
+        raise ServiceValidationError(
+            f"{remote_addr} is a Home Assistant internal address."
+        )
 
     if _is_allowed(remote_addr, hass.http.app.get(KEY_ALLOWLIST, ())):
         raise ServiceValidationError(
@@ -2818,6 +2884,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.register_view(IPBanManagerManageView())
     _LOGGER.debug("Ban manager %s", ban_manager)
     _install_load_bans_patch(hass, ban_manager)
+    await _async_update_internal_bypass_networks(hass)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
     if _entry_geoip_enabled(entry):

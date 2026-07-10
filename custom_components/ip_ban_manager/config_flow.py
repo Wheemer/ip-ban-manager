@@ -87,7 +87,7 @@ class UnsafeBlockedNetworkError(ValueError):
 
 
 class UnprotectedLocalBlockError(ValueError):
-    """Raised when a local network block has no matching allowed entry."""
+    """Raised when a local access path has no matching allowed entry."""
 
 
 def _normalize_list(value: str | Iterable[str]) -> list[str]:
@@ -183,8 +183,6 @@ def _validate_local_block_safety(
         )
         if not _is_supervisor_internal_network(network)
     ]
-    if default_deny_enabled and not detected:
-        raise UnprotectedLocalBlockError
 
     def _covers_detected_local_network(
         allowed_network: IPNetwork, detected_network: IPNetwork
@@ -200,22 +198,35 @@ def _validate_local_block_safety(
             return detected_network.subnet_of(allowed_network)
         return False
 
+    local_network_is_allowed = False
     for detected_network in detected:
-        local_network_is_allowed = any(
+        detected_network_is_allowed = any(
             _covers_detected_local_network(allowed_network, detected_network)
             for allowed_network in allowlist_networks
         )
-        if default_deny_enabled and not local_network_is_allowed:
-            raise UnprotectedLocalBlockError
+        local_network_is_allowed = (
+            local_network_is_allowed or detected_network_is_allowed
+        )
 
         for blocked_network in blocked:
             if blocked_network.version != detected_network.version:
                 continue
             if not blocked_network.overlaps(detected_network):
                 continue
-            if local_network_is_allowed:
+            if detected_network_is_allowed:
                 continue
-            raise UnprotectedLocalBlockError
+            raise UnprotectedLocalBlockError(
+                "A blocked network overlaps a detected local access path. "
+                "Add that local network to Allowed IPs first, or narrow the "
+                "blocked network."
+            )
+
+    if default_deny_enabled and detected and not local_network_is_allowed:
+        raise UnprotectedLocalBlockError(
+            "Block everything outside Allowed IPs would block every detected "
+            "local access path. Add one current local network to Allowed IPs "
+            "before enabling it."
+        )
 
 
 def _is_supervisor_internal_network(network: IPNetwork) -> bool:
