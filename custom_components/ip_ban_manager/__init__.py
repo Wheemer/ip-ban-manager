@@ -2402,8 +2402,25 @@ def _move_legacy_component_folder(hass: HomeAssistant) -> list[str]:
     integration_path = Path(hass.config.path("custom_components", DOMAIN))
     cleanup_root = integration_path / LEGACY_CLEANUP_DIR
     legacy_path = Path(hass.config.path("custom_components", LEGACY_DOMAIN))
+    nested_custom_components_path = integration_path / "custom_components"
     timestamp = dt_util.utcnow().strftime("%Y%m%d-%H%M%S")
     failures: list[str] = []
+
+    if nested_custom_components_path.is_dir():
+        try:
+            shutil.rmtree(nested_custom_components_path)
+        except OSError:
+            _LOGGER.warning(
+                "Could not remove nested custom_components path %s",
+                nested_custom_components_path,
+                exc_info=True,
+            )
+            failures.append(str(nested_custom_components_path))
+        else:
+            _LOGGER.info(
+                "Removed nested custom_components path %s",
+                nested_custom_components_path,
+            )
 
     if legacy_path.is_dir():
         manifest_path = legacy_path / "manifest.json"

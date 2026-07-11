@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.5.6** | Deletes the invalid nested `custom_components` folder left behind by the broken `v1.5.2` package layout. |
 | **v1.5.5** | Keeps Home Assistant OS add-ons and Supervisor Docker traffic out of managed blocks/default-deny without exposing those internal addresses in Allowed IPs. |
 | **v1.5.4** | Corrects default-deny safety validation so Home Assistant's own addresses are protected internally while valid local allowlists are not rejected for unrelated detected adapter paths. |
 | **v1.5.3** | Clean HACS packaging recovery release: ships the release zip with the integration files at the zip root and adds workflow validation so bad zip layouts cannot be uploaded silently. |

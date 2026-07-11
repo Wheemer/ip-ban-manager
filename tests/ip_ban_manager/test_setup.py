@@ -672,6 +672,26 @@ async def test_setup_entry_moves_stale_legacy_component_folder(
 
 
 @pytest.mark.asyncio
+async def test_setup_entry_deletes_nested_custom_components_folder(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test cleanup deletes the broken v1.5.2 nested HACS package folder."""
+    integration_path = tmp_path / "custom_components" / DOMAIN
+    nested_path = integration_path / "custom_components" / DOMAIN
+    nested_path.mkdir(parents=True)
+    (nested_path / "manifest.json").write_text(
+        '{"domain": "ip_ban_manager", "name": "IP Ban Manager"}',
+        encoding="utf-8",
+    )
+    hass.config.config_dir = str(tmp_path)
+
+    await _async_cleanup_legacy_component_folder(hass)
+
+    assert not (integration_path / "custom_components").exists()
+    assert not (integration_path / LEGACY_CLEANUP_DIR).exists()
+
+
+@pytest.mark.asyncio
 async def test_setup_entry_moves_old_top_level_legacy_backup_folder(
     hass: HomeAssistant, tmp_path: Path
 ) -> None:

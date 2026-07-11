@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.5.6
+
+IP Ban Manager 1.5.6 cleans up the bad nested folder layout left behind by the broken `v1.5.2` package.
+
+### Fixed
+
+- Deletes the invalid `custom_components/ip_ban_manager/custom_components/` folder if a previous bad package left it behind.
+- Keeps the legacy `.cleanup` path only for old legacy folders that may contain user-modified files.
+
 ## v1.5.5
 
 IP Ban Manager 1.5.5 widens the hidden Home Assistant internal bypass used by managed network blocks and default-deny mode.
