@@ -45,4 +45,3 @@ This page is the quick release map. Click any version for the full notes in [CHA
 | [v1.1.1](CHANGELOG.md#v111) | Repository brand assets so HACS and Home Assistant can discover the integration icon where supported. |
 | [v1.1.0](CHANGELOG.md#v110) | Managed **Blocked networks** for CIDR ranges and IPv4 wildcard shorthand, allowlist precedence over blocked networks, automatic-ban notification control, and blocked-network diagnostics. |
 | [v1.0.0](CHANGELOG.md#v100) | First public IP Ban Manager release with config-flow setup, YAML import, live **Allowed IPs** and **Blocked IPs** editing, automatic-ban controls, services, diagnostics, and safer file handling. |
-
