@@ -83,6 +83,7 @@ class IPBanManagerPanel extends HTMLElement {
   async _post(action, extra = {}) {
     this._busy = true;
     this._error = "";
+    this._notice = "";
     this._render();
     let ok = false;
     try {
@@ -92,6 +93,7 @@ class IPBanManagerPanel extends HTMLElement {
       } else {
         this._data = await this._api("GET", "ip_ban_manager/status");
       }
+      this._notice = this._successMessage(action);
       ok = true;
     } catch (err) {
       this._error = this._errorMessage(err);
@@ -100,6 +102,17 @@ class IPBanManagerPanel extends HTMLElement {
       this._render();
     }
     return ok;
+  }
+
+  _successMessage(action) {
+    const path = this._data?.backup?.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml";
+    if (action === "export_config") {
+      return `Exported to ${path}`;
+    }
+    if (action === "import_config") {
+      return `Imported ${path}`;
+    }
+    return "";
   }
 
   _handleInitialAction() {
@@ -303,6 +316,7 @@ class IPBanManagerPanel extends HTMLElement {
           text-decoration: none;
         }
         .geoip-status a:hover { text-decoration: underline; }
+        .button-row { display: flex; gap: 8px; }
         .subsection {
           margin-top: 18px;
           padding: 12px;
@@ -325,6 +339,14 @@ class IPBanManagerPanel extends HTMLElement {
           border-radius: 6px;
           background: var(--error-color);
           color: var(--text-primary-color);
+        }
+        .notice {
+          margin-bottom: 16px;
+          padding: 12px 14px;
+          border: 1px solid var(--success-color, #43a047);
+          border-radius: 6px;
+          color: var(--primary-text-color);
+          background: rgba(67, 160, 71, 0.12);
         }
         @media (max-width: 760px) {
           :host { padding: 12px; }
@@ -369,6 +391,7 @@ class IPBanManagerPanel extends HTMLElement {
     const settings = this._data.settings;
     content.innerHTML = `
       ${this._error ? `<div class="error">${this._escape(this._error)}</div>` : ""}
+      ${this._notice ? `<div class="notice">${this._escape(this._notice)}</div>` : ""}
       <div class="grid">
         ${this._optionsSection(settings)}
         ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard", this._silencedAllowlistedLogins(settings))}
@@ -419,6 +442,7 @@ class IPBanManagerPanel extends HTMLElement {
 
   _optionsSection(settings) {
     const geoip = this._data.geoip || {};
+    const backup = this._data.backup || {};
     return `
       <section>
         <h2>Options</h2>
@@ -432,6 +456,7 @@ class IPBanManagerPanel extends HTMLElement {
             ${this._checkbox("geoip_enabled", "GeoIP location labels", "Show approximate public-IP locations. If the local database is missing, Apply downloads it.", settings.geoip_enabled)}
           </div>
           ${this._geoipStatus(geoip)}
+          ${this._backupStatus(backup)}
           <div class="advanced-title">Advanced</div>
           <div class="options">
             ${this._checkbox("allowlisted_logins_can_ban", "Bans inside Allowed IPs", "Be careful: trusted IPs can be blocked.", settings.allowlisted_logins_can_ban, true)}
@@ -448,6 +473,27 @@ class IPBanManagerPanel extends HTMLElement {
           </div>
         </div>
       </section>
+    `;
+  }
+
+  _backupStatus(backup) {
+    const updated = backup.last_export ? this._formatDate(backup.last_export) : "No export yet";
+    return `
+      <div class="geoip-status">
+        <div>
+          <strong>Backup</strong>
+          <small>${this._escape(backup.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml")}</small>
+          <small>${backup.exists ? `Last export: ${this._escape(updated)}` : "Export creates the file; import restores it manually."}</small>
+        </div>
+        <div class="button-row">
+          <button data-action="export_config" ${this._busy ? "disabled" : ""}>Export</button>
+          <button
+            data-action="import_config"
+            data-confirm="Import ip-ban-manager-backup.yaml and replace current IP Ban Manager settings and exact IP bans?"
+            ${this._busy || !backup.exists ? "disabled" : ""}
+          >Import</button>
+        </div>
+      </div>
     `;
   }
 
@@ -544,6 +590,9 @@ class IPBanManagerPanel extends HTMLElement {
     });
     this.shadowRoot.querySelectorAll("button[data-action]").forEach((button) => {
       button.addEventListener("click", () => {
+        if (button.dataset.confirm && !window.confirm(button.dataset.confirm)) {
+          return;
+        }
         this._post(button.dataset.action, { value: button.dataset.value });
       });
     });
@@ -603,4 +652,4 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define("ip-ban-manager-panel-v18", IPBanManagerPanel);
+customElements.define("ip-ban-manager-panel-v19", IPBanManagerPanel);

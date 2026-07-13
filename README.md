@@ -29,6 +29,7 @@ IP Ban Manager turns the original YAML-only allowlist wrapper into a practical m
 
 | Release | Highlights |
 | --- | --- |
+| **v1.6.0** | Adds manual export/import buttons and services for `/config/ip_ban_manager/ip-ban-manager-backup.yaml`, plus the IPv6 link-local default-deny fix. |
 | **v1.5.6** | Deletes the invalid nested `custom_components` folder left behind by the broken `v1.5.2` package layout. |
 | **v1.5.5** | Keeps Home Assistant OS add-ons and Supervisor Docker traffic out of managed blocks/default-deny without exposing those internal addresses in Allowed IPs. |
 | **v1.5.4** | Corrects default-deny safety validation so Home Assistant's own addresses are protected internally while valid local allowlists are not rejected for unrelated detected adapter paths. |
@@ -81,6 +82,7 @@ Core management features include:
 - **Allowed subnet auto-bans:** optional exact automatic bans for failed logins inside allowed IP ranges, useful when a broad trusted carrier/VPN subnet should bypass network blocks but individual bad-login sources should still be banned.
 - **Advanced controls:** lockout-sensitive choices are separated from everyday options and marked clearly in the live panel.
 - **Emergency disable:** `ip_ban_manager: disabled` or `/config/ip_ban_manager.disabled` lets local file access disable IP Ban Manager if you need a recovery path after a bad setting.
+- **Manual backup:** export/import buttons and services write and restore `/config/ip_ban_manager/ip-ban-manager-backup.yaml` after validating the file.
 - **Ordering and persistence:** `ip_bans.yaml` rewrites stay oldest-first so new exact bans appear at the bottom, matching Home Assistant's normal file behavior.
 - **Notifications:** branded IP Ban Manager login/ban notifications include an embedded compact icon header, direct settings link where action is useful, stale-notification cleanup when bans are removed, optional automatic-ban notification suppression, earlier failed-login capture, and quieter allowlisted-login notifications that can still escalate if a trusted source keeps failing authentication.
 - **GeoIP labels:** optional local DB-IP City Lite lookups can show approximate city/country labels for public IPs in notifications and the live panel, with no online lookup during request handling.
@@ -168,6 +170,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to:
 - edit **Blocked networks**, one IPv4/IPv6 CIDR network or IPv4 wildcard network per line
 - enable **Block everything outside Allowed IPs** for guarded default-deny mode
 - enable **GeoIP location labels** and download/update the local DB-IP City Lite database
+- export or import a readable backup at `/config/ip_ban_manager/ip-ban-manager-backup.yaml`
 - view existing block timestamps as readable local times in **Blocked IPs**
 - clear exact bans or managed blocked networks by emptying the matching field and submitting
 
@@ -183,6 +186,18 @@ The options UI validates edits before changing Home Assistant. It rejects all-In
 
 The live hooks are installed at setup even if the initial allowlist is empty, so adding your first allowed IP later works immediately. If the integration is unloaded, those hooks are restored so Home Assistant is left in its normal state.
 
+## Manual Backup And Restore
+
+The live panel includes **Export** and **Import** buttons in **Options**. Export writes a readable YAML file to:
+
+```text
+/config/ip_ban_manager/ip-ban-manager-backup.yaml
+```
+
+That file contains IP Ban Manager's managed settings plus a copy of Home Assistant's current exact IP bans from `ip_bans.yaml`. It is not written automatically; use **Export** when you want an offline copy over SMB, SSH, Studio Code Server, or a normal Home Assistant backup.
+
+Import reads the same file, validates the allowlist, blocked networks, exact bans, default-deny safety, and booleans, then applies the settings live. If validation fails, IP Ban Manager rejects the import before changing the running configuration.
+
 The integration also adds services for automations and scripts:
 
 - `ip_ban_manager.add_ip_ban`
@@ -190,6 +205,8 @@ The integration also adds services for automations and scripts:
 - `ip_ban_manager.remove_all_ip_bans`
 - `ip_ban_manager.add_allowlist_network`
 - `ip_ban_manager.remove_allowlist_network`
+- `ip_ban_manager.export_config`
+- `ip_ban_manager.import_config`
 
 Adding an IP ban updates Home Assistant's live ban manager and persists to `ip_bans.yaml`. Removing a ban updates the live ban manager, clears any failed-login counter for that IP, and rewrites `ip_bans.yaml`. Clearing every ban requires `confirm: true`.
 

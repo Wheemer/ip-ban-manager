@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.6.0
+
+IP Ban Manager 1.6.0 adds manual backup/restore for managed settings and exact bans, and fixes default-deny access when a local Home Assistant hostname resolves to IPv6 link-local instead of IPv4.
+
+### Added
+
+- Added **Export** and **Import** buttons to the live panel. Export writes `/config/ip_ban_manager/ip-ban-manager-backup.yaml`; Import validates and restores that same file manually.
+- Added `ip_ban_manager.export_config` and `ip_ban_manager.import_config` services for automations/scripts that want the same manual backup/restore behavior.
+- Backup files include IP Ban Manager's managed settings plus a timestamp-preserving copy of Home Assistant's exact IP bans.
+
+### Fixed
+
+- Treats enabled-adapter IPv6 link-local networks as local access paths, so the safe local-network default can include them.
+- Keeps enabled-adapter IPv6 link-local access out of managed blocks/default-deny at runtime, matching the behavior users expect when `homeassistant.local` resolves to IPv6 on the same LAN.
+
 ## v1.5.6
 
 IP Ban Manager 1.5.6 cleans up the bad nested folder layout left behind by the broken `v1.5.2` package.

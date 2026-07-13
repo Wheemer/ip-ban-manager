@@ -69,6 +69,7 @@ from .const import (
     ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
     ATTR_AUTO_BAN_ENABLED,
+    ATTR_BACKUP,
     ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
@@ -84,6 +85,7 @@ from .const import (
     ATTR_HEALTH_ISSUES,
     ATTR_IP_ADDRESS,
     ATTR_LAST_CONFIG_WRITE,
+    ATTR_LAST_EXPORT,
     ATTR_LOGIN_ATTEMPTS_THRESHOLD,
     ATTR_METRICS,
     ATTR_NATIVE_IP_BAN_ENABLED,
@@ -112,6 +114,8 @@ from .const import (
     MAX_LOGIN_ATTEMPTS_THRESHOLD,
     SERVICE_ADD_ALLOWLIST_NETWORK,
     SERVICE_ADD_IP_BAN,
+    SERVICE_EXPORT_CONFIG,
+    SERVICE_IMPORT_CONFIG,
     SERVICE_REMOVE_ALL_IP_BANS,
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
     SERVICE_REMOVE_IP_BAN,
@@ -141,6 +145,8 @@ DNS_OVER_HTTPS_URL = (
 )
 GEOIP_DIR = "geoip"
 GEOIP_FILENAME = "dbip-city-lite.mmdb"
+CONFIG_EXPORT_FILENAME = "ip-ban-manager-backup.yaml"
+CONFIG_EXPORT_FORMAT_VERSION = 1
 SNAPSHOT_DIR = "snapshots"
 SNAPSHOT_KEEP = 3
 SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
@@ -170,8 +176,8 @@ ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
-PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v18"
-PANEL_JS_URL = f"/api/{DOMAIN}/panel-v18.js"
+PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v19"
+PANEL_JS_URL = f"/api/{DOMAIN}/panel-v19.js"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
     "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
@@ -387,6 +393,12 @@ async def _async_home_assistant_self_networks(
             interface = ip_interface(
                 f"{address['address']}/{address['network_prefix']}"
             )
+            if (
+                isinstance(interface.network, IPv6Network)
+                and interface.network.is_link_local
+            ):
+                networks.append(interface.network)
+                continue
             host_prefix = 32 if isinstance(interface.ip, IPv4Address) else 128
             networks.append(ip_network(f"{interface.ip}/{host_prefix}"))
 
@@ -1048,6 +1060,17 @@ def _panel_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]
             ),
         },
         "geoip": _geoip_status(hass, entry),
+        ATTR_BACKUP: _backup_status(hass),
+    }
+
+
+def _backup_status(hass: HomeAssistant) -> dict[str, object]:
+    """Return manual import/export file status for the bundled panel."""
+    export_path = _config_export_path(hass)
+    return {
+        "path": _ha_config_relative_path(export_path),
+        "exists": export_path.is_file(),
+        ATTR_LAST_EXPORT: _geoip_database_updated(export_path),
     }
 
 
@@ -1127,6 +1150,10 @@ class IPBanManagerManageView(HomeAssistantView):
                 await _async_panel_set_options(hass, data.get("options", {}))
             elif action == "update_geoip":
                 await _async_download_geoip_database(hass)
+            elif action == "export_config":
+                await _async_export_config(hass)
+            elif action == "import_config":
+                await _async_import_config(hass)
             elif action == PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN:
                 _panel_silence_allowlisted_login_notification(
                     hass, value, data.get(ATTR_NOTIFICATION_ID)
@@ -1720,6 +1747,16 @@ def _geoip_database_path(hass: HomeAssistant) -> Path:
     return Path(hass.config.path(DOMAIN, GEOIP_DIR, GEOIP_FILENAME))
 
 
+def _config_export_path(hass: HomeAssistant) -> Path:
+    """Return the manual config export path owned by this integration."""
+    return Path(hass.config.path(DOMAIN, CONFIG_EXPORT_FILENAME))
+
+
+def _ha_config_relative_path(path: Path) -> str:
+    """Return a Home Assistant-style display path for a file under /config."""
+    return f"/config/{path.parent.name}/{path.name}"
+
+
 def _path_is_file(path: Path) -> bool:
     """Return whether a path is a file."""
     return path.is_file()
@@ -2084,6 +2121,308 @@ def _ip_ban_file_payload(ban_manager: IpBanManager) -> dict[str, dict[str, str]]
         }
         for ip_ban in _chronological_ip_bans(ban_manager)
     }
+
+
+def _config_export_payload(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> dict[str, object]:
+    """Return a stable manual export payload for IP Ban Manager."""
+    ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
+    return {
+        "domain": DOMAIN,
+        "format_version": CONFIG_EXPORT_FORMAT_VERSION,
+        "exported_at": dt_util.utcnow().isoformat(),
+        "settings": {
+            CONF_IP_ADDRESSES: _entry_ip_addresses(entry),
+            CONF_BLOCKED_NETWORKS: _entry_blocked_networks(entry),
+            CONF_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry),
+            CONF_BAN_NOTIFICATIONS_ENABLED: _entry_ban_notifications_enabled(entry),
+            CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+                _entry_allowlisted_login_notifications_enabled(entry)
+            ),
+            CONF_ALLOWLISTED_LOGINS_CAN_BAN: _entry_allowlisted_logins_can_ban(entry),
+            CONF_DEFAULT_DENY_ENABLED: _entry_default_deny_enabled(entry),
+            CONF_GEOIP_ENABLED: _entry_geoip_enabled(entry),
+            CONF_LOGIN_ATTEMPTS_THRESHOLD: _entry_login_threshold(entry, hass),
+            CONF_SIDEBAR_PANEL_ENABLED: _entry_sidebar_panel_enabled(entry),
+            CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: (
+                _entry_silenced_allowlisted_login_ip_strings(entry)
+            ),
+        },
+        ATTR_BANNED_IPS: _ip_ban_file_payload(ban_manager) if ban_manager else {},
+    }
+
+
+async def _async_export_config(hass: HomeAssistant) -> Path:
+    """Export IP Ban Manager settings to a readable integration-owned file."""
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    payload = _config_export_payload(hass, entry)
+    export_path = _config_export_path(hass)
+    content = yaml.safe_dump(payload, sort_keys=False)
+    await hass.async_add_executor_job(_atomic_write_text, str(export_path), content)
+    return export_path
+
+
+def _bool_from_import(settings: dict[str, object], key: str, default: bool) -> bool:
+    """Read a boolean import value without treating arbitrary strings as true."""
+    if key not in settings:
+        return default
+    value = settings[key]
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lower_value = value.lower()
+        if lower_value in {"true", "yes", "on", "1"}:
+            return True
+        if lower_value in {"false", "no", "off", "0"}:
+            return False
+    raise HomeAssistantError(f"Invalid boolean value for {key}.")
+
+
+def _list_from_import(settings: dict[str, object], key: str) -> list[str] | None:
+    """Read an optional string list from an import settings object."""
+    if key not in settings:
+        return None
+    value = settings[key]
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [
+            line.strip()
+            for line in value.replace(",", "\n").splitlines()
+            if line.strip()
+        ]
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    raise HomeAssistantError(f"Invalid list value for {key}.")
+
+
+def _parse_import_banned_at(value: object) -> datetime:
+    """Parse an exported ban timestamp."""
+    if not isinstance(value, str):
+        raise HomeAssistantError("Invalid banned_at value in backup file.")
+    try:
+        banned_at = datetime.fromisoformat(value)
+    except ValueError as err:
+        raise HomeAssistantError("Invalid banned_at value in backup file.") from err
+    if banned_at.tzinfo is None:
+        banned_at = dt_util.as_utc(banned_at)
+    return banned_at
+
+
+def _imported_bans_from_payload(payload: object) -> list[IpBan]:
+    """Return timestamp-preserving exact bans from an import payload."""
+    if payload in (None, {}):
+        return []
+
+    bans: list[IpBan] = []
+    try:
+        if isinstance(payload, dict):
+            for raw_ip, raw_detail in payload.items():
+                remote_addr = ip_address(str(raw_ip).strip())
+                banned_at = dt_util.utcnow()
+                if isinstance(raw_detail, dict) and ATTR_BANNED_AT in raw_detail:
+                    banned_at = _parse_import_banned_at(raw_detail[ATTR_BANNED_AT])
+                bans.append(IpBan(remote_addr, banned_at))
+            return bans
+
+        if isinstance(payload, list):
+            for raw_ip in payload:
+                bans.append(IpBan(ip_address(str(raw_ip).split(" - ", 1)[0].strip())))
+            return bans
+    except ValueError as err:
+        raise HomeAssistantError("Invalid IP address in banned_ips section.") from err
+
+    raise HomeAssistantError("Invalid banned_ips section in backup file.")
+
+
+async def _async_restore_exact_bans(hass: HomeAssistant, bans: list[IpBan]) -> None:
+    """Replace Home Assistant's exact ban list while preserving ban timestamps."""
+    ban_manager = _ban_manager(hass)
+    existing_bans = ban_manager.ip_bans_lookup
+    removed_addrs = set(existing_bans) - {ban.ip_address for ban in bans}
+
+    existing_bans.clear()
+    existing_bans.update(
+        {
+            ip_ban.ip_address: ip_ban
+            for ip_ban in sorted(bans, key=_ip_ban_chronological_key)
+        }
+    )
+
+    failed_attempts = hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS]
+    for remote_addr in removed_addrs | set(existing_bans):
+        failed_attempts.pop(remote_addr, None)
+
+    await _async_rewrite_ip_bans_file(hass, ban_manager)
+    _dismiss_removed_ip_notifications(hass, removed_addrs)
+
+
+async def _async_import_config(hass: HomeAssistant) -> Path:
+    """Import IP Ban Manager settings from the manual backup file."""
+    export_path = _config_export_path(hass)
+
+    def _read_export_file() -> object:
+        if not export_path.is_file():
+            raise HomeAssistantError(
+                f"No backup file found at {_ha_config_relative_path(export_path)}."
+            )
+        with export_path.open(encoding="utf8") as export_file:
+            try:
+                return yaml.safe_load(export_file) or {}
+            except yaml.YAMLError as err:
+                raise HomeAssistantError("Backup file is not valid YAML.") from err
+
+    payload = await hass.async_add_executor_job(_read_export_file)
+    if not isinstance(payload, dict):
+        raise HomeAssistantError("Backup file must contain a YAML mapping.")
+    if payload.get("domain") not in (None, DOMAIN):
+        raise HomeAssistantError("Backup file is not for IP Ban Manager.")
+    if payload.get("format_version", CONFIG_EXPORT_FORMAT_VERSION) != (
+        CONFIG_EXPORT_FORMAT_VERSION
+    ):
+        raise HomeAssistantError("Unsupported IP Ban Manager backup format.")
+
+    settings = payload.get("settings", {})
+    if not isinstance(settings, dict):
+        raise HomeAssistantError("Backup file settings must be a YAML mapping.")
+
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    from .config_flow import (
+        BannedAllowlistedIPError,
+        UnsafeAllowlistError,
+        UnsafeBlockedNetworkError,
+        _validate_ban_safety,
+        _validate_blocked_networks,
+        _validate_ip_addresses,
+    )
+
+    imported_allowlist = _list_from_import(settings, CONF_IP_ADDRESSES)
+    imported_blocked_networks = _list_from_import(settings, CONF_BLOCKED_NETWORKS)
+    imported_silenced_ips = _list_from_import(
+        settings, CONF_SILENCED_ALLOWLISTED_LOGIN_IPS
+    )
+
+    try:
+        allowlist = (
+            _validate_ip_addresses(imported_allowlist)
+            if imported_allowlist is not None
+            else _entry_ip_addresses(entry)
+        )
+        blocked_networks = (
+            _validate_blocked_networks(imported_blocked_networks)
+            if imported_blocked_networks is not None
+            else _entry_blocked_networks(entry)
+        )
+    except UnsafeAllowlistError as err:
+        raise HomeAssistantError(
+            "Backup file allowlist cannot allow every address."
+        ) from err
+    except UnsafeBlockedNetworkError as err:
+        raise HomeAssistantError(
+            "Backup file blocked networks cannot block every address."
+        ) from err
+    except ValueError as err:
+        raise HomeAssistantError(
+            "Backup file contains an invalid allowlist or blocked network entry."
+        ) from err
+    try:
+        silenced_ips = (
+            [str(ip_address(value)) for value in imported_silenced_ips]
+            if imported_silenced_ips is not None
+            else _entry_silenced_allowlisted_login_ip_strings(entry)
+        )
+    except ValueError as err:
+        raise HomeAssistantError(
+            "Invalid IP address in silenced allowlisted login notifications."
+        ) from err
+
+    auto_ban_enabled = _bool_from_import(
+        settings, CONF_AUTO_BAN_ENABLED, _entry_auto_ban_enabled(entry)
+    )
+    ban_notifications_enabled = _bool_from_import(
+        settings,
+        CONF_BAN_NOTIFICATIONS_ENABLED,
+        _entry_ban_notifications_enabled(entry),
+    )
+    allowlisted_login_notifications_enabled = _bool_from_import(
+        settings,
+        CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
+        _entry_allowlisted_login_notifications_enabled(entry),
+    )
+    allowlisted_logins_can_ban = _bool_from_import(
+        settings,
+        CONF_ALLOWLISTED_LOGINS_CAN_BAN,
+        _entry_allowlisted_logins_can_ban(entry),
+    )
+    default_deny_enabled = _bool_from_import(
+        settings, CONF_DEFAULT_DENY_ENABLED, _entry_default_deny_enabled(entry)
+    )
+    geoip_enabled = _bool_from_import(
+        settings, CONF_GEOIP_ENABLED, _entry_geoip_enabled(entry)
+    )
+    sidebar_panel_enabled = _bool_from_import(
+        settings, CONF_SIDEBAR_PANEL_ENABLED, _entry_sidebar_panel_enabled(entry)
+    )
+    try:
+        login_attempts_threshold = _normalize_login_attempts_threshold(
+            settings.get(
+                CONF_LOGIN_ATTEMPTS_THRESHOLD,
+                _entry_login_threshold(entry, hass),
+            )
+        )
+    except (TypeError, ValueError) as err:
+        raise HomeAssistantError(
+            "Backup file login attempts threshold must be a number."
+        ) from err
+
+    imported_bans = (
+        _imported_bans_from_payload(payload[ATTR_BANNED_IPS])
+        if ATTR_BANNED_IPS in payload
+        else None
+    )
+    if imported_bans is not None:
+        try:
+            _validate_ban_safety(
+                allowlist, [str(ban.ip_address) for ban in imported_bans]
+            )
+        except BannedAllowlistedIPError as err:
+            raise HomeAssistantError(
+                "Backup file contains an IP that is both allowed and banned."
+            ) from err
+    await _async_validate_panel_network_safety(
+        hass, allowlist, blocked_networks, default_deny_enabled
+    )
+
+    updated_entry = _update_entry_options(
+        hass,
+        **{
+            CONF_IP_ADDRESSES: allowlist,
+            CONF_BLOCKED_NETWORKS: blocked_networks,
+            CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+            CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+            CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+                allowlisted_login_notifications_enabled
+            ),
+            CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+            CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
+            CONF_GEOIP_ENABLED: geoip_enabled,
+            CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+            CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
+            CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
+        },
+    )
+    hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(allowlist)
+    _apply_ban_settings(hass, updated_entry)
+    _apply_blocked_networks(hass, updated_entry)
+    if geoip_enabled and _geoip_database_path(hass).is_file():
+        await _async_prepare_geoip_reader(hass)
+    elif not geoip_enabled:
+        _close_geoip_reader(hass)
+    await _async_register_panel(hass, sidebar_enabled=sidebar_panel_enabled)
+    if imported_bans is not None:
+        await _async_restore_exact_bans(hass, imported_bans)
+    return export_path
 
 
 async def _async_rewrite_ip_bans_file(
@@ -2738,6 +3077,12 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
     async def remove_allowlist_network(call: ServiceCall) -> None:
         await _async_remove_allowlist_network(hass, call.data[ATTR_NETWORK])
 
+    async def export_config(call: ServiceCall) -> None:
+        await _async_export_config(hass)
+
+    async def import_config(call: ServiceCall) -> None:
+        await _async_import_config(hass)
+
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_IP_BAN, add_ip_ban, schema=IP_ADDRESS_SCHEMA
     )
@@ -2762,6 +3107,8 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
         remove_allowlist_network,
         schema=NETWORK_SCHEMA,
     )
+    hass.services.async_register(DOMAIN, SERVICE_EXPORT_CONFIG, export_config)
+    hass.services.async_register(DOMAIN, SERVICE_IMPORT_CONFIG, import_config)
 
 
 async def _async_register_static_assets(hass: HomeAssistant) -> None:
@@ -2947,6 +3294,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for service in (
         SERVICE_ADD_ALLOWLIST_NETWORK,
         SERVICE_ADD_IP_BAN,
+        SERVICE_EXPORT_CONFIG,
+        SERVICE_IMPORT_CONFIG,
         SERVICE_REMOVE_ALL_IP_BANS,
         SERVICE_REMOVE_ALLOWLIST_NETWORK,
         SERVICE_REMOVE_IP_BAN,

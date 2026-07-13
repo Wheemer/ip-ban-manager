@@ -183,6 +183,7 @@ async def test_detect_home_assistant_subnets(
 
     assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
         "192.168.1.0/24",
+        "fe80::/64",
         "fd12:3456:789a::/64",
     ]
 

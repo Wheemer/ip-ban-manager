@@ -691,7 +691,7 @@ async def _async_detect_home_assistant_subnets(hass: HomeAssistant) -> list[str]
             network = interface.network
             if (
                 network.is_loopback
-                or network.is_link_local
+                or (network.is_link_local and not isinstance(network, IPv6Network))
                 or network.is_multicast
                 or network.is_unspecified
                 or _is_supervisor_internal_network(network)

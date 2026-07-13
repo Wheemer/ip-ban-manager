@@ -3,11 +3,12 @@
 import json
 import logging
 from asyncio import Event, wait_for
-from ipaddress import IPv4Address, IPv4Network, ip_address
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
+import yaml
 from aiohttp.web import Response
 from aiohttp.web_exceptions import HTTPForbidden
 from homeassistant.components import persistent_notification
@@ -23,7 +24,7 @@ from homeassistant.components.http.ban import (
 )
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT, EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
 from homeassistant.setup import async_setup_component
@@ -90,6 +91,8 @@ from custom_components.ip_ban_manager.const import (
     CONF_ALLOWED_IPS,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
+    CONF_AUTO_BAN_ENABLED,
+    CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
@@ -106,6 +109,8 @@ from custom_components.ip_ban_manager.const import (
     LEGACY_DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
     SERVICE_ADD_IP_BAN,
+    SERVICE_EXPORT_CONFIG,
+    SERVICE_IMPORT_CONFIG,
     SERVICE_REMOVE_ALL_IP_BANS,
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
     SERVICE_REMOVE_IP_BAN,
@@ -242,6 +247,8 @@ async def test_setup_entry_does_not_wait_for_legacy_folder_cleanup(
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+    assert hass.services.has_service(DOMAIN, SERVICE_EXPORT_CONFIG)
+    assert hass.services.has_service(DOMAIN, SERVICE_IMPORT_CONFIG)
     await wait_for(cleanup_started.wait(), timeout=1)
 
     cleanup_can_finish.set()
@@ -1170,6 +1177,37 @@ async def test_default_deny_does_not_block_home_assistant_self_address(
     assert isinstance(lookup, ipbm.NetworkAwareBanLookup)
     assert IPv4Address("192.168.1.40") not in lookup
     assert IPv4Address("192.168.1.41") in lookup
+    assert entry.options[CONF_DEFAULT_DENY_ENABLED] is True
+
+
+@pytest.mark.asyncio
+async def test_default_deny_does_not_block_ipv6_link_local_access(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test default-deny still allows enabled adapter IPv6 link-local access."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    ipbm._update_allowlist_entry(hass, ["192.168.1.0/24"])
+
+    async def mock_self_networks(hass: HomeAssistant) -> tuple[IPv6Network, ...]:
+        return (IPv6Network("fe80::/64"),)
+
+    async def mock_detected_subnets(hass: HomeAssistant) -> list[str]:
+        return ["192.168.1.0/24", "fe80::/64"]
+
+    monkeypatch.setattr(ipbm, "_async_home_assistant_self_networks", mock_self_networks)
+    monkeypatch.setattr(
+        ban_config_flow,
+        "_async_detect_home_assistant_subnets",
+        mock_detected_subnets,
+    )
+
+    await _async_panel_set_options(hass, {CONF_DEFAULT_DENY_ENABLED: True})
+
+    lookup = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER]).ip_bans_lookup
+    assert isinstance(lookup, ipbm.NetworkAwareBanLookup)
+    assert IPv6Address("fe80::8fa2:f2b9:c1f5:3a7a") not in lookup
+    assert IPv6Address("fd12:3456:789a::42") in lookup
     assert entry.options[CONF_DEFAULT_DENY_ENABLED] is True
 
 
@@ -2800,6 +2838,300 @@ async def test_live_ban_services_update_memory_and_file(
     assert metrics["config_writes"] >= 1
     assert metrics["snapshots_created"] >= 1
     assert metrics[ATTR_LAST_CONFIG_WRITE] is not None
+
+
+@pytest.mark.asyncio
+async def test_export_config_service_writes_manual_backup(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test the manual export service writes a readable backup file."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_BLOCKED_NETWORKS: ["203.0.113.0/24"],
+            CONF_DEFAULT_DENY_ENABLED: False,
+            CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["10.0.0.25"],
+        },
+    )
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    ban_manager.ip_bans_lookup[ip_address("198.51.100.7")] = IpBan(
+        "198.51.100.7",
+        ipbm.dt_util.utcnow(),
+    )
+
+    await hass.services.async_call(DOMAIN, SERVICE_EXPORT_CONFIG, {}, blocking=True)
+    check_records(caplog.records)
+
+    export_path = Path(hass.config.path(DOMAIN, "ip-ban-manager-backup.yaml"))
+    payload = yaml.safe_load(export_path.read_text(encoding="utf8"))
+
+    assert payload["domain"] == DOMAIN
+    assert payload["format_version"] == 1
+    assert payload["settings"][CONF_IP_ADDRESSES] == ["192.168.1.1", "172.17.0.0/24"]
+    assert payload["settings"][CONF_BLOCKED_NETWORKS] == ["203.0.113.0/24"]
+    assert payload["settings"][CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["10.0.0.25"]
+    assert "198.51.100.7" in payload[ATTR_BANNED_IPS]
+
+
+@pytest.mark.asyncio
+async def test_import_config_service_restores_manual_backup(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test the manual import service validates and restores a backup file."""
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+
+    export_path = Path(hass.config.path(DOMAIN, "ip-ban-manager-backup.yaml"))
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+    export_path.write_text(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {
+                    CONF_IP_ADDRESSES: ["10.10.0.0/16", "127.0.0.1"],
+                    CONF_BLOCKED_NETWORKS: ["203.0.113.0/24"],
+                    CONF_AUTO_BAN_ENABLED: True,
+                    CONF_BAN_NOTIFICATIONS_ENABLED: False,
+                    CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False,
+                    CONF_ALLOWLISTED_LOGINS_CAN_BAN: True,
+                    CONF_DEFAULT_DENY_ENABLED: False,
+                    CONF_GEOIP_ENABLED: False,
+                    CONF_LOGIN_ATTEMPTS_THRESHOLD: 7,
+                    CONF_SIDEBAR_PANEL_ENABLED: False,
+                    CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["10.10.0.5"],
+                },
+                ATTR_BANNED_IPS: {
+                    "198.51.100.7": {"banned_at": "2026-01-02T03:04:05+00:00"}
+                },
+            },
+            sort_keys=False,
+        ),
+        encoding="utf8",
+    )
+
+    await hass.services.async_call(DOMAIN, SERVICE_IMPORT_CONFIG, {}, blocking=True)
+    check_records(caplog.records)
+
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.options[CONF_IP_ADDRESSES] == ["10.10.0.0/16", "127.0.0.1"]
+    assert entry.options[CONF_BLOCKED_NETWORKS] == ["203.0.113.0/24"]
+    assert entry.options[CONF_BAN_NOTIFICATIONS_ENABLED] is False
+    assert entry.options[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED] is False
+    assert entry.options[CONF_ALLOWLISTED_LOGINS_CAN_BAN] is True
+    assert entry.options[CONF_LOGIN_ATTEMPTS_THRESHOLD] == 7
+    assert entry.options[CONF_SIDEBAR_PANEL_ENABLED] is False
+    assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["10.10.0.5"]
+    assert [str(network) for network in hass.http.app[KEY_ALLOWLIST]] == [
+        "10.10.0.0/16",
+        "127.0.0.1/32",
+    ]
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("198.51.100.7")}
+    assert (
+        ban_manager.ip_bans_lookup[ip_address("198.51.100.7")].banned_at.isoformat()
+        == "2026-01-02T03:04:05+00:00"
+    )
+    assert "198.51.100.7" in Path(ban_manager.path).read_text(encoding="utf8")
+
+    await hass.services.async_call(DOMAIN, SERVICE_IMPORT_CONFIG, {}, blocking=True)
+    check_records(caplog.records)
+
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.options[CONF_IP_ADDRESSES] == ["10.10.0.0/16", "127.0.0.1"]
+    assert set(ban_manager.ip_bans_lookup) == {ip_address("198.51.100.7")}
+    assert (
+        ban_manager.ip_bans_lookup[ip_address("198.51.100.7")].banned_at.isoformat()
+        == "2026-01-02T03:04:05+00:00"
+    )
+
+
+@pytest.mark.asyncio
+async def test_import_config_preserves_exact_bans_when_section_is_missing(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test imports without a banned_ips section do not clear current exact bans."""
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    existing_ban = IpBan("198.51.100.7", ipbm.dt_util.utcnow())
+    ban_manager.ip_bans_lookup[existing_ban.ip_address] = existing_ban
+
+    export_path = Path(hass.config.path(DOMAIN, "ip-ban-manager-backup.yaml"))
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+    export_path.write_text(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {CONF_IP_ADDRESSES: ["10.10.0.0/16"]},
+            },
+            sort_keys=False,
+        ),
+        encoding="utf8",
+    )
+
+    await hass.services.async_call(DOMAIN, SERVICE_IMPORT_CONFIG, {}, blocking=True)
+    check_records(caplog.records)
+
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.options[CONF_IP_ADDRESSES] == ["10.10.0.0/16"]
+    assert ban_manager.ip_bans_lookup == {existing_ban.ip_address: existing_ban}
+
+
+@pytest.mark.asyncio
+async def test_import_config_rejects_unsafe_manual_backup(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test unsafe manual imports fail before changing live settings."""
+    await setup_ip_ban_manager(hass)
+    export_path = Path(hass.config.path(DOMAIN, "ip-ban-manager-backup.yaml"))
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+    export_path.write_text(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {CONF_IP_ADDRESSES: ["10.0.0.0/24"]},
+                ATTR_BANNED_IPS: {
+                    "10.0.0.25": {"banned_at": "2026-01-02T03:04:05+00:00"}
+                },
+            },
+            sort_keys=False,
+        ),
+        encoding="utf8",
+    )
+
+    with pytest.raises(HomeAssistantError):
+        await ipbm._async_import_config(hass)  # noqa: SLF001
+    check_records(caplog.records)
+
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.options.get(CONF_IP_ADDRESSES) is None
+    assert [str(network) for network in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_import_config_rejects_invalid_manual_backup_ips(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test invalid hand-edited backup IP values fail cleanly."""
+    await setup_ip_ban_manager(hass)
+    export_path = Path(hass.config.path(DOMAIN, "ip-ban-manager-backup.yaml"))
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+    export_path.write_text(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["bad-ip"]},
+            },
+            sort_keys=False,
+        ),
+        encoding="utf8",
+    )
+
+    with pytest.raises(HomeAssistantError, match="Invalid IP address"):
+        await ipbm._async_import_config(hass)  # noqa: SLF001
+    check_records(caplog.records)
+
+    export_path.write_text(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                ATTR_BANNED_IPS: {"bad-ip": {"banned_at": "2026-01-02T03:04:05+00:00"}},
+            },
+            sort_keys=False,
+        ),
+        encoding="utf8",
+    )
+
+    with pytest.raises(HomeAssistantError, match="Invalid IP address"):
+        await ipbm._async_import_config(hass)  # noqa: SLF001
+    check_records(caplog.records)
+
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.options.get(CONF_IP_ADDRESSES) is None
+    assert entry.options.get(CONF_SILENCED_ALLOWLISTED_LOGIN_IPS) is None
+
+
+@pytest.mark.asyncio
+async def test_import_config_rejects_malformed_manual_backup_values(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test malformed backup values fail before changing live settings."""
+    await setup_ip_ban_manager(hass)
+    export_path = Path(hass.config.path(DOMAIN, "ip-ban-manager-backup.yaml"))
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+
+    async def assert_rejected(content: str) -> None:
+        export_path.write_text(content, encoding="utf8")
+        with pytest.raises(HomeAssistantError):
+            await ipbm._async_import_config(hass)  # noqa: SLF001
+        check_records(caplog.records)
+        entry = hass.config_entries.async_entries(DOMAIN)[0]
+        assert entry.options.get(CONF_IP_ADDRESSES) is None
+        assert entry.options.get(CONF_BLOCKED_NETWORKS) is None
+        assert entry.options.get(CONF_AUTO_BAN_ENABLED) is None
+
+    await assert_rejected("settings: [")
+    await assert_rejected(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {CONF_AUTO_BAN_ENABLED: "definitely"},
+            },
+            sort_keys=False,
+        )
+    )
+    await assert_rejected(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {CONF_LOGIN_ATTEMPTS_THRESHOLD: "not-a-number"},
+            },
+            sort_keys=False,
+        )
+    )
+    await assert_rejected(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {CONF_IP_ADDRESSES: ["0.0.0.0/0"]},
+            },
+            sort_keys=False,
+        )
+    )
+    await assert_rejected(
+        yaml.safe_dump(
+            {
+                "domain": DOMAIN,
+                "format_version": 1,
+                "settings": {CONF_BLOCKED_NETWORKS: ["::/0"]},
+            },
+            sort_keys=False,
+        )
+    )
 
 
 @pytest.mark.asyncio

@@ -57,3 +57,11 @@ remove_allowlist_network:
       selector:
         text:
       example: 192.168.1.*
+
+export_config:
+  name: Export configuration
+  description: IP Ban Manager writes its managed settings and exact IP bans to /config/ip_ban_manager/ip-ban-manager-backup.yaml.
+
+import_config:
+  name: Import configuration
+  description: IP Ban Manager validates and restores /config/ip_ban_manager/ip-ban-manager-backup.yaml.
