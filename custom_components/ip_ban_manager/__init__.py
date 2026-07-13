@@ -1214,13 +1214,17 @@ def _unregister_http_views(hass: HomeAssistant) -> None:
             urls.add(view.url)
         urls.update(view.extra_urls)
 
-    router = hass.http.app.router
-    for route in list(router.routes()):
+    resources_to_unregister: set[object] = set()
+    for route in hass.http.app.router.routes():
         resource = route.resource
         if resource is None:
             continue
         if resource.canonical in urls:
-            router.routes().remove(route)
+            resources_to_unregister.add(resource)
+
+    for resource in resources_to_unregister:
+        with suppress(ValueError):
+            resource.unregister()
 
 
 def _coerce_panel_boolean(value: object) -> bool:

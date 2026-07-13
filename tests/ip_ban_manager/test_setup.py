@@ -70,6 +70,7 @@ from custom_components.ip_ban_manager import (
     _async_update_health_issue,
     _cleanup_destination,
     _create_allowlisted_login_notification,
+    _entry_allowlisted_login_notifications_enabled,
     _supervisor_internal_networks,
     current_status,
 )
@@ -1918,7 +1919,7 @@ async def test_silence_allowlisted_login_notifications_view_rejects_token_withou
     )
 
     assert response.status == 403
-    assert entry.options[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED] is True
+    assert _entry_allowlisted_login_notifications_enabled(entry) is True
 
 
 def test_silence_allowlisted_login_notifications_view_allows_token_auth() -> None:
@@ -2836,23 +2837,24 @@ async def test_setup_entry_reregisters_http_views_after_unload(
         IPBanManagerManageView.url,
     }
 
-    def count_view_routes() -> int:
-        return sum(
-            1
-            for route in hass.http.app.router.routes()
-            if route.resource is not None and route.resource.canonical in view_urls
-        )
+    def count_view_resources() -> int:
+        resources = set()
+        for route in hass.http.app.router.routes():
+            resource = route.resource
+            if resource is not None and resource.canonical in view_urls:
+                resources.add(resource.canonical)
+        return len(resources)
 
-    assert count_view_routes() == 3
+    assert count_view_resources() == 3
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
-    assert count_view_routes() == 0
+    assert count_view_resources() == 0
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     check_records(caplog.records)
-    assert count_view_routes() == 3
+    assert count_view_resources() == 3
 
 
 @pytest.mark.asyncio
