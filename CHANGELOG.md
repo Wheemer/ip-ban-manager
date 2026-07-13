@@ -10,13 +10,6 @@ IP Ban Manager 1.6.1 is a hardening patch. It closes a notification-token securi
 - Reloading the integration no longer registers duplicate status, manage, or silence HTTP endpoints. Setup now skips paths that are already registered for the Home Assistant process.
 - Adding an allowlist entry from the live panel now runs the same lockout safety checks already used when removing allowlist entries or editing blocked networks, and still rejects networks that would cover an exact banned IP.
 - Panel boolean settings now use Home Assistant's boolean parsing instead of raw Python `bool()`, so string values like `"false"` are not treated as enabled.
-- Removed a dead banned-IP validation branch from Configure that could never run.
-- HACS release zip validation now requires `icon.png` so future packages cannot ship without the icon asset already used in normal installs.
-
-### Validation
-
-- Added regression coverage for token-only global silence rejection and HTTP view behavior across unload/reload.
-- Bumped the manifest version to `1.6.1` for HACS update detection.
 
 ## v1.6.0
 
