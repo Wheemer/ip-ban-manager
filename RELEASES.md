@@ -4,7 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
-| [v1.6.1](CHANGELOG.md#v161) | Hardens allowlisted-login notification action tokens, cleans up HTTP API routes on reload, and aligns live-panel allowlist safety checks. |
+| [v1.6.1](CHANGELOG.md#v161) | Hardening patch: closes a notification-token security gap, stops duplicate panel API routes on reload, and aligns live-panel allowlist-add with existing lockout checks. |
 | [v1.6.0](CHANGELOG.md#v160) | Adds manual export/import buttons and services for `/config/ip_ban_manager/ip-ban-manager-backup.yaml`, plus the IPv6 link-local default-deny fix. |
 | [v1.5.6](CHANGELOG.md#v156) | Deletes the invalid nested `custom_components` folder left behind by the broken `v1.5.2` package layout. |
 | [v1.5.5](CHANGELOG.md#v155) | Keeps Home Assistant OS add-ons and Supervisor Docker traffic out of managed blocks/default-deny without exposing those internal addresses in Allowed IPs. |
