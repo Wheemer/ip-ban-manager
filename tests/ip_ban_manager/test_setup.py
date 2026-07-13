@@ -2828,7 +2828,7 @@ async def test_unload_restores_home_assistant_hooks(
 async def test_setup_entry_reregisters_http_views_after_unload(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Test reloading does not leave duplicate HTTP view routes behind."""
+    """Test reloading does not register duplicate HTTP view routes."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     view_urls = {
@@ -2849,12 +2849,14 @@ async def test_setup_entry_reregisters_http_views_after_unload(
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
-    assert count_view_resources() == 0
+    assert KEY_HTTP_VIEWS not in hass.data
+    assert count_view_resources() == 3
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     check_records(caplog.records)
     assert count_view_resources() == 3
+    assert KEY_HTTP_VIEWS in hass.data
 
 
 @pytest.mark.asyncio

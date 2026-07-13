@@ -1187,8 +1187,35 @@ class IPBanManagerManageView(HomeAssistantView):
         return self.json(_panel_payload(hass, entry))
 
 
+def _integration_view_urls() -> set[str]:
+    """Return the HTTP paths owned by IP Ban Manager."""
+    return {
+        url
+        for url in (
+            SilenceAllowlistedLoginNotificationsView.url,
+            IPBanManagerStatusView.url,
+            IPBanManagerManageView.url,
+        )
+        if url
+    }
+
+
+def _registered_integration_view_urls(hass: HomeAssistant) -> set[str]:
+    """Return integration view paths already registered on the HTTP router."""
+    owned_urls = _integration_view_urls()
+    registered_urls = set()
+    for route in hass.http.app.router.routes():
+        resource = route.resource
+        if resource is None:
+            continue
+        canonical = resource.canonical
+        if canonical in owned_urls:
+            registered_urls.add(canonical)
+    return registered_urls
+
+
 def _register_http_views(hass: HomeAssistant) -> None:
-    """Register HTTP API views once per setup cycle."""
+    """Register HTTP API views once per Home Assistant process."""
     if hass.data.get(KEY_HTTP_VIEWS):
         return
 
@@ -1197,34 +1224,17 @@ def _register_http_views(hass: HomeAssistant) -> None:
         IPBanManagerStatusView(),
         IPBanManagerManageView(),
     )
+    registered_urls = _registered_integration_view_urls(hass)
     for view in views:
+        if view.url in registered_urls:
+            continue
         hass.http.register_view(view)
     hass.data[KEY_HTTP_VIEWS] = views
 
 
 def _unregister_http_views(hass: HomeAssistant) -> None:
-    """Remove HTTP API views registered by this integration."""
-    views = hass.data.pop(KEY_HTTP_VIEWS, None)
-    if not views:
-        return
-
-    urls = set()
-    for view in views:
-        if view.url:
-            urls.add(view.url)
-        urls.update(view.extra_urls)
-
-    resources_to_unregister: set[object] = set()
-    for route in hass.http.app.router.routes():
-        resource = route.resource
-        if resource is None:
-            continue
-        if resource.canonical in urls:
-            resources_to_unregister.add(resource)
-
-    for resource in resources_to_unregister:
-        with suppress(ValueError):
-            resource.unregister()
+    """Drop tracked HTTP views without removing Home Assistant routes."""
+    hass.data.pop(KEY_HTTP_VIEWS, None)
 
 
 def _coerce_panel_boolean(value: object) -> bool:
