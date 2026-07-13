@@ -218,6 +218,7 @@ KEY_REVERSE_DNS_CACHE = AppKey[dict[IPAddress, "ReverseDNSCacheEntry"]](
 KEY_HEALTH = AppKey[dict[str, object]]("ip_ban_manager_health")
 KEY_METRICS = AppKey[dict[str, object]]("ip_ban_manager_metrics")
 KEY_BAN_FILE_WRITE_LOCK = AppKey[Lock]("ip_ban_manager_ban_file_write_lock")
+KEY_HTTP_VIEWS = AppKey[tuple[HomeAssistantView, ...]]("ip_ban_manager_http_views")
 LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
 LEGACY_CLEANUP_DIR = ".cleanup"
 REVERSE_DNS_CACHE_TTL = timedelta(minutes=10)
@@ -1007,15 +1008,17 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
             return Response(text="IP Ban Manager is not loaded.", status=404)
 
         user = request.get("hass_user")
+        is_admin = user is not None and user.is_admin
         token = getattr(request, "query", {}).get(ATTR_TOKEN)
         token_is_valid = bool(
             token and token == entry.data.get(CONF_NOTIFICATION_ACTION_TOKEN)
         )
-        if (user is None or not user.is_admin) and not token_is_valid:
-            return self.json_message("Administrator access is required.", 403)
-
         ip_address_value = getattr(request, "query", {}).get(ATTR_IP_ADDRESS)
+
         if ip_address_value:
+            if not is_admin and not token_is_valid:
+                return self.json_message("Administrator access is required.", 403)
+
             try:
                 remote_addr = ip_address(ip_address_value)
             except ValueError:
@@ -1029,6 +1032,9 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
                 notification_id if isinstance(notification_id, str) else None,
             )
             return _notification_action_response()
+
+        if not is_admin:
+            return self.json_message("Administrator access is required.", 403)
 
         _update_entry_options(
             hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False}
@@ -1179,6 +1185,47 @@ class IPBanManagerManageView(HomeAssistantView):
                 status_code=404,
             )
         return self.json(_panel_payload(hass, entry))
+
+
+def _register_http_views(hass: HomeAssistant) -> None:
+    """Register HTTP API views once per setup cycle."""
+    if hass.data.get(KEY_HTTP_VIEWS):
+        return
+
+    views = (
+        SilenceAllowlistedLoginNotificationsView(),
+        IPBanManagerStatusView(),
+        IPBanManagerManageView(),
+    )
+    for view in views:
+        hass.http.register_view(view)
+    hass.data[KEY_HTTP_VIEWS] = views
+
+
+def _unregister_http_views(hass: HomeAssistant) -> None:
+    """Remove HTTP API views registered by this integration."""
+    views = hass.data.pop(KEY_HTTP_VIEWS, None)
+    if not views:
+        return
+
+    urls = set()
+    for view in views:
+        if view.url:
+            urls.add(view.url)
+        urls.update(view.extra_urls)
+
+    router = hass.http.app.router
+    for route in list(router.routes()):
+        resource = route.resource
+        if resource is None:
+            continue
+        if resource.canonical in urls:
+            router.routes().remove(route)
+
+
+def _coerce_panel_boolean(value: object) -> bool:
+    """Parse booleans sent by the bundled panel."""
+    return cv.boolean(value)
 
 
 def _manager_config_url(hass: HomeAssistant) -> str:
@@ -2506,7 +2553,39 @@ async def _async_panel_add_allowlist_network(
     hass: HomeAssistant, network_value: str
 ) -> None:
     """Add an allowlist network from the panel."""
-    _async_add_allowlist_network(hass, network_value)
+    try:
+        network = parse_allowlist_network(network_value)
+    except ValueError as err:
+        raise HomeAssistantError("Invalid IP address or network.") from err
+
+    if network.prefixlen == 0:
+        raise HomeAssistantError(
+            "Allowing every address belongs outside the allowlist."
+        )
+
+    current = _current_allowlist_strings(hass)
+    normalized_network = str(network)
+    current_networks = {
+        parse_allowlist_network(current_network) for current_network in current
+    }
+    if network in current_networks:
+        return
+
+    banned_ips = _ban_manager(hass).ip_bans_lookup
+    if any(banned_ip in network for banned_ip in banned_ips):
+        raise HomeAssistantError(
+            "An allowlist network cannot include an exact banned IP. "
+            "Remove the ban first and try again."
+        )
+
+    updated = [*current, normalized_network]
+    await _async_validate_panel_network_safety(
+        hass,
+        updated,
+        _current_blocked_network_strings(hass),
+        bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+    )
+    _update_allowlist_entry(hass, updated)
 
 
 async def _async_panel_remove_allowlist_network(
@@ -2595,7 +2674,7 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         CONF_SIDEBAR_PANEL_ENABLED,
     ):
         if key in options:
-            current_options[key] = bool(options[key])
+            current_options[key] = _coerce_panel_boolean(options[key])
 
     if CONF_LOGIN_ATTEMPTS_THRESHOLD in options:
         current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = (
@@ -3245,9 +3324,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_register_panel(
         hass, sidebar_enabled=_entry_sidebar_panel_enabled(entry)
     )
-    hass.http.register_view(SilenceAllowlistedLoginNotificationsView())
-    hass.http.register_view(IPBanManagerStatusView())
-    hass.http.register_view(IPBanManagerManageView())
+    _register_http_views(hass)
     _LOGGER.debug("Ban manager %s", ban_manager)
     _install_load_bans_patch(hass, ban_manager)
     await _async_update_internal_bypass_networks(hass)
@@ -3275,6 +3352,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
+    _unregister_http_views(hass)
     _async_remove_panel(hass)
     legacy_cleanup_task = hass.data.pop(KEY_LEGACY_FOLDER_CLEANUP_TASK, None)
     if legacy_cleanup_task is not None:

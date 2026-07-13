@@ -46,6 +46,7 @@ from custom_components.ip_ban_manager import (
     KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
     KEY_HEALTH,
+    KEY_HTTP_VIEWS,
     KEY_METRICS,
     KEY_ORIGINAL_ADD_BAN,
     KEY_ORIGINAL_LOAD_BANS,
@@ -1894,6 +1895,32 @@ async def test_silence_allowlisted_login_notifications_view_accepts_action_token
     assert NOTIFICATION_ID_LOGIN not in notifications
 
 
+@pytest.mark.asyncio
+async def test_silence_allowlisted_login_notifications_view_rejects_token_without_ip(
+    hass: HomeAssistant,
+) -> None:
+    """Test notification tokens cannot globally disable allowlisted-login alerts."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
+    )
+
+    response = await SilenceAllowlistedLoginNotificationsView().get(
+        cast(
+            Any,
+            MockViewRequest(
+                hass.http.app,
+                has_user=False,
+                query={"token": entry.data[CONF_NOTIFICATION_ACTION_TOKEN]},
+            ),
+        )
+    )
+
+    assert response.status == 403
+    assert entry.options[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED] is True
+
+
 def test_silence_allowlisted_login_notifications_view_allows_token_auth() -> None:
     """Test the action endpoint can be reached before Home Assistant user auth."""
     assert SilenceAllowlistedLoginNotificationsView.requires_auth is False
@@ -2793,6 +2820,39 @@ async def test_unload_restores_home_assistant_hooks(
     assert KEY_REVERSE_DNS_CACHE not in hass.http.app
     assert KEY_HEALTH not in hass.data
     assert KEY_METRICS not in hass.data
+    assert KEY_HTTP_VIEWS not in hass.data
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_reregisters_http_views_after_unload(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test reloading does not leave duplicate HTTP view routes behind."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    view_urls = {
+        SilenceAllowlistedLoginNotificationsView.url,
+        IPBanManagerStatusView.url,
+        IPBanManagerManageView.url,
+    }
+
+    def count_view_routes() -> int:
+        return sum(
+            1
+            for route in hass.http.app.router.routes()
+            if route.resource is not None and route.resource.canonical in view_urls
+        )
+
+    assert count_view_routes() == 3
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert count_view_routes() == 0
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+    assert count_view_routes() == 3
 
 
 @pytest.mark.asyncio

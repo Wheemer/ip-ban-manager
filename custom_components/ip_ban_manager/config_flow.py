@@ -1155,8 +1155,6 @@ class OptionsFlow(config_entries.OptionsFlow):
 
             try:
                 banned_ips = _validate_banned_ips(banned_input.get(CONF_BANNED_IPS, ""))
-            except UnsafeBlockedNetworkError:
-                errors[CONF_BANNED_IPS] = "unsafe_blocked_network"
             except ValueError:
                 errors[CONF_BANNED_IPS] = "invalid_banned_ip"
 
