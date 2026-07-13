@@ -24,6 +24,10 @@ Originally created by [palfrey](https://github.com/palfrey). This fork builds on
 
 IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted IPs and networks, live ban review and removal, managed network blocks, default-deny controls, GeoIP labels, backup/restore, services, diagnostics, and branded notifications.
 
+## Release Notes
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release history, upgrade notes, and per-version changes.
+
 ## What It Does
 
 - **Allowed IPs:** trust IPv4/IPv6 addresses, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
@@ -35,8 +39,6 @@ IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https:
 - **GeoIP labels:** optionally download a local DB-IP City Lite database for approximate public-IP location labels.
 - **Backup and restore:** export and import a readable YAML backup from the panel or services.
 - **Diagnostics and automation:** numeric sensors plus `ip_ban_manager.*` services for scripts and automations.
-
-Full release history lives in [CHANGELOG.md](CHANGELOG.md).
 
 ## Screenshots
 
