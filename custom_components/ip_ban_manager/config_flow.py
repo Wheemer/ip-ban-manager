@@ -983,24 +983,24 @@ class OptionsFlow(config_entries.OptionsFlow):
         self._pending_clear_bans = None
         # Merge into current options so keys managed outside this form
         # (for example silenced allowlisted-login IPs) are not wiped.
-        return self.async_create_entry(
-            title="",
-            data={
-                **self._config_entry.options,
-                CONF_IP_ADDRESSES: ip_addresses,
-                CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
-                CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
-                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
-                    allowlisted_login_notifications_enabled
-                ),
-                CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
-                CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
-                CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
-                CONF_GEOIP_ENABLED: geoip_enabled,
-                CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
-                CONF_BLOCKED_NETWORKS: blocked_networks,
-            },
-        )
+        # Drop the legacy allowed_ips key once the canonical list is written.
+        options = {
+            **self._config_entry.options,
+            CONF_IP_ADDRESSES: ip_addresses,
+            CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+            CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+            CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
+                allowlisted_login_notifications_enabled
+            ),
+            CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
+            CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
+            CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
+            CONF_GEOIP_ENABLED: geoip_enabled,
+            CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+            CONF_BLOCKED_NETWORKS: blocked_networks,
+        }
+        options.pop(CONF_ALLOWED_IPS, None)
+        return self.async_create_entry(title="", data=options)
 
     def _description_placeholders(self) -> dict[str, str]:
         """Return current live status details for the management form."""
