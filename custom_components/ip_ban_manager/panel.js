@@ -394,7 +394,7 @@ class IPBanManagerPanel extends HTMLElement {
       ${this._notice ? `<div class="notice">${this._escape(this._notice)}</div>` : ""}
       <div class="grid">
         ${this._optionsSection(settings)}
-        ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard", this._silencedAllowlistedLogins(settings))}
+        ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard", this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings))}
         ${this._banSection(status.banned_ips)}
         ${this._listSection("Blocked Networks", "Managed IPv4/IPv6 CIDR or IPv4 wildcard networks, enforced without writing ranges into ip_bans.yaml.", settings.blocked_networks, "remove_blocked_network", "add_blocked_network", "CIDR or IPv4 wildcard network")}
       </div>
@@ -402,13 +402,20 @@ class IPBanManagerPanel extends HTMLElement {
     this._wireEvents();
   }
 
-  _listSection(title, hint, rows, removeAction, addAction, placeholder, extra = "") {
+  _riskyAllowlistRemoveConfirm(settings) {
+    if (!settings.default_deny_enabled && !(settings.blocked_networks || []).length) {
+      return "";
+    }
+    return "Remove this Allowed IP? With default-deny or blocked networks active, removing a trusted entry can lock out access.";
+  }
+
+  _listSection(title, hint, rows, removeAction, addAction, placeholder, extra = "", removeConfirm = "") {
     return `
       <section>
         <h2>${title}</h2>
         <div class="body">
           <p class="hint">${hint}</p>
-          ${this._rows(rows, removeAction)}
+          ${this._rows(rows, removeAction, removeConfirm)}
           <form data-action="${addAction}">
             <input name="value" placeholder="${placeholder}" autocomplete="off">
             <button class="primary" ${this._busy ? "disabled" : ""}>Add</button>
@@ -552,13 +559,16 @@ class IPBanManagerPanel extends HTMLElement {
     `;
   }
 
-  _rows(rows, removeAction) {
+  _rows(rows, removeAction, removeConfirm = "") {
     const normalized = rows.map((row) =>
       typeof row === "string" ? { label: row, value: row } : row
     );
     if (!normalized.length) {
       return `<div class="empty">None</div>`;
     }
+    const confirmAttr = removeConfirm
+      ? ` data-confirm="${this._escape(removeConfirm)}"`
+      : "";
     return `
       <div class="rows">
         ${normalized.map((row) => `
@@ -567,7 +577,7 @@ class IPBanManagerPanel extends HTMLElement {
               <code>${this._escape(row.label)}</code>
               ${row.detail ? `<div class="meta">${this._escape(row.detail)}</div>` : ""}
             </div>
-            <button class="danger" data-action="${removeAction}" data-value="${this._escape(row.value)}" ${this._busy ? "disabled" : ""}>Remove</button>
+            <button class="danger" data-action="${removeAction}" data-value="${this._escape(row.value)}"${confirmAttr} ${this._busy ? "disabled" : ""}>Remove</button>
           </div>
         `).join("")}
       </div>
@@ -652,4 +662,4 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define("ip-ban-manager-panel-v19", IPBanManagerPanel);
+customElements.define("ip-ban-manager-panel-v20", IPBanManagerPanel);

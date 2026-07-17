@@ -104,7 +104,6 @@ from custom_components.ip_ban_manager.const import (
     CONF_IP_ADDRESSES,
     CONF_LEGACY_ENTRY_ID,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
-    CONF_NOTIFICATION_ACTION_TOKEN,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
@@ -1814,7 +1813,7 @@ async def test_quiet_allowlisted_wrong_logins_escalate_after_repeated_failures(
 async def test_silence_allowlisted_login_notifications_view(
     hass: HomeAssistant,
 ) -> None:
-    """Test the notification link can silence low-priority allowlisted login notifications."""
+    """Test an admin POST can globally silence allowlisted login notifications."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
 
@@ -1827,7 +1826,7 @@ async def test_silence_allowlisted_login_notifications_view(
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert NOTIFICATION_ID_LOGIN in notifications
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(Any, MockViewRequest(hass.http.app))
     )
 
@@ -1843,7 +1842,7 @@ async def test_silence_allowlisted_login_notifications_view_requires_admin(
     """Test the notification silence endpoint requires an admin user."""
     await setup_ip_ban_manager(hass)
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(Any, MockViewRequest(hass.http.app, user=MockNonAdminUser()))
     )
 
@@ -1851,80 +1850,54 @@ async def test_silence_allowlisted_login_notifications_view_requires_admin(
 
 
 @pytest.mark.asyncio
-async def test_silence_allowlisted_login_notifications_view_accepts_action_token(
+async def test_silence_allowlisted_login_notifications_view_rejects_get(
     hass: HomeAssistant,
 ) -> None:
-    """Test notification action links work without a request user."""
+    """Test GET cannot change silence state (CSRF-safe POST-only endpoint)."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
-    hass.config_entries.async_update_entry(
-        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
-    )
-    login_message = (
-        "Allowlisted login failed\n\n"
-        "192.168.1.1 is allowlisted.\n\n"
-        f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-        f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1"
-        f"&notification_id={NOTIFICATION_ID_LOGIN}&token="
-        f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
-    )
-    persistent_notification.async_create(
-        hass,
-        login_message,
-        " ",
-        NOTIFICATION_ID_LOGIN,
-    )
-    notifications = persistent_notification._async_get_or_create_notifications(hass)
-    assert NOTIFICATION_ID_LOGIN in notifications
 
     response = await SilenceAllowlistedLoginNotificationsView().get(
         cast(
             Any,
             MockViewRequest(
                 hass.http.app,
-                has_user=False,
-                query={
-                    ATTR_IP_ADDRESS: "192.168.1.1",
-                    "token": entry.data[CONF_NOTIFICATION_ACTION_TOKEN],
-                },
+                query={ATTR_IP_ADDRESS: "192.168.1.1"},
             ),
         )
     )
 
-    assert response.status == 204
-    assert entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
-    assert NOTIFICATION_ID_LOGIN not in notifications
+    assert response.status == 405
+    assert entry.options.get(CONF_SILENCED_ALLOWLISTED_LOGIN_IPS) in (None, [])
+    assert _entry_allowlisted_login_notifications_enabled(entry) is True
 
 
 @pytest.mark.asyncio
-async def test_silence_allowlisted_login_notifications_view_rejects_token_without_ip(
+async def test_silence_allowlisted_login_notifications_view_rejects_unauthenticated(
     hass: HomeAssistant,
 ) -> None:
-    """Test notification tokens cannot globally disable allowlisted-login alerts."""
+    """Test the silence endpoint rejects requests without a Home Assistant user."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
-    hass.config_entries.async_update_entry(
-        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
-    )
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(
             Any,
             MockViewRequest(
                 hass.http.app,
                 has_user=False,
-                query={"token": entry.data[CONF_NOTIFICATION_ACTION_TOKEN]},
+                data={ATTR_IP_ADDRESS: "192.168.1.1"},
             ),
         )
     )
 
     assert response.status == 403
-    assert _entry_allowlisted_login_notifications_enabled(entry) is True
+    assert entry.options.get(CONF_SILENCED_ALLOWLISTED_LOGIN_IPS) in (None, [])
 
 
-def test_silence_allowlisted_login_notifications_view_allows_token_auth() -> None:
-    """Test the action endpoint can be reached before Home Assistant user auth."""
-    assert SilenceAllowlistedLoginNotificationsView.requires_auth is False
+def test_silence_allowlisted_login_notifications_view_requires_auth() -> None:
+    """Test the silence endpoint requires Home Assistant authentication."""
+    assert SilenceAllowlistedLoginNotificationsView.requires_auth is True
 
 
 @pytest.mark.asyncio
@@ -1934,9 +1907,6 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_generated_
     """Test the generated notification action dismisses the visible notification."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
-    hass.config_entries.async_update_entry(
-        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
-    )
     remote_addr = ip_address("192.168.1.1")
     hass.http.app[KEY_LOGIN_THRESHOLD] = 5
 
@@ -1955,18 +1925,17 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_generated_
     assert f"/{DOMAIN}?action=silence_allowlisted_login" in message
     assert "&ip_address=192.168.1.1" in message
     assert f"&{ATTR_NOTIFICATION_ID}={NOTIFICATION_ID_LOGIN}" in message
+    assert ALLOWLISTED_LOGIN_SILENCE_URL not in message
     assert "&token=" not in message
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(
             Any,
             MockViewRequest(
                 hass.http.app,
-                has_user=False,
-                query={
+                data={
                     ATTR_IP_ADDRESS: str(remote_addr),
                     ATTR_NOTIFICATION_ID: NOTIFICATION_ID_LOGIN,
-                    "token": "test-token",
                 },
             ),
         )
@@ -1981,7 +1950,7 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_generated_
 async def test_silence_allowlisted_login_notifications_view_can_silence_address(
     hass: HomeAssistant,
 ) -> None:
-    """Test the notification link can silence one allowlisted address."""
+    """Test an admin POST can silence one allowlisted address."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     hass.http.app[KEY_LOGIN_THRESHOLD] = 5
@@ -1995,10 +1964,13 @@ async def test_silence_allowlisted_login_notifications_view_can_silence_address(
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert NOTIFICATION_ID_LOGIN in notifications
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(
             Any,
-            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.1"}),
+            MockViewRequest(
+                hass.http.app,
+                data={ATTR_IP_ADDRESS: "192.168.1.1"},
+            ),
         )
     )
 
@@ -2033,18 +2005,15 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_matching_n
     """Test per-address silence dismisses matching rewritten notifications."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
-    hass.config_entries.async_update_entry(
-        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
-    )
     persistent_notification.async_create(
         hass,
         (
             "Allowlisted login failed\n\n"
             "192.168.1.1 is allowlisted.\n\n"
             f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1"
-            "&notification_id=ip_ban_manager_custom_allowlisted_login&token="
-            f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
+            f"(/{DOMAIN}?action=silence_allowlisted_login"
+            "&ip_address=192.168.1.1"
+            "&notification_id=ip_ban_manager_custom_allowlisted_login)"
         ),
         " ",
         "ip_ban_manager_custom_allowlisted_login",
@@ -2052,10 +2021,13 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_matching_n
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     assert "ip_ban_manager_custom_allowlisted_login" in notifications
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(
             Any,
-            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.1"}),
+            MockViewRequest(
+                hass.http.app,
+                data={ATTR_IP_ADDRESS: "192.168.1.1"},
+            ),
         )
     )
 
@@ -2081,10 +2053,13 @@ async def test_silence_allowlisted_login_notifications_preserves_order(
         },
     )
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(
             Any,
-            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.3"}),
+            MockViewRequest(
+                hass.http.app,
+                data={ATTR_IP_ADDRESS: "192.168.1.3"},
+            ),
         )
     )
 
@@ -2102,19 +2077,15 @@ async def test_silence_allowlisted_login_notifications_keeps_other_address_notic
 ) -> None:
     """Test per-address silence only dismisses notices for that address."""
     await setup_ip_ban_manager(hass)
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
-    hass.config_entries.async_update_entry(
-        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
-    )
     persistent_notification.async_create(
         hass,
         (
             "Allowlisted login failed\n\n"
             "192.168.1.1 is allowlisted.\n\n"
             f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.1"
-            "&notification_id=ip_ban_manager_custom_allowlisted_login_1&token="
-            f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
+            f"(/{DOMAIN}?action=silence_allowlisted_login"
+            "&ip_address=192.168.1.1"
+            "&notification_id=ip_ban_manager_custom_allowlisted_login_1)"
         ),
         " ",
         "ip_ban_manager_custom_allowlisted_login_1",
@@ -2125,18 +2096,21 @@ async def test_silence_allowlisted_login_notifications_keeps_other_address_notic
             "Allowlisted login failed\n\n"
             "192.168.1.2 is allowlisted.\n\n"
             f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=192.168.1.2"
-            "&notification_id=ip_ban_manager_custom_allowlisted_login_2&token="
-            f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
+            f"(/{DOMAIN}?action=silence_allowlisted_login"
+            "&ip_address=192.168.1.2"
+            "&notification_id=ip_ban_manager_custom_allowlisted_login_2)"
         ),
         " ",
         "ip_ban_manager_custom_allowlisted_login_2",
     )
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(
             Any,
-            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "192.168.1.1"}),
+            MockViewRequest(
+                hass.http.app,
+                data={ATTR_IP_ADDRESS: "192.168.1.1"},
+            ),
         )
     )
 
@@ -2152,10 +2126,6 @@ async def test_silence_allowlisted_login_notifications_matches_encoded_action_ur
 ) -> None:
     """Test per-address silence dismisses notices matched by action URL."""
     await setup_ip_ban_manager(hass)
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
-    hass.config_entries.async_update_entry(
-        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: "test-token"}
-    )
     persistent_notification.async_create(
         hass,
         (
@@ -2163,18 +2133,21 @@ async def test_silence_allowlisted_login_notifications_matches_encoded_action_ur
             "**Allowlisted login failed**\n\n"
             "A trusted source failed authentication.\n\n"
             f"[{ALLOWLISTED_LOGIN_SILENCE_LABEL}]"
-            f"({ALLOWLISTED_LOGIN_SILENCE_URL}?ip_address=%3A%3A1"
-            "&notification_id=ip_ban_manager_encoded_allowlisted_login&token="
-            f"{entry.data[CONF_NOTIFICATION_ACTION_TOKEN]})"
+            f"(/{DOMAIN}?action=silence_allowlisted_login"
+            "&ip_address=%3A%3A1"
+            "&notification_id=ip_ban_manager_encoded_allowlisted_login)"
         ),
         " ",
         "ip_ban_manager_encoded_allowlisted_login",
     )
 
-    response = await SilenceAllowlistedLoginNotificationsView().get(
+    response = await SilenceAllowlistedLoginNotificationsView().post(
         cast(
             Any,
-            MockViewRequest(hass.http.app, query={ATTR_IP_ADDRESS: "::1"}),
+            MockViewRequest(
+                hass.http.app,
+                data={ATTR_IP_ADDRESS: "::1"},
+            ),
         )
     )
 

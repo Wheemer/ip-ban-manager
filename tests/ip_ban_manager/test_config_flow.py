@@ -36,6 +36,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_SIDEBAR_PANEL_ENABLED,
+    CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
     LEGACY_DOMAIN,
 )
@@ -578,6 +579,56 @@ async def test_options_flow_accepts_unchanged_submit(
 
     assert result["type"] == "create_entry"
     assert result["data"] == expected_options_data(["192.168.1.1", "172.17.0.0/24"])
+
+
+@pytest.mark.asyncio
+async def test_options_flow_preserves_silenced_allowlisted_login_ips(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test Configure does not wipe silenced allowlisted-login addresses."""
+    entry = await setup_options_entry(hass, tmp_path)
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["192.168.1.1"],
+        },
+    )
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.SECTION_ALLOWED_IPS: {
+                CONF_ALLOWED_IPS: "192.168.1.1\n172.17.0.0/24",
+            },
+            ban_config_flow.SECTION_BANNED_IPS: {
+                ban_config_flow.CONF_BAN_OPTIONS: [
+                    ban_config_flow.CONF_AUTO_BAN_CHECKBOX,
+                    ban_config_flow.CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                    ban_config_flow.CONF_SIDEBAR_PANEL_CHECKBOX,
+                ],
+                CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
+    assert result["data"] == {
+        **expected_options_data(["192.168.1.1", "172.17.0.0/24"]),
+        CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["192.168.1.1"],
+    }
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == [
+        "192.168.1.1"
+    ]
 
 
 @pytest.mark.asyncio

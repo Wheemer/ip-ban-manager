@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.6.2
+
+IP Ban Manager 1.6.2 is a hardening patch. It keeps Configure from wiping silenced allowlisted-login addresses, makes the silence API POST-only with administrator auth, and adds a few packaging and upgrade-safety checks. No new user-facing features.
+
+### Fixed
+
+- Saving **Configure** no longer drops silenced allowlisted-login addresses that are managed outside that form.
+- The allowlisted-login silence API now requires an administrator session and rejects GET requests, so it cannot be triggered by a cross-site image or link. Panel **Don't show for this address again** links are unchanged.
+- The `add_allowlist_network` service now uses the same local-path lockout safety checks as the live panel.
+- Removing an Allowed IP from the live panel asks for confirmation when default-deny or blocked networks are active.
+
+### Changed
+
+- Large diagnostic sensor list attributes stay visible on the entity, but are excluded from Recorder history.
+- The HACS release zip validator now requires `panel.js` and the new helper modules.
+- CI includes a canary that fails if Home Assistant removes ban hooks this integration patches.
+
 ## v1.6.1
 
 IP Ban Manager 1.6.1 is a hardening patch. It closes a notification-token security gap, stops duplicate live-panel API routes after integration reload, and brings panel allowlist-add in line with the lockout safety checks that already existed elsewhere. No new user-facing features.

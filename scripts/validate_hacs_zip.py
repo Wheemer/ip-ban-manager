@@ -8,9 +8,12 @@ from zipfile import ZipFile
 
 REQUIRED_ROOT_FILES = {
     "__init__.py",
+    "ban_lookup.py",
     "config_flow.py",
+    "ha_compat.py",
     "icon.png",
     "manifest.json",
+    "panel.js",
     "sensor.py",
     "services.yaml",
     "strings.json",

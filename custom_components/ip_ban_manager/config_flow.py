@@ -981,9 +981,12 @@ class OptionsFlow(config_entries.OptionsFlow):
         _update_blocked_networks_entry(self.hass, blocked_networks)
         await _async_replace_ip_bans(self.hass, banned_ips)
         self._pending_clear_bans = None
+        # Merge into current options so keys managed outside this form
+        # (for example silenced allowlisted-login IPs) are not wiped.
         return self.async_create_entry(
             title="",
             data={
+                **self._config_entry.options,
                 CONF_IP_ADDRESSES: ip_addresses,
                 CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
                 CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,

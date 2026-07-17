@@ -27,7 +27,6 @@ from ipaddress import (
     ip_network,
 )
 from pathlib import Path
-from secrets import token_urlsafe
 from socket import getaddrinfo, gethostbyaddr, herror
 from tempfile import NamedTemporaryFile
 from typing import Any, cast
@@ -105,7 +104,6 @@ from .const import (
     CONF_IP_ADDRESSES,
     CONF_LEGACY_ENTRY_ID,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
-    CONF_NOTIFICATION_ACTION_TOKEN,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
@@ -119,6 +117,13 @@ from .const import (
     SERVICE_REMOVE_ALL_IP_BANS,
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
     SERVICE_REMOVE_IP_BAN,
+)
+from .ban_lookup import (
+    NetworkAwareBanLookup,
+    _is_allowed,
+    _is_blocked,
+    _normalize_remote_addr,
+    _supervisor_internal_networks,
 )
 from .ip_utils import parse_allowlist_network
 
@@ -138,7 +143,7 @@ ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
 DBIP_ATTRIBUTION = "IP geolocation by DB-IP.com"
 DBIP_DOWNLOAD_MAX_BYTES = 250 * 1024 * 1024
 DBIP_DOWNLOAD_TIMEOUT = 120
-DBIP_DOWNLOAD_USER_AGENT = "IPBanManager/1.5"
+DBIP_DOWNLOAD_USER_AGENT = "IPBanManager/1.6.2"
 DBIP_SOURCE_NAME = "DB-IP City Lite"
 DNS_OVER_HTTPS_URL = (
     "https://cloudflare-dns.com/dns-query?name=download.db-ip.com&type=A"
@@ -149,10 +154,6 @@ CONFIG_EXPORT_FILENAME = "ip-ban-manager-backup.yaml"
 CONFIG_EXPORT_FORMAT_VERSION = 1
 SNAPSHOT_DIR = "snapshots"
 SNAPSHOT_KEEP = 3
-SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
-SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (
-    SUPERVISOR_DOCKER_PARENT_NETWORK,
-)
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
@@ -167,7 +168,6 @@ ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifi
 PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN = "silence_allowlisted_login"
 PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN = "unsilence_allowlisted_login"
 ATTR_NOTIFICATION_ID = "notification_id"
-ATTR_TOKEN = "token"
 IPV4_IN_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])")
 IPV6_IN_TEXT = re.compile(
     r"(?<![0-9A-Fa-f:.])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f:.%]*(?![0-9A-Fa-f:.])"
@@ -176,8 +176,8 @@ ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
-PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v19"
-PANEL_JS_URL = f"/api/{DOMAIN}/panel-v19.js"
+PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v20"
+PANEL_JS_URL = f"/api/{DOMAIN}/panel-v20.js"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
     "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
@@ -310,76 +310,6 @@ REMOVE_ALL_IP_BANS_SCHEMA = vol.Schema(
 )
 
 
-class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
-    """IP ban lookup that also blocks configured networks."""
-
-    def __init__(
-        self,
-        values: dict[IPAddress, IpBan],
-        blocked_networks: tuple[IPNetwork, ...],
-        allowlist: tuple[IPNetwork, ...],
-        default_deny_enabled: bool,
-        internal_bypass_networks: tuple[IPNetwork, ...] | None = None,
-    ) -> None:
-        """Initialize the lookup from Home Assistant's exact IP bans."""
-        super().__init__(values)
-        self.blocked_networks = blocked_networks
-        self.allowlist = allowlist
-        self.default_deny_enabled = default_deny_enabled
-        self.internal_bypass_networks = (
-            internal_bypass_networks or _supervisor_internal_networks()
-        )
-
-    def __contains__(self, key: object) -> bool:
-        """Return whether an IP is exactly banned or blocked by network."""
-        if not isinstance(key, (IPv4Address, IPv6Address)):
-            return False
-
-        remote_addr = _normalize_remote_addr(key)
-        if _is_allowed(remote_addr, self.internal_bypass_networks):
-            return False
-
-        if dict.__contains__(self, key):
-            return True
-
-        if remote_addr != key and dict.__contains__(self, remote_addr):
-            return True
-
-        if _is_allowed(remote_addr, self.allowlist):
-            return False
-
-        if _is_blocked(remote_addr, self.blocked_networks):
-            return True
-
-        return self.default_deny_enabled
-
-    def __bool__(self) -> bool:
-        """Keep Home Assistant's ban middleware active for network-only blocks."""
-        return bool(
-            dict.__len__(self) or self.blocked_networks or self.default_deny_enabled
-        )
-
-
-def _supervisor_internal_networks() -> tuple[IPNetwork, ...]:
-    """Return narrow internal networks that should not be blocked by managed rules."""
-    networks = list(SUPERVISOR_INTERNAL_NETWORKS)
-    supervisor_host = _supervisor_host_from_env()
-    if supervisor_host is None:
-        return tuple(networks)
-
-    with suppress(ValueError):
-        supervisor_addr = ip_address(supervisor_host)
-        if isinstance(supervisor_addr, IPv4Address):
-            if supervisor_addr in SUPERVISOR_DOCKER_PARENT_NETWORK:
-                networks.insert(0, SUPERVISOR_DOCKER_PARENT_NETWORK)
-            else:
-                networks.insert(0, IPv4Network(f"{supervisor_addr}/32"))
-        else:
-            networks.insert(0, IPv6Network(f"{supervisor_addr}/128"))
-
-    return tuple(dict.fromkeys(networks))
-
-
 async def _async_home_assistant_self_networks(
     hass: HomeAssistant,
 ) -> tuple[IPNetwork, ...]:
@@ -418,42 +348,6 @@ async def _async_update_internal_bypass_networks(hass: HomeAssistant) -> None:
 
     if isinstance(lookup, NetworkAwareBanLookup):
         lookup.internal_bypass_networks = networks
-
-
-def _supervisor_host_from_env() -> str | None:
-    """Return the Supervisor host from Home Assistant's Supervisor environment."""
-    supervisor = os.environ.get("SUPERVISOR")
-    if not supervisor:
-        return None
-    if "://" in supervisor:
-        return urlsplit(supervisor).hostname
-    if supervisor.count(":") == 1 and "." in supervisor:
-        return supervisor.split(":", 1)[0]
-    return supervisor
-
-
-def _normalize_remote_addr(remote_addr: IPAddress) -> IPAddress:
-    """Normalize runtime addresses into the family users configured."""
-    if isinstance(remote_addr, IPv6Address) and remote_addr.ipv4_mapped is not None:
-        return remote_addr.ipv4_mapped
-
-    return remote_addr
-
-
-def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:
-    """Return whether a remote address is covered by the allowlist."""
-    normalized_addr = _normalize_remote_addr(remote_addr)
-    return any(normalized_addr in allowed_network for allowed_network in allowlist)
-
-
-def _is_blocked(
-    remote_addr: IPAddress, blocked_networks: tuple[IPNetwork, ...]
-) -> bool:
-    """Return whether a remote address is covered by blocked networks."""
-    normalized_addr = _normalize_remote_addr(remote_addr)
-    return any(
-        normalized_addr in blocked_network for blocked_network in blocked_networks
-    )
 
 
 def _request_remote_ip(request: Request) -> IPAddress | None:
@@ -606,36 +500,6 @@ def _with_manager_link(hass: HomeAssistant, message: str) -> str:
     if NOTIFICATION_LINK_LABEL in message or INTEGRATION_CONFIG_URL in message:
         return message
     return f"{message}\n\n{_manager_notification_link(hass)}"
-
-
-def _notification_action_token(hass: HomeAssistant, entry: ConfigEntry) -> str:
-    """Return a persistent token for notification action links."""
-    token = entry.data.get(CONF_NOTIFICATION_ACTION_TOKEN)
-    if isinstance(token, str) and token:
-        return token
-
-    token = token_urlsafe(24)
-    hass.config_entries.async_update_entry(
-        entry, data={**entry.data, CONF_NOTIFICATION_ACTION_TOKEN: token}
-    )
-    return token
-
-
-def _allowlisted_login_silence_url(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    remote_addr: IPAddress,
-    notification_id: str = NOTIFICATION_ID_LOGIN,
-) -> str:
-    """Return the per-address allowlisted-login silence URL."""
-    query = urlencode(
-        {
-            ATTR_IP_ADDRESS: str(remote_addr),
-            ATTR_NOTIFICATION_ID: notification_id,
-            ATTR_TOKEN: _notification_action_token(hass, entry),
-        }
-    )
-    return f"{ALLOWLISTED_LOGIN_SILENCE_URL}?{query}"
 
 
 def _allowlisted_login_silence_panel_url(
@@ -994,37 +858,48 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
 
 
 class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
-    """Silence allowlisted failed-login notifications from a notification link."""
+    """Admin-only POST endpoint for allowlisted-login notification silence actions."""
 
     name = "api:ip_ban_manager:silence_allowlisted_login_notifications"
     url = ALLOWLISTED_LOGIN_SILENCE_URL
-    requires_auth = False
+    requires_auth = True
 
     async def get(self, request: Request) -> Response:
-        """Silence allowlisted failed-login notifications and dismiss the current notification."""
+        """Reject GET to avoid CSRF via notification or cross-site image requests."""
+        return self.json_message(
+            "Use POST with an administrator session for this action.",
+            405,
+        )
+
+    async def post(self, request: Request) -> Response:
+        """Silence allowlisted failed-login notifications for one IP or globally."""
         hass = request.app[KEY_HASS]
         entry = hass.http.app.get(KEY_CONFIG_ENTRY)
         if entry is None:
             return Response(text="IP Ban Manager is not loaded.", status=404)
 
         user = request.get("hass_user")
-        is_admin = user is not None and user.is_admin
-        token = getattr(request, "query", {}).get(ATTR_TOKEN)
-        token_is_valid = bool(
-            token and token == entry.data.get(CONF_NOTIFICATION_ACTION_TOKEN)
-        )
-        ip_address_value = getattr(request, "query", {}).get(ATTR_IP_ADDRESS)
+        if user is None or not user.is_admin:
+            return self.json_message("Administrator access is required.", 403)
 
+        try:
+            data = await request.json()
+        except (TypeError, ValueError):
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+
+        query = getattr(request, "query", {})
+        ip_address_value = data.get(ATTR_IP_ADDRESS) or query.get(ATTR_IP_ADDRESS)
         if ip_address_value:
-            if not is_admin and not token_is_valid:
-                return self.json_message("Administrator access is required.", 403)
-
             try:
-                remote_addr = ip_address(ip_address_value)
+                remote_addr = ip_address(str(ip_address_value))
             except ValueError:
                 return Response(text="Invalid IP address.", status=400)
 
-            notification_id = getattr(request, "query", {}).get(ATTR_NOTIFICATION_ID)
+            notification_id = data.get(ATTR_NOTIFICATION_ID) or query.get(
+                ATTR_NOTIFICATION_ID
+            )
             _silence_allowlisted_login_notifications(
                 hass,
                 entry,
@@ -1032,9 +907,6 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
                 notification_id if isinstance(notification_id, str) else None,
             )
             return _notification_action_response()
-
-        if not is_admin:
-            return self.json_message("Administrator access is required.", 403)
 
         _update_entry_options(
             hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False}
@@ -3082,7 +2954,9 @@ def _ip_ban_chronological_key(ip_ban: IpBan) -> tuple[datetime, int, bytes]:
     return (banned_at, ip_ban.ip_address.version, ip_ban.ip_address.packed)
 
 
-def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> None:
+async def _async_add_allowlist_network(
+    hass: HomeAssistant, network_value: str
+) -> None:
     """Add an allowlist network immediately."""
     try:
         network = parse_allowlist_network(network_value)
@@ -3113,8 +2987,20 @@ def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> Non
     current_networks = {
         parse_allowlist_network(current_network) for current_network in current
     }
-    if network not in current_networks:
-        _update_allowlist_entry(hass, [*current, normalized_network])
+    if network in current_networks:
+        return
+
+    updated = [*current, normalized_network]
+    try:
+        await _async_validate_panel_network_safety(
+            hass,
+            updated,
+            _current_blocked_network_strings(hass),
+            bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+        )
+    except HomeAssistantError as err:
+        raise ServiceValidationError(str(err)) from err
+    _update_allowlist_entry(hass, updated)
 
 
 async def _async_remove_allowlist_network(
@@ -3165,7 +3051,7 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
         await _async_remove_all_ip_bans(hass)
 
     async def add_allowlist_network(call: ServiceCall) -> None:
-        _async_add_allowlist_network(hass, call.data[ATTR_NETWORK])
+        await _async_add_allowlist_network(hass, call.data[ATTR_NETWORK])
 
     async def remove_allowlist_network(call: ServiceCall) -> None:
         await _async_remove_allowlist_network(hass, call.data[ATTR_NETWORK])
