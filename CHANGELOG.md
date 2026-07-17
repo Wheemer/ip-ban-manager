@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.7.0
+
+IP Ban Manager 1.7.0 expands backup/restore with browser download and upload, keeps on-disk Save/Restore for `/config`, and tightens the Options layout in the live panel.
+
+### Added
+
+- Added **Download** and **Upload** in the live panel so a YAML backup can be saved to this device or restored from a local file without copying through `/config`.
+- Upload validates the same backup format as on-disk restore and applies settings plus exact IP bans only when validation succeeds.
+
+### Changed
+
+- On-disk backup controls are labeled **Save** and **Restore**, still using `/config/ip_ban_manager/ip-ban-manager-backup.yaml`.
+- Options moves the login attempts threshold under the top checkboxes, keeps Advanced under that control, and places Apply before GeoIP and backup.
+- Bumped the bundled panel asset to `panel-v27.js` so Home Assistant loads the updated backup and Options layout.
+
 ## v1.6.2
 
 IP Ban Manager 1.6.2 is a hardening patch. It keeps Configure from wiping silenced allowlisted-login addresses, makes the silence API POST-only with administrator auth, and adds a few packaging and upgrade-safety checks. No new user-facing features.

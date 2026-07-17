@@ -93,6 +93,9 @@ class IPBanManagerPanel extends HTMLElement {
       } else {
         this._data = await this._api("GET", "ip_ban_manager/status");
       }
+      if (action === "download_config" && result?.download?.content) {
+        this._triggerBrowserDownload(result.download);
+      }
       this._notice = this._successMessage(action);
       ok = true;
     } catch (err) {
@@ -104,13 +107,29 @@ class IPBanManagerPanel extends HTMLElement {
     return ok;
   }
 
+  _triggerBrowserDownload(download) {
+    const blob = new Blob([download.content], { type: "application/yaml" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = download.filename || "ip-ban-manager-backup.yaml";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   _successMessage(action) {
     const path = this._data?.backup?.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml";
     if (action === "export_config") {
-      return `Exported to ${path}`;
+      return `Saved backup to ${path}`;
     }
     if (action === "import_config") {
-      return `Imported ${path}`;
+      return `Restored backup from ${path}`;
+    }
+    if (action === "download_config") {
+      return "Backup downloaded.";
+    }
+    if (action === "upload_config") {
+      return "Backup uploaded and applied.";
     }
     return "";
   }
@@ -316,7 +335,13 @@ class IPBanManagerPanel extends HTMLElement {
           text-decoration: none;
         }
         .geoip-status a:hover { text-decoration: underline; }
-        .button-row { display: flex; gap: 8px; }
+        .backup-stack {
+          display: grid;
+          gap: 14px;
+          margin-top: 14px;
+        }
+        .backup-stack .geoip-status { margin-top: 0; }
+        .button-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .subsection {
           margin-top: 18px;
           padding: 12px;
@@ -332,6 +357,7 @@ class IPBanManagerPanel extends HTMLElement {
           display: flex;
           justify-content: flex-end;
           margin-top: 16px;
+          margin-bottom: 20px;
         }
         .error {
           margin-bottom: 16px;
@@ -462,43 +488,56 @@ class IPBanManagerPanel extends HTMLElement {
             ${this._checkbox("sidebar_panel_enabled", "Show in sidebar", "Add the left menu page.", settings.sidebar_panel_enabled)}
             ${this._checkbox("geoip_enabled", "GeoIP location labels", "Show approximate public-IP locations. If the local database is missing, Apply downloads it.", settings.geoip_enabled)}
           </div>
-          ${this._geoipStatus(geoip)}
-          ${this._backupStatus(backup)}
-          <div class="advanced-title">Advanced</div>
-          <div class="options">
-            ${this._checkbox("allowlisted_logins_can_ban", "Bans inside Allowed IPs", "Be careful: trusted IPs can be blocked.", settings.allowlisted_logins_can_ban, true)}
-            ${this._checkbox("default_deny_enabled", "Block everything outside Allowed IPs", "Be careful: only Allowed IPs can connect.", settings.default_deny_enabled, true)}
-          </div>
           <div class="threshold">
             <label>
               <p class="hint">Login attempts threshold</p>
               <input id="threshold" type="number" min="0" max="100" value="${Number(settings.login_attempts_threshold || 0)}">
             </label>
           </div>
+          <div class="advanced-title">Advanced</div>
+          <div class="options">
+            ${this._checkbox("allowlisted_logins_can_ban", "Bans inside Allowed IPs", "Be careful: trusted IPs can be blocked.", settings.allowlisted_logins_can_ban, true)}
+            ${this._checkbox("default_deny_enabled", "Block everything outside Allowed IPs", "Be careful: only Allowed IPs can connect.", settings.default_deny_enabled, true)}
+          </div>
           <div class="actions">
             <button class="primary" id="save-options" ${this._busy ? "disabled" : ""}>Apply</button>
           </div>
+          ${this._geoipStatus(geoip)}
+          ${this._backupStatus(backup)}
         </div>
       </section>
     `;
   }
 
   _backupStatus(backup) {
-    const updated = backup.last_export ? this._formatDate(backup.last_export) : "No export yet";
+    const updated = backup.last_export ? this._formatDate(backup.last_export) : "No save yet";
     return `
-      <div class="geoip-status">
-        <div>
-          <strong>Backup</strong>
-          <small>${this._escape(backup.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml")}</small>
-          <small>${backup.exists ? `Last export: ${this._escape(updated)}` : "Export creates the file; import restores it manually."}</small>
+      <div class="backup-stack">
+        <div class="geoip-status">
+          <div>
+            <strong>Save to config</strong>
+            <small>${this._escape(backup.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml")}</small>
+            <small>${backup.exists ? `Last saved: ${this._escape(updated)}` : "Writes the on-disk backup file."}</small>
+          </div>
+          <div class="button-row">
+            <button data-action="export_config" ${this._busy ? "disabled" : ""}>Save</button>
+            <button
+              data-action="import_config"
+              data-confirm="Restore from the on-disk backup and replace current IP Ban Manager settings and exact IP bans?"
+              ${this._busy || !backup.exists ? "disabled" : ""}
+            >Restore</button>
+          </div>
         </div>
-        <div class="button-row">
-          <button data-action="export_config" ${this._busy ? "disabled" : ""}>Export</button>
-          <button
-            data-action="import_config"
-            data-confirm="Import ip-ban-manager-backup.yaml and replace current IP Ban Manager settings and exact IP bans?"
-            ${this._busy || !backup.exists ? "disabled" : ""}
-          >Import</button>
+        <div class="geoip-status">
+          <div>
+            <strong>Transfer</strong>
+            <small>Download a copy to this device, or upload a backup to restore.</small>
+          </div>
+          <div class="button-row">
+            <button data-action="download_config" ${this._busy ? "disabled" : ""}>Download</button>
+            <button data-action="upload_config" ${this._busy ? "disabled" : ""}>Upload</button>
+            <input id="backup-upload" type="file" accept=".yaml,.yml,text/yaml,text/plain" hidden>
+          </div>
         </div>
       </div>
     `;
@@ -600,12 +639,43 @@ class IPBanManagerPanel extends HTMLElement {
     });
     this.shadowRoot.querySelectorAll("button[data-action]").forEach((button) => {
       button.addEventListener("click", () => {
+        if (button.dataset.action === "upload_config") {
+          const upload = this.shadowRoot.getElementById("backup-upload");
+          if (upload) {
+            upload.click();
+          }
+          return;
+        }
         if (button.dataset.confirm && !window.confirm(button.dataset.confirm)) {
           return;
         }
         this._post(button.dataset.action, { value: button.dataset.value });
       });
     });
+    const uploadInput = this.shadowRoot.getElementById("backup-upload");
+    if (uploadInput) {
+      uploadInput.addEventListener("change", async () => {
+        const file = uploadInput.files && uploadInput.files[0];
+        uploadInput.value = "";
+        if (!file) {
+          return;
+        }
+        if (
+          !window.confirm(
+            `Upload ${file.name} and replace current IP Ban Manager settings and exact IP bans?`
+          )
+        ) {
+          return;
+        }
+        try {
+          const content = await file.text();
+          await this._post("upload_config", { content });
+        } catch (err) {
+          this._error = this._errorMessage(err);
+          this._render();
+        }
+      });
+    }
     const saveOptions = this.shadowRoot.getElementById("save-options");
     if (saveOptions) {
       saveOptions.addEventListener("click", () => {
@@ -662,4 +732,4 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define("ip-ban-manager-panel-v20", IPBanManagerPanel);
+customElements.define("ip-ban-manager-panel-v27", IPBanManagerPanel);

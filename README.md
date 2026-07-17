@@ -37,7 +37,7 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 - **Live panel:** manage the whole integration from a dedicated page, with optional sidebar access.
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
 - **GeoIP labels:** optionally download a local DB-IP City Lite database for approximate public-IP location labels.
-- **Backup and restore:** export and import a readable YAML backup from the panel or services.
+- **Backup and restore:** save/restore a readable YAML backup under `/config`, or download/upload a backup in the browser.
 - **Diagnostics and automation:** numeric sensors plus `ip_ban_manager.*` services for scripts and automations.
 
 ## Screenshots
@@ -88,7 +88,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 - Default-deny mode
 - Allowlisted-login notification settings
 - Local GeoIP database download/update
-- Manual backup and restore
+- Manual on-disk backup, browser download, and browser upload restore
 
 Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
 
@@ -122,15 +122,17 @@ Home Assistant's own exact interface addresses, IPv6 link-local access paths, Su
 
 ## Backup And Restore
 
-The live panel includes **Export** and **Import** buttons. Export writes:
+The live panel can **Save**, **Restore**, **Download**, and **Upload** a YAML backup.
+
+**Save** / **Restore** use the on-disk file:
 
 ```text
 /config/ip_ban_manager/ip-ban-manager-backup.yaml
 ```
 
-The backup includes IP Ban Manager settings plus a timestamp-preserving copy of Home Assistant's exact IP bans. It is not written automatically; use Export when you want an offline copy over SMB, SSH, Studio Code Server, or a normal Home Assistant backup.
+**Download** builds the same YAML from the current live settings and saves it through the browser. **Upload** restores from a file you pick on this device.
 
-Import reads that same file, validates it, and applies it live. If validation fails, nothing is changed.
+The backup includes IP Ban Manager settings plus a timestamp-preserving copy of Home Assistant's exact IP bans. If validation fails, nothing is changed.
 
 ## GeoIP Labels
 

@@ -176,8 +176,8 @@ ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
-PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v20"
-PANEL_JS_URL = f"/api/{DOMAIN}/panel-v20.js"
+PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v27"
+PANEL_JS_URL = f"/api/{DOMAIN}/panel-v27.js"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
     "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
@@ -943,7 +943,7 @@ def _panel_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]
 
 
 def _backup_status(hass: HomeAssistant) -> dict[str, object]:
-    """Return manual import/export file status for the bundled panel."""
+    """Return on-disk export file status for the bundled panel."""
     export_path = _config_export_path(hass)
     return {
         "path": _ha_config_relative_path(export_path),
@@ -1010,6 +1010,7 @@ class IPBanManagerManageView(HomeAssistantView):
 
         action = data.get("action")
         value = str(data.get("value", "")).strip()
+        download: dict[str, str] | None = None
 
         try:
             if action == "add_allowlist":
@@ -1032,6 +1033,15 @@ class IPBanManagerManageView(HomeAssistantView):
                 await _async_export_config(hass)
             elif action == "import_config":
                 await _async_import_config(hass)
+            elif action == "download_config":
+                download = _config_download_payload(hass)
+            elif action == "upload_config":
+                content = data.get("content")
+                if not isinstance(content, str) or not content.strip():
+                    raise HomeAssistantError(
+                        "Backup upload must include YAML file content."
+                    )
+                await _async_import_config_from_yaml(hass, content)
             elif action == PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN:
                 _panel_silence_allowlisted_login_notification(
                     hass, value, data.get(ATTR_NOTIFICATION_ID)
@@ -1056,7 +1066,10 @@ class IPBanManagerManageView(HomeAssistantView):
                 {"ok": False, "error": "IP Ban Manager is not loaded."},
                 status_code=404,
             )
-        return self.json(_panel_payload(hass, entry))
+        payload = _panel_payload(hass, entry)
+        if download is not None:
+            payload["download"] = download
+        return self.json(payload)
 
 
 def _integration_view_urls() -> set[str]:
@@ -2096,6 +2109,29 @@ async def _async_export_config(hass: HomeAssistant) -> Path:
     return export_path
 
 
+async def _async_import_config(hass: HomeAssistant) -> Path:
+    """Import IP Ban Manager settings from the on-disk backup file."""
+    export_path = _config_export_path(hass)
+
+    def _read() -> str:
+        if not export_path.is_file():
+            raise HomeAssistantError(f"Backup file not found: {export_path}")
+        return export_path.read_text(encoding="utf8")
+
+    content = await hass.async_add_executor_job(_read)
+    await _async_import_config_from_yaml(hass, content)
+    return export_path
+
+
+def _config_download_payload(hass: HomeAssistant) -> dict[str, str]:
+    """Return the current settings as a browser downloadable YAML backup."""
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    return {
+        "filename": CONFIG_EXPORT_FILENAME,
+        "content": yaml.safe_dump(_config_export_payload(hass, entry), sort_keys=False),
+    }
+
+
 def _bool_from_import(settings: dict[str, object], key: str, default: bool) -> bool:
     """Read a boolean import value without treating arbitrary strings as true."""
     if key not in settings:
@@ -2191,24 +2227,22 @@ async def _async_restore_exact_bans(hass: HomeAssistant, bans: list[IpBan]) -> N
     _dismiss_removed_ip_notifications(hass, removed_addrs)
 
 
-async def _async_import_config(hass: HomeAssistant) -> Path:
-    """Import IP Ban Manager settings from the manual backup file."""
-    export_path = _config_export_path(hass)
+async def _async_import_config_from_yaml(hass: HomeAssistant, content: str) -> None:
+    """Import IP Ban Manager settings from uploaded YAML backup content."""
+    try:
+        payload = yaml.safe_load(content) or {}
+    except yaml.YAMLError as err:
+        raise HomeAssistantError("Backup file is not valid YAML.") from err
 
-    def _read_export_file() -> object:
-        if not export_path.is_file():
-            raise HomeAssistantError(
-                f"No backup file found at {_ha_config_relative_path(export_path)}."
-            )
-        with export_path.open(encoding="utf8") as export_file:
-            try:
-                return yaml.safe_load(export_file) or {}
-            except yaml.YAMLError as err:
-                raise HomeAssistantError("Backup file is not valid YAML.") from err
-
-    payload = await hass.async_add_executor_job(_read_export_file)
     if not isinstance(payload, dict):
         raise HomeAssistantError("Backup file must contain a YAML mapping.")
+    await _async_apply_config_backup_payload(hass, payload)
+
+
+async def _async_apply_config_backup_payload(
+    hass: HomeAssistant, payload: dict[str, object]
+) -> None:
+    """Validate and apply an IP Ban Manager backup payload."""
     if payload.get("domain") not in (None, DOMAIN):
         raise HomeAssistantError("Backup file is not for IP Ban Manager.")
     if payload.get("format_version", CONFIG_EXPORT_FORMAT_VERSION) != (
@@ -2355,7 +2389,6 @@ async def _async_import_config(hass: HomeAssistant) -> Path:
     await _async_register_panel(hass, sidebar_enabled=sidebar_panel_enabled)
     if imported_bans is not None:
         await _async_restore_exact_bans(hass, imported_bans)
-    return export_path
 
 
 async def _async_rewrite_ip_bans_file(
