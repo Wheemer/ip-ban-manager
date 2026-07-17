@@ -3045,6 +3045,7 @@ async def test_download_config_returns_current_yaml_backup(
         )
     )
     assert response.status == 200
+    assert response.text is not None
     payload = json.loads(response.text)
     assert payload["ok"] is True
     download = payload["download"]
