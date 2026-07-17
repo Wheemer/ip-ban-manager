@@ -13,9 +13,7 @@ from homeassistant.components.http.ban import (
 
 # Symbols imported or patched by IP Ban Manager. A Home Assistant upgrade that
 # removes or renames any of these should fail this canary before runtime.
-REQUIRED_HTTP_BAN_MODULE_ATTRS = (
-    "process_wrong_login",
-)
+REQUIRED_HTTP_BAN_MODULE_ATTRS = ("process_wrong_login",)
 REQUIRED_BAN_EXPORTS = (
     ("KEY_BAN_MANAGER", KEY_BAN_MANAGER),
     ("KEY_FAILED_LOGIN_ATTEMPTS", KEY_FAILED_LOGIN_ATTEMPTS),

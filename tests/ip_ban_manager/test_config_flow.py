@@ -588,9 +588,9 @@ async def test_options_flow_preserves_silenced_allowlisted_login_ips(
     """Test Configure does not wipe silenced allowlisted-login addresses."""
     entry = await setup_options_entry(hass, tmp_path)
     hass.config_entries.async_update_entry(
-        entry,
+        cast(Any, entry),
         options={
-            **entry.options,
+            **cast(Any, entry).options,
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["192.168.1.1"],
         },
     )
@@ -626,9 +626,7 @@ async def test_options_flow_preserves_silenced_allowlisted_login_ips(
     }
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None
-    assert stored_entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == [
-        "192.168.1.1"
-    ]
+    assert stored_entry.options[CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["192.168.1.1"]
 
 
 @pytest.mark.asyncio

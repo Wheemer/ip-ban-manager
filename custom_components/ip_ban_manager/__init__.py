@@ -64,6 +64,13 @@ from homeassistant.util import dt as dt_util
 from voluptuous.schema_builder import Optional as vol_optional
 from voluptuous.validators import Any as vol_any
 
+from .ban_lookup import (
+    NetworkAwareBanLookup,
+    _is_allowed,
+    _is_blocked,
+    _normalize_remote_addr,
+    _supervisor_internal_networks,
+)
 from .const import (
     ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
@@ -117,13 +124,6 @@ from .const import (
     SERVICE_REMOVE_ALL_IP_BANS,
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
     SERVICE_REMOVE_IP_BAN,
-)
-from .ban_lookup import (
-    NetworkAwareBanLookup,
-    _is_allowed,
-    _is_blocked,
-    _normalize_remote_addr,
-    _supervisor_internal_networks,
 )
 from .ip_utils import parse_allowlist_network
 
@@ -2954,9 +2954,7 @@ def _ip_ban_chronological_key(ip_ban: IpBan) -> tuple[datetime, int, bytes]:
     return (banned_at, ip_ban.ip_address.version, ip_ban.ip_address.packed)
 
 
-async def _async_add_allowlist_network(
-    hass: HomeAssistant, network_value: str
-) -> None:
+async def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> None:
     """Add an allowlist network immediately."""
     try:
         network = parse_allowlist_network(network_value)
