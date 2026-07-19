@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.7.1
+
+IP Ban Manager 1.7.1 hardens config-entry unload and reload so the panel API and runtime hooks detach cleanly when the entry is unloaded, then rebind on setup/reload. No new user-facing features. A Home Assistant Core restart is still required after updating the integration's Python files.
+
+### Fixed
+
+- Unloading the config entry clears the live HTTP handler table, so sticky Home Assistant routes for status, manage, and silence return **not loaded** instead of running integration logic while the entry is down.
+- Reloading the config entry rebinds those handlers and restores patches, services, and panel API state for the already-loaded module.
+- Unload also clears internal bypass-network state left in the HTTP app.
+
+### Changed
+
+- README clarifies that **Reload** restores runtime state for the loaded module, while a **Core restart** is still required for newly installed or updated Python code.
+
 ## v1.7.0
 
 IP Ban Manager 1.7.0 expands backup/restore with browser download and upload, keeps on-disk Save/Restore for `/config`, and tightens the Options layout in the live panel.

@@ -46,7 +46,9 @@ from custom_components.ip_ban_manager import (
     KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
     KEY_HEALTH,
+    KEY_HTTP_VIEW_HANDLERS,
     KEY_HTTP_VIEWS,
+    KEY_INTERNAL_BYPASS_NETWORKS,
     KEY_METRICS,
     KEY_ORIGINAL_ADD_BAN,
     KEY_ORIGINAL_LOAD_BANS,
@@ -2789,19 +2791,21 @@ async def test_unload_restores_home_assistant_hooks(
     assert ban_manager.async_load is original_load_bans
     assert KEY_ALLOWLIST not in hass.http.app
     assert KEY_CONFIG_ENTRY not in hass.http.app
+    assert KEY_INTERNAL_BYPASS_NETWORKS not in hass.http.app
     assert KEY_ORIGINAL_ADD_BAN not in hass.http.app
     assert KEY_ORIGINAL_LOAD_BANS not in hass.http.app
     assert KEY_REVERSE_DNS_CACHE not in hass.http.app
     assert KEY_HEALTH not in hass.data
     assert KEY_METRICS not in hass.data
     assert KEY_HTTP_VIEWS not in hass.data
+    assert KEY_HTTP_VIEW_HANDLERS not in hass.data
 
 
 @pytest.mark.asyncio
 async def test_setup_entry_reregisters_http_views_after_unload(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Test reloading does not register duplicate HTTP view routes."""
+    """Test reloading rebinds handlers without registering duplicate HTTP routes."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     view_urls = {
@@ -2819,17 +2823,69 @@ async def test_setup_entry_reregisters_http_views_after_unload(
         return len(resources)
 
     assert count_view_resources() == 3
+    assert KEY_HTTP_VIEW_HANDLERS in hass.data
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert KEY_HTTP_VIEWS not in hass.data
+    assert KEY_HTTP_VIEW_HANDLERS not in hass.data
     assert count_view_resources() == 3
+
+    response = await IPBanManagerStatusView().get(
+        cast(Any, MockViewRequest(hass.http.app))
+    )
+    assert response.status == 404
+    assert response.text is not None
+    payload = json.loads(response.text)
+    assert payload["ok"] is False
+    assert "not loaded" in payload["error"].lower()
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     check_records(caplog.records)
     assert count_view_resources() == 3
     assert KEY_HTTP_VIEWS in hass.data
+    assert KEY_HTTP_VIEW_HANDLERS in hass.data
+
+    response = await IPBanManagerStatusView().get(
+        cast(Any, MockViewRequest(hass.http.app))
+    )
+    assert response.status == 200
+
+
+@pytest.mark.asyncio
+async def test_config_entry_reload_restores_runtime_hooks(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test config-entry reload tears down and restores integration runtime state."""
+    from homeassistant.components.auth import login_flow
+    from homeassistant.components.websocket_api import auth as websocket_auth
+
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+
+    assert http_ban.process_wrong_login is _allowlist_process_wrong_login
+    assert hass.services.has_service(DOMAIN, SERVICE_EXPORT_CONFIG)
+    assert KEY_HTTP_VIEW_HANDLERS in hass.data
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    assert http_ban.process_wrong_login is _allowlist_process_wrong_login
+    assert login_flow.process_wrong_login is _allowlist_process_wrong_login
+    assert websocket_auth.process_wrong_login is _allowlist_process_wrong_login
+    assert KEY_CONFIG_ENTRY in hass.http.app
+    assert KEY_HTTP_VIEW_HANDLERS in hass.data
+    assert hass.services.has_service(DOMAIN, SERVICE_EXPORT_CONFIG)
+    assert hass.services.has_service(DOMAIN, SERVICE_IMPORT_CONFIG)
+    assert ban_manager.async_add_ban is not hass.http.app[KEY_ORIGINAL_ADD_BAN]
+
+    response = await IPBanManagerStatusView().get(
+        cast(Any, MockViewRequest(hass.http.app))
+    )
+    assert response.status == 200
 
 
 @pytest.mark.asyncio

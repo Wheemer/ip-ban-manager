@@ -219,6 +219,7 @@ KEY_HEALTH = AppKey[dict[str, object]]("ip_ban_manager_health")
 KEY_METRICS = AppKey[dict[str, object]]("ip_ban_manager_metrics")
 KEY_BAN_FILE_WRITE_LOCK = AppKey[Lock]("ip_ban_manager_ban_file_write_lock")
 KEY_HTTP_VIEWS = AppKey[tuple[HomeAssistantView, ...]]("ip_ban_manager_http_views")
+KEY_HTTP_VIEW_HANDLERS = "ip_ban_manager_http_view_handlers"
 LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
 LEGACY_CLEANUP_DIR = ".cleanup"
 REVERSE_DNS_CACHE_TTL = timedelta(minutes=10)
@@ -857,6 +858,203 @@ def _add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         _create_manager_notification(hass, message, notification_id)
 
 
+HttpViewHandler = Callable[[HomeAssistantView, Request], Awaitable[Response]]
+
+
+async def _async_dispatch_http_view(
+    view: HomeAssistantView, request: Request, handler_name: str
+) -> Response:
+    """Dispatch to the setup-installed handler, or refuse when unloaded."""
+    hass = request.app[KEY_HASS]
+    handlers = hass.data.get(KEY_HTTP_VIEW_HANDLERS)
+    if not isinstance(handlers, dict):
+        return _http_view_not_loaded_response(view, handler_name)
+    handler = handlers.get(handler_name)
+    if not callable(handler):
+        return _http_view_not_loaded_response(view, handler_name)
+    return await handler(view, request)
+
+
+def _http_view_not_loaded_response(
+    view: HomeAssistantView, handler_name: str
+) -> Response:
+    """Return a not-loaded response that matches each endpoint's style."""
+    if handler_name.startswith("silence_"):
+        return Response(text="IP Ban Manager is not loaded.", status=404)
+    return view.json(
+        {"ok": False, "error": "IP Ban Manager is not loaded."},
+        status_code=404,
+    )
+
+
+async def _async_handle_silence_get(
+    view: HomeAssistantView, request: Request
+) -> Response:
+    """Reject GET to avoid CSRF via notification or cross-site image requests."""
+    return view.json_message(
+        "Use POST with an administrator session for this action.",
+        405,
+    )
+
+
+async def _async_handle_silence_post(
+    view: HomeAssistantView, request: Request
+) -> Response:
+    """Silence allowlisted failed-login notifications for one IP or globally."""
+    hass = request.app[KEY_HASS]
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None:
+        return Response(text="IP Ban Manager is not loaded.", status=404)
+
+    user = request.get("hass_user")
+    if user is None or not user.is_admin:
+        return view.json_message("Administrator access is required.", 403)
+
+    try:
+        data = await request.json()
+    except (TypeError, ValueError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    query = getattr(request, "query", {})
+    ip_address_value = data.get(ATTR_IP_ADDRESS) or query.get(ATTR_IP_ADDRESS)
+    if ip_address_value:
+        try:
+            remote_addr = ip_address(str(ip_address_value))
+        except ValueError:
+            return Response(text="Invalid IP address.", status=400)
+
+        notification_id = data.get(ATTR_NOTIFICATION_ID) or query.get(
+            ATTR_NOTIFICATION_ID
+        )
+        _silence_allowlisted_login_notifications(
+            hass,
+            entry,
+            remote_addr,
+            notification_id if isinstance(notification_id, str) else None,
+        )
+        return _notification_action_response()
+
+    _update_entry_options(
+        hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False}
+    )
+    _dismiss_allowlisted_login_notifications(hass)
+    return _notification_action_response()
+
+
+async def _async_handle_status_get(
+    view: HomeAssistantView, request: Request
+) -> Response:
+    """Return live status and persisted editable values."""
+    hass = request.app[KEY_HASS]
+    _metric_increment(hass, "panel_api_calls")
+    user = request.get("hass_user")
+    if user is None or not user.is_admin:
+        _metric_increment(hass, "panel_api_errors")
+        return view.json(
+            {"ok": False, "error": "Administrator access is required."},
+            status_code=403,
+        )
+
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None:
+        _metric_increment(hass, "panel_api_errors")
+        return view.json(
+            {"ok": False, "error": "IP Ban Manager is not loaded."},
+            status_code=404,
+        )
+
+    return view.json(_panel_payload(hass, entry))
+
+
+async def _async_handle_manage_post(
+    view: HomeAssistantView, request: Request
+) -> Response:
+    """Apply one validated panel action."""
+    hass = request.app[KEY_HASS]
+    _metric_increment(hass, "panel_api_calls")
+    user = request.get("hass_user")
+    if user is None or not user.is_admin:
+        _metric_increment(hass, "panel_api_errors")
+        return view.json(
+            {"ok": False, "error": "Administrator access is required."},
+            status_code=403,
+        )
+
+    try:
+        data = await request.json()
+    except ValueError:
+        _metric_increment(hass, "panel_api_errors")
+        return view.json(
+            {"ok": False, "error": "Expected JSON request body."},
+            status_code=400,
+        )
+
+    action = data.get("action")
+    value = str(data.get("value", "")).strip()
+    download: dict[str, str] | None = None
+
+    try:
+        if action == "add_allowlist":
+            await _async_panel_add_allowlist_network(hass, value)
+        elif action == "remove_allowlist":
+            await _async_panel_remove_allowlist_network(hass, value)
+        elif action == "add_ban":
+            await _async_add_ip_ban(hass, value)
+        elif action == "remove_ban":
+            await _async_remove_ip_ban(hass, value)
+        elif action == "add_blocked_network":
+            await _async_panel_add_blocked_network(hass, value)
+        elif action == "remove_blocked_network":
+            await _async_panel_remove_blocked_network(hass, value)
+        elif action == "set_options":
+            await _async_panel_set_options(hass, data.get("options", {}))
+        elif action == "update_geoip":
+            await _async_download_geoip_database(hass)
+        elif action == "export_config":
+            await _async_export_config(hass)
+        elif action == "import_config":
+            await _async_import_config(hass)
+        elif action == "download_config":
+            download = _config_download_payload(hass)
+        elif action == "upload_config":
+            content = data.get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise HomeAssistantError(
+                    "Backup upload must include YAML file content."
+                )
+            await _async_import_config_from_yaml(hass, content)
+        elif action == PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN:
+            _panel_silence_allowlisted_login_notification(
+                hass, value, data.get(ATTR_NOTIFICATION_ID)
+            )
+        elif action == PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN:
+            _panel_unsilence_allowlisted_login_notification(hass, value)
+        else:
+            _metric_increment(hass, "panel_api_errors")
+            return view.json(
+                {"ok": False, "error": "Unknown action."},
+                status_code=400,
+            )
+    except (HomeAssistantError, ValueError) as err:
+        _metric_increment(hass, "panel_api_errors")
+        return view.json({"ok": False, "error": str(err)}, status_code=400)
+
+    _async_update_health_issue(hass)
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None:
+        _metric_increment(hass, "panel_api_errors")
+        return view.json(
+            {"ok": False, "error": "IP Ban Manager is not loaded."},
+            status_code=404,
+        )
+    payload = _panel_payload(hass, entry)
+    if download is not None:
+        payload["download"] = download
+    return view.json(payload)
+
+
 class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
     """Admin-only POST endpoint for allowlisted-login notification silence actions."""
 
@@ -865,54 +1063,12 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request: Request) -> Response:
-        """Reject GET to avoid CSRF via notification or cross-site image requests."""
-        return self.json_message(
-            "Use POST with an administrator session for this action.",
-            405,
-        )
+        """Dispatch silence GET through the reloadable handler table."""
+        return await _async_dispatch_http_view(self, request, "silence_get")
 
     async def post(self, request: Request) -> Response:
-        """Silence allowlisted failed-login notifications for one IP or globally."""
-        hass = request.app[KEY_HASS]
-        entry = hass.http.app.get(KEY_CONFIG_ENTRY)
-        if entry is None:
-            return Response(text="IP Ban Manager is not loaded.", status=404)
-
-        user = request.get("hass_user")
-        if user is None or not user.is_admin:
-            return self.json_message("Administrator access is required.", 403)
-
-        try:
-            data = await request.json()
-        except (TypeError, ValueError):
-            data = {}
-        if not isinstance(data, dict):
-            data = {}
-
-        query = getattr(request, "query", {})
-        ip_address_value = data.get(ATTR_IP_ADDRESS) or query.get(ATTR_IP_ADDRESS)
-        if ip_address_value:
-            try:
-                remote_addr = ip_address(str(ip_address_value))
-            except ValueError:
-                return Response(text="Invalid IP address.", status=400)
-
-            notification_id = data.get(ATTR_NOTIFICATION_ID) or query.get(
-                ATTR_NOTIFICATION_ID
-            )
-            _silence_allowlisted_login_notifications(
-                hass,
-                entry,
-                remote_addr,
-                notification_id if isinstance(notification_id, str) else None,
-            )
-            return _notification_action_response()
-
-        _update_entry_options(
-            hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False}
-        )
-        _dismiss_allowlisted_login_notifications(hass)
-        return _notification_action_response()
+        """Dispatch silence POST through the reloadable handler table."""
+        return await _async_dispatch_http_view(self, request, "silence_post")
 
 
 def _panel_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
@@ -959,26 +1115,8 @@ class IPBanManagerStatusView(HomeAssistantView):
     url = f"/api/{DOMAIN}/status"
 
     async def get(self, request: Request) -> Response:
-        """Return live status and persisted editable values."""
-        hass = request.app[KEY_HASS]
-        _metric_increment(hass, "panel_api_calls")
-        user = request.get("hass_user")
-        if user is None or not user.is_admin:
-            _metric_increment(hass, "panel_api_errors")
-            return self.json(
-                {"ok": False, "error": "Administrator access is required."},
-                status_code=403,
-            )
-
-        entry = hass.http.app.get(KEY_CONFIG_ENTRY)
-        if entry is None:
-            _metric_increment(hass, "panel_api_errors")
-            return self.json(
-                {"ok": False, "error": "IP Ban Manager is not loaded."},
-                status_code=404,
-            )
-
-        return self.json(_panel_payload(hass, entry))
+        """Dispatch status GET through the reloadable handler table."""
+        return await _async_dispatch_http_view(self, request, "status_get")
 
 
 class IPBanManagerManageView(HomeAssistantView):
@@ -988,88 +1126,8 @@ class IPBanManagerManageView(HomeAssistantView):
     url = f"/api/{DOMAIN}/manage"
 
     async def post(self, request: Request) -> Response:
-        """Apply one validated panel action."""
-        hass = request.app[KEY_HASS]
-        _metric_increment(hass, "panel_api_calls")
-        user = request.get("hass_user")
-        if user is None or not user.is_admin:
-            _metric_increment(hass, "panel_api_errors")
-            return self.json(
-                {"ok": False, "error": "Administrator access is required."},
-                status_code=403,
-            )
-
-        try:
-            data = await request.json()
-        except ValueError:
-            _metric_increment(hass, "panel_api_errors")
-            return self.json(
-                {"ok": False, "error": "Expected JSON request body."},
-                status_code=400,
-            )
-
-        action = data.get("action")
-        value = str(data.get("value", "")).strip()
-        download: dict[str, str] | None = None
-
-        try:
-            if action == "add_allowlist":
-                await _async_panel_add_allowlist_network(hass, value)
-            elif action == "remove_allowlist":
-                await _async_panel_remove_allowlist_network(hass, value)
-            elif action == "add_ban":
-                await _async_add_ip_ban(hass, value)
-            elif action == "remove_ban":
-                await _async_remove_ip_ban(hass, value)
-            elif action == "add_blocked_network":
-                await _async_panel_add_blocked_network(hass, value)
-            elif action == "remove_blocked_network":
-                await _async_panel_remove_blocked_network(hass, value)
-            elif action == "set_options":
-                await _async_panel_set_options(hass, data.get("options", {}))
-            elif action == "update_geoip":
-                await _async_download_geoip_database(hass)
-            elif action == "export_config":
-                await _async_export_config(hass)
-            elif action == "import_config":
-                await _async_import_config(hass)
-            elif action == "download_config":
-                download = _config_download_payload(hass)
-            elif action == "upload_config":
-                content = data.get("content")
-                if not isinstance(content, str) or not content.strip():
-                    raise HomeAssistantError(
-                        "Backup upload must include YAML file content."
-                    )
-                await _async_import_config_from_yaml(hass, content)
-            elif action == PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN:
-                _panel_silence_allowlisted_login_notification(
-                    hass, value, data.get(ATTR_NOTIFICATION_ID)
-                )
-            elif action == PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN:
-                _panel_unsilence_allowlisted_login_notification(hass, value)
-            else:
-                _metric_increment(hass, "panel_api_errors")
-                return self.json(
-                    {"ok": False, "error": "Unknown action."},
-                    status_code=400,
-                )
-        except (HomeAssistantError, ValueError) as err:
-            _metric_increment(hass, "panel_api_errors")
-            return self.json({"ok": False, "error": str(err)}, status_code=400)
-
-        _async_update_health_issue(hass)
-        entry = hass.http.app.get(KEY_CONFIG_ENTRY)
-        if entry is None:
-            _metric_increment(hass, "panel_api_errors")
-            return self.json(
-                {"ok": False, "error": "IP Ban Manager is not loaded."},
-                status_code=404,
-            )
-        payload = _panel_payload(hass, entry)
-        if download is not None:
-            payload["download"] = download
-        return self.json(payload)
+        """Dispatch manage POST through the reloadable handler table."""
+        return await _async_dispatch_http_view(self, request, "manage_post")
 
 
 def _integration_view_urls() -> set[str]:
@@ -1099,8 +1157,19 @@ def _registered_integration_view_urls(hass: HomeAssistant) -> set[str]:
     return registered_urls
 
 
+def _install_http_view_handlers(hass: HomeAssistant) -> None:
+    """Install the live HTTP handlers used by process-lifetime view routes."""
+    hass.data[KEY_HTTP_VIEW_HANDLERS] = {
+        "silence_get": _async_handle_silence_get,
+        "silence_post": _async_handle_silence_post,
+        "status_get": _async_handle_status_get,
+        "manage_post": _async_handle_manage_post,
+    }
+
+
 def _register_http_views(hass: HomeAssistant) -> None:
-    """Register HTTP API views once per Home Assistant process."""
+    """Register HTTP API views once and bind reloadable handlers on each setup."""
+    _install_http_view_handlers(hass)
     if hass.data.get(KEY_HTTP_VIEWS):
         return
 
@@ -1118,7 +1187,8 @@ def _register_http_views(hass: HomeAssistant) -> None:
 
 
 def _unregister_http_views(hass: HomeAssistant) -> None:
-    """Drop tracked HTTP views without removing Home Assistant routes."""
+    """Detach live handlers; sticky HA routes stay but refuse requests."""
+    hass.data.pop(KEY_HTTP_VIEW_HANDLERS, None)
     hass.data.pop(KEY_HTTP_VIEWS, None)
 
 
@@ -3296,7 +3366,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.app.pop(KEY_ALLOWLIST, None)
     hass.http.app.pop(KEY_BLOCKED_NETWORKS, None)
     hass.http.app.pop(KEY_CONFIG_ENTRY, None)
+    hass.http.app.pop(KEY_INTERNAL_BYPASS_NETWORKS, None)
     hass.http.app.pop(KEY_REVERSE_DNS_CACHE, None)
+    # Static asset routes are process-lifetime in Home Assistant; leave
+    # KEY_STATIC_PATH_REGISTERED set so unload/reload does not double-register.
     hass.data.pop(KEY_HEALTH, None)
     hass.data.pop(KEY_METRICS, None)
     hass.data.pop(KEY_BAN_FILE_WRITE_LOCK, None)

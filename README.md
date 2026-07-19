@@ -62,6 +62,8 @@ If the button does not work:
 4. Restart Home Assistant once so the custom integration is loaded.
 5. Add it from **Settings > Devices & services > Add integration**.
 
+After install or a HACS update, a **Core restart** is required for new Python code to load. Reloading only the IP Ban Manager config entry is enough to tear down and restore its runtime hooks, services, and panel API for the already-loaded module (for example after disabling/re-enabling the entry), but it does not replace integration files already imported into the Home Assistant process.
+
 ## Configure
 
 Normal setup is done from the UI. The integration name is **IP Ban Manager** and service calls use `ip_ban_manager.*`.
