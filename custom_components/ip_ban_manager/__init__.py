@@ -936,9 +936,7 @@ async def _async_handle_silence_post(
         )
         return _notification_action_response()
 
-    _update_entry_options(
-        hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False}
-    )
+    _update_entry_options(hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False})
     _dismiss_allowlisted_login_notifications(hass)
     return _notification_action_response()
 
