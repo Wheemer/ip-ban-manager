@@ -58,6 +58,36 @@ remove_allowlist_network:
         text:
       example: 192.168.1.*
 
+add_blocked_network:
+  name: Add blocked network
+  description: IP Ban Manager adds a managed IPv4 or IPv6 CIDR network or IPv4 wildcard network to the live blocked-network list without restarting Home
+    Assistant.
+  fields:
+    network:
+      name: Network
+      description: The IPv4 or IPv6 CIDR network or IPv4 wildcard network to block.
+      required: true
+      selector:
+        text:
+      example: 203.0.113.0/24
+
+remove_blocked_network:
+  name: Remove blocked network
+  description: IP Ban Manager removes a managed IPv4 or IPv6 CIDR network or IPv4 wildcard network from the live blocked-network list without restarting
+    Home Assistant.
+  fields:
+    network:
+      name: Network
+      description: The IPv4 or IPv6 CIDR network or IPv4 wildcard network to remove from the blocked-network list.
+      required: true
+      selector:
+        text:
+      example: 203.0.113.0/24
+
+update_geoip:
+  name: Update GeoIP database
+  description: IP Ban Manager downloads and installs the local DB-IP City Lite database used for GeoIP location labels.
+
 export_config:
   name: Export configuration
   description: IP Ban Manager writes its managed settings and exact IP bans to /config/ip_ban_manager/ip-ban-manager-backup.yaml.

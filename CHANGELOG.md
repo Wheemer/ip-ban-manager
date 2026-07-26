@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.8.0
+
+IP Ban Manager 1.8.0 adds automation events, service parity for blocked networks and GeoIP updates, logbook entries for successful state changes, a simple panel search filter, and fixes notification **Open settings** links to open the live panel.
+
+### Added
+
+- Home Assistant events for exact IP bans and unbans, login-threshold reached (before auto-ban), allowlisted-login escalation, and allowlist/blocked-network add/remove.
+- `ip_ban_manager.add_blocked_network`, `ip_ban_manager.remove_blocked_network`, and `ip_ban_manager.update_geoip` services.
+- Logbook entries for successful ban, allowlist, blocked-network, and GeoIP database changes.
+- Simple search/filter boxes in the live panel for Allowed IPs, Blocked IPs, and Blocked Networks.
+- Bumped the bundled panel asset to `panel-v28.js` for the search/filter UI.
+
+### Fixed
+
+- Ban and failed-login persistent notifications now link to `/ip_ban_manager` (the live panel) rather than the integration config-entry URL under Settings.
+- When notifications are rewritten, old **Open settings** and **Open integrations** link lines are removed before the current panel link is added.
+
 ## v1.7.1
 
 IP Ban Manager 1.7.1 hardens config-entry unload and reload so the panel API and runtime hooks detach cleanly when the entry is unloaded, then rebind on setup/reload. No new user-facing features. A Home Assistant Core restart is still required after updating the integration's Python files.

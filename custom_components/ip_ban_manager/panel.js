@@ -1,3 +1,5 @@
+const PANEL_VERSION = "__VERSION__";
+
 class IPBanManagerPanel extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
@@ -16,6 +18,7 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   connectedCallback() {
+    this._listFilter = "";
     this._renderShell();
     this._autoRefresh = window.setInterval(() => this._scheduleLoad(), 10000);
   }
@@ -208,7 +211,21 @@ class IPBanManagerPanel extends HTMLElement {
         }
         .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
         .brand img { width: 44px; height: 44px; object-fit: contain; }
+        .brand-title {
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+          flex-wrap: wrap;
+          min-width: 0;
+        }
         h1 { margin: 0; font-size: 32px; line-height: 1.1; font-weight: 650; }
+        .version {
+          color: var(--secondary-text-color);
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 1.1;
+          white-space: nowrap;
+        }
         button, input {
           font: inherit;
           color: inherit;
@@ -237,6 +254,15 @@ class IPBanManagerPanel extends HTMLElement {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 16px;
+        }
+        .list-filter {
+          margin-bottom: 16px;
+        }
+        .list-filter label {
+          display: block;
+          margin-bottom: 6px;
+          color: var(--secondary-text-color);
+          font-size: 14px;
         }
         section {
           background: var(--card-background-color);
@@ -387,13 +413,25 @@ class IPBanManagerPanel extends HTMLElement {
         <header>
           <div class="brand">
             <img src="/api/ip_ban_manager/icon.png" alt="">
-            <h1>IP Ban Manager</h1>
+            <div class="brand-title">
+              <h1>IP Ban Manager</h1>
+              <span class="version" id="version">v__VERSION__</span>
+            </div>
           </div>
         </header>
         <div id="content"></div>
       </div>
     `;
     this._render();
+  }
+
+  _updateVersionLabel() {
+    const versionEl = this.shadowRoot?.getElementById("version");
+    if (!versionEl) {
+      return;
+    }
+    const version = this._data?.version || PANEL_VERSION;
+    versionEl.textContent = version ? `v${version}` : "";
   }
 
   _render() {
@@ -415,9 +453,14 @@ class IPBanManagerPanel extends HTMLElement {
 
     const status = this._data.status;
     const settings = this._data.settings;
+    this._updateVersionLabel();
     content.innerHTML = `
       ${this._error ? `<div class="error">${this._escape(this._error)}</div>` : ""}
       ${this._notice ? `<div class="notice">${this._escape(this._notice)}</div>` : ""}
+      <div class="list-filter">
+        <label for="list-filter">Filter lists</label>
+        <input id="list-filter" placeholder="Search Allowed IPs, Blocked IPs, and Blocked Networks" value="${this._escape(this._listFilter || "")}">
+      </div>
       <div class="grid">
         ${this._optionsSection(settings)}
         ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard", this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings))}
@@ -598,10 +641,18 @@ class IPBanManagerPanel extends HTMLElement {
     `;
   }
 
+  _matchesFilter(value) {
+    const needle = String(this._listFilter || "").trim().toLowerCase();
+    if (!needle) {
+      return true;
+    }
+    return String(value).toLowerCase().includes(needle);
+  }
+
   _rows(rows, removeAction, removeConfirm = "") {
-    const normalized = rows.map((row) =>
-      typeof row === "string" ? { label: row, value: row } : row
-    );
+    const normalized = rows
+      .map((row) => (typeof row === "string" ? { label: row, value: row } : row))
+      .filter((row) => this._matchesFilter(row.label) || this._matchesFilter(row.value) || this._matchesFilter(row.detail));
     if (!normalized.length) {
       return `<div class="empty">None</div>`;
     }
@@ -689,6 +740,13 @@ class IPBanManagerPanel extends HTMLElement {
         this._post("set_options", { options });
       });
     }
+    const listFilter = this.shadowRoot.getElementById("list-filter");
+    if (listFilter) {
+      listFilter.addEventListener("input", () => {
+        this._listFilter = listFilter.value;
+        this._render();
+      });
+    }
   }
 
   _formatDate(value) {
@@ -732,4 +790,4 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define("ip-ban-manager-panel-v27", IPBanManagerPanel);
+customElements.define("ip-ban-manager-panel", IPBanManagerPanel);

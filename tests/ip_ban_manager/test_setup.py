@@ -6,6 +6,7 @@ from asyncio import Event, wait_for
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
 import pytest
 import yaml
@@ -23,7 +24,7 @@ from homeassistant.components.http.ban import (
     IpBanManager,
 )
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT, EVENT_HOMEASSISTANT_STARTED
-from homeassistant.core import CoreState, HomeAssistant
+from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import DATA_CUSTOM_COMPONENTS, async_get_custom_components
@@ -38,7 +39,6 @@ from custom_components.ip_ban_manager import (
     ALLOWLISTED_LOGIN_SILENCE_LABEL,
     ALLOWLISTED_LOGIN_SILENCE_URL,
     ATTR_NOTIFICATION_ID,
-    CONFIG_ENTRY_URL_TEMPLATE,
     INTEGRATION_CONFIG_URL,
     INTEGRATION_DISABLED_BY_YAML_ISSUE_ID,
     IP_BAN_DISABLED_ISSUE_ID,
@@ -73,11 +73,13 @@ from custom_components.ip_ban_manager import (
     _cleanup_destination,
     _create_allowlisted_login_notification,
     _entry_allowlisted_login_notifications_enabled,
+    _process_allowlisted_wrong_login,
     _supervisor_internal_networks,
     current_status,
 )
 from custom_components.ip_ban_manager.const import (
     ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
+    ATTR_ATTEMPTS,
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
     ATTR_CONFIRM,
@@ -92,6 +94,8 @@ from custom_components.ip_ban_manager.const import (
     ATTR_METRICS,
     ATTR_NETWORK,
     ATTR_NETWORKS,
+    ATTR_SOURCE,
+    ATTR_THRESHOLD,
     CONF_ALLOWED_IPS,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
@@ -109,14 +113,28 @@ from custom_components.ip_ban_manager.const import (
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
+    EVENT_ALLOWLIST_NETWORK_ADDED,
+    EVENT_ALLOWLIST_NETWORK_REMOVED,
+    EVENT_ALLOWLISTED_LOGIN_ESCALATED,
+    EVENT_BLOCKED_NETWORK_ADDED,
+    EVENT_BLOCKED_NETWORK_REMOVED,
+    EVENT_IP_BANNED,
+    EVENT_IP_UNBANNED,
+    EVENT_LOGIN_THRESHOLD_REACHED,
     LEGACY_DOMAIN,
     SERVICE_ADD_ALLOWLIST_NETWORK,
+    SERVICE_ADD_BLOCKED_NETWORK,
     SERVICE_ADD_IP_BAN,
     SERVICE_EXPORT_CONFIG,
     SERVICE_IMPORT_CONFIG,
     SERVICE_REMOVE_ALL_IP_BANS,
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
+    SERVICE_REMOVE_BLOCKED_NETWORK,
     SERVICE_REMOVE_IP_BAN,
+    SERVICE_UPDATE_GEOIP,
+    SOURCE_AUTO,
+    SOURCE_PANEL,
+    SOURCE_SERVICE,
 )
 
 
@@ -150,6 +168,8 @@ class MockViewRequest:
         self._data = data or {}
         self._has_user = has_user
         self._user = user if user is not None else MockAdminUser()
+        self.headers: dict[str, str] = {}
+        self.rel_url = "/auth/login_flow"
 
     def get(self, key: str, default: object | None = None) -> object | None:
         """Return request-scoped Home Assistant auth data."""
@@ -180,6 +200,10 @@ def check_records(records: list[logging.LogRecord]) -> None:
                 or msg.startswith(
                     "IP Ban Manager config entry setup skipped because ip_ban_manager is disabled"
                 )
+                or msg.startswith(
+                    "Login attempt or request with invalid authentication"
+                )
+                or msg.startswith("Banned IP ")
             ):
                 continue
             raise Exception(msg)
@@ -250,6 +274,8 @@ async def test_setup_entry_does_not_wait_for_legacy_folder_cleanup(
 
     assert await hass.config_entries.async_setup(entry.entry_id)
     assert hass.services.has_service(DOMAIN, SERVICE_ADD_IP_BAN)
+    assert hass.services.has_service(DOMAIN, SERVICE_ADD_BLOCKED_NETWORK)
+    assert hass.services.has_service(DOMAIN, SERVICE_UPDATE_GEOIP)
     assert hass.services.has_service(DOMAIN, SERVICE_EXPORT_CONFIG)
     assert hass.services.has_service(DOMAIN, SERVICE_IMPORT_CONFIG)
     await wait_for(cleanup_started.wait(), timeout=1)
@@ -1733,7 +1759,8 @@ async def test_imported_auth_wrong_login_gets_branded_notification(
     assert message.startswith("## <img ")
     assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
     assert "**Login attempt failed**" in message
-    assert "Open settings" in message
+    assert f"[Open settings](/{DOMAIN})" in message
+    assert "/config/integrations/" not in message
 
 
 @pytest.mark.asyncio
@@ -1768,7 +1795,8 @@ async def test_allowlisted_wrong_login_can_become_exact_ban(
     assert ban_message.startswith("## <img ")
     assert ban_message.count(NOTIFICATION_ICON_DATA_URL) == 1
     assert "**IP banned**" in ban_message
-    assert "Open settings" in ban_message
+    assert f"[Open settings](/{DOMAIN})" in ban_message
+    assert "/config/integrations/" not in ban_message
     assert "Allowlisted login" not in ban_message
 
 
@@ -2187,6 +2215,7 @@ async def test_status_view_returns_state_for_admin(hass: HomeAssistant) -> None:
     data = json.loads(response.text)
     assert response.status == 200
     assert data["ok"] is True
+    assert data["version"] == "1.8.0"
     assert data["status"][ATTR_HEALTH]["ok"] is True
     assert data["status"][ATTR_HEALTH][ATTR_HEALTH_ISSUES] == []
     assert data["status"][ATTR_METRICS]["panel_api_calls"] == 1
@@ -2524,7 +2553,8 @@ async def test_setup_entry_rewrites_existing_http_notifications(
     assert message.startswith("## <img ")
     assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
     assert "**Login attempt failed**" in message
-    assert "Open settings" in message
+    assert f"[Open settings](/{DOMAIN})" in message
+    assert "/config/integrations/" not in message
     assert "IP Ban Manager icon" not in message
 
 
@@ -2599,8 +2629,10 @@ async def test_setup_entry_rewrites_stale_allowlisted_ipv6_notification_action(
 
 
 @pytest.mark.asyncio
-async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None:
-    """Test Home Assistant HTTP notifications link to IP Ban Manager."""
+async def test_http_notifications_use_integration_url_when_panel_not_loaded(
+    hass: HomeAssistant,
+) -> None:
+    """Test HTTP notifications fall back to the integration page without a live panel."""
     persistent_notification.async_create(
         hass,
         "Too many login attempts from 10.0.0.1",
@@ -2626,7 +2658,8 @@ async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None
     assert "Login attempt failed" in notifications[NOTIFICATION_ID_LOGIN]["message"]
     for notification_id in (NOTIFICATION_ID_BAN, NOTIFICATION_ID_LOGIN):
         message = notifications[notification_id]["message"]
-        assert "Open settings" in message
+        assert message.endswith(f"[Open settings]({INTEGRATION_CONFIG_URL})")
+        assert f"[Open settings](/{DOMAIN})" not in message
         assert message.count(INTEGRATION_CONFIG_URL) == 1
         assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
         assert message.startswith("## <img ")
@@ -2636,13 +2669,11 @@ async def test_http_notifications_get_manager_links(hass: HomeAssistant) -> None
 
 
 @pytest.mark.asyncio
-async def test_http_notifications_link_directly_to_config_entry(
+async def test_http_notifications_link_directly_to_live_panel(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Test Home Assistant HTTP notifications link to the settings page."""
+    """Test Home Assistant HTTP notifications link to the live panel."""
     await setup_ip_ban_manager(hass)
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
-    manager_url = CONFIG_ENTRY_URL_TEMPLATE.format(entry_id=entry.entry_id)
     persistent_notification.async_create(
         hass,
         "Too many login attempts from 10.0.0.1",
@@ -2659,7 +2690,8 @@ async def test_http_notifications_link_directly_to_config_entry(
     assert notifications[NOTIFICATION_ID_BAN]["title"] == " "
     assert "IP banned" in notifications[NOTIFICATION_ID_BAN]["message"]
     message = notifications[NOTIFICATION_ID_BAN]["message"]
-    assert message.endswith(f"[Open settings]({manager_url})")
+    assert message.endswith(f"[Open settings](/{DOMAIN})")
+    assert "/config/integrations/" not in message
     assert "Open integrations" not in message
 
 
@@ -3740,3 +3772,472 @@ async def test_current_status_lists_live_state(
         }
     ]
     assert status[ATTR_FAILED_LOGIN_ATTEMPTS] == {"10.0.0.2": 1}
+
+
+@pytest.mark.asyncio
+async def test_ban_service_fires_event_and_logbook(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test ban services fire automation events and logbook entries."""
+    from homeassistant.components import logbook
+
+    captured: list[tuple[str, dict[str, Any]]] = []
+    logbook_messages: list[str] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append((event.event_type, dict(event.data)))
+
+    remove = hass.bus.async_listen(EVENT_IP_BANNED, capture_event)
+    monkeypatch.setattr(
+        logbook,
+        "async_log_entry",
+        lambda _hass, _name, message, domain=None: logbook_messages.append(message),
+    )
+
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_IP_BAN,
+        {ATTR_IP_ADDRESS: "10.0.0.25"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+    remove()
+
+    assert captured == [
+        (
+            EVENT_IP_BANNED,
+            {ATTR_IP_ADDRESS: "10.0.0.25", ATTR_SOURCE: SOURCE_SERVICE},
+        )
+    ]
+    assert logbook_messages == ["Banned 10.0.0.25 (service)"]
+
+
+@pytest.mark.asyncio
+async def test_unban_service_fires_event(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test unban services fire automation events."""
+    captured: list[tuple[str, dict[str, Any]]] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append((event.event_type, dict(event.data)))
+
+    remove = hass.bus.async_listen(EVENT_IP_UNBANNED, capture_event)
+
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.25"))
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_IP_BAN,
+        {ATTR_IP_ADDRESS: "10.0.0.25"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+    remove()
+
+    assert captured == [
+        (
+            EVENT_IP_UNBANNED,
+            {ATTR_IP_ADDRESS: "10.0.0.25", ATTR_SOURCE: SOURCE_SERVICE},
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_allowlist_and_blocked_network_services_fire_events(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test allowlist and blocked-network services fire automation events."""
+    captured: list[str] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(event.event_type)
+
+    remove_added = hass.bus.async_listen(EVENT_ALLOWLIST_NETWORK_ADDED, capture_event)
+    remove_removed = hass.bus.async_listen(
+        EVENT_ALLOWLIST_NETWORK_REMOVED, capture_event
+    )
+    remove_blocked_added = hass.bus.async_listen(
+        EVENT_BLOCKED_NETWORK_ADDED, capture_event
+    )
+    remove_blocked_removed = hass.bus.async_listen(
+        EVENT_BLOCKED_NETWORK_REMOVED, capture_event
+    )
+
+    await setup_ip_ban_manager(hass)
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "203.0.113.0/24"},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "203.0.113.0/24"},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_BLOCKED_NETWORK,
+        {ATTR_NETWORK: "198.51.100.0/24"},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_BLOCKED_NETWORK,
+        {ATTR_NETWORK: "198.51.100.0/24"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+    remove_added()
+    remove_removed()
+    remove_blocked_added()
+    remove_blocked_removed()
+
+    assert captured == [
+        EVENT_ALLOWLIST_NETWORK_ADDED,
+        EVENT_ALLOWLIST_NETWORK_REMOVED,
+        EVENT_BLOCKED_NETWORK_ADDED,
+        EVENT_BLOCKED_NETWORK_REMOVED,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_allowlisted_login_escalation_fires_event(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test allowlisted-login escalation fires an automation event."""
+    captured: list[dict[str, Any]] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(dict(event.data))
+
+    remove = hass.bus.async_listen(EVENT_ALLOWLISTED_LOGIN_ESCALATED, capture_event)
+
+    await setup_ip_ban_manager(hass)
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 5
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = (
+        ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD - 1
+    )
+    await _process_allowlisted_wrong_login(
+        cast(Any, MockViewRequest(hass.http.app)),
+        remote_addr,
+    )
+    check_records(caplog.records)
+    remove()
+
+    assert captured == [
+        {
+            ATTR_IP_ADDRESS: "192.168.1.1",
+            ATTR_ATTEMPTS: ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD,
+            ATTR_SOURCE: SOURCE_AUTO,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_update_geoip_service_writes_logbook(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test the update_geoip service records a logbook entry."""
+    from homeassistant.components import logbook
+
+    logbook_messages: list[str] = []
+    monkeypatch.setattr(
+        logbook,
+        "async_log_entry",
+        lambda _hass, _name, message, domain=None: logbook_messages.append(message),
+    )
+    monkeypatch.setattr(
+        ipbm,
+        "_async_download_geoip_database",
+        AsyncMock(return_value=None),
+    )
+
+    await setup_ip_ban_manager(hass)
+    await hass.services.async_call(DOMAIN, SERVICE_UPDATE_GEOIP, {}, blocking=True)
+    check_records(caplog.records)
+
+    assert logbook_messages == ["Updated GeoIP database (service)"]
+
+
+@pytest.mark.asyncio
+async def test_auto_ban_fires_threshold_event_before_ban(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test auto-ban fires threshold reached immediately before the ban write."""
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    @callback
+    def capture_event(event) -> None:
+        events.append((event.event_type, dict(event.data)))
+
+    remove_threshold = hass.bus.async_listen(
+        EVENT_LOGIN_THRESHOLD_REACHED, capture_event
+    )
+    remove_banned = hass.bus.async_listen(EVENT_IP_BANNED, capture_event)
+
+    await setup_ip_ban_manager(hass)
+    remote_addr = ip_address("10.0.0.99")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 3
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 2
+
+    class MockRequest:
+        remote = "10.0.0.99"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    check_records(caplog.records)
+    remove_threshold()
+    remove_banned()
+
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    assert remote_addr in ban_manager.ip_bans_lookup
+    assert events == [
+        (
+            EVENT_LOGIN_THRESHOLD_REACHED,
+            {
+                ATTR_IP_ADDRESS: "10.0.0.99",
+                ATTR_ATTEMPTS: 3,
+                ATTR_THRESHOLD: 3,
+                ATTR_SOURCE: SOURCE_AUTO,
+            },
+        ),
+        (
+            EVENT_IP_BANNED,
+            {ATTR_IP_ADDRESS: "10.0.0.99", ATTR_SOURCE: SOURCE_AUTO},
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_allowlisted_auto_ban_refusal_does_not_fire_threshold_event(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test allowlisted sources that cannot be banned do not fire threshold events."""
+    captured: list[str] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(event.event_type)
+
+    remove = hass.bus.async_listen(EVENT_LOGIN_THRESHOLD_REACHED, capture_event)
+
+    await setup_ip_ban_manager(hass)
+    remote_addr = ip_address("192.168.1.1")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 2
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 1
+
+    class MockRequest:
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    check_records(caplog.records)
+    remove()
+
+    assert captured == []
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    assert remote_addr not in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
+async def test_already_banned_source_does_not_fire_threshold_event(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test an already-banned source does not fire another threshold event."""
+    captured: list[str] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(event.event_type)
+
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    remote_addr = ip_address("10.0.0.99")
+    await ban_manager.async_add_ban(remote_addr)
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 3
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 3
+
+    remove_threshold = hass.bus.async_listen(
+        EVENT_LOGIN_THRESHOLD_REACHED, capture_event
+    )
+    remove_banned = hass.bus.async_listen(EVENT_IP_BANNED, capture_event)
+
+    class MockRequest:
+        remote = "10.0.0.99"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    check_records(caplog.records)
+    remove_threshold()
+    remove_banned()
+
+    assert captured == []
+
+
+@pytest.mark.asyncio
+async def test_panel_allowlist_add_fires_panel_sourced_event(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test panel allowlist mutations report source panel in automation events."""
+    captured: list[dict[str, Any]] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(dict(event.data))
+
+    remove = hass.bus.async_listen(EVENT_ALLOWLIST_NETWORK_ADDED, capture_event)
+
+    await setup_ip_ban_manager(hass)
+    response = await IPBanManagerManageView().post(
+        cast(
+            Any,
+            MockViewRequest(
+                hass.http.app,
+                data={"action": "add_allowlist", "value": "203.0.113.0/24"},
+            ),
+        )
+    )
+    check_records(caplog.records)
+    remove()
+
+    assert response.status == 200
+    assert captured == [
+        {ATTR_NETWORK: "203.0.113.0/24", ATTR_SOURCE: SOURCE_PANEL},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_remove_all_ip_bans_fires_unban_event_per_ip(
+    hass: HomeAssistant,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test clearing every ban fires one unban event per removed IP."""
+    captured: list[str] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(event.data[ATTR_IP_ADDRESS])
+
+    remove = hass.bus.async_listen(EVENT_IP_UNBANNED, capture_event)
+
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.1"))
+    await ban_manager.async_add_ban(IPv4Address("10.0.0.2"))
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_ALL_IP_BANS,
+        {ATTR_CONFIRM: True},
+        blocking=True,
+    )
+    check_records(caplog.records)
+    remove()
+
+    assert sorted(captured) == ["10.0.0.1", "10.0.0.2"]
+
+
+@pytest.mark.asyncio
+async def test_duplicate_allowlist_add_is_silent(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test duplicate allowlist adds do not fire events or logbook entries."""
+    from homeassistant.components import logbook
+
+    captured: list[str] = []
+    logbook_messages: list[str] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(event.event_type)
+
+    remove = hass.bus.async_listen(EVENT_ALLOWLIST_NETWORK_ADDED, capture_event)
+    monkeypatch.setattr(
+        logbook,
+        "async_log_entry",
+        lambda _hass, _name, message, domain=None: logbook_messages.append(message),
+    )
+
+    await setup_ip_ban_manager(hass)
+    payload = {ATTR_NETWORK: "203.0.113.0/24"}
+    await hass.services.async_call(
+        DOMAIN, SERVICE_ADD_ALLOWLIST_NETWORK, payload, blocking=True
+    )
+    await hass.services.async_call(
+        DOMAIN, SERVICE_ADD_ALLOWLIST_NETWORK, payload, blocking=True
+    )
+    check_records(caplog.records)
+    remove()
+
+    assert captured == [EVENT_ALLOWLIST_NETWORK_ADDED]
+    assert logbook_messages == ["Added allowlist network 203.0.113.0/24 (service)"]
+
+
+@pytest.mark.asyncio
+async def test_update_geoip_service_failure_does_not_log_success(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test a failed GeoIP update does not write a success logbook entry."""
+    from homeassistant.components import logbook
+
+    logbook_messages: list[str] = []
+    monkeypatch.setattr(
+        logbook,
+        "async_log_entry",
+        lambda _hass, _name, message, domain=None: logbook_messages.append(message),
+    )
+
+    async def fail_download(_hass: HomeAssistant) -> None:
+        raise HomeAssistantError("GeoIP download failed.")
+
+    monkeypatch.setattr(ipbm, "_async_download_geoip_database", fail_download)
+
+    await setup_ip_ban_manager(hass)
+    with pytest.raises(HomeAssistantError, match="GeoIP download failed"):
+        await hass.services.async_call(DOMAIN, SERVICE_UPDATE_GEOIP, {}, blocking=True)
+    check_records(caplog.records)
+
+    assert logbook_messages == []

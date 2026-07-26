@@ -64,6 +64,19 @@ from homeassistant.util import dt as dt_util
 from voluptuous.schema_builder import Optional as vol_optional
 from voluptuous.validators import Any as vol_any
 
+from .audit import (
+    current_mutation_source,
+    mutation_source,
+    record_allowlist_network_added,
+    record_allowlist_network_removed,
+    record_allowlisted_login_escalated,
+    record_blocked_network_added,
+    record_blocked_network_removed,
+    record_geoip_updated,
+    record_ip_banned,
+    record_ip_unbanned,
+    record_login_threshold_reached,
+)
 from .ban_lookup import (
     NetworkAwareBanLookup,
     _is_allowed,
@@ -118,12 +131,18 @@ from .const import (
     LEGACY_DOMAIN,
     MAX_LOGIN_ATTEMPTS_THRESHOLD,
     SERVICE_ADD_ALLOWLIST_NETWORK,
+    SERVICE_ADD_BLOCKED_NETWORK,
     SERVICE_ADD_IP_BAN,
     SERVICE_EXPORT_CONFIG,
     SERVICE_IMPORT_CONFIG,
     SERVICE_REMOVE_ALL_IP_BANS,
     SERVICE_REMOVE_ALLOWLIST_NETWORK,
+    SERVICE_REMOVE_BLOCKED_NETWORK,
     SERVICE_REMOVE_IP_BAN,
+    SERVICE_UPDATE_GEOIP,
+    SOURCE_AUTO,
+    SOURCE_PANEL,
+    SOURCE_SERVICE,
 )
 from .ip_utils import parse_allowlist_network
 
@@ -158,9 +177,6 @@ HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
 INTEGRATION_CONFIG_URL = f"/config/integrations/integration/{DOMAIN}"
-CONFIG_ENTRY_URL_TEMPLATE = (
-    f"/config/integrations/integration/{DOMAIN}?config_entry={{entry_id}}"
-)
 EMERGENCY_DISABLE_FILENAME = "ip_ban_manager.disabled"
 NOTIFICATION_LINK_LABEL = "Open settings"
 ALLOWLISTED_LOGIN_SILENCE_LABEL = "Don't show for this address again"
@@ -173,11 +189,18 @@ IPV6_IN_TEXT = re.compile(
     r"(?<![0-9A-Fa-f:.])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f:.%]*(?![0-9A-Fa-f:.])"
 )
 ENTRY_TITLE = "IP Ban Manager"
+INTEGRATION_VERSION = json.loads(
+    Path(__file__).with_name("manifest.json").read_text(encoding="utf-8")
+)["version"]
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
-PANEL_WEB_COMPONENT = "ip-ban-manager-panel-v27"
-PANEL_JS_URL = f"/api/{DOMAIN}/panel-v27.js"
+PANEL_JS_PATH = f"/api/{DOMAIN}/panel.js"
+PANEL_JS_CACHE_TOKEN = int(Path(__file__).with_name("panel.js").stat().st_mtime)
+PANEL_JS_URL = (
+    f"{PANEL_JS_PATH}?v={quote(INTEGRATION_VERSION, safe='')}&t={PANEL_JS_CACHE_TOKEN}"
+)
+PANEL_WEB_COMPONENT = "ip-ban-manager-panel"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
     "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20"
@@ -201,6 +224,7 @@ KEY_ORIGINAL_LOAD_BANS = AppKey[LoadBansCallable]("ip_ban_manager_original_load_
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
 KEY_PANEL_REGISTERED = AppKey[bool]("ip_ban_manager_panel_registered")
 KEY_PANEL_SIDEBAR_ENABLED = AppKey[bool]("ip_ban_manager_panel_sidebar_enabled")
+KEY_PANEL_MODULE_URL = AppKey[str]("ip_ban_manager_panel_module_url")
 KEY_EMERGENCY_DISABLED = AppKey[bool]("ip_ban_manager_emergency_disabled")
 KEY_LEGACY_CLEANUP_SCHEDULED = AppKey[bool]("ip_ban_manager_legacy_cleanup_scheduled")
 KEY_LEGACY_FOLDER_CLEANED = AppKey[bool]("ip_ban_manager_legacy_folder_cleaned")
@@ -390,6 +414,12 @@ async def _async_reverse_dns_name(
     return hostname
 
 
+async def _async_handle_standard_wrong_login(request: Request) -> None:
+    """Process failed logins that may become automatic exact bans."""
+    await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
+    _handle_http_notifications(request.app[KEY_HASS])
+
+
 async def _allowlist_process_wrong_login(request: Request) -> None:
     """Process failed logins while preventing allowlisted addresses from bans."""
     allowlist = request.app.get(KEY_ALLOWLIST, ())
@@ -397,13 +427,11 @@ async def _allowlist_process_wrong_login(request: Request) -> None:
     hass = request.app[KEY_HASS]
 
     if remote_addr is None or not _is_allowed(remote_addr, allowlist):
-        await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
-        _handle_http_notifications(hass)
+        await _async_handle_standard_wrong_login(request)
         return
 
     if _allowlisted_logins_can_ban(hass):
-        await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
-        _handle_http_notifications(hass)
+        await _async_handle_standard_wrong_login(request)
         return
 
     await _process_allowlisted_wrong_login(request, remote_addr)
@@ -492,15 +520,21 @@ def _dismiss_ban_notification_for_ips(
 
 
 def _manager_notification_link(hass: HomeAssistant) -> str:
-    """Return the markdown link to IP Ban Manager settings."""
+    """Return the markdown link to the IP Ban Manager live panel."""
     return f"[{NOTIFICATION_LINK_LABEL}]({_manager_config_url(hass)})"
 
 
 def _with_manager_link(hass: HomeAssistant, message: str) -> str:
-    """Append the manager settings link once."""
-    if NOTIFICATION_LINK_LABEL in message or INTEGRATION_CONFIG_URL in message:
-        return message
-    return f"{message}\n\n{_manager_notification_link(hass)}"
+    """Append or refresh the manager panel link."""
+    cleaned = "\n".join(
+        line
+        for line in message.splitlines()
+        if not (
+            line.strip().startswith(f"[{NOTIFICATION_LINK_LABEL}](")
+            or line.strip().startswith("[Open integrations](")
+        )
+    ).rstrip()
+    return f"{cleaned}\n\n{_manager_notification_link(hass)}"
 
 
 def _allowlisted_login_silence_panel_url(
@@ -765,6 +799,15 @@ def _create_allowlisted_login_notification(
     failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
     attempts = int(failed_attempts.get(remote_addr, 0))
     threshold = int(hass.http.app.get(KEY_LOGIN_THRESHOLD, 0))
+    if (
+        attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD
+        and attempts - 1 < ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD
+    ):
+        record_allowlisted_login_escalated(
+            hass,
+            str(remote_addr),
+            attempts=attempts,
+        )
     if not _should_notify_allowlisted_login(hass, remote_addr, attempts):
         return
 
@@ -995,21 +1038,23 @@ async def _async_handle_manage_post(
 
     try:
         if action == "add_allowlist":
-            await _async_panel_add_allowlist_network(hass, value)
+            await _async_add_allowlist_network(hass, value, SOURCE_PANEL)
         elif action == "remove_allowlist":
-            await _async_panel_remove_allowlist_network(hass, value)
+            await _async_remove_allowlist_network(hass, value, SOURCE_PANEL)
         elif action == "add_ban":
-            await _async_add_ip_ban(hass, value)
+            with mutation_source(SOURCE_PANEL):
+                await _async_add_ip_ban(hass, value)
         elif action == "remove_ban":
-            await _async_remove_ip_ban(hass, value)
+            await _async_remove_ip_ban(hass, value, SOURCE_PANEL)
         elif action == "add_blocked_network":
-            await _async_panel_add_blocked_network(hass, value)
+            await _async_add_blocked_network(hass, value, SOURCE_PANEL)
         elif action == "remove_blocked_network":
-            await _async_panel_remove_blocked_network(hass, value)
+            await _async_remove_blocked_network(hass, value, SOURCE_PANEL)
         elif action == "set_options":
             await _async_panel_set_options(hass, data.get("options", {}))
         elif action == "update_geoip":
             await _async_download_geoip_database(hass)
+            record_geoip_updated(hass, SOURCE_PANEL)
         elif action == "export_config":
             await _async_export_config(hass)
         elif action == "import_config":
@@ -1073,6 +1118,7 @@ def _panel_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]
     """Return the complete JSON payload used by the bundled panel."""
     return {
         "ok": True,
+        "version": INTEGRATION_VERSION,
         "status": current_status(hass),
         "settings": {
             CONF_IP_ADDRESSES: _entry_ip_addresses(entry),
@@ -1106,6 +1152,30 @@ def _backup_status(hass: HomeAssistant) -> dict[str, object]:
     }
 
 
+def _panel_js_source() -> str:
+    """Return the bundled panel script with the installed version injected."""
+    panel_path = Path(__file__).with_name("panel.js")
+    return panel_path.read_text(encoding="utf-8").replace(
+        "__VERSION__", INTEGRATION_VERSION
+    )
+
+
+class IPBanManagerPanelView(HomeAssistantView):
+    """Serve the bundled panel script with the installed version injected."""
+
+    name = "api:ip_ban_manager:panel_js"
+    url = PANEL_JS_PATH
+    requires_auth = False
+
+    async def get(self, request: Request) -> Response:
+        """Return panel.js with the manifest version baked into the header."""
+        return Response(
+            body=_panel_js_source(),
+            content_type="application/javascript",
+            headers={"Cache-Control": "no-store"},
+        )
+
+
 class IPBanManagerStatusView(HomeAssistantView):
     """Return live IP Ban Manager state for the bundled panel."""
 
@@ -1134,6 +1204,7 @@ def _integration_view_urls() -> set[str]:
         url
         for url in (
             SilenceAllowlistedLoginNotificationsView.url,
+            IPBanManagerPanelView.url,
             IPBanManagerStatusView.url,
             IPBanManagerManageView.url,
         )
@@ -1173,6 +1244,7 @@ def _register_http_views(hass: HomeAssistant) -> None:
 
     views = (
         SilenceAllowlistedLoginNotificationsView(),
+        IPBanManagerPanelView(),
         IPBanManagerStatusView(),
         IPBanManagerManageView(),
     )
@@ -1196,14 +1268,16 @@ def _coerce_panel_boolean(value: object) -> bool:
 
 
 def _manager_config_url(hass: HomeAssistant) -> str:
-    """Return the most direct stable frontend URL for this integration."""
+    """Return the live panel URL, falling back to the integration page."""
     if hass.http is None or hass.http.app is None:
         return INTEGRATION_CONFIG_URL
 
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     if entry is None:
         return INTEGRATION_CONFIG_URL
-    return CONFIG_ENTRY_URL_TEMPLATE.format(entry_id=entry.entry_id)
+    # Open the bundled panel directly. The integrations config_entry URL only
+    # lands on Settings > Devices & services for this integration.
+    return f"/{DOMAIN}"
 
 
 def _install_wrong_login_patch() -> None:
@@ -1253,8 +1327,28 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
             )
             return
 
+        active_ban_manager = app.get(KEY_BAN_MANAGER)
+        already_banned = (
+            active_ban_manager is not None
+            and remote_addr in active_ban_manager.ip_bans_lookup
+        )
+        if already_banned:
+            await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
+            return
+
         _LOGGER.info("Banning IP %s", remote_addr)
+        if current_mutation_source() == SOURCE_AUTO:
+            threshold = int(app.get(KEY_LOGIN_THRESHOLD, 0))
+            attempts = int(app[KEY_FAILED_LOGIN_ATTEMPTS].get(remote_addr, 0))
+            if threshold >= 1 and attempts >= threshold:
+                record_login_threshold_reached(
+                    hass,
+                    str(remote_addr),
+                    attempts=attempts,
+                    threshold=threshold,
+                )
         await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
+        record_ip_banned(hass, str(remote_addr))
 
     ban_manager.async_add_ban = allowlist_async_add_ban  # type: ignore[method-assign]
 
@@ -2536,18 +2630,44 @@ async def _async_validate_panel_network_safety(
         raise HomeAssistantError(str(err)) from err
 
 
-async def _async_panel_add_allowlist_network(
-    hass: HomeAssistant, network_value: str
+async def _async_add_allowlist_network(
+    hass: HomeAssistant, network_value: str, source: str = SOURCE_SERVICE
 ) -> None:
-    """Add an allowlist network from the panel."""
+    """Add an allowlist network immediately."""
     try:
         network = parse_allowlist_network(network_value)
     except ValueError as err:
-        raise HomeAssistantError("Invalid IP address or network.") from err
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError("Invalid IP address or network.") from err
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_network",
+            translation_placeholders={ATTR_NETWORK: network_value},
+        ) from err
 
     if network.prefixlen == 0:
-        raise HomeAssistantError(
-            "Allowing every address belongs outside the allowlist."
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError(
+                "Allowing every address belongs outside the allowlist."
+            )
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="unsafe_allowlist_network",
+            translation_placeholders={ATTR_NETWORK: str(network)},
+        )
+
+    banned_ips = _ban_manager(hass).ip_bans_lookup
+    if any(banned_ip in network for banned_ip in banned_ips):
+        message = (
+            "An allowlist network cannot include an exact banned IP. "
+            "Remove the ban first and try again."
+        )
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError(message)
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="network_contains_banned_ip",
+            translation_placeholders={ATTR_NETWORK: str(network)},
         )
 
     current = _current_allowlist_strings(hass)
@@ -2558,49 +2678,80 @@ async def _async_panel_add_allowlist_network(
     if network in current_networks:
         return
 
-    banned_ips = _ban_manager(hass).ip_bans_lookup
-    if any(banned_ip in network for banned_ip in banned_ips):
-        raise HomeAssistantError(
-            "An allowlist network cannot include an exact banned IP. "
-            "Remove the ban first and try again."
-        )
-
     updated = [*current, normalized_network]
-    await _async_validate_panel_network_safety(
-        hass,
-        updated,
-        _current_blocked_network_strings(hass),
-        bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
-    )
+    try:
+        await _async_validate_panel_network_safety(
+            hass,
+            updated,
+            _current_blocked_network_strings(hass),
+            bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+        )
+    except HomeAssistantError as err:
+        if source == SOURCE_PANEL:
+            raise
+        raise ServiceValidationError(str(err)) from err
     _update_allowlist_entry(hass, updated)
+    record_allowlist_network_added(hass, normalized_network, source)
 
 
-async def _async_panel_remove_allowlist_network(
-    hass: HomeAssistant, network_value: str
+async def _async_remove_allowlist_network(
+    hass: HomeAssistant, network_value: str, source: str = SOURCE_SERVICE
 ) -> None:
-    """Remove an allowlist network from the panel after safety checks."""
-    network = parse_allowlist_network(network_value)
+    """Remove an allowlist network immediately."""
+    try:
+        network = parse_allowlist_network(network_value)
+    except ValueError as err:
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError("Invalid IP address or network.") from err
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_network",
+            translation_placeholders={ATTR_NETWORK: network_value},
+        ) from err
+
     remaining_networks = [
         current_network
         for current_network in _current_allowlist_strings(hass)
         if parse_allowlist_network(current_network) != network
     ]
-    await _async_validate_panel_network_safety(
-        hass,
-        remaining_networks,
-        _current_blocked_network_strings(hass),
-        bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
-    )
+    if len(remaining_networks) == len(_current_allowlist_strings(hass)):
+        return
+
+    try:
+        await _async_validate_panel_network_safety(
+            hass,
+            remaining_networks,
+            _current_blocked_network_strings(hass),
+            bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+        )
+    except HomeAssistantError as err:
+        if source == SOURCE_PANEL:
+            raise
+        raise ServiceValidationError(str(err)) from err
     _update_allowlist_entry(hass, remaining_networks)
+    record_allowlist_network_removed(hass, str(network), source)
 
 
-async def _async_panel_add_blocked_network(
-    hass: HomeAssistant, network_value: str
+async def _async_add_blocked_network(
+    hass: HomeAssistant, network_value: str, source: str = SOURCE_SERVICE
 ) -> None:
-    """Add a managed blocked network from the panel."""
-    network = parse_allowlist_network(network_value)
+    """Add a managed blocked network immediately."""
+    try:
+        network = parse_allowlist_network(network_value)
+    except ValueError as err:
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError("Invalid IP address or network.") from err
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_network",
+            translation_placeholders={ATTR_NETWORK: network_value},
+        ) from err
+
     if network.prefixlen == 0:
-        raise HomeAssistantError("Blocking every address belongs in default-deny mode.")
+        message = "Blocking every address belongs in default-deny mode."
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError(message)
+        raise ServiceValidationError(message)
 
     current = _current_blocked_network_strings(hass)
     normalized_network = str(network)
@@ -2611,26 +2762,46 @@ async def _async_panel_add_blocked_network(
         return
 
     updated = [*current, normalized_network]
-    await _async_validate_panel_network_safety(
-        hass,
-        _current_allowlist_strings(hass),
-        updated,
-        bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
-    )
+    try:
+        await _async_validate_panel_network_safety(
+            hass,
+            _current_allowlist_strings(hass),
+            updated,
+            bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
+        )
+    except HomeAssistantError as err:
+        if source == SOURCE_PANEL:
+            raise
+        raise ServiceValidationError(str(err)) from err
     _update_blocked_networks_entry(hass, updated)
+    record_blocked_network_added(hass, normalized_network, source)
 
 
-async def _async_panel_remove_blocked_network(
-    hass: HomeAssistant, network_value: str
+async def _async_remove_blocked_network(
+    hass: HomeAssistant, network_value: str, source: str = SOURCE_SERVICE
 ) -> None:
-    """Remove a managed blocked network from the panel."""
-    network = parse_allowlist_network(network_value)
+    """Remove a managed blocked network immediately."""
+    try:
+        network = parse_allowlist_network(network_value)
+    except ValueError as err:
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError("Invalid IP address or network.") from err
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="invalid_network",
+            translation_placeholders={ATTR_NETWORK: network_value},
+        ) from err
+
     remaining_networks = [
         current_network
         for current_network in _current_blocked_network_strings(hass)
         if parse_allowlist_network(current_network) != network
     ]
+    if len(remaining_networks) == len(_current_blocked_network_strings(hass)):
+        return
+
     _update_blocked_networks_entry(hass, remaining_networks)
+    record_blocked_network_removed(hass, str(network), source)
 
 
 async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None:
@@ -2968,11 +3139,15 @@ async def _async_add_ip_ban(hass: HomeAssistant, ip_address_value: str) -> None:
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
 
 
-async def _async_remove_ip_ban(hass: HomeAssistant, ip_address_value: str) -> None:
+async def _async_remove_ip_ban(
+    hass: HomeAssistant, ip_address_value: str, source: str = SOURCE_SERVICE
+) -> None:
     """Remove an IP ban immediately."""
     try:
         remote_addr = ip_address(ip_address_value)
     except ValueError as err:
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError("Invalid IP address.") from err
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="invalid_ip_address",
@@ -2982,6 +3157,8 @@ async def _async_remove_ip_ban(hass: HomeAssistant, ip_address_value: str) -> No
     ban_manager = _ban_manager(hass)
     removed_ban = ban_manager.ip_bans_lookup.pop(remote_addr, None)
     if removed_ban is None:
+        if source == SOURCE_PANEL:
+            raise HomeAssistantError(f"{remote_addr} is not banned.")
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="ip_address_not_banned",
@@ -2991,6 +3168,7 @@ async def _async_remove_ip_ban(hass: HomeAssistant, ip_address_value: str) -> No
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
     await _async_rewrite_ip_bans_file(hass, ban_manager)
     _dismiss_removed_ip_notifications(hass, [remote_addr])
+    record_ip_unbanned(hass, str(remote_addr), source)
 
 
 async def _async_remove_all_ip_bans(hass: HomeAssistant) -> None:
@@ -3001,6 +3179,8 @@ async def _async_remove_all_ip_bans(hass: HomeAssistant) -> None:
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].clear()
     await _async_rewrite_ip_bans_file(hass, ban_manager)
     _dismiss_removed_ip_notifications(hass, removed_addrs)
+    for remote_addr in removed_addrs:
+        record_ip_unbanned(hass, str(remote_addr), SOURCE_SERVICE)
 
 
 async def _async_replace_ip_bans(
@@ -3055,88 +3235,12 @@ def _ip_ban_chronological_key(ip_ban: IpBan) -> tuple[datetime, int, bytes]:
     return (banned_at, ip_ban.ip_address.version, ip_ban.ip_address.packed)
 
 
-async def _async_add_allowlist_network(hass: HomeAssistant, network_value: str) -> None:
-    """Add an allowlist network immediately."""
-    try:
-        network = parse_allowlist_network(network_value)
-    except ValueError as err:
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="invalid_network",
-            translation_placeholders={ATTR_NETWORK: network_value},
-        ) from err
-
-    if network.prefixlen == 0:
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="unsafe_allowlist_network",
-            translation_placeholders={ATTR_NETWORK: str(network)},
-        )
-
-    banned_ips = _ban_manager(hass).ip_bans_lookup
-    if any(banned_ip in network for banned_ip in banned_ips):
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="network_contains_banned_ip",
-            translation_placeholders={ATTR_NETWORK: str(network)},
-        )
-
-    current = _current_allowlist_strings(hass)
-    normalized_network = str(network)
-    current_networks = {
-        parse_allowlist_network(current_network) for current_network in current
-    }
-    if network in current_networks:
-        return
-
-    updated = [*current, normalized_network]
-    try:
-        await _async_validate_panel_network_safety(
-            hass,
-            updated,
-            _current_blocked_network_strings(hass),
-            bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
-        )
-    except HomeAssistantError as err:
-        raise ServiceValidationError(str(err)) from err
-    _update_allowlist_entry(hass, updated)
-
-
-async def _async_remove_allowlist_network(
-    hass: HomeAssistant, network_value: str
-) -> None:
-    """Remove an allowlist network immediately."""
-    try:
-        network = parse_allowlist_network(network_value)
-    except ValueError as err:
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="invalid_network",
-            translation_placeholders={ATTR_NETWORK: network_value},
-        ) from err
-
-    remaining_networks = [
-        current_network
-        for current_network in _current_allowlist_strings(hass)
-        if parse_allowlist_network(current_network) != network
-    ]
-    try:
-        await _async_validate_panel_network_safety(
-            hass,
-            remaining_networks,
-            _current_blocked_network_strings(hass),
-            bool(hass.http.app.get(KEY_DEFAULT_DENY, False)),
-        )
-    except HomeAssistantError as err:
-        raise ServiceValidationError(str(err)) from err
-    _update_allowlist_entry(hass, remaining_networks)
-
-
 def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
     """Register live ban and allowlist management services."""
 
     async def add_ip_ban(call: ServiceCall) -> None:
-        await _async_add_ip_ban(hass, call.data[ATTR_IP_ADDRESS])
+        with mutation_source(SOURCE_SERVICE):
+            await _async_add_ip_ban(hass, call.data[ATTR_IP_ADDRESS])
 
     async def remove_ip_ban(call: ServiceCall) -> None:
         await _async_remove_ip_ban(hass, call.data[ATTR_IP_ADDRESS])
@@ -3155,11 +3259,21 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
     async def remove_allowlist_network(call: ServiceCall) -> None:
         await _async_remove_allowlist_network(hass, call.data[ATTR_NETWORK])
 
+    async def add_blocked_network(call: ServiceCall) -> None:
+        await _async_add_blocked_network(hass, call.data[ATTR_NETWORK])
+
+    async def remove_blocked_network(call: ServiceCall) -> None:
+        await _async_remove_blocked_network(hass, call.data[ATTR_NETWORK])
+
     async def export_config(call: ServiceCall) -> None:
         await _async_export_config(hass)
 
     async def import_config(call: ServiceCall) -> None:
         await _async_import_config(hass)
+
+    async def update_geoip(call: ServiceCall) -> None:
+        await _async_download_geoip_database(hass)
+        record_geoip_updated(hass, SOURCE_SERVICE)
 
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_IP_BAN, add_ip_ban, schema=IP_ADDRESS_SCHEMA
@@ -3185,8 +3299,21 @@ def _register_services(hass: HomeAssistant) -> None:  # noqa: D202
         remove_allowlist_network,
         schema=NETWORK_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_BLOCKED_NETWORK,
+        add_blocked_network,
+        schema=NETWORK_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMOVE_BLOCKED_NETWORK,
+        remove_blocked_network,
+        schema=NETWORK_SCHEMA,
+    )
     hass.services.async_register(DOMAIN, SERVICE_EXPORT_CONFIG, export_config)
     hass.services.async_register(DOMAIN, SERVICE_IMPORT_CONFIG, import_config)
+    hass.services.async_register(DOMAIN, SERVICE_UPDATE_GEOIP, update_geoip)
 
 
 async def _async_register_static_assets(hass: HomeAssistant) -> None:
@@ -3195,7 +3322,6 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
         return
 
     icon_path = str(Path(__file__).with_name("icon.png"))
-    panel_path = str(Path(__file__).with_name("panel.js"))
     if hasattr(hass.http, "async_register_static_paths"):
         from homeassistant.components.http import StaticPathConfig
 
@@ -3206,11 +3332,6 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
                     icon_path,
                     cache_headers=True,
                 ),
-                StaticPathConfig(
-                    PANEL_JS_URL,
-                    panel_path,
-                    cache_headers=False,
-                ),
             ]
         )
     else:
@@ -3220,11 +3341,6 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
             icon_path,
             cache_headers=True,
         )
-        register_static_path(
-            PANEL_JS_URL,
-            panel_path,
-            cache_headers=False,
-        )
     hass.http.app[KEY_STATIC_PATH_REGISTERED] = True
 
 
@@ -3232,9 +3348,11 @@ async def _async_register_panel(
     hass: HomeAssistant, *, sidebar_enabled: bool = True
 ) -> None:
     """Register the bundled IP Ban Manager panel."""
+    module_url = PANEL_JS_URL
     if (
         hass.data.get(KEY_PANEL_REGISTERED)
         and hass.data.get(KEY_PANEL_SIDEBAR_ENABLED) == sidebar_enabled
+        and hass.data.get(KEY_PANEL_MODULE_URL) == module_url
     ):
         return
 
@@ -3249,12 +3367,13 @@ async def _async_register_panel(
         webcomponent_name=PANEL_WEB_COMPONENT,
         sidebar_title=ENTRY_TITLE if sidebar_enabled else None,
         sidebar_icon="mdi:shield-lock-outline" if sidebar_enabled else None,
-        module_url=PANEL_JS_URL,
+        module_url=module_url,
         require_admin=True,
         config_panel_domain=DOMAIN,
     )
     hass.data[KEY_PANEL_REGISTERED] = True
     hass.data[KEY_PANEL_SIDEBAR_ENABLED] = sidebar_enabled
+    hass.data[KEY_PANEL_MODULE_URL] = module_url
 
 
 def _async_remove_panel(hass: HomeAssistant) -> None:
@@ -3262,6 +3381,7 @@ def _async_remove_panel(hass: HomeAssistant) -> None:
     if not hass.data.pop(KEY_PANEL_REGISTERED, False):
         return
     hass.data.pop(KEY_PANEL_SIDEBAR_ENABLED, None)
+    hass.data.pop(KEY_PANEL_MODULE_URL, None)
 
     from homeassistant.components import frontend
 

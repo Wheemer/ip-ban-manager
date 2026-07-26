@@ -38,7 +38,7 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
 - **GeoIP labels:** optionally download a local DB-IP City Lite database for approximate public-IP location labels.
 - **Backup and restore:** save/restore a readable YAML backup under `/config`, or download/upload a backup in the browser.
-- **Diagnostics and automation:** numeric sensors plus `ip_ban_manager.*` services for scripts and automations.
+- **Diagnostics and automation:** numeric sensors, `ip_ban_manager.*` services, and Home Assistant events for scripts and automations.
 
 ## Screenshots
 
@@ -175,10 +175,38 @@ IP Ban Manager adds services for scripts and automations:
 - `ip_ban_manager.remove_all_ip_bans`
 - `ip_ban_manager.add_allowlist_network`
 - `ip_ban_manager.remove_allowlist_network`
+- `ip_ban_manager.add_blocked_network`
+- `ip_ban_manager.remove_blocked_network`
+- `ip_ban_manager.update_geoip`
 - `ip_ban_manager.export_config`
 - `ip_ban_manager.import_config`
 
 Adding a ban updates Home Assistant's live ban manager and persists to `ip_bans.yaml`. Removing a ban updates the live ban manager, clears that IP's failed-login counter, and rewrites `ip_bans.yaml`. Clearing every ban requires `confirm: true`.
+
+## Automation Events
+
+IP Ban Manager fires small, stable Home Assistant events you can use in automations:
+
+- `ip_ban_manager_ip_banned` — after an exact IP ban is written (`ip_address`, `source`)
+- `ip_ban_manager_ip_unbanned` — after an exact IP ban is removed (`ip_address`, `source`)
+- `ip_ban_manager_login_threshold_reached` — before an automatic ban is applied (`ip_address`, `attempts`, `threshold`, `source`)
+- `ip_ban_manager_allowlisted_login_escalated` — when repeated allowlisted-login failures cross the escalation threshold (`ip_address`, `attempts`, `source`)
+- `ip_ban_manager_allowlist_network_added` / `ip_ban_manager_allowlist_network_removed` — allowlist changes (`network`, `source`)
+- `ip_ban_manager_blocked_network_added` / `ip_ban_manager_blocked_network_removed` — blocked-network changes (`network`, `source`)
+
+`source` is one of `auto`, `panel`, or `service`. Successful **state changes** (ban/unban, allowlist/blocked-network mutations, GeoIP updates) also appear in the Home Assistant logbook. Threshold and escalation events are automation signals only and do not write logbook entries.
+
+Example automation trigger:
+
+```yaml
+trigger:
+  - platform: event
+    event_type: ip_ban_manager_ip_banned
+action:
+  - service: notify.notify
+    data:
+      message: "IP Ban Manager banned {{ trigger.event.data.ip_address }}"
+```
 
 ## Diagnostic Sensors
 
