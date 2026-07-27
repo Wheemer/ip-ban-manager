@@ -1,6 +1,9 @@
 {
   "domain": "ip_ban_manager",
   "name": "IP Ban Manager",
+  "after_dependencies": [
+    "logbook"
+  ],
   "codeowners": [
     "@Wheemer"
   ],
@@ -8,9 +11,6 @@
   "dependencies": [
     "http",
     "network"
-  ],
-  "after_dependencies": [
-    "logbook"
   ],
   "documentation": "https://github.com/Wheemer/ip-ban-manager",
   "integration_type": "service",
