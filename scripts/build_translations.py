@@ -96,7 +96,9 @@ def load_ban_file_health_translations() -> dict[str, dict[str, str]]:
     return json.loads(BAN_FILE_HEALTH_PATH.read_text(encoding="utf-8"))
 
 
-def split_panel_overlay(overlay: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def split_panel_overlay(
+    overlay: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return overlay copies with and without the custom panel section."""
     ha_overlay = copy.deepcopy(overlay)
     panel_overlay = ha_overlay.pop("panel", None)

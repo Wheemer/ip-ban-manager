@@ -7,8 +7,10 @@
   "config_flow": true,
   "dependencies": [
     "http",
-    "logbook",
     "network"
+  ],
+  "after_dependencies": [
+    "logbook"
   ],
   "documentation": "https://github.com/Wheemer/ip-ban-manager",
   "integration_type": "service",

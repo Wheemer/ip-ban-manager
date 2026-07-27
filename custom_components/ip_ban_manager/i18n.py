@@ -102,9 +102,10 @@ def resolve_translation_language(language: str | None) -> str:
         add(tag.lower())
 
     for code in candidates:
-        if code in SUPPORTED_LOCALES and (
-            _PANEL_TRANSLATIONS_DIR / f"{code}.json"
-        ).is_file():
+        if (
+            code in SUPPORTED_LOCALES
+            and (_PANEL_TRANSLATIONS_DIR / f"{code}.json").is_file()
+        ):
             return code
     return "en"
 
