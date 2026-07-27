@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-_TRANSLATIONS_DIR = Path(__file__).parent / "translations"
+_PANEL_TRANSLATIONS_DIR = Path(__file__).parent / "panel_translations"
 
 # Non-English locale files shipped with the integration (see scripts/build_translations.py).
 SUPPORTED_LOCALES: frozenset[str] = frozenset(
@@ -54,9 +54,9 @@ def _flatten_strings(value: object, prefix: str = "") -> dict[str, str]:
     return flattened
 
 
-def _load_translation_file(language: str) -> dict[str, Any]:
-    """Load one locale JSON file when present."""
-    path = _TRANSLATIONS_DIR / f"{language}.json"
+def _load_panel_file(language: str) -> dict[str, Any]:
+    """Load one bundled panel locale JSON file when present."""
+    path = _PANEL_TRANSLATIONS_DIR / f"{language}.json"
     if not path.is_file():
         return {}
     try:
@@ -68,11 +68,7 @@ def _load_translation_file(language: str) -> dict[str, Any]:
 
 def _load_panel_language(language: str) -> dict[str, str]:
     """Return flattened panel strings for one language file."""
-    data = _load_translation_file(language)
-    panel = data.get("panel")
-    if not isinstance(panel, dict):
-        return {}
-    return _flatten_strings(panel)
+    return _flatten_strings(_load_panel_file(language))
 
 
 def normalize_language(language: str | None) -> str:
@@ -106,18 +102,17 @@ def resolve_translation_language(language: str | None) -> str:
         add(tag.lower())
 
     for code in candidates:
-        if code in SUPPORTED_LOCALES and (_TRANSLATIONS_DIR / f"{code}.json").is_file():
+        if code in SUPPORTED_LOCALES and (
+            _PANEL_TRANSLATIONS_DIR / f"{code}.json"
+        ).is_file():
             return code
     return "en"
 
 
 def _load_panel_health_issues(language: str) -> dict[str, str]:
     """Return health issue templates for one language file."""
-    data = _load_translation_file(language)
-    panel = data.get("panel")
-    if not isinstance(panel, dict):
-        return {}
-    health = panel.get("health")
+    data = _load_panel_file(language)
+    health = data.get("health")
     if not isinstance(health, dict):
         return {}
     issues = health.get("issues")

@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Indlæser...",
+  "request_failed": "Anmodningen mislykkedes.",
+  "none": "Ingen",
+  "remove": "Fjern",
+  "add": "Tilføj",
+  "block": "Bloker",
+  "apply": "Anvend",
+  "advanced": "Avanceret",
+  "options": "Indstillinger",
+  "added_before_tracking": "Tilføjet før sporing",
+  "sources": {
+    "auto": "Automatisk",
+    "configure": "Konfigurer",
+    "default": "Opsætningsstandard",
+    "detected": "Registreret netværk",
+    "import": "Gendannelse fra backup",
+    "panel": "Panel",
+    "service": "Tjeneste",
+    "setup": "Opsætning",
+    "yaml": "YAML-import"
+  },
+  "allowed_ips": {
+    "title": "Tilladte IP'er",
+    "hint": "Pålidelige IPv4-/IPv6-adresser og netværk. Disse poster slår eksakte udelukkelser, blokerede netværk og standard-afvisningstilstand. IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes.",
+    "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn",
+    "remove_confirm": "Fjerne denne tilladte IP? Med aktiv standard-afvisning eller blokerede netværk kan fjernelse af en pålidelig post låse adgangen ude."
+  },
+  "blocked_ips": {
+    "title": "Blokerede IP'er",
+    "hint": "Home Assistants native eksakte IPv4-/IPv6-blokeringsliste, skrevet ældste først i ip_bans.yaml.",
+    "placeholder": "IPv4-/IPv6-adresse"
+  },
+  "blocked_networks": {
+    "title": "Blokerede netværk",
+    "hint": "Administrerede IPv4-/IPv6-CIDR- eller jokernetværk, håndhævet uden at skrive områder til ip_bans.yaml.",
+    "placeholder": "CIDR- eller jokernetværk"
+  },
+  "silenced_logins": {
+    "title": "Dæmpede notifikationer for tilladte logins",
+    "hint": "Adresser, der er dæmpet fra advarsler om tilladte logins."
+  },
+  "settings": {
+    "auto_ban_enabled": "Automatiske udelukkelser",
+    "auto_ban_enabled_hint": "Bloker mislykkede login-kilder.",
+    "ban_notifications_enabled": "Automatiske udelukkelsesnotifikationer",
+    "ban_notifications_enabled_hint": "Vis advarsler, når IP'er blokeres.",
+    "allowlisted_login_notifications_enabled": "Notifikationer for tilladte logins",
+    "allowlisted_login_notifications_enabled_hint": "Advar ved mislykkede pålidelige logins.",
+    "sidebar_panel_enabled": "Vis i sidepanelet",
+    "sidebar_panel_enabled_hint": "Tilføj siden i venstremenuen.",
+    "geoip_enabled": "GeoIP-placeringsetiketter",
+    "geoip_enabled_hint": "Vis omtrentlige placeringer for offentlige IP'er. Hvis lokal database mangler, downloades den ved Anvend.",
+    "login_attempts_threshold": "Grænse for loginforsøg",
+    "allowlisted_logins_can_ban": "Udelukkelser inden for tilladte IP'er",
+    "allowlisted_logins_can_ban_hint": "Vær forsigtig: pålidelige IP'er kan blokeres.",
+    "default_deny_enabled": "Bloker alt uden for tilladte IP'er",
+    "default_deny_enabled_hint": "Vær forsigtig: kun tilladte IP'er kan oprette forbindelse."
+  },
+  "backup": {
+    "save_title": "Gem til config",
+    "save_none": "Skriver backup-filen til disk.",
+    "save_last": "Sidst gemt: {date}",
+    "save": "Gem",
+    "restore": "Gendan",
+    "restore_confirm": "Gendanne fra backup på disk og erstatte nuværende IP Ban Manager-indstillinger og eksakte IP-udelukkelser?",
+    "transfer_title": "Transfer",
+    "transfer_hint": "Download en kopi til denne enhed, eller upload en backup for gendannelse.",
+    "download": "Download",
+    "upload": "Upload",
+    "upload_confirm": "Uploade {filename} og erstatte nuværende IP Ban Manager-indstillinger og eksakte IP-udelukkelser?"
+  },
+  "geoip": {
+    "title": "GeoIP-database",
+    "not_installed": "Ikke installeret",
+    "installed": "Installeret - {date}",
+    "download_hint": "Aktiver GeoIP og anvend for at downloade",
+    "attribution": "Placeringsdata:",
+    "update": "Opdater"
+  },
+  "health": {
+    "title": "Sundhedstjek kræver opmærksomhed",
+    "issues": {
+      "native_ip_ban_disabled": "Home Assistants native IP-udelukkelse er deaktiveret.",
+      "ban_file_not_loaded": "Home Assistant IP-blokering er ikke indlæst.",
+      "ban_file_not_regular_file": "{path} er ikke en almindelig fil.",
+      "ban_file_not_readable_writable": "{path} er ikke læsbar og skrivbar.",
+      "ban_file_parent_missing": "{path} findes ikke.",
+      "ban_file_parent_not_writable": "{path} er ikke skrivbar.",
+      "panel_not_registered": "IP Ban Manager-panelet er ikke registreret.",
+      "legacy_cleanup_pending": "Legacy-oprydning af brugerdefineret komponent er endnu ikke fuldført.",
+      "geoip_reader_not_ready": "GeoIP er aktiveret, men den lokale databaselæser er ikke klar."
+    }
+  },
+  "success": {
+    "export_config": "Backup gemt til {path}",
+    "import_config": "Backup gendannet fra {path}",
+    "download_config": "Backup downloadet.",
+    "upload_config": "Backup uploadet og anvendt."
+  }
+}

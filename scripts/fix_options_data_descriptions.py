@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = [
@@ -53,6 +52,7 @@ def fix_file(path: Path) -> bool:
 
 
 def main() -> int:
+    """Fix every configured translation file and report how many changed."""
     changed = 0
     for path in TARGETS:
         if fix_file(path):

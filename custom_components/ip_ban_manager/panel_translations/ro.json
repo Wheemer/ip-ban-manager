@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Se încarcă...",
+  "request_failed": "Cererea a eșuat.",
+  "none": "Niciuna",
+  "remove": "Elimină",
+  "add": "Adaugă",
+  "block": "Blochează",
+  "apply": "Aplică",
+  "advanced": "Avansat",
+  "options": "Opțiuni",
+  "added_before_tracking": "Adăugat înainte de urmărire",
+  "sources": {
+    "auto": "Automat",
+    "configure": "Configurează",
+    "default": "Valoare implicită la instalare",
+    "detected": "Rețea detectată",
+    "import": "Restaurare backup",
+    "panel": "Panel",
+    "service": "Serviciu",
+    "setup": "Instalare",
+    "yaml": "Import YAML"
+  },
+  "allowed_ips": {
+    "title": "IP-uri permise",
+    "hint": "Adrese și rețele IPv4/IPv6 de încredere. Aceste intrări au prioritate față de interdicțiile exacte, rețelele blocate și modul de refuz implicit. Sunt acceptate wildcard-uri IPv4/IPv6, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
+    "placeholder": "Adresă IPv4/IPv6, CIDR sau wildcard",
+    "remove_confirm": "Elimini această IP permisă? Cu refuzul implicit sau rețelele blocate active, eliminarea unei intrări de încredere poate bloca accesul."
+  },
+  "blocked_ips": {
+    "title": "IP-uri blocate",
+    "hint": "Lista nativă Home Assistant de blocări exacte IPv4/IPv6, scrisă de la cea mai veche în ip_bans.yaml.",
+    "placeholder": "Adresă IPv4/IPv6"
+  },
+  "blocked_networks": {
+    "title": "Rețele blocate",
+    "hint": "Rețele CIDR sau wildcard IPv4/IPv6 gestionate, aplicate fără a scrie intervale în ip_bans.yaml.",
+    "placeholder": "Rețea CIDR sau wildcard"
+  },
+  "silenced_logins": {
+    "title": "Notificări silențioase de autentificare pe lista permisă",
+    "hint": "Adrese silențiate din alertele de autentificare pe lista permisă."
+  },
+  "settings": {
+    "auto_ban_enabled": "Interdicții automate",
+    "auto_ban_enabled_hint": "Blochează sursele de autentificare eșuate.",
+    "ban_notifications_enabled": "Notificări automate de interdicție",
+    "ban_notifications_enabled_hint": "Afișează alerte când IP-urile sunt blocate.",
+    "allowlisted_login_notifications_enabled": "Notificări de autentificare pe lista permisă",
+    "allowlisted_login_notifications_enabled_hint": "Alerte la autentificări de încredere eșuate.",
+    "sidebar_panel_enabled": "Afișează în bara laterală",
+    "sidebar_panel_enabled_hint": "Adaugă pagina în meniul din stânga.",
+    "geoip_enabled": "Etichete de locație GeoIP",
+    "geoip_enabled_hint": "Afișează locații aproximative ale IP-urilor publice. Dacă baza de date locală lipsește, Aplică o descarcă.",
+    "login_attempts_threshold": "Prag de încercări de autentificare",
+    "allowlisted_logins_can_ban": "Interdicții în IP-urile permise",
+    "allowlisted_logins_can_ban_hint": "Ai grijă: IP-urile de încredere pot fi blocate.",
+    "default_deny_enabled": "Blochează tot ce este în afara IP-urilor permise",
+    "default_deny_enabled_hint": "Ai grijă: doar IP-urile permise se pot conecta."
+  },
+  "backup": {
+    "save_title": "Salvează în configurație",
+    "save_none": "Scrie fișierul de backup pe disc.",
+    "save_last": "Ultima salvare: {date}",
+    "save": "Salvează",
+    "restore": "Restaurează",
+    "restore_confirm": "Restaurezi din backup-ul de pe disc și înlocuiești setările curente IP Ban Manager și interdicțiile IP exacte?",
+    "transfer_title": "Transfer",
+    "transfer_hint": "Descarcă o copie pe acest dispozitiv sau încarcă un backup pentru restaurare.",
+    "download": "Descarcă",
+    "upload": "Încarcă",
+    "upload_confirm": "Încarci {filename} și înlocuiești setările curente IP Ban Manager și interdicțiile IP exacte?"
+  },
+  "geoip": {
+    "title": "Bază de date GeoIP",
+    "not_installed": "Neinstalată",
+    "installed": "Instalată - {date}",
+    "download_hint": "Activează GeoIP și Aplică pentru descărcare",
+    "attribution": "Date de locație:",
+    "update": "Actualizează"
+  },
+  "health": {
+    "title": "Verificarea stării necesită atenție",
+    "issues": {
+      "native_ip_ban_disabled": "Interdicțiile IP native Home Assistant sunt dezactivate.",
+      "ban_file_not_loaded": "Blocarea IP Home Assistant nu este încărcată.",
+      "ban_file_not_regular_file": "{path} nu este un fișier obișnuit.",
+      "ban_file_not_readable_writable": "{path} nu poate fi citit și scris.",
+      "ban_file_parent_missing": "{path} nu există.",
+      "ban_file_parent_not_writable": "{path} nu poate fi scris.",
+      "panel_not_registered": "Panoul IP Ban Manager nu este înregistrat.",
+      "legacy_cleanup_pending": "Curățarea componentei legacy nu s-a finalizat încă.",
+      "geoip_reader_not_ready": "GeoIP este activat, dar cititorul bazei de date locale nu este pregătit."
+    }
+  },
+  "success": {
+    "export_config": "Backup salvat în {path}",
+    "import_config": "Backup restaurat din {path}",
+    "download_config": "Backup descărcat.",
+    "upload_config": "Backup încărcat și aplicat."
+  }
+}

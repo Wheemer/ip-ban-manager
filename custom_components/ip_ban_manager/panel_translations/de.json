@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Laden...",
+  "request_failed": "Anfrage fehlgeschlagen.",
+  "none": "Keine",
+  "remove": "Entfernen",
+  "add": "Hinzufügen",
+  "block": "Blockieren",
+  "apply": "Anwenden",
+  "advanced": "Erweitert",
+  "options": "Optionen",
+  "added_before_tracking": "Vor der Nachverfolgung hinzugefügt",
+  "sources": {
+    "auto": "Automatisch",
+    "configure": "Konfigurieren",
+    "default": "Setup-Standard",
+    "detected": "Erkanntes Netzwerk",
+    "import": "Backup-Wiederherstellung",
+    "panel": "Panel",
+    "service": "Dienst",
+    "setup": "Einrichtung",
+    "yaml": "YAML-Import"
+  },
+  "allowed_ips": {
+    "title": "Erlaubte IPs",
+    "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke. Diese Einträge haben Vorrang vor exakten Sperren, blockierten Netzwerken und dem Default-Deny-Modus. IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt.",
+    "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter",
+    "remove_confirm": "Diese erlaubte IP entfernen? Bei aktivem Default-Deny oder blockierten Netzwerken kann das den Zugriff sperren."
+  },
+  "blocked_ips": {
+    "title": "Blockierte IPs",
+    "hint": "Home Assistants native exakte IPv4-/IPv6-Sperrliste, in ip_bans.yaml älteste zuerst.",
+    "placeholder": "IPv4-/IPv6-Adresse"
+  },
+  "blocked_networks": {
+    "title": "Blockierte Netzwerke",
+    "hint": "Verwaltete IPv4-/IPv6-CIDR- oder Platzhalternetzwerke, ohne Bereiche in ip_bans.yaml zu schreiben.",
+    "placeholder": "CIDR- oder Platzhalternetzwerk"
+  },
+  "silenced_logins": {
+    "title": "Stummgeschaltete Allowlist-Login-Benachrichtigungen",
+    "hint": "Adressen, für die Allowlist-Login-Warnungen stummgeschaltet sind."
+  },
+  "settings": {
+    "auto_ban_enabled": "Automatische Sperren",
+    "auto_ban_enabled_hint": "Fehlgeschlagene Login-Quellen blockieren.",
+    "ban_notifications_enabled": "Automatische Sperr-Benachrichtigungen",
+    "ban_notifications_enabled_hint": "Warnungen anzeigen, wenn IPs blockiert werden.",
+    "allowlisted_login_notifications_enabled": "Allowlist-Login-Benachrichtigungen",
+    "allowlisted_login_notifications_enabled_hint": "Bei fehlgeschlagenen vertrauenswürdigen Logins warnen.",
+    "sidebar_panel_enabled": "In Seitenleiste anzeigen",
+    "sidebar_panel_enabled_hint": "Seite im linken Menü hinzufügen.",
+    "geoip_enabled": "GeoIP-Standortlabels",
+    "geoip_enabled_hint": "Ungefähre Standorte öffentlicher IPs anzeigen. Fehlt die lokale Datenbank, lädt Anwenden sie herunter.",
+    "login_attempts_threshold": "Schwellwert für Login-Versuche",
+    "allowlisted_logins_can_ban": "Sperren innerhalb erlaubter IPs",
+    "allowlisted_logins_can_ban_hint": "Vorsicht: vertrauenswürdige IPs können blockiert werden.",
+    "default_deny_enabled": "Alles außerhalb erlaubter IPs blockieren",
+    "default_deny_enabled_hint": "Vorsicht: nur erlaubte IPs können verbinden."
+  },
+  "backup": {
+    "save_title": "In Konfiguration speichern",
+    "save_none": "Schreibt die Backup-Datei auf die Festplatte.",
+    "save_last": "Zuletzt gespeichert: {date}",
+    "save": "Speichern",
+    "restore": "Wiederherstellen",
+    "restore_confirm": "Vom Backup auf der Festplatte wiederherstellen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?",
+    "transfer_title": "Transfer",
+    "transfer_hint": "Kopie auf dieses Gerät herunterladen oder ein Backup zum Wiederherstellen hochladen.",
+    "download": "Herunterladen",
+    "upload": "Hochladen",
+    "upload_confirm": "{filename} hochladen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?"
+  },
+  "geoip": {
+    "title": "GeoIP-Datenbank",
+    "not_installed": "Nicht installiert",
+    "installed": "Installiert - {date}",
+    "download_hint": "GeoIP aktivieren und Anwenden zum Herunterladen",
+    "attribution": "Standortdaten:",
+    "update": "Aktualisieren"
+  },
+  "health": {
+    "title": "Integritätsprüfung erfordert Aufmerksamkeit",
+    "issues": {
+      "native_ip_ban_disabled": "Home Assistants native IP-Sperren sind deaktiviert.",
+      "ban_file_not_loaded": "Home Assistant IP-Sperren sind nicht geladen.",
+      "ban_file_not_regular_file": "{path} ist keine reguläre Datei.",
+      "ban_file_not_readable_writable": "{path} ist nicht lesbar und beschreibbar.",
+      "ban_file_parent_missing": "{path} existiert nicht.",
+      "ban_file_parent_not_writable": "{path} ist nicht beschreibbar.",
+      "panel_not_registered": "Das IP-Ban-Manager-Panel ist nicht registriert.",
+      "legacy_cleanup_pending": "Die Legacy-Bereinigung wurde noch nicht abgeschlossen.",
+      "geoip_reader_not_ready": "GeoIP ist aktiv, aber der lokale Datenbank-Reader ist nicht bereit."
+    }
+  },
+  "success": {
+    "export_config": "Backup gespeichert unter {path}",
+    "import_config": "Backup wiederhergestellt von {path}",
+    "download_config": "Backup heruntergeladen.",
+    "upload_config": "Backup hochgeladen und angewendet."
+  }
+}

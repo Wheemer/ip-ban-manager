@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Chargement...",
+  "request_failed": "Échec de la requête.",
+  "none": "Aucun",
+  "remove": "Supprimer",
+  "add": "Ajouter",
+  "block": "Bloquer",
+  "apply": "Appliquer",
+  "advanced": "Avancé",
+  "options": "Options",
+  "added_before_tracking": "Ajouté avant le suivi",
+  "sources": {
+    "auto": "Automatique",
+    "configure": "Configurer",
+    "default": "Valeur par défaut de l'installation",
+    "detected": "Réseau détecté",
+    "import": "Restauration de sauvegarde",
+    "panel": "Panneau",
+    "service": "Service",
+    "setup": "Installation",
+    "yaml": "Import YAML"
+  },
+  "allowed_ips": {
+    "title": "IP autorisées",
+    "hint": "Adresses et réseaux IPv4/IPv6 de confiance. Ces entrées priment sur les bannissements exacts, les réseaux bloqués et le mode refus par défaut. Les jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge.",
+    "placeholder": "Adresse IPv4/IPv6, CIDR ou joker",
+    "remove_confirm": "Supprimer cette IP autorisée ? Avec le refus par défaut ou des réseaux bloqués actifs, supprimer une entrée de confiance peut bloquer l'accès."
+  },
+  "blocked_ips": {
+    "title": "IP bloquées",
+    "hint": "Liste native de Home Assistant des blocages exacts IPv4/IPv6, écrite du plus ancien au plus récent dans ip_bans.yaml.",
+    "placeholder": "Adresse IPv4/IPv6"
+  },
+  "blocked_networks": {
+    "title": "Réseaux bloqués",
+    "hint": "Réseaux CIDR ou jokers IPv4/IPv6 gérés, appliqués sans écrire les plages dans ip_bans.yaml.",
+    "placeholder": "Réseau CIDR ou joker"
+  },
+  "silenced_logins": {
+    "title": "Notifications de connexion autorisée silencieuses",
+    "hint": "Adresses pour lesquelles les alertes de connexion autorisée sont silencieuses."
+  },
+  "settings": {
+    "auto_ban_enabled": "Bannissements automatiques",
+    "auto_ban_enabled_hint": "Bloquer les sources de connexion échouées.",
+    "ban_notifications_enabled": "Notifications de bannissement automatique",
+    "ban_notifications_enabled_hint": "Afficher des alertes lorsque des IP sont bloquées.",
+    "allowlisted_login_notifications_enabled": "Notifications de connexion autorisée",
+    "allowlisted_login_notifications_enabled_hint": "Alerter en cas d'échecs de connexion de sources de confiance.",
+    "sidebar_panel_enabled": "Afficher dans la barre latérale",
+    "sidebar_panel_enabled_hint": "Ajouter la page au menu de gauche.",
+    "geoip_enabled": "Étiquettes de localisation GeoIP",
+    "geoip_enabled_hint": "Afficher les emplacements approximatifs des IP publiques. Si la base locale est absente, Appliquer la télécharge.",
+    "login_attempts_threshold": "Seuil de tentatives de connexion",
+    "allowlisted_logins_can_ban": "Bannissements dans les IP autorisées",
+    "allowlisted_logins_can_ban_hint": "Attention : les IP de confiance peuvent être bloquées.",
+    "default_deny_enabled": "Bloquer tout sauf les IP autorisées",
+    "default_deny_enabled_hint": "Attention : seules les IP autorisées peuvent se connecter."
+  },
+  "backup": {
+    "save_title": "Enregistrer dans la config",
+    "save_none": "Écrit le fichier de sauvegarde sur le disque.",
+    "save_last": "Dernière sauvegarde : {date}",
+    "save": "Enregistrer",
+    "restore": "Restaurer",
+    "restore_confirm": "Restaurer depuis la sauvegarde sur le disque et remplacer les paramètres actuels d'IP Ban Manager et les bannissements exacts ?",
+    "transfer_title": "Transfert",
+    "transfer_hint": "Télécharger une copie sur cet appareil ou téléverser une sauvegarde pour restaurer.",
+    "download": "Télécharger",
+    "upload": "Téléverser",
+    "upload_confirm": "Téléverser {filename} et remplacer les paramètres actuels d'IP Ban Manager et les bannissements exacts ?"
+  },
+  "geoip": {
+    "title": "Base de données GeoIP",
+    "not_installed": "Non installée",
+    "installed": "Installée - {date}",
+    "download_hint": "Activer GeoIP et Appliquer pour télécharger",
+    "attribution": "Données de localisation :",
+    "update": "Mettre à jour"
+  },
+  "health": {
+    "title": "Le contrôle d'intégrité nécessite votre attention",
+    "issues": {
+      "native_ip_ban_disabled": "Le bannissement IP natif de Home Assistant est désactivé.",
+      "ban_file_not_loaded": "Le bannissement IP de Home Assistant n'est pas chargé.",
+      "ban_file_not_regular_file": "{path} n'est pas un fichier ordinaire.",
+      "ban_file_not_readable_writable": "{path} n'est pas lisible et inscriptible.",
+      "ban_file_parent_missing": "{path} n'existe pas.",
+      "ban_file_parent_not_writable": "{path} n'est pas inscriptible.",
+      "panel_not_registered": "Le panneau IP Ban Manager n'est pas enregistré.",
+      "legacy_cleanup_pending": "Le nettoyage de l'ancien composant n'est pas terminé.",
+      "geoip_reader_not_ready": "GeoIP est activé, mais le lecteur local n'est pas prêt."
+    }
+  },
+  "success": {
+    "export_config": "Sauvegarde enregistrée dans {path}",
+    "import_config": "Sauvegarde restaurée depuis {path}",
+    "download_config": "Sauvegarde téléchargée.",
+    "upload_config": "Sauvegarde téléversée et appliquée."
+  }
+}

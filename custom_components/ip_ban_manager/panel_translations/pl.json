@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Ładowanie...",
+  "request_failed": "Żądanie nie powiodło się.",
+  "none": "Brak",
+  "remove": "Usuń",
+  "add": "Dodaj",
+  "block": "Zablokuj",
+  "apply": "Zastosuj",
+  "advanced": "Zaawansowane",
+  "options": "Opcje",
+  "added_before_tracking": "Dodano przed śledzeniem",
+  "sources": {
+    "auto": "Automatyczne",
+    "configure": "Konfiguruj",
+    "default": "Domyślne setup",
+    "detected": "Wykryta sieć",
+    "import": "Przywracanie kopii",
+    "panel": "Panel",
+    "service": "Usługa",
+    "setup": "Konfiguracja",
+    "yaml": "Import YAML"
+  },
+  "allowed_ips": {
+    "title": "Dozwolone IP",
+    "hint": "Zaufane adresy i sieci IPv4/IPv6. Te wpisy mają pierwszeństwo przed dokładnymi blokadami, zablokowanymi sieciami i trybem domyślnej odmowy. Obsługiwane są maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*.",
+    "placeholder": "Adres IPv4/IPv6, CIDR lub maska",
+    "remove_confirm": "Usunąć to dozwolone IP? Przy aktywnym trybie domyślnej odmowy lub zablokowanych sieciach usunięcie zaufanego wpisu może zablokować dostęp."
+  },
+  "blocked_ips": {
+    "title": "Zablokowane IP",
+    "hint": "Natywna lista dokładnych adresów IPv4/IPv6 Home Assistant, zapisywana w ip_bans.yaml od najstarszych.",
+    "placeholder": "Adres IPv4/IPv6"
+  },
+  "blocked_networks": {
+    "title": "Zablokowane sieci",
+    "hint": "Zarządzane sieci CIDR IPv4/IPv6 lub sieci z maską, egzekwowane bez zapisywania zakresów w ip_bans.yaml.",
+    "placeholder": "Sieć CIDR lub maska"
+  },
+  "silenced_logins": {
+    "title": "Wyciszone powiadomienia o logowaniu z Allowlist",
+    "hint": "Adresy, dla których wyciszono alerty logowania z Allowlist."
+  },
+  "settings": {
+    "auto_ban_enabled": "Automatyczne blokady",
+    "auto_ban_enabled_hint": "Blokuj nieudane źródła logowania.",
+    "ban_notifications_enabled": "Powiadomienia o automatycznych blokadach",
+    "ban_notifications_enabled_hint": "Pokazuj alerty, gdy IP są blokowane.",
+    "allowlisted_login_notifications_enabled": "Powiadomienia o logowaniu z Allowlist",
+    "allowlisted_login_notifications_enabled_hint": "Alertuj o nieudanych zaufanych logowaniach.",
+    "sidebar_panel_enabled": "Pokaż na pasku bocznym",
+    "sidebar_panel_enabled_hint": "Dodaj stronę do lewego menu.",
+    "geoip_enabled": "Etykiety lokalizacji GeoIP",
+    "geoip_enabled_hint": "Pokazuj przybliżone lokalizacje publicznych IP. Jeśli brakuje lokalnej bazy, Zastosuj ją pobierze.",
+    "login_attempts_threshold": "Próg prób logowania",
+    "allowlisted_logins_can_ban": "Blokady w dozwolonych IP",
+    "allowlisted_logins_can_ban_hint": "Ostrożnie: zaufane IP mogą być blokowane.",
+    "default_deny_enabled": "Blokuj wszystko poza dozwolonymi IP",
+    "default_deny_enabled_hint": "Ostrożnie: tylko dozwolone IP mogą się łączyć."
+  },
+  "backup": {
+    "save_title": "Zapisz w konfiguracji",
+    "save_none": "Zapisuje plik kopii zapasowej na dysku.",
+    "save_last": "Ostatni zapis: {date}",
+    "save": "Zapisz",
+    "restore": "Przywróć",
+    "restore_confirm": "Przywrócić z kopii na dysku i zastąpić bieżące ustawienia IP Ban Manager oraz dokładne blokady IP?",
+    "transfer_title": "Transfer",
+    "transfer_hint": "Pobierz kopię na to urządzenie lub prześlij kopię zapasową do przywrócenia.",
+    "download": "Pobierz",
+    "upload": "Prześlij",
+    "upload_confirm": "Przesłać {filename} i zastąpić bieżące ustawienia IP Ban Manager oraz dokładne blokady IP?"
+  },
+  "geoip": {
+    "title": "Baza GeoIP",
+    "not_installed": "Nie zainstalowana",
+    "installed": "Zainstalowana - {date}",
+    "download_hint": "Włącz GeoIP i Zastosuj, aby pobrać",
+    "attribution": "Dane lokalizacji:",
+    "update": "Aktualizuj"
+  },
+  "health": {
+    "title": "Kontrola stanu wymaga uwagi",
+    "issues": {
+      "native_ip_ban_disabled": "Natywne blokowanie IP Home Assistant jest wyłączone.",
+      "ban_file_not_loaded": "Blokowanie IP Home Assistant nie jest załadowane.",
+      "ban_file_not_regular_file": "{path} nie jest zwykłym plikem.",
+      "ban_file_not_readable_writable": "{path} nie jest do odczytu i zapisu.",
+      "ban_file_parent_missing": "{path} nie istnieje.",
+      "ban_file_parent_not_writable": "{path} nie jest zapisywalny.",
+      "panel_not_registered": "Panel IP Ban Manager nie jest zarejestrowany.",
+      "legacy_cleanup_pending": "Czyszczenie legacy nie zostało jeszcze ukończone.",
+      "geoip_reader_not_ready": "GeoIP jest włączone, ale lokalny czytnik bazy danych nie jest gotowy."
+    }
+  },
+  "success": {
+    "export_config": "Kopia zapasowa zapisana w {path}",
+    "import_config": "Kopia zapasowa przywrócona z {path}",
+    "download_config": "Kopia zapasowa pobrana.",
+    "upload_config": "Kopia zapasowa przesłana i zastosowana."
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Laden...",
+  "request_failed": "Verzoek mislukt.",
+  "none": "Geen",
+  "remove": "Verwijderen",
+  "add": "Toevoegen",
+  "block": "Blokkeren",
+  "apply": "Toepassen",
+  "advanced": "Geavanceerd",
+  "options": "Opties",
+  "added_before_tracking": "Toegevoegd vóór bijhouden",
+  "sources": {
+    "auto": "Automatisch",
+    "configure": "Configureren",
+    "default": "Setup-standaard",
+    "detected": "Gedetecteerd netwerk",
+    "import": "Back-up herstellen",
+    "panel": "Paneel",
+    "service": "Service",
+    "setup": "Installatie",
+    "yaml": "YAML-import"
+  },
+  "allowed_ips": {
+    "title": "Toegestane IP's",
+    "hint": "Vertrouwde IPv4-/IPv6-adressen en netwerken. Deze items hebben voorrang op exacte bans, geblokkeerde netwerken en default-deny. IPv4-/IPv6-wildcards zoals 192.168.1.* of 2001:db8:1:2:* worden ondersteund.",
+    "placeholder": "IPv4-/IPv6-adres, CIDR of wildcard",
+    "remove_confirm": "Dit toegestane IP verwijderen? Met default-deny of geblokkeerde netwerken actief kan het verwijderen van een vertrouwd item de toegang blokkeren."
+  },
+  "blocked_ips": {
+    "title": "Geblokkeerde IP's",
+    "hint": "Home Assistants native exacte IPv4-/IPv6-blokkeerlijst, oudste eerst in ip_bans.yaml.",
+    "placeholder": "IPv4-/IPv6-adres"
+  },
+  "blocked_networks": {
+    "title": "Geblokkeerde netwerken",
+    "hint": "Beheerde IPv4-/IPv6-CIDR- of wildcardnetwerken, zonder bereiken in ip_bans.yaml te schrijven.",
+    "placeholder": "CIDR- of wildcardnetwerk"
+  },
+  "silenced_logins": {
+    "title": "Gedempte allowlist-loginmeldingen",
+    "hint": "Adressen waarvoor allowlist-loginalerts zijn gedempt."
+  },
+  "settings": {
+    "auto_ban_enabled": "Automatische bans",
+    "auto_ban_enabled_hint": "Mislukte loginbronnen blokkeren.",
+    "ban_notifications_enabled": "Automatische banmeldingen",
+    "ban_notifications_enabled_hint": "Waarschuwingen tonen wanneer IP's worden geblokkeerd.",
+    "allowlisted_login_notifications_enabled": "Allowlist-loginmeldingen",
+    "allowlisted_login_notifications_enabled_hint": "Waarschuwen bij mislukte vertrouwde logins.",
+    "sidebar_panel_enabled": "Tonen in zijbalk",
+    "sidebar_panel_enabled_hint": "Pagina toevoegen aan het linkermenu.",
+    "geoip_enabled": "GeoIP-locatielabels",
+    "geoip_enabled_hint": "Geschatte locaties van publieke IP's tonen. Ontbreekt de lokale database, dan downloadt Toepassen die.",
+    "login_attempts_threshold": "Drempel voor loginpogingen",
+    "allowlisted_logins_can_ban": "Bans binnen toegestane IP's",
+    "allowlisted_logins_can_ban_hint": "Let op: vertrouwde IP's kunnen worden geblokkeerd.",
+    "default_deny_enabled": "Alles buiten toegestane IP's blokkeren",
+    "default_deny_enabled_hint": "Let op: alleen toegestane IP's kunnen verbinden."
+  },
+  "backup": {
+    "save_title": "Opslaan in config",
+    "save_none": "Schrijft het back-upbestand naar schijf.",
+    "save_last": "Laatst opgeslagen: {date}",
+    "save": "Opslaan",
+    "restore": "Herstellen",
+    "restore_confirm": "Herstellen vanaf het back-upbestand op schijf en huidige IP Ban Manager-instellingen en exacte IP-bans vervangen?",
+    "transfer_title": "Overdracht",
+    "transfer_hint": "Download een kopie naar dit apparaat, of upload een back-up om te herstellen.",
+    "download": "Downloaden",
+    "upload": "Uploaden",
+    "upload_confirm": "{filename} uploaden en huidige IP Ban Manager-instellingen en exacte IP-bans vervangen?"
+  },
+  "geoip": {
+    "title": "GeoIP-database",
+    "not_installed": "Niet geïnstalleerd",
+    "installed": "Geïnstalleerd - {date}",
+    "download_hint": "Schakel GeoIP in en klik Toepassen om te downloaden",
+    "attribution": "Locatiegegevens:",
+    "update": "Bijwerken"
+  },
+  "health": {
+    "title": "Gezondheidscontrole vereist aandacht",
+    "issues": {
+      "native_ip_ban_disabled": "Home Assistants native IP-bans zijn uitgeschakeld.",
+      "ban_file_not_loaded": "Home Assistant IP-blokkering is niet geladen.",
+      "ban_file_not_regular_file": "{path} is geen regulier bestand.",
+      "ban_file_not_readable_writable": "{path} is niet leesbaar en beschrijfbaar.",
+      "ban_file_parent_missing": "{path} bestaat niet.",
+      "ban_file_parent_not_writable": "{path} is niet beschrijfbaar.",
+      "panel_not_registered": "Het IP Ban Manager-paneel is niet geregistreerd.",
+      "legacy_cleanup_pending": "Legacy-opruiming is nog niet voltooid.",
+      "geoip_reader_not_ready": "GeoIP is ingeschakeld, maar de lokale databaselezer is niet gereed."
+    }
+  },
+  "success": {
+    "export_config": "Back-up opgeslagen in {path}",
+    "import_config": "Back-up hersteld van {path}",
+    "download_config": "Back-up gedownload.",
+    "upload_config": "Back-up geüpload en toegepast."
+  }
+}

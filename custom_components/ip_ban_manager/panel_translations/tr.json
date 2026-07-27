@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Yükleniyor...",
+  "request_failed": "İstek başarısız.",
+  "none": "Yok",
+  "remove": "Kaldır",
+  "add": "Ekle",
+  "block": "Engelle",
+  "apply": "Uygula",
+  "advanced": "Gelişmiş",
+  "options": "Seçenekler",
+  "added_before_tracking": "İzlemeden önce eklendi",
+  "sources": {
+    "auto": "Otomatik",
+    "configure": "Yapılandır",
+    "default": "Kurulum varsayılanı",
+    "detected": "Algılanan ağ",
+    "import": "Yedek geri yükleme",
+    "panel": "Panel",
+    "service": "Hizmet",
+    "setup": "Kurulum",
+    "yaml": "YAML içe aktarma"
+  },
+  "allowed_ips": {
+    "title": "İzin verilen IP",
+    "hint": "Güvenilir IPv4/IPv6 adresleri ve ağları. Bu girişler tam yasaklar, engellenen ağlar ve default-deny moduna göre önceliklidir. 192.168.1.* veya 2001:db8:1:2:* gibi IPv4/IPv6 jokerleri desteklenir.",
+    "placeholder": "IPv4/IPv6 adresi, CIDR veya joker",
+    "remove_confirm": "Bu izin verilen IP kaldırılsın mı? Aktif default-deny veya engellenen ağlar varken güvenilir bir girişi kaldırmak erişimi kilitleyebilir."
+  },
+  "blocked_ips": {
+    "title": "Engellenen IP",
+    "hint": "Home Assistant'ın yerel tam IPv4/IPv6 engel listesi, ip_bans.yaml dosyasında en eskiden yeniye yazılır.",
+    "placeholder": "IPv4/IPv6 adresi"
+  },
+  "blocked_networks": {
+    "title": "Engellenen ağlar",
+    "hint": "Yönetilen IPv4/IPv6 CIDR veya joker ağlar, aralıkları ip_bans.yaml dosyasına yazmadan uygulanır.",
+    "placeholder": "CIDR veya joker ağ"
+  },
+  "silenced_logins": {
+    "title": "Sessize alınmış allowlist giriş bildirimleri",
+    "hint": "Allowlist giriş uyarılarından sessize alınmış adresler."
+  },
+  "settings": {
+    "auto_ban_enabled": "Otomatik yasaklar",
+    "auto_ban_enabled_hint": "Başarısız giriş kaynaklarını engelle.",
+    "ban_notifications_enabled": "Otomatik yasak bildirimleri",
+    "ban_notifications_enabled_hint": "IP'ler engellendiğinde uyarı göster.",
+    "allowlisted_login_notifications_enabled": "Allowlist giriş bildirimleri",
+    "allowlisted_login_notifications_enabled_hint": "Güvenilir başarısız girişlerde uyar.",
+    "sidebar_panel_enabled": "Kenar çubuğunda göster",
+    "sidebar_panel_enabled_hint": "Sol menü sayfasını ekle.",
+    "geoip_enabled": "GeoIP konum etiketleri",
+    "geoip_enabled_hint": "Yaklaşık genel IP konumlarını göster. Yerel veritabanı yoksa Uygula indirir.",
+    "login_attempts_threshold": "Giriş denemesi eşiği",
+    "allowlisted_logins_can_ban": "İzin verilen IP içinde yasaklar",
+    "allowlisted_logins_can_ban_hint": "Dikkatli olun: güvenilir IP'ler engellenebilir.",
+    "default_deny_enabled": "İzin verilen IP dışındaki her şeyi engelle",
+    "default_deny_enabled_hint": "Dikkatli olun: yalnızca izin verilen IP'ler bağlanabilir."
+  },
+  "backup": {
+    "save_title": "Config'e kaydet",
+    "save_none": "Diskteki yedek dosyasını yazar.",
+    "save_last": "Son kayıt: {date}",
+    "save": "Kaydet",
+    "restore": "Geri yükle",
+    "restore_confirm": "Diskteki yedekten geri yükleyip mevcut IP Ban Manager ayarlarını ve tam IP yasaklarını değiştir?",
+    "transfer_title": "Transfer",
+    "transfer_hint": "Bu cihaza bir kopya indirin veya geri yüklemek için yedek yükleyin.",
+    "download": "İndir",
+    "upload": "Yükle",
+    "upload_confirm": "{filename} yüklensin ve mevcut IP Ban Manager ayarları ile tam IP yasakları değiştirilsin mi?"
+  },
+  "geoip": {
+    "title": "GeoIP veritabanı",
+    "not_installed": "Kurulu değil",
+    "installed": "Kurulu - {date}",
+    "download_hint": "GeoIP'yi etkinleştirin ve indirmek için Uygula'ya basın",
+    "attribution": "Konum verileri:",
+    "update": "Güncelle"
+  },
+  "health": {
+    "title": "Sağlık kontrolü dikkat gerektiriyor",
+    "issues": {
+      "native_ip_ban_disabled": "Home Assistant'ın yerel IP yasakları devre dışı.",
+      "ban_file_not_loaded": "Home Assistant IP yasaklama yüklü değil.",
+      "ban_file_not_regular_file": "{path} normal bir dosya değil.",
+      "ban_file_not_readable_writable": "{path} okunabilir ve yazılabilir değil.",
+      "ban_file_parent_missing": "{path} mevcut değil.",
+      "ban_file_parent_not_writable": "{path} yazılabilir değil.",
+      "panel_not_registered": "IP Ban Manager paneli kayıtlı değil.",
+      "legacy_cleanup_pending": "Legacy temizliği henüz tamamlanmadı.",
+      "geoip_reader_not_ready": "GeoIP etkin, ancak yerel veritabanı okuyucusu hazır değil."
+    }
+  },
+  "success": {
+    "export_config": "Yedek {path} konumuna kaydedildi",
+    "import_config": "Yedek {path} konumundan geri yüklendi",
+    "download_config": "Yedek indirildi.",
+    "upload_config": "Yedek yüklendi ve uygulandı."
+  }
+}

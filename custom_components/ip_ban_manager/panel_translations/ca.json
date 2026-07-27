@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "S'està carregant...",
+  "request_failed": "La sol·licitud ha fallat.",
+  "none": "Cap",
+  "remove": "Elimina",
+  "add": "Afegeix",
+  "block": "Bloqueja",
+  "apply": "Aplica",
+  "advanced": "Avançat",
+  "options": "Opcions",
+  "added_before_tracking": "Afegit abans del seguiment",
+  "sources": {
+    "auto": "Automàtic",
+    "configure": "Configura",
+    "default": "Valor per defecte de la instal·lació",
+    "detected": "Xarxa detectada",
+    "import": "Restauració de còpia de seguretat",
+    "panel": "Panel",
+    "service": "Servei",
+    "setup": "Instal·lació",
+    "yaml": "Importació YAML"
+  },
+  "allowed_ips": {
+    "title": "IP permeses",
+    "hint": "Adreces i xarxes IPv4/IPv6 de confiança. Aquestes entrades tenen prioritat sobre bloquejos exactes, xarxes bloquejades i el mode de denegació per defecte. S'admeten comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*.",
+    "placeholder": "Adreça IPv4/IPv6, CIDR o comodí",
+    "remove_confirm": "Eliminar aquesta IP permesa? Amb la denegació per defecte o xarxes bloquejades actives, eliminar una entrada de confiança pot bloquejar l'accés."
+  },
+  "blocked_ips": {
+    "title": "IP bloquejades",
+    "hint": "Llista nativa de Home Assistant d'adreces IPv4/IPv6 exactes bloquejades, escrita de més antiga a més recent a ip_bans.yaml.",
+    "placeholder": "Adreça IPv4/IPv6"
+  },
+  "blocked_networks": {
+    "title": "Xarxes bloquejades",
+    "hint": "Xarxes CIDR o comodí IPv4/IPv6 gestionades, aplicades sense escriure rangs a ip_bans.yaml.",
+    "placeholder": "Xarxa CIDR o comodí"
+  },
+  "silenced_logins": {
+    "title": "Notificacions silenciades d'inici de sessió a la llista permesa",
+    "hint": "Adreces silenciades de les alertes d'inici de sessió a la llista permesa."
+  },
+  "settings": {
+    "auto_ban_enabled": "Bloquejos automàtics",
+    "auto_ban_enabled_hint": "Bloqueja fonts d'inici de sessió fallides.",
+    "ban_notifications_enabled": "Notificacions de bloqueig automàtic",
+    "ban_notifications_enabled_hint": "Mostra alertes quan es bloquegen IP.",
+    "allowlisted_login_notifications_enabled": "Notificacions d'inici de sessió a la llista permesa",
+    "allowlisted_login_notifications_enabled_hint": "Alerta en inicis de sessió de confiança fallits.",
+    "sidebar_panel_enabled": "Mostra a la barra lateral",
+    "sidebar_panel_enabled_hint": "Afegeix la pàgina al menú esquerre.",
+    "geoip_enabled": "Etiquetes d'ubicació GeoIP",
+    "geoip_enabled_hint": "Mostra ubicacions aproximades d'IP públiques. Si falta la base de dades local, Aplica la descarrega.",
+    "login_attempts_threshold": "Llindar d'intents d'inici de sessió",
+    "allowlisted_logins_can_ban": "Bloquejos dins IP permeses",
+    "allowlisted_logins_can_ban_hint": "Aniu amb compte: les IP de confiança es poden bloquejar.",
+    "default_deny_enabled": "Bloqueja tot el que quedi fora de les IP permeses",
+    "default_deny_enabled_hint": "Aniu amb compte: només les IP permeses poden connectar-se."
+  },
+  "backup": {
+    "save_title": "Desa a la configuració",
+    "save_none": "Escriu el fitxer de còpia de seguretat al disc.",
+    "save_last": "Darrera desada: {date}",
+    "save": "Desa",
+    "restore": "Restaura",
+    "restore_confirm": "Restaurar des de la còpia de seguretat del disc i substituir la configuració actual d'IP Ban Manager i els bloquejos IP exactes?",
+    "transfer_title": "Transfer",
+    "transfer_hint": "Descarregueu una còpia a aquest dispositiu o pugeu una còpia de seguretat per restaurar.",
+    "download": "Descarrega",
+    "upload": "Puja",
+    "upload_confirm": "Pujar {filename} i substituir la configuració actual d'IP Ban Manager i els bloquejos IP exactes?"
+  },
+  "geoip": {
+    "title": "Base de dades GeoIP",
+    "not_installed": "No instal·lada",
+    "installed": "Instal·lada - {date}",
+    "download_hint": "Activa GeoIP i Aplica per descarregar",
+    "attribution": "Dades d'ubicació:",
+    "update": "Actualitza"
+  },
+  "health": {
+    "title": "La comprovació de salut necessita atenció",
+    "issues": {
+      "native_ip_ban_disabled": "El bloqueig IP natiu de Home Assistant està desactivat.",
+      "ban_file_not_loaded": "El bloqueig IP de Home Assistant no està carregat.",
+      "ban_file_not_regular_file": "{path} no és un fitxer regular.",
+      "ban_file_not_readable_writable": "{path} no es pot llegir ni escriure.",
+      "ban_file_parent_missing": "{path} no existeix.",
+      "ban_file_parent_not_writable": "{path} no es pot escriure.",
+      "panel_not_registered": "El panell IP Ban Manager no està registrat.",
+      "legacy_cleanup_pending": "La neteja del component legacy encara no s'ha completat.",
+      "geoip_reader_not_ready": "GeoIP està activat, però el lector de la base de dades local no està preparat."
+    }
+  },
+  "success": {
+    "export_config": "Còpia de seguretat desada a {path}",
+    "import_config": "Còpia de seguretat restaurada des de {path}",
+    "download_config": "Còpia de seguretat descarregada.",
+    "upload_config": "Còpia de seguretat pujada i aplicada."
+  }
+}

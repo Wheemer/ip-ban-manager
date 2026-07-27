@@ -25,15 +25,15 @@ def test_normalize_language_uses_primary_subtag() -> None:
 
 
 def test_supported_locales_match_translation_files() -> None:
-    """Test the supported locale registry matches shipped files."""
-    translations_dir = (
+    """Test the supported locale registry matches shipped panel files."""
+    panel_translations_dir = (
         Path(__file__).resolve().parents[2]
         / "custom_components"
         / "ip_ban_manager"
-        / "translations"
+        / "panel_translations"
     )
     for language in SUPPORTED_LOCALES:
-        assert (translations_dir / f"{language}.json").is_file()
+        assert (panel_translations_dir / f"{language}.json").is_file()
 
 
 def test_load_panel_translations_falls_back_to_english() -> None:

@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-TRANSLATIONS_DIR = ROOT / "custom_components" / "ip_ban_manager" / "translations"
+INTEGRATION_DIR = ROOT / "custom_components" / "ip_ban_manager"
+TRANSLATIONS_DIR = INTEGRATION_DIR / "translations"
+PANEL_TRANSLATIONS_DIR = INTEGRATION_DIR / "panel_translations"
 OVERLAY_DIR = Path(__file__).resolve().parent / "translation_overlays"
 BAN_FILE_HEALTH_PATH = (
     Path(__file__).resolve().parent / "ban_file_health_translations.json"
@@ -94,28 +96,54 @@ def load_ban_file_health_translations() -> dict[str, dict[str, str]]:
     return json.loads(BAN_FILE_HEALTH_PATH.read_text(encoding="utf-8"))
 
 
-def apply_ban_file_health(locale: dict[str, Any], language: str) -> None:
+def split_panel_overlay(overlay: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return overlay copies with and without the custom panel section."""
+    ha_overlay = copy.deepcopy(overlay)
+    panel_overlay = ha_overlay.pop("panel", None)
+    if not isinstance(panel_overlay, dict):
+        panel_overlay = {}
+    return ha_overlay, panel_overlay
+
+
+def apply_ban_file_health(panel: dict[str, Any], language: str) -> None:
     """Merge localized ban-file health strings and drop legacy placeholder key."""
-    issues = (
-        locale.setdefault("panel", {}).setdefault("health", {}).setdefault("issues", {})
-    )
+    issues = panel.setdefault("health", {}).setdefault("issues", {})
     issues.pop("ban_file_access", None)
     translations = load_ban_file_health_translations()
     if language in translations:
         issues.update(translations[language])
 
 
-def build_locale(en: dict[str, Any], language: str) -> dict[str, Any]:
-    """Return one fully merged locale file."""
-    merged = deep_merge(en, load_overlay(language))
-    apply_ban_file_health(merged, language)
-    validate_locale(en, merged, language)
-    return merged
+def build_locale(
+    en_ha: dict[str, Any],
+    en_panel: dict[str, Any],
+    language: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return Home Assistant and panel locale files for one language."""
+    ha_overlay, panel_overlay = split_panel_overlay(load_overlay(language))
+    ha_locale = deep_merge(en_ha, ha_overlay)
+    panel_locale = deep_merge(en_panel, panel_overlay)
+    apply_ban_file_health(panel_locale, language)
+    validate_locale(en_ha, ha_locale, language)
+    validate_locale(en_panel, panel_locale, f"panel/{language}")
+    return ha_locale, panel_locale
 
 
 def main() -> int:
     """Generate all supported locale files."""
-    en = json.loads((TRANSLATIONS_DIR / "en.json").read_text(encoding="utf-8"))
+    en_ha = json.loads((TRANSLATIONS_DIR / "en.json").read_text(encoding="utf-8"))
+    en_panel_path = PANEL_TRANSLATIONS_DIR / "en.json"
+    if en_panel_path.is_file():
+        en_panel = json.loads(en_panel_path.read_text(encoding="utf-8"))
+    else:
+        en_panel = en_ha.pop("panel", {})
+        if not isinstance(en_panel, dict):
+            en_panel = {}
+    if "panel" in en_ha:
+        raise ValueError(
+            "translations/en.json must not contain a top-level panel section; "
+            "run scripts/split_panel_translations.py first"
+        )
     missing_overlays = [
         language
         for language in SUPPORTED_LOCALES
@@ -128,13 +156,19 @@ def main() -> int:
         )
         return 1
 
+    PANEL_TRANSLATIONS_DIR.mkdir(parents=True, exist_ok=True)
+
     for language in SUPPORTED_LOCALES:
-        locale = build_locale(en, language)
+        ha_locale, panel_locale = build_locale(en_ha, en_panel, language)
         (TRANSLATIONS_DIR / f"{language}.json").write_text(
-            json.dumps(locale, ensure_ascii=False, indent=2) + "\n",
+            json.dumps(ha_locale, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
-        print(f"updated {language}.json")
+        (PANEL_TRANSLATIONS_DIR / f"{language}.json").write_text(
+            json.dumps(panel_locale, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"updated {language}.json and panel_translations/{language}.json")
 
     print(f"built {len(SUPPORTED_LOCALES)} locales")
     return 0

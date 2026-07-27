@@ -1,0 +1,102 @@
+{
+  "title": "IP Ban Manager",
+  "loading": "Завантаження...",
+  "request_failed": "Запит не виконано.",
+  "none": "Немає",
+  "remove": "Видалити",
+  "add": "Додати",
+  "block": "Заблокувати",
+  "apply": "Застосувати",
+  "advanced": "Додатково",
+  "options": "Параметри",
+  "added_before_tracking": "Додано до відстеження",
+  "sources": {
+    "auto": "Автоматично",
+    "configure": "Налаштувати",
+    "default": "Значення за замовчуванням при встановленні",
+    "detected": "Виявлена мережа",
+    "import": "Відновлення з резервної копії",
+    "panel": "Panel",
+    "service": "Служба",
+    "setup": "Встановлення",
+    "yaml": "Імпорт YAML"
+  },
+  "allowed_ips": {
+    "title": "Дозволені IP",
+    "hint": "Довірені IPv4/IPv6 адреси та мережі. Ці записи мають пріоритет над точними блокуваннями, заблокованими мережами та режимом default-deny. Підтримуються шаблони IPv4/IPv6, наприклад 192.168.1.* або 2001:db8:1:2:*.",
+    "placeholder": "IPv4/IPv6 адреса, CIDR або шаблон",
+    "remove_confirm": "Видалити цю дозволену IP? З активним default-deny або заблокованими мережами видалення довіреного запису може заблокувати доступ."
+  },
+  "blocked_ips": {
+    "title": "Заблоковані IP",
+    "hint": "Вбудований список точних IPv4/IPv6 блокувань Home Assistant, записаний від старих до нових у ip_bans.yaml.",
+    "placeholder": "IPv4/IPv6 адреса"
+  },
+  "blocked_networks": {
+    "title": "Заблоковані мережі",
+    "hint": "Керовані IPv4/IPv6 CIDR або шаблонні мережі, що застосовуються без запису діапазонів у ip_bans.yaml.",
+    "placeholder": "CIDR або шаблонна мережа"
+  },
+  "silenced_logins": {
+    "title": "Приглушені сповіщення про вхід з allowlist",
+    "hint": "Адреси, для яких приглушено попередження про вхід з allowlist."
+  },
+  "settings": {
+    "auto_ban_enabled": "Автоматичні блокування",
+    "auto_ban_enabled_hint": "Блокувати джерела невдалих входів.",
+    "ban_notifications_enabled": "Автоматичні сповіщення про блокування",
+    "ban_notifications_enabled_hint": "Показувати попередження при блокуванні IP.",
+    "allowlisted_login_notifications_enabled": "Сповіщення про вхід з allowlist",
+    "allowlisted_login_notifications_enabled_hint": "Попереджати про невдалі довірені входи.",
+    "sidebar_panel_enabled": "Показувати на бічній панелі",
+    "sidebar_panel_enabled_hint": "Додати сторінку до лівого меню.",
+    "geoip_enabled": "Мітки місцезнаходження GeoIP",
+    "geoip_enabled_hint": "Показувати приблизне місцезнаходження публічних IP. Якщо локальної бази немає, Застосувати завантажить її.",
+    "login_attempts_threshold": "Поріг спроб входу",
+    "allowlisted_logins_can_ban": "Блокування всередині дозволених IP",
+    "allowlisted_logins_can_ban_hint": "Будьте обережні: довірені IP можна блокувати.",
+    "default_deny_enabled": "Блокувати все поза дозволеними IP",
+    "default_deny_enabled_hint": "Будьте обережні: підключатися можуть лише дозволені IP."
+  },
+  "backup": {
+    "save_title": "Зберегти в config",
+    "save_none": "Записує резервний файл на диск.",
+    "save_last": "Останнє збереження: {date}",
+    "save": "Зберегти",
+    "restore": "Відновити",
+    "restore_confirm": "Відновити з резервної копії на диску та замінити поточні налаштування IP Ban Manager і точні IP-блокування?",
+    "transfer_title": "Transfer",
+    "transfer_hint": "Завантажте копію на цей пристрій або завантажте резервну копію для відновлення.",
+    "download": "Завантажити",
+    "upload": "Завантажити",
+    "upload_confirm": "Завантажити {filename} і замінити поточні налаштування IP Ban Manager і точні IP-блокування?"
+  },
+  "geoip": {
+    "title": "База GeoIP",
+    "not_installed": "Не встановлено",
+    "installed": "Встановлено - {date}",
+    "download_hint": "Увімкніть GeoIP і натисніть Застосувати для завантаження",
+    "attribution": "Дані про місцезнаходження:",
+    "update": "Оновити"
+  },
+  "health": {
+    "title": "Перевірка стану потребує уваги",
+    "issues": {
+      "native_ip_ban_disabled": "Вбудовані IP-блокування Home Assistant вимкнені.",
+      "ban_file_not_loaded": "Блокування IP Home Assistant не завантажено.",
+      "ban_file_not_regular_file": "{path} не є звичайним файлом.",
+      "ban_file_not_readable_writable": "{path} недоступний для читання та запису.",
+      "ban_file_parent_missing": "{path} не існує.",
+      "ban_file_parent_not_writable": "{path} недоступний для запису.",
+      "panel_not_registered": "Панель IP Ban Manager не зареєстрована.",
+      "legacy_cleanup_pending": "Legacy-очищення ще не завершено.",
+      "geoip_reader_not_ready": "GeoIP увімкнено, але локальний ридер бази не готовий."
+    }
+  },
+  "success": {
+    "export_config": "Резервну копію збережено в {path}",
+    "import_config": "Резервну копію відновлено з {path}",
+    "download_config": "Резервну копію завантажено.",
+    "upload_config": "Резервну копію завантажено та застосовано."
+  }
+}
