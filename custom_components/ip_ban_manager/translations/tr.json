@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "IP Ban Manager kurulumu",
+        "description": "Güvenli başlangıç varsayılanlarını seçin. Ardından canlı yasakları, engellenen ağları, default-deny ve bildirimleri panel veya Yapılandır üzerinden yönetin.",
+        "data": {
+          "login_attempts_threshold": "Giriş denemesi eşiği",
+          "auto_ban_enabled": "Otomatik yasaklar",
+          "ban_notifications_enabled": "Otomatik yasak bildirimleri",
+          "allowlisted_login_notifications_enabled": "Allowlist giriş bildirimleri",
+          "allowlisted_logins_can_ban": "İzin verilen IP içinde otomatik yasaklara izin ver",
+          "default_deny_enabled": "İzin verilen IP dışındaki her şeyi engelle",
+          "geoip_enabled": "GeoIP konum etiketleri",
+          "sidebar_panel_enabled": "Kenar çubuğunda göster",
+          "quick_allowlist": "Güvenli allowlist varsayılanları",
+          "ban_options": "Seçenekler"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "192.168.1.* veya 2001:db8:1:2:* gibi geçerli IP adresleri, CIDR ağları veya joker ağlar girin.",
+      "unsafe_allowlist_network": "Bu allowlist girişi her IP adresine güvenirdi ve IP yasaklarını fiilen devre dışı bırakırdı.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager zaten yapılandırılmış.",
+      "unsafe_allowlist_network": "İçe aktarılan allowlist, her IP adresine güvenecek bir giriş içeriyor."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IP Ban Manager yönetimi",
+        "description": "Canlı allowlist ve yasak listesini yönetin. Gönder değişiklikleri hemen uygular; yeniden başlatma gerekmez.",
+        "sections": {
+          "allowed_ips": {
+            "name": "İzin verilen IP",
+            "data": {
+              "allowed_ips": "İzin verilen girişler",
+              "quick_allowlist": "Güvenli varsayılanları ekle"
+            }
+          },
+          "banned_ips": {
+            "name": "Engellenen IP",
+            "data": {
+              "ban_options": "Seçenekler",
+              "advanced_ban_options": "Gelişmiş",
+              "login_attempts_threshold": "Giriş denemesi eşiği",
+              "banned_ips": "Engellenen girişler",
+              "blocked_networks": "Engellenen ağlar"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Asla yasaklanmaması gereken güvenilir IPv4/IPv6 adresleri ve ağları. Satır başına bir giriş. 192.168.1.* veya 2001:db8:1:2:* gibi CIDR ağları ve IPv4/IPv6 jokerleri desteklenir.",
+          "banned_ips": "Şu anda engellenen tam IPv4/IPv6 adresleri. Mevcut satırlar inceleme için engel zamanını gösterir; yeni satırlar yalnızca bir IP olabilir. Tüm engellenen IP'leri temizlemek için boş bırakın.",
+          "blocked_networks": "Home Assistant ip_bans.yaml dosyasına yazmadan engellenecek IPv4/IPv6 CIDR ağları veya joker ağlar. İzin verilen girişler yine önceliklidir."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Engellenen IP'ler temizlensin mi?",
+        "description": "Bu, Home Assistant'tan {ban_count} engellenen IP'yi kaldırır ve ip_bans.yaml dosyasını yeniden yazar. Onaylamak için kutuyu işaretleyin.",
+        "data": {
+          "confirm_clear_bans": "Tüm engellenen IP'leri temizle"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "192.168.1.* veya 2001:db8:1:2:* gibi geçerli IP adresleri, CIDR ağları veya joker ağlar girin.",
+      "invalid_banned_ip": "Satır başına tam bir IPv4 veya IPv6 adresi girin. CIDR ağları ve jokerler Engellenen ağlar bölümüne aittir.",
+      "invalid_blocked_network": "203.0.113.* veya 2001:db8:1:2:* gibi geçerli IPv4/IPv6 CIDR ağları veya joker ağlar girin.",
+      "unsafe_blocked_network": "Bu engellenen ağ her IP adresini engellerdi. Daha dar bir ağ kullanın.",
+      "local_network_block_unprotected": "Bu ayar algılanan her yerel erişim yolunu engellerdi. Önce İzin verilen IP'ye güncel bir yerel ağ ekleyin.",
+      "unsafe_allowlist_network": "Bu allowlist girişi her IP adresine güvenirdi ve IP yasaklarını fiilen devre dışı bırakırdı.",
+      "banned_ip_allowlisted": "Bir IP hem izin verilen hem yasaklı olamaz. Bir listeden kaldırın ve tekrar deneyin.",
+      "confirmation_required": "Tüm engellenen IP'leri temizlemeden önce onay kutusunu işaretleyin."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} geçerli bir IP adresi değil."
+    },
+    "invalid_network": {
+      "message": "{network} geçerli bir IP adresi, CIDR ağı veya joker ağ değil."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} allowlist'te olduğu için yasaklanmadı."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} şu anda yasaklı değil."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} zaten engellenen bir ağ tarafından engellenmiş."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} her IP adresine güvenirdi ve IP yasaklarını fiilen devre dışı bırakırdı."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} bir veya daha fazla şu anki yasaklı IP adresi içeriyor. Bu ağı allowlist'e eklemeden önce bu yasakları kaldırın."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Tüm IP yasaklarını temizlemeden önce confirm değerini true yapın."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "HTTP IP yasaklarını etkinleştir",
+      "description": "Home Assistant'ın yerleşik HTTP IP yasakları şu anda devre dışı, bu yüzden yasak yönetimi ve allowlist koruması çalışamaz.\n\nBu anahtarı `configuration.yaml` içindeki mevcut `http:` bölümüne ekleyin ve Home Assistant'ı yeniden başlatın:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager devre dışı",
+      "description": "Acil durum anahtarı aktif, bu yüzden IP Ban Manager runtime hook'larını, paneli, hizmetleri, sensörleri, yönetilen engellenen ağları veya default-deny işlemesini kurmadı.\n\nIP Ban Manager'ı tekrar kullanmaya hazır olduğunuzda `configuration.yaml` dosyasından `ip_ban_manager: disabled` satırını kaldırın veya `/config/ip_ban_manager.disabled` dosyasını silin, ardından Home Assistant'ı yeniden başlatın."
+    },
+    "legacy_yaml_present": {
+      "title": "Eski ban_allowlist YAML'ını kaldır",
+      "description": "IP Ban Manager eski `ban_allowlist:` YAML ayarlarını zaten UI yapılandırma girişine aktardı.\n\nEski `ban_allowlist:` bloğunu `configuration.yaml` dosyasından kaldırın ve Home Assistant'ı yeniden başlatın. Entegrasyon içe aktarılan UI ayarlarını kullanmaya devam edecek."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Legacy temizliği dikkat gerektiriyor",
+      "description": "IP Ban Manager, Home Assistant'ın yükleme yolundan bir veya daha fazla eski legacy klasörü taşıyamadı:\n\n{paths}\n\nDosya izinlerini kontrol edin, bu yolları `custom_components` dışına taşıyın ve Home Assistant'ı yeniden başlatın."
+    },
+    "health_check_failed": {
+      "title": "IP Ban Manager sağlık kontrolü dikkat gerektiriyor",
+      "description": "IP Ban Manager, canlı yasak yönetimini etkileyebilecek bir veya daha fazla kurulum sorunu buldu:\n\n{issues}\n\nBunları düzelttikten sonra sağlık kontrolünü yenilemek için IP Ban Manager panelini açın."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Otomatik yasaklar – başarısız giriş kaynaklarını engelle",
+        "ban_notifications": "Otomatik yasak bildirimleri – IP'ler engellendiğinde uyarı göster",
+        "allowlisted_login_notifications": "Allowlist giriş bildirimleri – güvenilir başarısız girişlerde uyar",
+        "sidebar_panel": "Kenar çubuğunda göster – sol menü sayfasını ekle",
+        "geoip": "GeoIP konum etiketleri – yerel DB-IP veritabanını indir"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Gelişmiş: İzin verilen IP içinde yasaklar – güvenilir IP'ler engellenebilir",
+        "default_deny": "Gelişmiş: İzin verilen IP dışındaki her şeyi engelle – dikkatli olun"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Algılanan yerel ağ(lar)"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Yükleniyor...",
+    "request_failed": "İstek başarısız.",
+    "none": "Yok",
+    "remove": "Kaldır",
+    "add": "Ekle",
+    "block": "Engelle",
+    "apply": "Uygula",
+    "advanced": "Gelişmiş",
+    "options": "Seçenekler",
+    "added_before_tracking": "İzlemeden önce eklendi",
+    "sources": {
+      "auto": "Otomatik",
+      "configure": "Yapılandır",
+      "default": "Kurulum varsayılanı",
+      "detected": "Algılanan ağ",
+      "import": "Yedek geri yükleme",
+      "panel": "Panel",
+      "service": "Hizmet",
+      "setup": "Kurulum",
+      "yaml": "YAML içe aktarma"
+    },
+    "allowed_ips": {
+      "title": "İzin verilen IP",
+      "hint": "Güvenilir IPv4/IPv6 adresleri ve ağları. Bu girişler tam yasaklar, engellenen ağlar ve default-deny moduna göre önceliklidir. 192.168.1.* veya 2001:db8:1:2:* gibi IPv4/IPv6 jokerleri desteklenir.",
+      "placeholder": "IPv4/IPv6 adresi, CIDR veya joker",
+      "remove_confirm": "Bu izin verilen IP kaldırılsın mı? Aktif default-deny veya engellenen ağlar varken güvenilir bir girişi kaldırmak erişimi kilitleyebilir."
+    },
+    "blocked_ips": {
+      "title": "Engellenen IP",
+      "hint": "Home Assistant'ın yerel tam IPv4/IPv6 engel listesi, ip_bans.yaml dosyasında en eskiden yeniye yazılır.",
+      "placeholder": "IPv4/IPv6 adresi"
+    },
+    "blocked_networks": {
+      "title": "Engellenen ağlar",
+      "hint": "Yönetilen IPv4/IPv6 CIDR veya joker ağlar, aralıkları ip_bans.yaml dosyasına yazmadan uygulanır.",
+      "placeholder": "CIDR veya joker ağ"
+    },
+    "silenced_logins": {
+      "title": "Sessize alınmış allowlist giriş bildirimleri",
+      "hint": "Allowlist giriş uyarılarından sessize alınmış adresler."
+    },
+    "settings": {
+      "auto_ban_enabled": "Otomatik yasaklar",
+      "auto_ban_enabled_hint": "Başarısız giriş kaynaklarını engelle.",
+      "ban_notifications_enabled": "Otomatik yasak bildirimleri",
+      "ban_notifications_enabled_hint": "IP'ler engellendiğinde uyarı göster.",
+      "allowlisted_login_notifications_enabled": "Allowlist giriş bildirimleri",
+      "allowlisted_login_notifications_enabled_hint": "Güvenilir başarısız girişlerde uyar.",
+      "sidebar_panel_enabled": "Kenar çubuğunda göster",
+      "sidebar_panel_enabled_hint": "Sol menü sayfasını ekle.",
+      "geoip_enabled": "GeoIP konum etiketleri",
+      "geoip_enabled_hint": "Yaklaşık genel IP konumlarını göster. Yerel veritabanı yoksa Uygula indirir.",
+      "login_attempts_threshold": "Giriş denemesi eşiği",
+      "allowlisted_logins_can_ban": "İzin verilen IP içinde yasaklar",
+      "allowlisted_logins_can_ban_hint": "Dikkatli olun: güvenilir IP'ler engellenebilir.",
+      "default_deny_enabled": "İzin verilen IP dışındaki her şeyi engelle",
+      "default_deny_enabled_hint": "Dikkatli olun: yalnızca izin verilen IP'ler bağlanabilir."
+    },
+    "backup": {
+      "save_title": "Config'e kaydet",
+      "save_none": "Diskteki yedek dosyasını yazar.",
+      "save_last": "Son kayıt: {date}",
+      "save": "Kaydet",
+      "restore": "Geri yükle",
+      "restore_confirm": "Diskteki yedekten geri yükleyip mevcut IP Ban Manager ayarlarını ve tam IP yasaklarını değiştir?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Bu cihaza bir kopya indirin veya geri yüklemek için yedek yükleyin.",
+      "download": "İndir",
+      "upload": "Yükle",
+      "upload_confirm": "{filename} yüklensin ve mevcut IP Ban Manager ayarları ile tam IP yasakları değiştirilsin mi?"
+    },
+    "geoip": {
+      "title": "GeoIP veritabanı",
+      "not_installed": "Kurulu değil",
+      "installed": "Kurulu - {date}",
+      "download_hint": "GeoIP'yi etkinleştirin ve indirmek için Uygula'ya basın",
+      "attribution": "Konum verileri:",
+      "update": "Güncelle"
+    },
+    "health": {
+      "title": "Sağlık kontrolü dikkat gerektiriyor",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistant'ın yerel IP yasakları devre dışı.",
+        "ban_file_not_loaded": "Home Assistant IP yasaklama yüklü değil.",
+        "ban_file_not_regular_file": "{path} normal bir dosya değil.",
+        "ban_file_not_readable_writable": "{path} okunabilir ve yazılabilir değil.",
+        "ban_file_parent_missing": "{path} mevcut değil.",
+        "ban_file_parent_not_writable": "{path} yazılabilir değil.",
+        "panel_not_registered": "IP Ban Manager paneli kayıtlı değil.",
+        "legacy_cleanup_pending": "Legacy temizliği henüz tamamlanmadı.",
+        "geoip_reader_not_ready": "GeoIP etkin, ancak yerel veritabanı okuyucusu hazır değil."
+      }
+    },
+    "success": {
+      "export_config": "Yedek {path} konumuna kaydedildi",
+      "import_config": "Yedek {path} konumundan geri yüklendi",
+      "download_config": "Yedek indirildi.",
+      "upload_config": "Yedek yüklendi ve uygulandı."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktif yasaklar"
+      },
+      "allowlisted_networks": {
+        "name": "Allowlist ağları"
+      },
+      "blocked_networks": {
+        "name": "Engellenen ağlar"
+      },
+      "failed_login_sources": {
+        "name": "Başarısız giriş kaynakları"
+      }
+    }
+  }
+}

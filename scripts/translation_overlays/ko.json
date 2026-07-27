@@ -1,0 +1,259 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "IP Ban Manager 설정",
+        "description": "안전한 시작 기본값을 선택하세요. 설정 후 IP Ban Manager 패널 또는 구성 화면에서 실시간 차단, 차단된 네트워크, 기본 거부 모드 및 알림 동작을 관리할 수 있습니다.",
+        "data": {
+          "login_attempts_threshold": "로그인 시도 임계값",
+          "auto_ban_enabled": "자동 차단",
+          "ban_notifications_enabled": "자동 차단 알림",
+          "allowlisted_login_notifications_enabled": "허용 목록 로그인 알림",
+          "allowlisted_logins_can_ban": "허용 IP 내 자동 차단 허용",
+          "default_deny_enabled": "허용 IP 외 모든 접속 차단",
+          "geoip_enabled": "GeoIP 위치 레이블",
+          "sidebar_panel_enabled": "사이드바에 표시",
+          "quick_allowlist": "허용 목록 안전 기본값",
+          "ban_options": "옵션"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "192.168.1.* 또는 2001:db8:1:2:* 같은 유효한 IP 주소, CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요.",
+      "unsafe_allowlist_network": "해당 허용 목록 항목은 모든 IP 주소를 신뢰하여 IP 차단을 사실상 비활성화합니다."
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager가 이미 구성되어 있습니다.",
+      "unsafe_allowlist_network": "가져온 허용 목록에 모든 IP 주소를 신뢰하는 항목이 포함되어 있습니다."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IP Ban Manager 관리",
+        "description": "실시간 허용 목록과 차단 목록을 관리합니다. 제출하면 변경 사항이 즉시 적용되며 Home Assistant 재시작은 필요하지 않습니다.",
+        "sections": {
+          "allowed_ips": {
+            "name": "허용 IP",
+            "data": {
+              "allowed_ips": "허용 항목",
+              "quick_allowlist": "안전한 기본값 추가"
+            }
+          },
+          "banned_ips": {
+            "name": "차단된 IP",
+            "data": {
+              "ban_options": "옵션",
+              "advanced_ban_options": "고급",
+              "login_attempts_threshold": "로그인 시도 임계값",
+              "banned_ips": "차단된 항목",
+              "blocked_networks": "차단된 네트워크"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "절대 차단되지 않아야 하는 신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 한 줄에 하나의 항목을 입력하세요. CIDR 네트워크와 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다.",
+          "banned_ips": "현재 차단된 정확한 IPv4/IPv6 주소입니다. 기존 행에는 검토용 차단 시간이 표시됩니다. 새 행은 IP만 입력해도 됩니다. 모든 차단 IP를 지우려면 비워 두세요.",
+          "blocked_networks": "Home Assistant의 ip_bans.yaml에 기록하지 않고 차단할 IPv4/IPv6 CIDR 네트워크 또는 와일드카드 네트워크입니다. 허용 항목이 여전히 우선합니다."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "차단된 IP를 지울까요?",
+        "description": "Home Assistant에서 {ban_count}개의 차단 IP를 제거하고 ip_bans.yaml을 다시 씁니다. 확인하려면 확인란을 선택하세요.",
+        "data": {
+          "confirm_clear_bans": "모든 차단 IP 지우기"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "192.168.1.* 또는 2001:db8:1:2:* 같은 유효한 IP 주소, CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요.",
+      "invalid_banned_ip": "한 줄에 정확한 IPv4 또는 IPv6 주소 하나를 입력하세요. CIDR 네트워크와 와일드카드는 차단된 네트워크에 입력하세요.",
+      "invalid_blocked_network": "203.0.113.* 또는 2001:db8:1:2:* 같은 유효한 IPv4/IPv6 CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요.",
+      "unsafe_blocked_network": "해당 차단 네트워크는 모든 IP 주소를 차단합니다. 더 좁은 네트워크를 사용하세요.",
+      "local_network_block_unprotected": "해당 설정은 감지된 모든 로컬 접근 경로를 차단합니다. 먼저 현재 로컬 네트워크를 허용 IP에 추가하세요.",
+      "unsafe_allowlist_network": "해당 허용 목록 항목은 모든 IP 주소를 신뢰하여 IP 차단을 사실상 비활성화합니다.",
+      "banned_ip_allowlisted": "IP는 허용과 차단을 동시에 할 수 없습니다. 한 목록에서 제거한 후 다시 시도하세요.",
+      "confirmation_required": "모든 차단 IP를 지우기 전에 확인란을 선택하세요."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address}은(는) 유효한 IP 주소가 아닙니다."
+    },
+    "invalid_network": {
+      "message": "{network}은(는) 유효한 IP 주소, CIDR 네트워크 또는 와일드카드 네트워크가 아닙니다."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address}은(는) 허용 목록에 있어 차단되지 않았습니다."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address}은(는) 현재 차단되어 있지 않습니다."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address}은(는) 이미 차단된 네트워크에 의해 차단되어 있습니다."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network}은(는) 모든 IP 주소를 신뢰하여 IP 차단을 사실상 비활성화합니다."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network}에 현재 차단된 IP 주소가 하나 이상 포함되어 있습니다. 이 네트워크를 허용 목록에 추가하기 전에 해당 차단을 제거하세요."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "모든 IP 차단을 지우기 전에 confirm을 true로 설정하세요."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "HTTP IP 차단 활성화",
+      "description": "Home Assistant의 내장 HTTP IP 차단이 현재 비활성화되어 있어 차단 관리와 허용 목록 보호를 실행할 수 없습니다.\n\n`configuration.yaml`의 기존 `http:` 섹션에 다음 키를 설정한 후 Home Assistant를 재시작하세요:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager가 비활성화됨",
+      "description": "비상 비활성화 스위치가 활성화되어 IP Ban Manager가 런타임 훅, 패널, 서비스, 센서, 관리되는 차단 네트워크 또는 기본 거부 처리를 설치하지 않았습니다.\n\nIP Ban Manager를 다시 사용할 준비가 되면 `configuration.yaml`에서 `ip_ban_manager: disabled`를 제거하거나 `/config/ip_ban_manager.disabled`를 삭제한 후 Home Assistant를 재시작하세요."
+    },
+    "legacy_yaml_present": {
+      "title": "이전 ban_allowlist YAML 제거",
+      "description": "IP Ban Manager가 이전 `ban_allowlist:` YAML 설정을 UI 구성 항목으로 이미 가져왔습니다.\n\n`configuration.yaml`에서 이전 `ban_allowlist:` 블록을 제거한 후 Home Assistant를 재시작하세요. 통합은 가져온 UI 설정을 계속 사용합니다."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "레거시 정리에 주의 필요",
+      "description": "IP Ban Manager가 Home Assistant 로더 경로에서 하나 이상의 오래된 레거시 폴더를 이동하지 못했습니다:\n\n{paths}\n\n파일 권한을 확인하고 해당 경로를 `custom_components` 밖으로 이동한 후 Home Assistant를 재시작하세요."
+    },
+    "health_check_failed": {
+      "title": "IP Ban Manager 상태 점검에 주의 필요",
+      "description": "IP Ban Manager가 실시간 차단 관리에 영향을 줄 수 있는 하나 이상의 설정 문제를 발견했습니다:\n\n{issues}\n\n수정한 후 IP Ban Manager 패널을 열어 상태 점검을 새로 고치세요."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "자동 차단 - 로그인 실패 소스 차단",
+        "ban_notifications": "자동 차단 알림 - IP가 차단될 때 알림 표시",
+        "allowlisted_login_notifications": "허용 목록 로그인 알림 - 신뢰 로그인 실패 시 경고",
+        "sidebar_panel": "사이드바에 표시 - 왼쪽 메뉴 페이지 추가",
+        "geoip": "GeoIP 위치 레이블 - 로컬 DB-IP 데이터베이스 다운로드"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "고급: 허용 IP 내 차단 - 신뢰 IP도 차단 가능",
+        "default_deny": "고급: 허용 IP 외 모든 접속 차단 - 주의"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "local_network": "감지된 로컬 네트워크"
+      }
+    }
+  },
+  "panel": {
+    "loading": "로드 중...",
+    "request_failed": "요청에 실패했습니다.",
+    "none": "없음",
+    "remove": "제거",
+    "add": "추가",
+    "block": "차단",
+    "apply": "적용",
+    "advanced": "고급",
+    "options": "옵션",
+    "added_before_tracking": "추적 전에 추가됨",
+    "sources": {
+      "auto": "자동",
+      "configure": "구성",
+      "default": "설정 기본값",
+      "detected": "감지된 네트워크",
+      "import": "백업 복원",
+      "service": "서비스",
+      "setup": "설정",
+      "yaml": "YAML 가져오기"
+    },
+    "allowed_ips": {
+      "title": "허용 IP",
+      "hint": "신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 이 항목은 정확한 차단, 차단된 네트워크 및 기본 거부 모드보다 우선합니다. 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다.",
+      "placeholder": "IPv4/IPv6 주소, CIDR 또는 와일드카드",
+      "remove_confirm": "이 허용 IP를 제거할까요? 기본 거부 또는 차단된 네트워크가 활성화된 경우 신뢰 항목을 제거하면 접근이 차단될 수 있습니다."
+    },
+    "blocked_ips": {
+      "title": "차단된 IP",
+      "hint": "Home Assistant 네이티브 정확한 IPv4/IPv6 차단 목록으로, ip_bans.yaml에 가장 오래된 항목부터 기록됩니다.",
+      "placeholder": "IPv4/IPv6 주소"
+    },
+    "blocked_networks": {
+      "title": "차단된 네트워크",
+      "hint": "관리되는 IPv4/IPv6 CIDR 또는 와일드카드 네트워크로, ip_bans.yaml에 범위를 기록하지 않고 적용됩니다.",
+      "placeholder": "CIDR 또는 와일드카드 네트워크"
+    },
+    "silenced_logins": {
+      "title": "음소거된 허용 목록 로그인 알림",
+      "hint": "허용 목록 로그인 알림이 음소거된 주소입니다."
+    },
+    "settings": {
+      "auto_ban_enabled": "자동 차단",
+      "auto_ban_enabled_hint": "로그인 실패 소스를 차단합니다.",
+      "ban_notifications_enabled": "자동 차단 알림",
+      "ban_notifications_enabled_hint": "IP가 차단될 때 알림을 표시합니다.",
+      "allowlisted_login_notifications_enabled": "허용 목록 로그인 알림",
+      "allowlisted_login_notifications_enabled_hint": "신뢰 로그인 실패 시 경고합니다.",
+      "sidebar_panel_enabled": "사이드바에 표시",
+      "sidebar_panel_enabled_hint": "왼쪽 메뉴 페이지를 추가합니다.",
+      "geoip_enabled": "GeoIP 위치 레이블",
+      "geoip_enabled_hint": "공용 IP의 대략적인 위치를 표시합니다. 로컬 데이터베이스가 없으면 적용 시 다운로드합니다.",
+      "login_attempts_threshold": "로그인 시도 임계값",
+      "allowlisted_logins_can_ban": "허용 IP 내 차단",
+      "allowlisted_logins_can_ban_hint": "주의: 신뢰 IP도 차단될 수 있습니다.",
+      "default_deny_enabled": "허용 IP 외 모든 접속 차단",
+      "default_deny_enabled_hint": "주의: 허용 IP만 연결할 수 있습니다."
+    },
+    "backup": {
+      "save_title": "구성에 저장",
+      "save_none": "디스크의 백업 파일에 기록합니다.",
+      "save_last": "마지막 저장: {date}",
+      "save": "저장",
+      "restore": "복원",
+      "restore_confirm": "디스크 백업에서 복원하고 현재 IP Ban Manager 설정 및 정확한 IP 차단을 교체할까요?",
+      "transfer_hint": "이 기기로 사본을 다운로드하거나 백업을 업로드하여 복원하세요.",
+      "download": "다운로드",
+      "upload": "업로드",
+      "upload_confirm": "{filename}을(를) 업로드하고 현재 IP Ban Manager 설정 및 정확한 IP 차단을 교체할까요?"
+    },
+    "geoip": {
+      "title": "GeoIP 데이터베이스",
+      "not_installed": "설치되지 않음",
+      "installed": "설치됨 - {date}",
+      "download_hint": "GeoIP를 활성화하고 적용하여 다운로드",
+      "attribution": "위치 데이터:",
+      "update": "업데이트"
+    },
+    "health": {
+      "title": "상태 점검에 주의 필요",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistant 네이티브 IP 차단이 비활성화되어 있습니다.",
+        "panel_not_registered": "IP Ban Manager 패널이 등록되지 않았습니다.",
+        "legacy_cleanup_pending": "레거시 사용자 지정 구성 요소 정리가 아직 완료되지 않았습니다.",
+        "geoip_reader_not_ready": "GeoIP가 활성화되어 있지만 로컬 데이터베이스 리더가 준비되지 않았습니다."
+      }
+    },
+    "success": {
+      "export_config": "백업을 {path}에 저장했습니다",
+      "import_config": "{path}에서 백업을 복원했습니다",
+      "download_config": "백업을 다운로드했습니다.",
+      "upload_config": "백업을 업로드하고 적용했습니다."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "활성 차단"
+      },
+      "allowlisted_networks": {
+        "name": "허용 목록 네트워크"
+      },
+      "blocked_networks": {
+        "name": "차단된 네트워크"
+      },
+      "failed_login_sources": {
+        "name": "로그인 실패 소스"
+      }
+    }
+  }
+}

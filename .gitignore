@@ -8,3 +8,7 @@
 __pycache__/
 .dmypy.json
 .vscode/
+ip-ban-manager.zip
+docs/images/_mcp-sample-dashboard.png
+release-notes-1.8.0.md
+scripts/docker_validate_release.sh

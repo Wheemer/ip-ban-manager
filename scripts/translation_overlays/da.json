@@ -1,0 +1,259 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurer IP Ban Manager",
+        "description": "Vælg sikre startværdier. Administrer efter opsætning live udelukkelser, blokerede netværk, standard-afvisning og notifikationer via IP Ban Manager-panelet eller Konfigurer.",
+        "data": {
+          "login_attempts_threshold": "Grænse for loginforsøg",
+          "auto_ban_enabled": "Automatiske udelukkelser",
+          "ban_notifications_enabled": "Automatiske udelukkelsesnotifikationer",
+          "allowlisted_login_notifications_enabled": "Notifikationer for tilladte logins",
+          "allowlisted_logins_can_ban": "Tillad automatiske udelukkelser inden for tilladte IP'er",
+          "default_deny_enabled": "Bloker alt uden for tilladte IP'er",
+          "geoip_enabled": "GeoIP-placeringsetiketter",
+          "sidebar_panel_enabled": "Vis i sidepanelet",
+          "quick_allowlist": "Sikre standardværdier for tilladt liste",
+          "ban_options": "Indstillinger"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Angiv gyldige IP-adresser, CIDR-netværk eller jokernetværk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Den tilladte listepost ville stole på alle IP-adresser og i praksis deaktivere IP-udelukkelse."
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager er allerede konfigureret.",
+      "unsafe_allowlist_network": "Den importerede tilladte liste indeholder en post, der ville stole på alle IP-adresser."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Administrer IP Ban Manager",
+        "description": "Administrer den live tilladte liste og udelukkelseslisten. Send anvender ændringerne med det samme; Home Assistant behøver ikke genstartes.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Tilladte IP'er",
+            "data": {
+              "allowed_ips": "Tilladte poster",
+              "quick_allowlist": "Tilføj sikre standardværdier"
+            }
+          },
+          "banned_ips": {
+            "name": "Blokerede IP'er",
+            "data": {
+              "ban_options": "Indstillinger",
+              "advanced_ban_options": "Avanceret",
+              "login_attempts_threshold": "Grænse for loginforsøg",
+              "banned_ips": "Blokerede poster",
+              "blocked_networks": "Blokerede netværk"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Pålidelige IPv4-/IPv6-adresser og netværk, der aldrig bør udelukkes. Én post pr. linje. CIDR-netværk og IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes.",
+          "banned_ips": "Nuværende blokerede eksakte IPv4-/IPv6-adresser. Eksisterende rækker viser blokeringstidspunkt til gennemgang; nye rækker kan være blot en IP. Lad stå tom for at rydde alle blokerede IP'er.",
+          "blocked_networks": "IPv4-/IPv6-CIDR-netværk eller jokernetværk, der blokeres uden at skrives til Home Assistants ip_bans.yaml. Tilladte poster vinder stadig."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Ryd blokerede IP'er?",
+        "description": "Dette fjerner {ban_count} blokerede IP'er fra Home Assistant og omskriver ip_bans.yaml. Markér afkrydsningsfeltet for at bekræfte.",
+        "data": {
+          "confirm_clear_bans": "Ryd alle blokerede IP'er"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Angiv gyldige IP-adresser, CIDR-netværk eller jokernetværk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Angiv én eksakt IPv4- eller IPv6-adresse pr. linje. CIDR-netværk og jokertegn hører til under Blokerede netværk.",
+      "invalid_blocked_network": "Angiv gyldige IPv4-/IPv6-CIDR-netværk eller jokernetværk som 203.0.113.* eller 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Det blokerede netværk ville blokere alle IP-adresser. Brug et smallere netværk.",
+      "local_network_block_unprotected": "Den indstilling ville blokere alle registrerede lokale adgangsveje. Tilføj først et nuværende lokalt netværk til Tilladte IP'er.",
+      "unsafe_allowlist_network": "Den tilladte listepost ville stole på alle IP-adresser og i praksis deaktivere IP-udelukkelse.",
+      "banned_ip_allowlisted": "En IP kan ikke være både tilladt og udelukket. Fjern den fra én liste, og prøv igen.",
+      "confirmation_required": "Markér bekræftelsesfeltet, før du rydder alle blokerede IP'er."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} er ikke en gyldig IP-adresse."
+    },
+    "invalid_network": {
+      "message": "{network} er ikke en gyldig IP-adresse, CIDR-netværk eller jokernetværk."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} står på tilladt liste og blev ikke udelukket."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} er i øjeblikket ikke udelukket."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} er allerede blokeret af et blokeret netværk."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} ville stole på alle IP-adresser og i praksis deaktivere IP-udelukkelse."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} indeholder én eller flere nuværende udelukkede IP-adresser. Fjern disse udelukkelser, før du sætter netværket på tilladt liste."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Sæt confirm til true, før du rydder alle IP-udelukkelser."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Aktiver HTTP IP-udelukkelse",
+      "description": "Home Assistants indbyggede HTTP IP-udelukkelse er i øjeblikket deaktiveret, så udelukkelsesadministration og beskyttelse af tilladt liste kan ikke køre.\n\nSæt denne nøgle i dit eksisterende `http:`-afsnit i `configuration.yaml`, og genstart Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager er deaktiveret",
+      "description": "Nødstopkontakten er aktiv, så IP Ban Manager installerede ikke sine runtime-hooks, panel, tjenester, sensorer, administrerede blokerede netværk eller standard-afvisningshåndtering.\n\nNår du er klar til at bruge IP Ban Manager igen, fjern `ip_ban_manager: disabled` fra `configuration.yaml` eller slet `/config/ip_ban_manager.disabled`, og genstart Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Fjern gammel ban_allowlist-YAML",
+      "description": "IP Ban Manager har allerede importeret de gamle `ban_allowlist:`-YAML-indstillinger til UI-konfigurationsposten.\n\nFjern den gamle `ban_allowlist:`-blok fra `configuration.yaml`, og genstart Home Assistant. Integrationen fortsætter med at bruge de importerede UI-indstillinger."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Legacy-oprydning kræver opmærksomhed",
+      "description": "IP Ban Manager kunne ikke flytte én eller flere forældede legacy-mapper ud af Home Assistants indlæsningssti:\n\n{paths}\n\nKontroller filrettigheder, flyt disse stier ud af `custom_components`, og genstart Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "IP Ban Manager-sundhedstjek kræver opmærksomhed",
+      "description": "IP Ban Manager fandt ét eller flere opsætningsproblemer, der kan påvirke live udelukkelsesadministration:\n\n{issues}\n\nÅbn IP Ban Manager-panelet efter rettelse for at opdatere sundhedstjekket."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automatiske udelukkelser – bloker mislykkede login-kilder",
+        "ban_notifications": "Automatiske udelukkelsesnotifikationer – vis advarsler, når IP'er blokeres",
+        "allowlisted_login_notifications": "Notifikationer for tilladte logins – advar ved mislykkede pålidelige logins",
+        "sidebar_panel": "Vis i sidepanelet – tilføj siden i venstremenuen",
+        "geoip": "GeoIP-placeringsetiketter – download lokal DB-IP-database"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Avanceret: Udelukkelser inden for tilladte IP'er – pålidelige IP'er kan blokeres",
+        "default_deny": "Avanceret: Bloker alt uden for tilladte IP'er – vær forsigtig"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "local_network": "Registrerede lokale netværk"
+      }
+    }
+  },
+  "panel": {
+    "loading": "Indlæser...",
+    "request_failed": "Anmodningen mislykkedes.",
+    "none": "Ingen",
+    "remove": "Fjern",
+    "add": "Tilføj",
+    "block": "Bloker",
+    "apply": "Anvend",
+    "advanced": "Avanceret",
+    "options": "Indstillinger",
+    "added_before_tracking": "Tilføjet før sporing",
+    "sources": {
+      "auto": "Automatisk",
+      "configure": "Konfigurer",
+      "default": "Opsætningsstandard",
+      "detected": "Registreret netværk",
+      "import": "Gendannelse fra backup",
+      "service": "Tjeneste",
+      "setup": "Opsætning",
+      "yaml": "YAML-import"
+    },
+    "allowed_ips": {
+      "title": "Tilladte IP'er",
+      "hint": "Pålidelige IPv4-/IPv6-adresser og netværk. Disse poster slår eksakte udelukkelser, blokerede netværk og standard-afvisningstilstand. IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes.",
+      "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn",
+      "remove_confirm": "Fjerne denne tilladte IP? Med aktiv standard-afvisning eller blokerede netværk kan fjernelse af en pålidelig post låse adgangen ude."
+    },
+    "blocked_ips": {
+      "title": "Blokerede IP'er",
+      "hint": "Home Assistants native eksakte IPv4-/IPv6-blokeringsliste, skrevet ældste først i ip_bans.yaml.",
+      "placeholder": "IPv4-/IPv6-adresse"
+    },
+    "blocked_networks": {
+      "title": "Blokerede netværk",
+      "hint": "Administrerede IPv4-/IPv6-CIDR- eller jokernetværk, håndhævet uden at skrive områder til ip_bans.yaml.",
+      "placeholder": "CIDR- eller jokernetværk"
+    },
+    "silenced_logins": {
+      "title": "Dæmpede notifikationer for tilladte logins",
+      "hint": "Adresser, der er dæmpet fra advarsler om tilladte logins."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automatiske udelukkelser",
+      "auto_ban_enabled_hint": "Bloker mislykkede login-kilder.",
+      "ban_notifications_enabled": "Automatiske udelukkelsesnotifikationer",
+      "ban_notifications_enabled_hint": "Vis advarsler, når IP'er blokeres.",
+      "allowlisted_login_notifications_enabled": "Notifikationer for tilladte logins",
+      "allowlisted_login_notifications_enabled_hint": "Advar ved mislykkede pålidelige logins.",
+      "sidebar_panel_enabled": "Vis i sidepanelet",
+      "sidebar_panel_enabled_hint": "Tilføj siden i venstremenuen.",
+      "geoip_enabled": "GeoIP-placeringsetiketter",
+      "geoip_enabled_hint": "Vis omtrentlige placeringer for offentlige IP'er. Hvis lokal database mangler, downloades den ved Anvend.",
+      "login_attempts_threshold": "Grænse for loginforsøg",
+      "allowlisted_logins_can_ban": "Udelukkelser inden for tilladte IP'er",
+      "allowlisted_logins_can_ban_hint": "Vær forsigtig: pålidelige IP'er kan blokeres.",
+      "default_deny_enabled": "Bloker alt uden for tilladte IP'er",
+      "default_deny_enabled_hint": "Vær forsigtig: kun tilladte IP'er kan oprette forbindelse."
+    },
+    "backup": {
+      "save_title": "Gem til config",
+      "save_none": "Skriver backup-filen til disk.",
+      "save_last": "Sidst gemt: {date}",
+      "save": "Gem",
+      "restore": "Gendan",
+      "restore_confirm": "Gendanne fra backup på disk og erstatte nuværende IP Ban Manager-indstillinger og eksakte IP-udelukkelser?",
+      "transfer_hint": "Download en kopi til denne enhed, eller upload en backup for gendannelse.",
+      "download": "Download",
+      "upload": "Upload",
+      "upload_confirm": "Uploade {filename} og erstatte nuværende IP Ban Manager-indstillinger og eksakte IP-udelukkelser?"
+    },
+    "geoip": {
+      "title": "GeoIP-database",
+      "not_installed": "Ikke installeret",
+      "installed": "Installeret - {date}",
+      "download_hint": "Aktiver GeoIP og anvend for at downloade",
+      "attribution": "Placeringsdata:",
+      "update": "Opdater"
+    },
+    "health": {
+      "title": "Sundhedstjek kræver opmærksomhed",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistants native IP-udelukkelse er deaktiveret.",
+        "panel_not_registered": "IP Ban Manager-panelet er ikke registreret.",
+        "legacy_cleanup_pending": "Legacy-oprydning af brugerdefineret komponent er endnu ikke fuldført.",
+        "geoip_reader_not_ready": "GeoIP er aktiveret, men den lokale databaselæser er ikke klar."
+      }
+    },
+    "success": {
+      "export_config": "Backup gemt til {path}",
+      "import_config": "Backup gendannet fra {path}",
+      "download_config": "Backup downloadet.",
+      "upload_config": "Backup uploadet og anvendt."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktive udelukkelser"
+      },
+      "allowlisted_networks": {
+        "name": "Tilladte netværk"
+      },
+      "blocked_networks": {
+        "name": "Blokerede netværk"
+      },
+      "failed_login_sources": {
+        "name": "Mislykkede login-kilder"
+      }
+    }
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurează IP Ban Manager",
+        "description": "Alege valori inițiale sigure. Apoi gestionează interdicțiile live, rețelele blocate, modul de refuz implicit și notificările din panoul IP Ban Manager sau din ecranul Configurează.",
+        "data": {
+          "login_attempts_threshold": "Prag de încercări de autentificare",
+          "auto_ban_enabled": "Interdicții automate",
+          "ban_notifications_enabled": "Notificări automate de interdicție",
+          "allowlisted_login_notifications_enabled": "Notificări de autentificare pe lista permisă",
+          "allowlisted_logins_can_ban": "Permite interdicții automate în IP-urile permise",
+          "default_deny_enabled": "Blochează tot ce este în afara IP-urilor permise",
+          "geoip_enabled": "Etichete de locație GeoIP",
+          "sidebar_panel_enabled": "Afișează în bara laterală",
+          "quick_allowlist": "Valori sigure implicite pentru lista permisă",
+          "ban_options": "Opțiuni"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Introduce adrese IP, rețele CIDR sau rețele wildcard valide, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Această intrare din lista permisă ar avea încredere în fiecare adresă IP și ar dezactiva practic interdicțiile IP.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager este deja configurat.",
+      "unsafe_allowlist_network": "Lista permisă importată conține o intrare care ar avea încredere în fiecare adresă IP."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gestionează IP Ban Manager",
+        "description": "Gestionează lista permisă live și lista de interdicții. Trimiterea aplică modificările imediat; nu este necesară repornirea Home Assistant.",
+        "sections": {
+          "allowed_ips": {
+            "name": "IP-uri permise",
+            "data": {
+              "allowed_ips": "Intrări permise",
+              "quick_allowlist": "Adaugă valori sigure implicite"
+            }
+          },
+          "banned_ips": {
+            "name": "IP-uri blocate",
+            "data": {
+              "ban_options": "Opțiuni",
+              "advanced_ban_options": "Avansat",
+              "login_attempts_threshold": "Prag de încercări de autentificare",
+              "banned_ips": "Intrări blocate",
+              "blocked_networks": "Rețele blocate"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Adrese și rețele IPv4/IPv6 de încredere care nu trebuie interzise niciodată. O intrare pe linie. Sunt acceptate rețele CIDR și wildcard-uri IPv4/IPv6, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
+          "banned_ips": "Adrese IPv4/IPv6 exacte blocate în prezent. Rândurile existente arată ora blocării pentru verificare; rândurile noi pot fi doar o IP. Lasă gol pentru a șterge toate IP-urile blocate.",
+          "blocked_networks": "Rețele CIDR sau wildcard IPv4/IPv6 de blocat fără a le scrie în ip_bans.yaml al Home Assistant. Intrările permise au în continuare prioritate."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Ștergi IP-urile blocate?",
+        "description": "Aceasta va elimina {ban_count} IP(uri) blocată(e) din Home Assistant și va rescrie ip_bans.yaml. Bifează caseta pentru confirmare.",
+        "data": {
+          "confirm_clear_bans": "Șterge toate IP-urile blocate"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Introduce adrese IP, rețele CIDR sau rețele wildcard valide, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Introduce o singură adresă IPv4 sau IPv6 exactă pe linie. Rețelele CIDR și wildcard-urile aparțin secțiunii Rețele blocate.",
+      "invalid_blocked_network": "Introduce rețele CIDR sau wildcard IPv4/IPv6 valide, cum ar fi 203.0.113.* sau 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Această rețea blocată ar bloca fiecare adresă IP. Folosește o rețea mai restrânsă.",
+      "local_network_block_unprotected": "Această setare ar bloca fiecare cale de acces local detectată. Adaugă mai întâi o rețea locală curentă la IP-uri permise.",
+      "unsafe_allowlist_network": "Această intrare din lista permisă ar avea încredere în fiecare adresă IP și ar dezactiva practic interdicțiile IP.",
+      "banned_ip_allowlisted": "O IP nu poate fi simultan permisă și interzisă. Elimin-o dintr-o listă și încearcă din nou.",
+      "confirmation_required": "Bifează caseta de confirmare înainte de a șterge toate IP-urile blocate."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} nu este o adresă IP validă."
+    },
+    "invalid_network": {
+      "message": "{network} nu este o adresă IP, rețea CIDR sau rețea wildcard validă."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} este pe lista permisă, deci nu a fost interzisă."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} nu este interzisă în prezent."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} este deja blocată de o rețea blocată."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} ar avea încredere în fiecare adresă IP și ar dezactiva practic interdicțiile IP."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} conține una sau mai multe adrese IP interzise în prezent. Elimină aceste interdicții înainte de a adăuga această rețea pe lista permisă."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Setează confirm la true înainte de a șterge toate interdicțiile IP."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Activează interdicțiile IP HTTP",
+      "description": "Interdicțiile IP HTTP integrate ale Home Assistant sunt dezactivate în prezent, deci gestionarea interdicțiilor și protecția listei permise nu pot funcționa.\n\nSetează această cheie în secțiunea `http:` existentă din `configuration.yaml`, apoi repornește Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager este dezactivat",
+      "description": "Comutatorul de urgență este activ, deci IP Ban Manager nu și-a instalat hook-urile de runtime, panoul, serviciile, senzorii, rețelele blocate gestionate sau gestionarea refuzului implicit.\n\nElimină `ip_ban_manager: disabled` din `configuration.yaml` sau șterge `/config/ip_ban_manager.disabled`, apoi repornește Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Elimină YAML-ul vechi ban_allowlist",
+      "description": "IP Ban Manager a importat deja setările vechi `ban_allowlist:` YAML în intrarea de configurare UI.\n\nElimină blocul vechi `ban_allowlist:` din `configuration.yaml`, apoi repornește Home Assistant. Integrarea va continua să folosească setările UI importate."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Curățarea legacy necesită atenție",
+      "description": "IP Ban Manager nu a putut muta unul sau mai multe foldere legacy învechite din calea de încărcare a Home Assistant:\n\n{paths}\n\nVerifică permisiunile fișierelor, mută aceste căi din `custom_components`, apoi repornește Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "Verificarea stării IP Ban Manager necesită atenție",
+      "description": "IP Ban Manager a găsit una sau mai multe probleme de configurare care pot afecta gestionarea interdicțiilor live:\n\n{issues}\n\nDeschide panoul IP Ban Manager după remediere pentru a reîmprospăta verificarea stării."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Interdicții automate – blochează sursele de autentificare eșuate",
+        "ban_notifications": "Notificări automate de interdicție – alerte când IP-urile sunt blocate",
+        "allowlisted_login_notifications": "Notificări de autentificare pe lista permisă – alerte la autentificări de încredere eșuate",
+        "sidebar_panel": "Afișează în bara laterală – adaugă pagina în meniul din stânga",
+        "geoip": "Etichete de locație GeoIP – descarcă o bază de date DB-IP locală"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Avansat: interdicții în IP-urile permise – IP-urile de încredere pot fi blocate",
+        "default_deny": "Avansat: blochează tot ce este în afara IP-urilor permise – ai grijă"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Rețea/rețele locală(e) detectată(e)"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Se încarcă...",
+    "request_failed": "Cererea a eșuat.",
+    "none": "Niciuna",
+    "remove": "Elimină",
+    "add": "Adaugă",
+    "block": "Blochează",
+    "apply": "Aplică",
+    "advanced": "Avansat",
+    "options": "Opțiuni",
+    "added_before_tracking": "Adăugat înainte de urmărire",
+    "sources": {
+      "auto": "Automat",
+      "configure": "Configurează",
+      "default": "Valoare implicită la instalare",
+      "detected": "Rețea detectată",
+      "import": "Restaurare backup",
+      "panel": "Panel",
+      "service": "Serviciu",
+      "setup": "Instalare",
+      "yaml": "Import YAML"
+    },
+    "allowed_ips": {
+      "title": "IP-uri permise",
+      "hint": "Adrese și rețele IPv4/IPv6 de încredere. Aceste intrări au prioritate față de interdicțiile exacte, rețelele blocate și modul de refuz implicit. Sunt acceptate wildcard-uri IPv4/IPv6, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
+      "placeholder": "Adresă IPv4/IPv6, CIDR sau wildcard",
+      "remove_confirm": "Elimini această IP permisă? Cu refuzul implicit sau rețelele blocate active, eliminarea unei intrări de încredere poate bloca accesul."
+    },
+    "blocked_ips": {
+      "title": "IP-uri blocate",
+      "hint": "Lista nativă Home Assistant de blocări exacte IPv4/IPv6, scrisă de la cea mai veche în ip_bans.yaml.",
+      "placeholder": "Adresă IPv4/IPv6"
+    },
+    "blocked_networks": {
+      "title": "Rețele blocate",
+      "hint": "Rețele CIDR sau wildcard IPv4/IPv6 gestionate, aplicate fără a scrie intervale în ip_bans.yaml.",
+      "placeholder": "Rețea CIDR sau wildcard"
+    },
+    "silenced_logins": {
+      "title": "Notificări silențioase de autentificare pe lista permisă",
+      "hint": "Adrese silențiate din alertele de autentificare pe lista permisă."
+    },
+    "settings": {
+      "auto_ban_enabled": "Interdicții automate",
+      "auto_ban_enabled_hint": "Blochează sursele de autentificare eșuate.",
+      "ban_notifications_enabled": "Notificări automate de interdicție",
+      "ban_notifications_enabled_hint": "Afișează alerte când IP-urile sunt blocate.",
+      "allowlisted_login_notifications_enabled": "Notificări de autentificare pe lista permisă",
+      "allowlisted_login_notifications_enabled_hint": "Alerte la autentificări de încredere eșuate.",
+      "sidebar_panel_enabled": "Afișează în bara laterală",
+      "sidebar_panel_enabled_hint": "Adaugă pagina în meniul din stânga.",
+      "geoip_enabled": "Etichete de locație GeoIP",
+      "geoip_enabled_hint": "Afișează locații aproximative ale IP-urilor publice. Dacă baza de date locală lipsește, Aplică o descarcă.",
+      "login_attempts_threshold": "Prag de încercări de autentificare",
+      "allowlisted_logins_can_ban": "Interdicții în IP-urile permise",
+      "allowlisted_logins_can_ban_hint": "Ai grijă: IP-urile de încredere pot fi blocate.",
+      "default_deny_enabled": "Blochează tot ce este în afara IP-urilor permise",
+      "default_deny_enabled_hint": "Ai grijă: doar IP-urile permise se pot conecta."
+    },
+    "backup": {
+      "save_title": "Salvează în configurație",
+      "save_none": "Scrie fișierul de backup pe disc.",
+      "save_last": "Ultima salvare: {date}",
+      "save": "Salvează",
+      "restore": "Restaurează",
+      "restore_confirm": "Restaurezi din backup-ul de pe disc și înlocuiești setările curente IP Ban Manager și interdicțiile IP exacte?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Descarcă o copie pe acest dispozitiv sau încarcă un backup pentru restaurare.",
+      "download": "Descarcă",
+      "upload": "Încarcă",
+      "upload_confirm": "Încarci {filename} și înlocuiești setările curente IP Ban Manager și interdicțiile IP exacte?"
+    },
+    "geoip": {
+      "title": "Bază de date GeoIP",
+      "not_installed": "Neinstalată",
+      "installed": "Instalată - {date}",
+      "download_hint": "Activează GeoIP și Aplică pentru descărcare",
+      "attribution": "Date de locație:",
+      "update": "Actualizează"
+    },
+    "health": {
+      "title": "Verificarea stării necesită atenție",
+      "issues": {
+        "native_ip_ban_disabled": "Interdicțiile IP native Home Assistant sunt dezactivate.",
+        "ban_file_not_loaded": "Blocarea IP Home Assistant nu este încărcată.",
+        "ban_file_not_regular_file": "{path} nu este un fișier obișnuit.",
+        "ban_file_not_readable_writable": "{path} nu poate fi citit și scris.",
+        "ban_file_parent_missing": "{path} nu există.",
+        "ban_file_parent_not_writable": "{path} nu poate fi scris.",
+        "panel_not_registered": "Panoul IP Ban Manager nu este înregistrat.",
+        "legacy_cleanup_pending": "Curățarea componentei legacy nu s-a finalizat încă.",
+        "geoip_reader_not_ready": "GeoIP este activat, dar cititorul bazei de date locale nu este pregătit."
+      }
+    },
+    "success": {
+      "export_config": "Backup salvat în {path}",
+      "import_config": "Backup restaurat din {path}",
+      "download_config": "Backup descărcat.",
+      "upload_config": "Backup încărcat și aplicat."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Interdicții active"
+      },
+      "allowlisted_networks": {
+        "name": "Rețele pe lista permisă"
+      },
+      "blocked_networks": {
+        "name": "Rețele blocate"
+      },
+      "failed_login_sources": {
+        "name": "Surse de autentificare eșuate"
+      }
+    }
+  }
+}

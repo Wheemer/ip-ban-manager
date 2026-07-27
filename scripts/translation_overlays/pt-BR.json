@@ -1,0 +1,259 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar IP Ban Manager",
+        "description": "Escolha padrões iniciais seguros. Após a configuração, use o painel IP Ban Manager ou a tela Configurar para gerenciar bloqueios ao vivo, redes bloqueadas, modo deny padrão e notificações.",
+        "data": {
+          "login_attempts_threshold": "Limite de tentativas de login",
+          "auto_ban_enabled": "Bloqueios automáticos",
+          "ban_notifications_enabled": "Notificações de bloqueio automático",
+          "allowlisted_login_notifications_enabled": "Notificações de login Allowlist",
+          "allowlisted_logins_can_ban": "Permitir bloqueios automáticos dentro de IPs permitidos",
+          "default_deny_enabled": "Bloquear tudo fora dos IPs permitidos",
+          "geoip_enabled": "Rótulos de localização GeoIP",
+          "sidebar_panel_enabled": "Mostrar na barra lateral",
+          "quick_allowlist": "Padrões seguros Allowlist",
+          "ban_options": "Opções"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Digite endereços IP, redes CIDR ou redes com wildcard válidos como 192.168.1.* ou 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Essa entrada Allowlist confiaria em todos os endereços IP e desativaria efetivamente o bloqueio IP."
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager já está configurado.",
+      "unsafe_allowlist_network": "A Allowlist importada contém uma entrada que confiaria em todos os endereços IP."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gerenciar IP Ban Manager",
+        "description": "Gerencie a Allowlist e a lista de bloqueios ao vivo. Enviar aplica as alterações imediatamente; não é necessário reiniciar o Home Assistant.",
+        "sections": {
+          "allowed_ips": {
+            "name": "IPs permitidos",
+            "data": {
+              "allowed_ips": "Entradas permitidas",
+              "quick_allowlist": "Adicionar padrões seguros"
+            }
+          },
+          "banned_ips": {
+            "name": "IPs bloqueados",
+            "data": {
+              "ban_options": "Opções",
+              "advanced_ban_options": "Avançado",
+              "login_attempts_threshold": "Limite de tentativas de login",
+              "banned_ips": "Entradas bloqueadas",
+              "blocked_networks": "Redes bloqueadas"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Endereços e redes IPv4/IPv6 confiáveis que nunca devem ser bloqueados. Uma entrada por linha. Redes CIDR e wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:* são suportados.",
+          "banned_ips": "Endereços IPv4/IPv6 exatos atualmente bloqueados. Linhas existentes mostram a hora do bloqueio para revisão; novas linhas podem conter apenas um endereço IP. Deixe vazio para limpar todos os IPs bloqueados.",
+          "blocked_networks": "Redes CIDR IPv4/IPv6 ou redes com wildcard a bloquear sem gravá-las em ip_bans.yaml do Home Assistant. Entradas permitidas sempre têm prioridade."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Limpar IPs bloqueados?",
+        "description": "Isso removerá {ban_count} IP(s) bloqueado(s) do Home Assistant e reescreverá ip_bans.yaml. Marque a caixa para confirmar.",
+        "data": {
+          "confirm_clear_bans": "Limpar todos os IPs bloqueados"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Digite endereços IP, redes CIDR ou redes com wildcard válidos como 192.168.1.* ou 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Digite um endereço IPv4 ou IPv6 exato por linha. Redes CIDR e wildcards pertencem a Redes bloqueadas.",
+      "invalid_blocked_network": "Digite redes CIDR IPv4/IPv6 ou redes com wildcard válidas como 203.0.113.* ou 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Essa rede bloqueada bloquearia todos os endereços IP. Use uma rede mais restrita.",
+      "local_network_block_unprotected": "Essa configuração bloquearia todos os caminhos de acesso local detectados. Adicione primeiro uma rede local atual aos IPs permitidos.",
+      "unsafe_allowlist_network": "Essa entrada Allowlist confiaria em todos os endereços IP e desativaria efetivamente o bloqueio IP.",
+      "banned_ip_allowlisted": "Um endereço IP não pode estar permitido e bloqueado ao mesmo tempo. Remova-o de uma lista e tente novamente.",
+      "confirmation_required": "Marque a caixa de confirmação antes de limpar todos os IPs bloqueados."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} não é um endereço IP válido."
+    },
+    "invalid_network": {
+      "message": "{network} não é um endereço IP, rede CIDR ou rede com wildcard válida."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} está na Allowlist, então não foi bloqueado."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} não está bloqueado no momento."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} já está bloqueado por uma rede bloqueada."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} confiaria em todos os endereços IP e desativaria efetivamente o bloqueio IP."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} contém um ou mais endereços IP bloqueados no momento. Remova esses bloqueios antes de adicionar esta rede à Allowlist."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Defina confirm como true antes de limpar todos os bloqueios IP."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Ativar bloqueio IP HTTP",
+      "description": "O bloqueio IP HTTP integrado do Home Assistant está desativado no momento, então a gestão de bloqueios e a proteção Allowlist não podem funcionar.\n\nDefina esta chave na seção `http:` existente em `configuration.yaml` e reinicie o Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager está desativado",
+      "description": "O interruptor de desativação de emergência está ativo, então o IP Ban Manager não instalou seus hooks de runtime, painel, serviços, sensores, redes bloqueadas gerenciadas ou tratamento deny padrão.\n\nRemova `ip_ban_manager: disabled` de `configuration.yaml` ou exclua `/config/ip_ban_manager.disabled` e reinicie o Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Remover YAML ban_allowlist antigo",
+      "description": "O IP Ban Manager já importou as configurações YAML antigas `ban_allowlist:` para a entrada de configuração da UI.\n\nRemova o bloco `ban_allowlist:` antigo de `configuration.yaml` e reinicie o Home Assistant. A integração continuará usando as configurações da UI importadas."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Limpeza legacy precisa de atenção",
+      "description": "O IP Ban Manager não conseguiu mover uma ou mais pastas legacy obsoletas do caminho de carregamento do Home Assistant:\n\n{paths}\n\nVerifique as permissões de arquivos, mova esses caminhos para fora de `custom_components` e reinicie o Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "Verificação de integridade do IP Ban Manager precisa de atenção",
+      "description": "O IP Ban Manager encontrou um ou mais problemas de configuração que podem afetar a gestão de bloqueios ao vivo:\n\n{issues}\n\nApós corrigir, abra o painel IP Ban Manager para atualizar a verificação de integridade."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Bloqueios automáticos – bloquear origens de login com falha",
+        "ban_notifications": "Notificações de bloqueio automático – alertas quando IPs são bloqueados",
+        "allowlisted_login_notifications": "Notificações de login Allowlist – alertar sobre logins confiáveis com falha",
+        "sidebar_panel": "Mostrar na barra lateral – adicionar página ao menu esquerdo",
+        "geoip": "Rótulos de localização GeoIP – baixar banco de dados DB-IP local"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Avançado: bloqueios dentro de IPs permitidos – IPs confiáveis podem ser bloqueados",
+        "default_deny": "Avançado: bloquear tudo fora dos IPs permitidos – cuidado"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "local_network": "Rede(s) local(is) detectada(s)"
+      }
+    }
+  },
+  "panel": {
+    "loading": "Carregando...",
+    "request_failed": "Falha na solicitação.",
+    "none": "Nenhum",
+    "remove": "Remover",
+    "add": "Adicionar",
+    "block": "Bloquear",
+    "apply": "Aplicar",
+    "advanced": "Avançado",
+    "options": "Opções",
+    "added_before_tracking": "Adicionado antes do rastreamento",
+    "sources": {
+      "auto": "Automático",
+      "configure": "Configurar",
+      "default": "Padrão de setup",
+      "detected": "Rede detectada",
+      "import": "Restauração de backup",
+      "service": "Serviço",
+      "setup": "Configuração",
+      "yaml": "Importação YAML"
+    },
+    "allowed_ips": {
+      "title": "IPs permitidos",
+      "hint": "Endereços e redes IPv4/IPv6 confiáveis. Essas entradas têm prioridade sobre bloqueios exatos, redes bloqueadas e modo deny padrão. Wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:* são suportados.",
+      "placeholder": "Endereço IPv4/IPv6, CIDR ou wildcard",
+      "remove_confirm": "Remover este IP permitido? Com deny padrão ou redes bloqueadas ativas, remover uma entrada confiável pode bloquear o acesso."
+    },
+    "blocked_ips": {
+      "title": "IPs bloqueados",
+      "hint": "Lista nativa do Home Assistant de endereços IPv4/IPv6 exatos bloqueados, gravada em ip_bans.yaml da mais antiga para a mais recente.",
+      "placeholder": "Endereço IPv4/IPv6"
+    },
+    "blocked_networks": {
+      "title": "Redes bloqueadas",
+      "hint": "Redes CIDR IPv4/IPv6 ou redes com wildcard gerenciadas, aplicadas sem gravar intervalos em ip_bans.yaml.",
+      "placeholder": "Rede CIDR ou wildcard"
+    },
+    "silenced_logins": {
+      "title": "Notificações de login Allowlist silenciadas",
+      "hint": "Endereços silenciados dos alertas de login Allowlist."
+    },
+    "settings": {
+      "auto_ban_enabled": "Bloqueios automáticos",
+      "auto_ban_enabled_hint": "Bloquear origens de login com falha.",
+      "ban_notifications_enabled": "Notificações de bloqueio automático",
+      "ban_notifications_enabled_hint": "Mostrar alertas quando IPs são bloqueados.",
+      "allowlisted_login_notifications_enabled": "Notificações de login Allowlist",
+      "allowlisted_login_notifications_enabled_hint": "Alertar sobre logins confiáveis com falha.",
+      "sidebar_panel_enabled": "Mostrar na barra lateral",
+      "sidebar_panel_enabled_hint": "Adicionar página ao menu esquerdo.",
+      "geoip_enabled": "Rótulos de localização GeoIP",
+      "geoip_enabled_hint": "Mostrar localizações aproximadas de IPs públicos. Se o banco de dados local estiver ausente, Aplicar fará o download.",
+      "login_attempts_threshold": "Limite de tentativas de login",
+      "allowlisted_logins_can_ban": "Bloqueios dentro de IPs permitidos",
+      "allowlisted_logins_can_ban_hint": "Cuidado: IPs confiáveis podem ser bloqueados.",
+      "default_deny_enabled": "Bloquear tudo fora dos IPs permitidos",
+      "default_deny_enabled_hint": "Cuidado: apenas IPs permitidos podem se conectar."
+    },
+    "backup": {
+      "save_title": "Salvar na configuração",
+      "save_none": "Grava o arquivo de backup em disco.",
+      "save_last": "Último salvamento: {date}",
+      "save": "Salvar",
+      "restore": "Restaurar",
+      "restore_confirm": "Restaurar do backup em disco e substituir as configurações atuais do IP Ban Manager e bloqueios IP exatos?",
+      "transfer_hint": "Baixar uma cópia neste dispositivo ou enviar um backup para restaurar.",
+      "download": "Baixar",
+      "upload": "Enviar",
+      "upload_confirm": "Enviar {filename} e substituir as configurações atuais do IP Ban Manager e bloqueios IP exatos?"
+    },
+    "geoip": {
+      "title": "Banco de dados GeoIP",
+      "not_installed": "Não instalado",
+      "installed": "Instalado - {date}",
+      "download_hint": "Ativar GeoIP e Aplicar para baixar",
+      "attribution": "Dados de localização:",
+      "update": "Atualizar"
+    },
+    "health": {
+      "title": "Verificação de integridade precisa de atenção",
+      "issues": {
+        "native_ip_ban_disabled": "O bloqueio IP nativo do Home Assistant está desativado.",
+        "panel_not_registered": "O painel IP Ban Manager não está registrado.",
+        "legacy_cleanup_pending": "A limpeza legacy ainda não foi concluída.",
+        "geoip_reader_not_ready": "GeoIP está ativo, mas o leitor do banco de dados local não está pronto."
+      }
+    },
+    "success": {
+      "export_config": "Backup salvo em {path}",
+      "import_config": "Backup restaurado de {path}",
+      "download_config": "Backup baixado.",
+      "upload_config": "Backup enviado e aplicado."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Bloqueios ativos"
+      },
+      "allowlisted_networks": {
+        "name": "Redes Allowlist"
+      },
+      "blocked_networks": {
+        "name": "Redes bloqueadas"
+      },
+      "failed_login_sources": {
+        "name": "Origens de login com falha"
+      }
+    }
+  }
+}

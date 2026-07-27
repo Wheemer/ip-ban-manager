@@ -5,8 +5,6 @@
         "title": "Set up IP Ban Manager",
         "description": "Choose safe starting defaults. After setup, use the IP Ban Manager panel or Configure screen to manage live bans, blocked networks, default-deny mode, and notification behavior.",
         "data": {
-          "quick_allowlist": "Allowlist safe defaults",
-          "ban_options": "Options",
           "login_attempts_threshold": "Login attempts threshold",
           "auto_ban_enabled": "Automatic bans",
           "ban_notifications_enabled": "Automatic ban notifications",
@@ -14,12 +12,14 @@
           "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
           "default_deny_enabled": "Block everything outside Allowed IPs",
           "geoip_enabled": "GeoIP location labels",
-          "sidebar_panel_enabled": "Show in sidebar"
+          "sidebar_panel_enabled": "Show in sidebar",
+          "quick_allowlist": "Allowlist safe defaults",
+          "ban_options": "Options"
         }
       }
     },
     "error": {
-      "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*.",
+      "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or wildcard networks like 192.168.1.* or 2001:db8:1:2:*.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -37,30 +37,25 @@
           "allowed_ips": {
             "name": "Allowed IPs",
             "data": {
-              "quick_allowlist": "Add safe defaults",
               "allowed_ips": "Allowed entries",
-              "allowed_ips_help": ""
+              "quick_allowlist": "Add safe defaults"
             }
           },
           "banned_ips": {
             "name": "Blocked IPs",
             "data": {
-              "auto_ban_enabled": "Automatic bans",
               "ban_options": "Options",
               "advanced_ban_options": "Advanced",
-              "ban_notifications_enabled": "Automatic ban notifications",
-              "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
-              "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
-              "default_deny_enabled": "Block everything outside Allowed IPs",
-              "geoip_enabled": "GeoIP location labels",
-              "sidebar_panel_enabled": "Show in sidebar",
               "login_attempts_threshold": "Login attempts threshold",
-              "banned_ips_help": "",
               "banned_ips": "Blocked entries",
-              "blocked_networks_help": "",
               "blocked_networks": "Blocked networks"
             }
           }
+        },
+        "data_description": {
+          "allowed_ips": "Trusted IPv4/IPv6 addresses and networks that should never be banned. Use one entry per line. CIDR networks and IPv4/IPv6 wildcards like 192.168.1.* or 2001:db8:1:2:* are supported.",
+          "banned_ips": "Currently blocked exact IPv4/IPv6 addresses. Existing rows show the block time for review; new rows can be just an IP. Leave this empty to clear all blocked IPs.",
+          "blocked_networks": "IPv4/IPv6 CIDR networks or IPv4/IPv6 wildcard networks to block without writing them to Home Assistant's ip_bans.yaml. Allowed entries still win."
         }
       },
       "confirm_clear_bans": {
@@ -72,9 +67,9 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or IPv4 wildcard networks like 192.168.1.*.",
+      "invalid_ip_address": "Enter valid IP addresses, CIDR networks, or wildcard networks like 192.168.1.* or 2001:db8:1:2:*.",
       "invalid_banned_ip": "Enter one exact IPv4 or IPv6 address per line. CIDR networks and wildcards belong in Blocked networks.",
-      "invalid_blocked_network": "Enter valid IPv4/IPv6 CIDR networks or IPv4 wildcard networks like 203.0.113.*.",
+      "invalid_blocked_network": "Enter valid IPv4/IPv6 CIDR networks or wildcard networks like 203.0.113.* or 2001:db8:1:2:*.",
       "unsafe_blocked_network": "That blocked network would block every IP address. Use a narrower network.",
       "local_network_block_unprotected": "That setting would block every detected local access path. Add a current local network to Allowed IPs first.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
@@ -87,7 +82,7 @@
       "message": "{ip_address} is not a valid IP address."
     },
     "invalid_network": {
-      "message": "{network} is not a valid IP address, CIDR network, or IPv4 wildcard network."
+      "message": "{network} is not a valid IP address, CIDR network, or wildcard network."
     },
     "ip_address_allowlisted": {
       "message": "{ip_address} is allowlisted, so it was not banned."
@@ -128,6 +123,147 @@
     "health_check_failed": {
       "title": "IP Ban Manager health check needs attention",
       "description": "IP Ban Manager found one or more setup issues that can affect live ban management:\n\n{issues}\n\nOpen the IP Ban Manager panel after fixing these items to refresh the health check."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automatic bans - block failed login sources",
+        "ban_notifications": "Automatic ban notifications - show alerts when IPs are blocked",
+        "allowlisted_login_notifications": "Allowlisted login notifications - alert on failed trusted logins",
+        "sidebar_panel": "Show in sidebar - add the left menu page",
+        "geoip": "GeoIP location labels - download a local DB-IP database"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Advanced: Bans inside Allowed IPs - trusted IPs can be blocked",
+        "default_deny": "Advanced: Block everything outside Allowed IPs - be careful"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Detected local network(s)"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Loading...",
+    "request_failed": "Request failed.",
+    "none": "None",
+    "remove": "Remove",
+    "add": "Add",
+    "block": "Block",
+    "apply": "Apply",
+    "advanced": "Advanced",
+    "options": "Options",
+    "added_before_tracking": "Added before tracking",
+    "sources": {
+      "auto": "Automatic",
+      "configure": "Configure",
+      "default": "Setup default",
+      "detected": "Detected network",
+      "import": "Backup restore",
+      "panel": "Panel",
+      "service": "Service",
+      "setup": "Setup",
+      "yaml": "YAML import"
+    },
+    "allowed_ips": {
+      "title": "Allowed IPs",
+      "hint": "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4/IPv6 wildcards like 192.168.1.* or 2001:db8:1:2:* are supported.",
+      "placeholder": "IPv4/IPv6 address, CIDR, or wildcard",
+      "remove_confirm": "Remove this Allowed IP? With default-deny or blocked networks active, removing a trusted entry can lock out access."
+    },
+    "blocked_ips": {
+      "title": "Blocked IPs",
+      "hint": "Home Assistant's native exact IPv4/IPv6 block list, written oldest first in ip_bans.yaml.",
+      "placeholder": "IPv4/IPv6 address"
+    },
+    "blocked_networks": {
+      "title": "Blocked Networks",
+      "hint": "Managed IPv4/IPv6 CIDR or wildcard networks, enforced without writing ranges into ip_bans.yaml.",
+      "placeholder": "CIDR or wildcard network"
+    },
+    "silenced_logins": {
+      "title": "Silenced allowlisted-login notifications",
+      "hint": "Addresses silenced from allowlisted-login alerts."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automatic bans",
+      "auto_ban_enabled_hint": "Block failed login sources.",
+      "ban_notifications_enabled": "Automatic ban notifications",
+      "ban_notifications_enabled_hint": "Show alerts when IPs are blocked.",
+      "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
+      "allowlisted_login_notifications_enabled_hint": "Alert on failed trusted logins.",
+      "sidebar_panel_enabled": "Show in sidebar",
+      "sidebar_panel_enabled_hint": "Add the left menu page.",
+      "geoip_enabled": "GeoIP location labels",
+      "geoip_enabled_hint": "Show approximate public-IP locations. If the local database is missing, Apply downloads it.",
+      "login_attempts_threshold": "Login attempts threshold",
+      "allowlisted_logins_can_ban": "Bans inside Allowed IPs",
+      "allowlisted_logins_can_ban_hint": "Be careful: trusted IPs can be blocked.",
+      "default_deny_enabled": "Block everything outside Allowed IPs",
+      "default_deny_enabled_hint": "Be careful: only Allowed IPs can connect."
+    },
+    "backup": {
+      "save_title": "Save to config",
+      "save_none": "Writes the on-disk backup file.",
+      "save_last": "Last saved: {date}",
+      "save": "Save",
+      "restore": "Restore",
+      "restore_confirm": "Restore from the on-disk backup and replace current IP Ban Manager settings and exact IP bans?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Download a copy to this device, or upload a backup to restore.",
+      "download": "Download",
+      "upload": "Upload",
+      "upload_confirm": "Upload {filename} and replace current IP Ban Manager settings and exact IP bans?"
+    },
+    "geoip": {
+      "title": "GeoIP database",
+      "not_installed": "Not installed",
+      "installed": "Installed - {date}",
+      "download_hint": "Enable GeoIP and Apply to download",
+      "attribution": "Location data:",
+      "update": "Update"
+    },
+    "health": {
+      "title": "Health check needs attention",
+      "issues": {
+        "native_ip_ban_disabled": "Native Home Assistant IP banning is disabled.",
+        "ban_file_not_loaded": "Home Assistant IP banning is not loaded.",
+        "ban_file_not_regular_file": "{path} is not a regular file.",
+        "ban_file_not_readable_writable": "{path} is not readable and writable.",
+        "ban_file_parent_missing": "{path} does not exist.",
+        "ban_file_parent_not_writable": "{path} is not writable.",
+        "panel_not_registered": "The IP Ban Manager panel is not registered.",
+        "legacy_cleanup_pending": "Legacy custom component cleanup has not completed yet.",
+        "geoip_reader_not_ready": "GeoIP is enabled, but the local database reader is not ready."
+      }
+    },
+    "success": {
+      "export_config": "Saved backup to {path}",
+      "import_config": "Restored backup from {path}",
+      "download_config": "Backup downloaded.",
+      "upload_config": "Backup uploaded and applied."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Active bans"
+      },
+      "allowlisted_networks": {
+        "name": "Allowlisted networks"
+      },
+      "blocked_networks": {
+        "name": "Blocked networks"
+      },
+      "failed_login_sources": {
+        "name": "Failed login sources"
+      }
     }
   }
 }

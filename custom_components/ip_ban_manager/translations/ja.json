@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "IP Ban Manager をセットアップ",
+        "description": "安全な初期設定を選択してください。セットアップ後は、IP Ban Manager パネルまたは「設定」画面で、ライブ BAN、ブロックされたネットワーク、デフォルト拒否モード、通知の動作を管理できます。",
+        "data": {
+          "login_attempts_threshold": "ログイン試行のしきい値",
+          "auto_ban_enabled": "自動 BAN",
+          "ban_notifications_enabled": "自動 BAN 通知",
+          "allowlisted_login_notifications_enabled": "許可リストのログイン通知",
+          "allowlisted_logins_can_ban": "許可 IP 内での自動 BAN を許可",
+          "default_deny_enabled": "許可 IP 以外をすべてブロック",
+          "geoip_enabled": "GeoIP 位置ラベル",
+          "sidebar_panel_enabled": "サイドバーに表示",
+          "quick_allowlist": "許可リストの安全な既定値",
+          "ban_options": "オプション"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "有効な IP アドレス、CIDR ネットワーク、または 192.168.1.* や 2001:db8:1:2:* などのワイルドカードネットワークを入力してください。",
+      "unsafe_allowlist_network": "その許可リストエントリはすべての IP アドレスを信頼し、事実上 IP BAN を無効にします。",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager はすでに設定されています。",
+      "unsafe_allowlist_network": "インポートされた許可リストに、すべての IP アドレスを信頼するエントリが含まれています。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IP Ban Manager を管理",
+        "description": "ライブの許可リストと BAN リストを管理します。送信すると変更が即座に適用され、Home Assistant の再起動は不要です。",
+        "sections": {
+          "allowed_ips": {
+            "name": "許可 IP",
+            "data": {
+              "allowed_ips": "許可エントリ",
+              "quick_allowlist": "安全な既定値を追加"
+            }
+          },
+          "banned_ips": {
+            "name": "ブロック IP",
+            "data": {
+              "ban_options": "オプション",
+              "advanced_ban_options": "詳細",
+              "login_attempts_threshold": "ログイン試行のしきい値",
+              "banned_ips": "ブロックエントリ",
+              "blocked_networks": "ブロックされたネットワーク"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "BAN してはいけない信頼できる IPv4/IPv6 アドレスとネットワーク。1 行に 1 エントリ。CIDR ネットワークと 192.168.1.* や 2001:db8:1:2:* などの IPv4/IPv6 ワイルドカードに対応しています。",
+          "banned_ips": "現在ブロックされている正確な IPv4/IPv6 アドレス。既存行には確認用のブロック時刻が表示されます。新規行は IP のみでも構いません。すべてのブロック IP を消去する場合は空のままにしてください。",
+          "blocked_networks": "Home Assistant の ip_bans.yaml に書き込まずにブロックする IPv4/IPv6 CIDR ネットワークまたはワイルドカードネットワーク。許可エントリが常に優先されます。"
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "ブロック IP を消去しますか？",
+        "description": "Home Assistant から {ban_count} 件のブロック IP を削除し、ip_bans.yaml を書き換えます。確認するにはチェックボックスをオンにしてください。",
+        "data": {
+          "confirm_clear_bans": "すべてのブロック IP を消去"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "有効な IP アドレス、CIDR ネットワーク、または 192.168.1.* や 2001:db8:1:2:* などのワイルドカードネットワークを入力してください。",
+      "invalid_banned_ip": "1 行に正確な IPv4 または IPv6 アドレスを 1 つ入力してください。CIDR ネットワークとワイルドカードは「ブロックされたネットワーク」に入力してください。",
+      "invalid_blocked_network": "203.0.113.* や 2001:db8:1:2:* などの有効な IPv4/IPv6 CIDR ネットワークまたはワイルドカードネットワークを入力してください。",
+      "unsafe_blocked_network": "そのブロックネットワークはすべての IP アドレスをブロックします。より狭いネットワークを使用してください。",
+      "local_network_block_unprotected": "その設定は検出されたすべてのローカルアクセス経路をブロックします。先に現在のローカルネットワークを許可 IP に追加してください。",
+      "unsafe_allowlist_network": "その許可リストエントリはすべての IP アドレスを信頼し、事実上 IP BAN を無効にします。",
+      "banned_ip_allowlisted": "IP は許可と BAN の両方にできません。どちらか一方のリストから削除して再試行してください。",
+      "confirmation_required": "すべてのブロック IP を消去する前に確認チェックボックスをオンにしてください。"
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} は有効な IP アドレスではありません。"
+    },
+    "invalid_network": {
+      "message": "{network} は有効な IP アドレス、CIDR ネットワーク、またはワイルドカードネットワークではありません。"
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} は許可リストにあるため、BAN されませんでした。"
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} は現在 BAN されていません。"
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} はすでにブロックされたネットワークによってブロックされています。"
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} はすべての IP アドレスを信頼し、事実上 IP BAN を無効にします。"
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} には現在 BAN されている IP アドレスが 1 つ以上含まれています。このネットワークを許可リストに追加する前に、それらの BAN を解除してください。"
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "すべての IP BAN を消去する前に confirm を true に設定してください。"
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "HTTP IP BAN を有効化",
+      "description": "Home Assistant の組み込み HTTP IP BAN が現在無効のため、BAN 管理と許可リスト保護を実行できません。\n\n`configuration.yaml` の既存の `http:` セクションに次のキーを設定し、Home Assistant を再起動してください:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager は無効です",
+      "description": "緊急停止スイッチが有効なため、IP Ban Manager はランタイムフック、パネル、サービス、センサー、管理されたブロックネットワーク、デフォルト拒否処理をインストールしていません。\n\nIP Ban Manager を再び使用する準備ができたら、`configuration.yaml` から `ip_ban_manager: disabled` を削除するか `/config/ip_ban_manager.disabled` を削除し、Home Assistant を再起動してください。"
+    },
+    "legacy_yaml_present": {
+      "title": "古い ban_allowlist YAML を削除",
+      "description": "IP Ban Manager は古い `ban_allowlist:` YAML 設定を UI 設定エントリにすでにインポートしています。\n\n`configuration.yaml` から古い `ban_allowlist:` ブロックを削除し、Home Assistant を再起動してください。統合はインポートされた UI 設定を引き続き使用します。"
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "レガシークリーンアップに注意が必要",
+      "description": "IP Ban Manager は、Home Assistant のローダーパスから 1 つ以上の古いレガシーフォルダを移動できませんでした:\n\n{paths}\n\nファイル権限を確認し、それらのパスを `custom_components` から移動してから Home Assistant を再起動してください。"
+    },
+    "health_check_failed": {
+      "title": "IP Ban Manager のヘルスチェックに注意が必要",
+      "description": "IP Ban Manager は、ライブ BAN 管理に影響する可能性のある 1 つ以上のセットアップ問題を見つけました:\n\n{issues}\n\n修正後、IP Ban Manager パネルを開いてヘルスチェックを更新してください。"
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "自動 BAN - ログイン失敗の発信元をブロック",
+        "ban_notifications": "自動 BAN 通知 - IP がブロックされたときにアラートを表示",
+        "allowlisted_login_notifications": "許可リストのログイン通知 - 信頼済みログイン失敗時に警告",
+        "sidebar_panel": "サイドバーに表示 - 左メニューページを追加",
+        "geoip": "GeoIP 位置ラベル - ローカル DB-IP データベースをダウンロード"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "詳細: 許可 IP 内の BAN - 信頼済み IP もブロック可能",
+        "default_deny": "詳細: 許可 IP 以外をすべてブロック - 注意"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "検出されたローカルネットワーク"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "読み込み中...",
+    "request_failed": "リクエストに失敗しました。",
+    "none": "なし",
+    "remove": "削除",
+    "add": "追加",
+    "block": "ブロック",
+    "apply": "適用",
+    "advanced": "詳細",
+    "options": "オプション",
+    "added_before_tracking": "追跡前に追加",
+    "sources": {
+      "auto": "自動",
+      "configure": "設定",
+      "default": "セットアップ既定",
+      "detected": "検出されたネットワーク",
+      "import": "バックアップ復元",
+      "panel": "Panel",
+      "service": "サービス",
+      "setup": "セットアップ",
+      "yaml": "YAML インポート"
+    },
+    "allowed_ips": {
+      "title": "許可 IP",
+      "hint": "信頼できる IPv4/IPv6 アドレスとネットワーク。これらのエントリは、正確な BAN、ブロックされたネットワーク、デフォルト拒否モードより優先されます。192.168.1.* や 2001:db8:1:2:* などの IPv4/IPv6 ワイルドカードに対応しています。",
+      "placeholder": "IPv4/IPv6 アドレス、CIDR、またはワイルドカード",
+      "remove_confirm": "この許可 IP を削除しますか？デフォルト拒否またはブロックされたネットワークが有効な場合、信頼エントリを削除するとアクセスできなくなる可能性があります。"
+    },
+    "blocked_ips": {
+      "title": "ブロック IP",
+      "hint": "Home Assistant ネイティブの正確な IPv4/IPv6 ブロックリスト。ip_bans.yaml には古い順に書き込まれます。",
+      "placeholder": "IPv4/IPv6 アドレス"
+    },
+    "blocked_networks": {
+      "title": "ブロックされたネットワーク",
+      "hint": "管理された IPv4/IPv6 CIDR またはワイルドカードネットワーク。ip_bans.yaml に範囲を書き込まずに適用されます。",
+      "placeholder": "CIDR またはワイルドカードネットワーク"
+    },
+    "silenced_logins": {
+      "title": "ミュートされた許可リストログイン通知",
+      "hint": "許可リストログインアラートをミュートしたアドレス。"
+    },
+    "settings": {
+      "auto_ban_enabled": "自動 BAN",
+      "auto_ban_enabled_hint": "ログイン失敗の発信元をブロックします。",
+      "ban_notifications_enabled": "自動 BAN 通知",
+      "ban_notifications_enabled_hint": "IP がブロックされたときにアラートを表示します。",
+      "allowlisted_login_notifications_enabled": "許可リストのログイン通知",
+      "allowlisted_login_notifications_enabled_hint": "信頼済みログイン失敗時に警告します。",
+      "sidebar_panel_enabled": "サイドバーに表示",
+      "sidebar_panel_enabled_hint": "左メニューページを追加します。",
+      "geoip_enabled": "GeoIP 位置ラベル",
+      "geoip_enabled_hint": "パブリック IP のおおよその位置を表示します。ローカルデータベースがない場合、適用でダウンロードします。",
+      "login_attempts_threshold": "ログイン試行のしきい値",
+      "allowlisted_logins_can_ban": "許可 IP 内の BAN",
+      "allowlisted_logins_can_ban_hint": "注意: 信頼済み IP もブロックできます。",
+      "default_deny_enabled": "許可 IP 以外をすべてブロック",
+      "default_deny_enabled_hint": "注意: 許可 IP のみ接続できます。"
+    },
+    "backup": {
+      "save_title": "設定に保存",
+      "save_none": "ディスク上のバックアップファイルに書き込みます。",
+      "save_last": "最終保存: {date}",
+      "save": "保存",
+      "restore": "復元",
+      "restore_confirm": "ディスク上のバックアップから復元し、現在の IP Ban Manager 設定と正確な IP BAN を置き換えますか？",
+      "transfer_title": "Transfer",
+      "transfer_hint": "このデバイスにコピーをダウンロードするか、バックアップをアップロードして復元します。",
+      "download": "ダウンロード",
+      "upload": "アップロード",
+      "upload_confirm": "{filename} をアップロードし、現在の IP Ban Manager 設定と正確な IP BAN を置き換えますか？"
+    },
+    "geoip": {
+      "title": "GeoIP データベース",
+      "not_installed": "未インストール",
+      "installed": "インストール済み - {date}",
+      "download_hint": "GeoIP を有効にして適用するとダウンロードします",
+      "attribution": "位置データ:",
+      "update": "更新"
+    },
+    "health": {
+      "title": "ヘルスチェックに注意が必要",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistant ネイティブ IP BAN が無効です。",
+        "ban_file_not_loaded": "Home Assistant の IP 禁止機能が読み込まれていません。",
+        "ban_file_not_regular_file": "{path} は通常のファイルではありません。",
+        "ban_file_not_readable_writable": "{path} は読み書きできません。",
+        "ban_file_parent_missing": "{path} は存在しません。",
+        "ban_file_parent_not_writable": "{path} は書き込みできません。",
+        "panel_not_registered": "IP Ban Manager パネルが登録されていません。",
+        "legacy_cleanup_pending": "レガシーカスタムコンポーネントのクリーンアップがまだ完了していません。",
+        "geoip_reader_not_ready": "GeoIP は有効ですが、ローカルデータベースリーダーの準備ができていません。"
+      }
+    },
+    "success": {
+      "export_config": "バックアップを {path} に保存しました",
+      "import_config": "{path} からバックアップを復元しました",
+      "download_config": "バックアップをダウンロードしました。",
+      "upload_config": "バックアップをアップロードして適用しました。"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "アクティブ BAN"
+      },
+      "allowlisted_networks": {
+        "name": "許可リストネットワーク"
+      },
+      "blocked_networks": {
+        "name": "ブロックされたネットワーク"
+      },
+      "failed_login_sources": {
+        "name": "ログイン失敗の発信元"
+      }
+    }
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Skonfiguruj IP Ban Manager",
+        "description": "Wybierz bezpieczne ustawienia początkowe. Po konfiguracji zarządzaj aktywnymi blokadami, zablokowanymi sieciami, trybem domyślnej odmowy i powiadomieniami z panelu lub ekranu Konfiguruj.",
+        "data": {
+          "login_attempts_threshold": "Próg prób logowania",
+          "auto_ban_enabled": "Automatyczne blokady",
+          "ban_notifications_enabled": "Powiadomienia o automatycznych blokadach",
+          "allowlisted_login_notifications_enabled": "Powiadomienia o logowaniu z Allowlist",
+          "allowlisted_logins_can_ban": "Zezwól na automatyczne blokady w dozwolonych IP",
+          "default_deny_enabled": "Blokuj wszystko poza dozwolonymi IP",
+          "geoip_enabled": "Etykiety lokalizacji GeoIP",
+          "sidebar_panel_enabled": "Pokaż na pasku bocznym",
+          "quick_allowlist": "Bezpieczne domyślne Allowlist",
+          "ban_options": "Opcje"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Wprowadź prawidłowe adresy IP, sieci CIDR lub sieci z maską jak 192.168.1.* lub 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Ten wpis Allowlist zaufałby każdemu adresowi IP i w praktyce wyłączyłby blokowanie IP.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager jest już skonfigurowany.",
+      "unsafe_allowlist_network": "Zaimportowana Allowlist zawiera wpis, który zaufałby każdemu adresowi IP."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zarządzaj IP Ban Manager",
+        "description": "Zarządzaj aktywną Allowlist i listą blokad. Wysłanie stosuje zmiany natychmiast; restart Home Assistant nie jest wymagany.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Dozwolone IP",
+            "data": {
+              "allowed_ips": "Dozwolone wpisy",
+              "quick_allowlist": "Dodaj bezpieczne domyślne"
+            }
+          },
+          "banned_ips": {
+            "name": "Zablokowane IP",
+            "data": {
+              "ban_options": "Opcje",
+              "advanced_ban_options": "Zaawansowane",
+              "login_attempts_threshold": "Próg prób logowania",
+              "banned_ips": "Zablokowane wpisy",
+              "blocked_networks": "Zablokowane sieci"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Zaufane adresy i sieci IPv4/IPv6, które nigdy nie powinny być blokowane. Jeden wpis na wiersz. Obsługiwane są sieci CIDR i maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*.",
+          "banned_ips": "Aktualnie zablokowane dokładne adresy IPv4/IPv6. Istniejące wiersze pokazują czas blokady do weryfikacji; nowe wiersze mogą zawierać tylko adres IP. Pozostaw puste, aby wyczyścić wszystkie zablokowane IP.",
+          "blocked_networks": "Sieci CIDR IPv4/IPv6 lub sieci z maską do blokowania bez zapisywania ich w ip_bans.yaml Home Assistant. Dozwolone wpisy mają pierwszeństwo."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Wyczyścić zablokowane IP?",
+        "description": "Spowoduje to usunięcie {ban_count} zablokowanych IP z Home Assistant i ponowne zapisanie ip_bans.yaml. Zaznacz pole, aby potwierdzić.",
+        "data": {
+          "confirm_clear_bans": "Wyczyść wszystkie zablokowane IP"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Wprowadź prawidłowe adresy IP, sieci CIDR lub sieci z maską jak 192.168.1.* lub 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Wprowadź dokładnie jeden adres IPv4 lub IPv6 na wiersz. Sieci CIDR i maski należą do Zablokowanych sieci.",
+      "invalid_blocked_network": "Wprowadź prawidłowe sieci CIDR IPv4/IPv6 lub sieci z maską jak 203.0.113.* lub 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Ta zablokowana sieć zablokowałaby każdy adres IP. Użyj węższej sieci.",
+      "local_network_block_unprotected": "To ustawienie zablokowałoby każdą wykrytą lokalną ścieżkę dostępu. Najpierw dodaj bieżącą sieć lokalną do Dozwolonych IP.",
+      "unsafe_allowlist_network": "Ten wpis Allowlist zaufałby każdemu adresowi IP i w praktyce wyłączyłby blokowanie IP.",
+      "banned_ip_allowlisted": "Adres IP nie może być jednocześnie dozwolony i zablokowany. Usuń go z jednej listy i spróbuj ponownie.",
+      "confirmation_required": "Zaznacz pole potwierdzenia przed wyczyszczeniem wszystkich zablokowanych IP."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} nie jest prawidłowym adresem IP."
+    },
+    "invalid_network": {
+      "message": "{network} nie jest prawidłowym adresem IP, siecią CIDR ani siecią z maską."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} jest na Allowlist, więc nie został zablokowany."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} nie jest obecnie zablokowany."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} jest już zablokowany przez zablokowaną sieć."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} zaufałby każdemu adresowi IP i w praktyce wyłączyłby blokowanie IP."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} zawiera jeden lub więcej aktualnie zablokowanych adresów IP. Usuń te blokady przed dodaniem tej sieci do Allowlist."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Ustaw confirm na true przed wyczyszczeniem wszystkich blokad IP."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Włącz blokowanie IP HTTP",
+      "description": "Wbudowane blokowanie IP HTTP w Home Assistant jest obecnie wyłączone, więc zarządzanie blokadami i ochrona Allowlist nie mogą działać.\n\nUstaw ten klucz w istniejącej sekcji `http:` w `configuration.yaml`, a następnie uruchom ponownie Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager jest wyłączony",
+      "description": "Przełącznik awaryjnego wyłączenia jest aktywny, więc IP Ban Manager nie zainstalował swoich hooków runtime, panelu, usług, sensorów, zarządzanych zablokowanych sieci ani obsługi domyślnej odmowy.\n\nUsuń `ip_ban_manager: disabled` z `configuration.yaml` lub usuń `/config/ip_ban_manager.disabled`, a następnie uruchom ponownie Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Usuń stary YAML ban_allowlist",
+      "description": "IP Ban Manager zaimportował już stare ustawienia YAML `ban_allowlist:` do wpisu konfiguracji UI.\n\nUsuń stary blok `ban_allowlist:` z `configuration.yaml`, a następnie uruchom ponownie Home Assistant. Integracja będzie nadal używać zaimportowanych ustawień UI."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Czyszczenie legacy wymaga uwagi",
+      "description": "IP Ban Manager nie mógł przenieść jednego lub więcej przestarzałych folderów legacy ze ścieżki ładowania Home Assistant:\n\n{paths}\n\nSprawdź uprawnienia plików, przenieś te ścieżki poza `custom_components`, a następnie uruchom ponownie Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "Kontrola stanu IP Ban Manager wymaga uwagi",
+      "description": "IP Ban Manager wykrył jeden lub więcej problemów konfiguracji, które mogą wpływać na zarządzanie blokadami na żywo:\n\n{issues}\n\nPo naprawie otwórz panel IP Ban Manager, aby odświeżyć kontrolę stanu."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automatyczne blokady – blokuj nieudane źródła logowania",
+        "ban_notifications": "Powiadomienia o automatycznych blokadach – alerty przy blokowaniu IP",
+        "allowlisted_login_notifications": "Powiadomienia o logowaniu z Allowlist – alerty o nieudanych zaufanych logowaniach",
+        "sidebar_panel": "Pokaż na pasku bocznym – dodaj stronę do lewego menu",
+        "geoip": "Etykiety lokalizacji GeoIP – pobierz lokalną bazę DB-IP"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Zaawansowane: blokady w dozwolonych IP – zaufane IP mogą być blokowane",
+        "default_deny": "Zaawansowane: blokuj wszystko poza dozwolonymi IP – ostrożnie"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Wykryta/e sieć/e lokalna/e"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Ładowanie...",
+    "request_failed": "Żądanie nie powiodło się.",
+    "none": "Brak",
+    "remove": "Usuń",
+    "add": "Dodaj",
+    "block": "Zablokuj",
+    "apply": "Zastosuj",
+    "advanced": "Zaawansowane",
+    "options": "Opcje",
+    "added_before_tracking": "Dodano przed śledzeniem",
+    "sources": {
+      "auto": "Automatyczne",
+      "configure": "Konfiguruj",
+      "default": "Domyślne setup",
+      "detected": "Wykryta sieć",
+      "import": "Przywracanie kopii",
+      "panel": "Panel",
+      "service": "Usługa",
+      "setup": "Konfiguracja",
+      "yaml": "Import YAML"
+    },
+    "allowed_ips": {
+      "title": "Dozwolone IP",
+      "hint": "Zaufane adresy i sieci IPv4/IPv6. Te wpisy mają pierwszeństwo przed dokładnymi blokadami, zablokowanymi sieciami i trybem domyślnej odmowy. Obsługiwane są maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*.",
+      "placeholder": "Adres IPv4/IPv6, CIDR lub maska",
+      "remove_confirm": "Usunąć to dozwolone IP? Przy aktywnym trybie domyślnej odmowy lub zablokowanych sieciach usunięcie zaufanego wpisu może zablokować dostęp."
+    },
+    "blocked_ips": {
+      "title": "Zablokowane IP",
+      "hint": "Natywna lista dokładnych adresów IPv4/IPv6 Home Assistant, zapisywana w ip_bans.yaml od najstarszych.",
+      "placeholder": "Adres IPv4/IPv6"
+    },
+    "blocked_networks": {
+      "title": "Zablokowane sieci",
+      "hint": "Zarządzane sieci CIDR IPv4/IPv6 lub sieci z maską, egzekwowane bez zapisywania zakresów w ip_bans.yaml.",
+      "placeholder": "Sieć CIDR lub maska"
+    },
+    "silenced_logins": {
+      "title": "Wyciszone powiadomienia o logowaniu z Allowlist",
+      "hint": "Adresy, dla których wyciszono alerty logowania z Allowlist."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automatyczne blokady",
+      "auto_ban_enabled_hint": "Blokuj nieudane źródła logowania.",
+      "ban_notifications_enabled": "Powiadomienia o automatycznych blokadach",
+      "ban_notifications_enabled_hint": "Pokazuj alerty, gdy IP są blokowane.",
+      "allowlisted_login_notifications_enabled": "Powiadomienia o logowaniu z Allowlist",
+      "allowlisted_login_notifications_enabled_hint": "Alertuj o nieudanych zaufanych logowaniach.",
+      "sidebar_panel_enabled": "Pokaż na pasku bocznym",
+      "sidebar_panel_enabled_hint": "Dodaj stronę do lewego menu.",
+      "geoip_enabled": "Etykiety lokalizacji GeoIP",
+      "geoip_enabled_hint": "Pokazuj przybliżone lokalizacje publicznych IP. Jeśli brakuje lokalnej bazy, Zastosuj ją pobierze.",
+      "login_attempts_threshold": "Próg prób logowania",
+      "allowlisted_logins_can_ban": "Blokady w dozwolonych IP",
+      "allowlisted_logins_can_ban_hint": "Ostrożnie: zaufane IP mogą być blokowane.",
+      "default_deny_enabled": "Blokuj wszystko poza dozwolonymi IP",
+      "default_deny_enabled_hint": "Ostrożnie: tylko dozwolone IP mogą się łączyć."
+    },
+    "backup": {
+      "save_title": "Zapisz w konfiguracji",
+      "save_none": "Zapisuje plik kopii zapasowej na dysku.",
+      "save_last": "Ostatni zapis: {date}",
+      "save": "Zapisz",
+      "restore": "Przywróć",
+      "restore_confirm": "Przywrócić z kopii na dysku i zastąpić bieżące ustawienia IP Ban Manager oraz dokładne blokady IP?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Pobierz kopię na to urządzenie lub prześlij kopię zapasową do przywrócenia.",
+      "download": "Pobierz",
+      "upload": "Prześlij",
+      "upload_confirm": "Przesłać {filename} i zastąpić bieżące ustawienia IP Ban Manager oraz dokładne blokady IP?"
+    },
+    "geoip": {
+      "title": "Baza GeoIP",
+      "not_installed": "Nie zainstalowana",
+      "installed": "Zainstalowana - {date}",
+      "download_hint": "Włącz GeoIP i Zastosuj, aby pobrać",
+      "attribution": "Dane lokalizacji:",
+      "update": "Aktualizuj"
+    },
+    "health": {
+      "title": "Kontrola stanu wymaga uwagi",
+      "issues": {
+        "native_ip_ban_disabled": "Natywne blokowanie IP Home Assistant jest wyłączone.",
+        "ban_file_not_loaded": "Blokowanie IP Home Assistant nie jest załadowane.",
+        "ban_file_not_regular_file": "{path} nie jest zwykłym plikem.",
+        "ban_file_not_readable_writable": "{path} nie jest do odczytu i zapisu.",
+        "ban_file_parent_missing": "{path} nie istnieje.",
+        "ban_file_parent_not_writable": "{path} nie jest zapisywalny.",
+        "panel_not_registered": "Panel IP Ban Manager nie jest zarejestrowany.",
+        "legacy_cleanup_pending": "Czyszczenie legacy nie zostało jeszcze ukończone.",
+        "geoip_reader_not_ready": "GeoIP jest włączone, ale lokalny czytnik bazy danych nie jest gotowy."
+      }
+    },
+    "success": {
+      "export_config": "Kopia zapasowa zapisana w {path}",
+      "import_config": "Kopia zapasowa przywrócona z {path}",
+      "download_config": "Kopia zapasowa pobrana.",
+      "upload_config": "Kopia zapasowa przesłana i zastosowana."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktywne blokady"
+      },
+      "allowlisted_networks": {
+        "name": "Sieci Allowlist"
+      },
+      "blocked_networks": {
+        "name": "Zablokowane sieci"
+      },
+      "failed_login_sources": {
+        "name": "Nieudane źródła logowania"
+      }
+    }
+  }
+}

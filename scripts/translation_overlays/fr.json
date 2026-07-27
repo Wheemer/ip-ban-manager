@@ -1,0 +1,257 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurer IP Ban Manager",
+        "description": "Choisissez des valeurs de départ sûres. Ensuite, gérez les bannissements, réseaux bloqués, refus par défaut et notifications via le panneau ou Configurer.",
+        "data": {
+          "login_attempts_threshold": "Seuil de tentatives de connexion",
+          "auto_ban_enabled": "Bannissements automatiques",
+          "ban_notifications_enabled": "Notifications de bannissement automatique",
+          "allowlisted_login_notifications_enabled": "Notifications de connexion autorisée",
+          "allowlisted_logins_can_ban": "Autoriser les bannissements automatiques dans les IP autorisées",
+          "default_deny_enabled": "Bloquer tout sauf les IP autorisées",
+          "geoip_enabled": "Étiquettes de localisation GeoIP",
+          "sidebar_panel_enabled": "Afficher dans la barre latérale",
+          "quick_allowlist": "Valeurs sûres pour la liste autorisée"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Saisissez des adresses IP, réseaux CIDR ou réseaux joker valides comme 192.168.1.* ou 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Cette entrée de liste autorisée ferait confiance à chaque adresse IP et désactiverait effectivement le bannissement IP."
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager est déjà configuré.",
+      "unsafe_allowlist_network": "La liste autorisée importée contient une entrée qui ferait confiance à chaque adresse IP."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gérer IP Ban Manager",
+        "description": "Gérez la liste autorisée et la liste de bannissement en direct. Envoyer applique immédiatement les changements ; aucun redémarrage requis.",
+        "sections": {
+          "allowed_ips": {
+            "name": "IP autorisées",
+            "data": {
+              "allowed_ips": "Entrées autorisées",
+              "quick_allowlist": "Ajouter des valeurs sûres"
+            }
+          },
+          "banned_ips": {
+            "name": "IP bloquées",
+            "data": {
+              "advanced_ban_options": "Avancé",
+              "login_attempts_threshold": "Seuil de tentatives de connexion",
+              "banned_ips": "Entrées bloquées",
+              "blocked_networks": "Réseaux bloqués"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Adresses et réseaux IPv4/IPv6 de confiance qui ne doivent jamais être bannis. Une entrée par ligne. Les réseaux CIDR et jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge.",
+          "banned_ips": "Adresses IPv4/IPv6 exactes actuellement bloquées. Les lignes existantes affichent l'heure de blocage ; les nouvelles lignes peuvent être une simple IP. Laissez vide pour effacer toutes les IP bloquées.",
+          "blocked_networks": "Réseaux CIDR ou jokers IPv4/IPv6 à bloquer sans les écrire dans ip_bans.yaml de Home Assistant. Les entrées autorisées priment toujours."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Effacer les IP bloquées ?",
+        "description": "Cela supprimera {ban_count} IP bloquée(s) de Home Assistant et réécrira ip_bans.yaml. Cochez la case pour confirmer.",
+        "data": {
+          "confirm_clear_bans": "Effacer toutes les IP bloquées"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Saisissez des adresses IP, réseaux CIDR ou réseaux joker valides comme 192.168.1.* ou 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Saisissez une adresse IPv4 ou IPv6 exacte par ligne. Les CIDR et jokers vont dans Réseaux bloqués.",
+      "invalid_blocked_network": "Saisissez des réseaux CIDR ou jokers IPv4/IPv6 valides comme 203.0.113.* ou 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Ce réseau bloqué bloquerait chaque adresse IP. Utilisez un réseau plus étroit.",
+      "local_network_block_unprotected": "Ce paramètre bloquerait chaque chemin d'accès local détecté. Ajoutez d'abord un réseau local actuel aux IP autorisées.",
+      "unsafe_allowlist_network": "Cette entrée de liste autorisée ferait confiance à chaque adresse IP et désactiverait effectivement le bannissement IP.",
+      "banned_ip_allowlisted": "Une IP ne peut pas être à la fois autorisée et bannie. Retirez-la d'une liste et réessayez.",
+      "confirmation_required": "Cochez la case de confirmation avant d'effacer toutes les IP bloquées."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} n'est pas une adresse IP valide."
+    },
+    "invalid_network": {
+      "message": "{network} n'est pas une adresse IP, un réseau CIDR ou un réseau joker valide."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} est autorisée, elle n'a donc pas été bannie."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} n'est pas actuellement bannie."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} est déjà bloquée par un réseau bloqué."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} ferait confiance à chaque adresse IP et désactiverait effectivement le bannissement IP."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} contient une ou plusieurs adresses IP actuellement bannies. Retirez ces bannissements avant d'autoriser ce réseau."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Définissez confirm sur true avant d'effacer tous les bannissements IP."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Activer le bannissement IP HTTP",
+      "description": "Le bannissement IP HTTP intégré de Home Assistant est actuellement désactivé, la gestion des bannissements et la protection de liste autorisée ne peuvent donc pas fonctionner.\n\nAjoutez cette clé dans votre section `http:` existante dans `configuration.yaml`, puis redémarrez Home Assistant :\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager est désactivé",
+      "description": "L'interrupteur d'urgence est actif, IP Ban Manager n'a donc pas installé ses hooks, panneau, services, capteurs, réseaux bloqués gérés ou gestion du refus par défaut.\n\nRetirez `ip_ban_manager: disabled` de `configuration.yaml` ou supprimez `/config/ip_ban_manager.disabled`, puis redémarrez Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Supprimer l'ancien YAML ban_allowlist",
+      "description": "IP Ban Manager a déjà importé les anciens paramètres `ban_allowlist:` YAML dans l'entrée de configuration UI.\n\nSupprimez l'ancien bloc `ban_allowlist:` de `configuration.yaml`, puis redémarrez Home Assistant. L'intégration continuera d'utiliser les paramètres UI importés."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Le nettoyage legacy nécessite votre attention",
+      "description": "IP Ban Manager n'a pas pu déplacer un ou plusieurs dossiers legacy obsolètes hors du chemin de chargement de Home Assistant :\n\n{paths}\n\nVérifiez les permissions, déplacez ces chemins hors de `custom_components`, puis redémarrez Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "Le contrôle d'intégrité d'IP Ban Manager nécessite votre attention",
+      "description": "IP Ban Manager a trouvé un ou plusieurs problèmes de configuration pouvant affecter la gestion des bannissements en direct :\n\n{issues}\n\nOuvrez le panneau IP Ban Manager après correction pour actualiser le contrôle d'intégrité."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Bannissements automatiques – bloquer les sources de connexion échouées",
+        "ban_notifications": "Notifications de bannissement automatique – alertes lorsque des IP sont bloquées",
+        "allowlisted_login_notifications": "Notifications de connexion autorisée – alerter en cas d'échecs de connexion de confiance",
+        "sidebar_panel": "Afficher dans la barre latérale – ajouter la page au menu de gauche",
+        "geoip": "Étiquettes GeoIP – télécharger une base DB-IP locale"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Avancé : bannissements dans les IP autorisées – les IP de confiance peuvent être bloquées",
+        "default_deny": "Avancé : bloquer tout sauf les IP autorisées – attention"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "local_network": "Réseau(x) local(aux) détecté(s)"
+      }
+    }
+  },
+  "panel": {
+    "loading": "Chargement...",
+    "request_failed": "Échec de la requête.",
+    "none": "Aucun",
+    "remove": "Supprimer",
+    "add": "Ajouter",
+    "block": "Bloquer",
+    "apply": "Appliquer",
+    "advanced": "Avancé",
+    "added_before_tracking": "Ajouté avant le suivi",
+    "sources": {
+      "auto": "Automatique",
+      "configure": "Configurer",
+      "default": "Valeur par défaut de l'installation",
+      "detected": "Réseau détecté",
+      "import": "Restauration de sauvegarde",
+      "panel": "Panneau",
+      "setup": "Installation",
+      "yaml": "Import YAML"
+    },
+    "allowed_ips": {
+      "title": "IP autorisées",
+      "hint": "Adresses et réseaux IPv4/IPv6 de confiance. Ces entrées priment sur les bannissements exacts, les réseaux bloqués et le mode refus par défaut. Les jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge.",
+      "placeholder": "Adresse IPv4/IPv6, CIDR ou joker",
+      "remove_confirm": "Supprimer cette IP autorisée ? Avec le refus par défaut ou des réseaux bloqués actifs, supprimer une entrée de confiance peut bloquer l'accès."
+    },
+    "blocked_ips": {
+      "title": "IP bloquées",
+      "hint": "Liste native de Home Assistant des blocages exacts IPv4/IPv6, écrite du plus ancien au plus récent dans ip_bans.yaml.",
+      "placeholder": "Adresse IPv4/IPv6"
+    },
+    "blocked_networks": {
+      "title": "Réseaux bloqués",
+      "hint": "Réseaux CIDR ou jokers IPv4/IPv6 gérés, appliqués sans écrire les plages dans ip_bans.yaml.",
+      "placeholder": "Réseau CIDR ou joker"
+    },
+    "silenced_logins": {
+      "title": "Notifications de connexion autorisée silencieuses",
+      "hint": "Adresses pour lesquelles les alertes de connexion autorisée sont silencieuses."
+    },
+    "settings": {
+      "auto_ban_enabled": "Bannissements automatiques",
+      "auto_ban_enabled_hint": "Bloquer les sources de connexion échouées.",
+      "ban_notifications_enabled": "Notifications de bannissement automatique",
+      "ban_notifications_enabled_hint": "Afficher des alertes lorsque des IP sont bloquées.",
+      "allowlisted_login_notifications_enabled": "Notifications de connexion autorisée",
+      "allowlisted_login_notifications_enabled_hint": "Alerter en cas d'échecs de connexion de sources de confiance.",
+      "sidebar_panel_enabled": "Afficher dans la barre latérale",
+      "sidebar_panel_enabled_hint": "Ajouter la page au menu de gauche.",
+      "geoip_enabled": "Étiquettes de localisation GeoIP",
+      "geoip_enabled_hint": "Afficher les emplacements approximatifs des IP publiques. Si la base locale est absente, Appliquer la télécharge.",
+      "login_attempts_threshold": "Seuil de tentatives de connexion",
+      "allowlisted_logins_can_ban": "Bannissements dans les IP autorisées",
+      "allowlisted_logins_can_ban_hint": "Attention : les IP de confiance peuvent être bloquées.",
+      "default_deny_enabled": "Bloquer tout sauf les IP autorisées",
+      "default_deny_enabled_hint": "Attention : seules les IP autorisées peuvent se connecter."
+    },
+    "backup": {
+      "save_title": "Enregistrer dans la config",
+      "save_none": "Écrit le fichier de sauvegarde sur le disque.",
+      "save_last": "Dernière sauvegarde : {date}",
+      "save": "Enregistrer",
+      "restore": "Restaurer",
+      "restore_confirm": "Restaurer depuis la sauvegarde sur le disque et remplacer les paramètres actuels d'IP Ban Manager et les bannissements exacts ?",
+      "transfer_title": "Transfert",
+      "transfer_hint": "Télécharger une copie sur cet appareil ou téléverser une sauvegarde pour restaurer.",
+      "download": "Télécharger",
+      "upload": "Téléverser",
+      "upload_confirm": "Téléverser {filename} et remplacer les paramètres actuels d'IP Ban Manager et les bannissements exacts ?"
+    },
+    "geoip": {
+      "title": "Base de données GeoIP",
+      "not_installed": "Non installée",
+      "installed": "Installée - {date}",
+      "download_hint": "Activer GeoIP et Appliquer pour télécharger",
+      "attribution": "Données de localisation :",
+      "update": "Mettre à jour"
+    },
+    "health": {
+      "title": "Le contrôle d'intégrité nécessite votre attention",
+      "issues": {
+        "native_ip_ban_disabled": "Le bannissement IP natif de Home Assistant est désactivé.",
+        "panel_not_registered": "Le panneau IP Ban Manager n'est pas enregistré.",
+        "legacy_cleanup_pending": "Le nettoyage de l'ancien composant n'est pas terminé.",
+        "geoip_reader_not_ready": "GeoIP est activé, mais le lecteur local n'est pas prêt."
+      }
+    },
+    "success": {
+      "export_config": "Sauvegarde enregistrée dans {path}",
+      "import_config": "Sauvegarde restaurée depuis {path}",
+      "download_config": "Sauvegarde téléchargée.",
+      "upload_config": "Sauvegarde téléversée et appliquée."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Bannissements actifs"
+      },
+      "allowlisted_networks": {
+        "name": "Réseaux autorisés"
+      },
+      "blocked_networks": {
+        "name": "Réseaux bloqués"
+      },
+      "failed_login_sources": {
+        "name": "Sources de connexion échouées"
+      }
+    }
+  }
+}

@@ -6,7 +6,7 @@ from asyncio import Event, wait_for
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address
 from pathlib import Path
 from typing import Any, cast
-from unittest.mock import AsyncMock
+from unittest.mock import ANY, AsyncMock
 
 import pytest
 import yaml
@@ -78,6 +78,7 @@ from custom_components.ip_ban_manager import (
     current_status,
 )
 from custom_components.ip_ban_manager.const import (
+    ATTR_ADDED_AT,
     ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
     ATTR_ATTEMPTS,
     ATTR_BANNED_IPS,
@@ -97,6 +98,7 @@ from custom_components.ip_ban_manager.const import (
     ATTR_SOURCE,
     ATTR_THRESHOLD,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWLIST_ENTRY_META,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
@@ -135,6 +137,7 @@ from custom_components.ip_ban_manager.const import (
     SOURCE_AUTO,
     SOURCE_PANEL,
     SOURCE_SERVICE,
+    SOURCE_YAML,
 )
 
 
@@ -207,6 +210,17 @@ def check_records(records: list[logging.LogRecord]) -> None:
             ):
                 continue
             raise Exception(msg)
+
+
+def expected_yaml_import_data(ip_addresses: list[str]) -> dict[str, object]:
+    """Return expected config-entry data for absorbed YAML allowlist rows."""
+    return {
+        CONF_IP_ADDRESSES: ip_addresses,
+        CONF_ALLOWLIST_ENTRY_META: {
+            ip_address: {ATTR_ADDED_AT: ANY, ATTR_SOURCE: SOURCE_YAML}
+            for ip_address in ip_addresses
+        },
+    }
 
 
 def test_repository_ships_one_hacs_integration_folder() -> None:
@@ -343,7 +357,9 @@ async def test_yaml_import(
 
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
-    assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}
+    assert entries[0].data == expected_yaml_import_data(
+        ["192.168.1.1", "172.17.0.0/24"]
+    )
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
         "192.168.1.1/32",
         "172.17.0.0/24",
@@ -368,8 +384,30 @@ async def test_yaml_import_normalizes_ipv4_wildcard(
 
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
-    assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.0/24"]}
+    assert entries[0].data == expected_yaml_import_data(["192.168.1.0/24"])
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["192.168.1.0/24"]
+
+
+@pytest.mark.asyncio
+async def test_yaml_import_normalizes_ipv6_wildcard(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test YAML import accepts IPv6 wildcard shorthand."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    assert await async_setup_component(
+        hass,
+        DOMAIN,
+        {DOMAIN: {CONF_IP_ADDRESSES: ["2001:db8:1:2:*"]}},
+    )
+    await hass.async_block_till_done()
+    check_records(caplog.records)
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    assert entries[0].data == expected_yaml_import_data(["2001:db8:1:2::/64"])
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["2001:db8:1:2::/64"]
 
 
 @pytest.mark.asyncio
@@ -533,7 +571,9 @@ async def test_legacy_yaml_import_is_absorbed(
 
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
-    assert entries[0].data == {CONF_IP_ADDRESSES: ["192.168.1.1", "172.17.0.0/24"]}
+    assert entries[0].data == expected_yaml_import_data(
+        ["192.168.1.1", "172.17.0.0/24"]
+    )
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
         "192.168.1.1/32",
         "172.17.0.0/24",
@@ -2235,9 +2275,8 @@ async def test_status_view_reports_health_issue_for_panel_registration(
     health = cast(dict[str, Any], status[ATTR_HEALTH])
 
     assert health["ok"] is False
-    assert "The IP Ban Manager panel is not registered." in cast(
-        list[str], health[ATTR_HEALTH_ISSUES]
-    )
+    issues = cast(list[dict[str, Any]], health[ATTR_HEALTH_ISSUES])
+    assert any(issue.get("key") == "panel_not_registered" for issue in issues)
 
 
 @pytest.mark.asyncio
@@ -3565,6 +3604,46 @@ async def test_allowlist_services_normalize_ipv4_wildcard(
 
 
 @pytest.mark.asyncio
+async def test_allowlist_services_normalize_ipv6_wildcard(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test allowlist services accept IPv6 wildcard shorthand."""
+    await setup_ip_ban_manager(hass)
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "2001:db8:1:2:*"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+
+    assert hass.config_entries.async_entries(DOMAIN)[0].options[CONF_IP_ADDRESSES] == [
+        "192.168.1.1",
+        "172.17.0.0/24",
+        "2001:db8:1:2::/64",
+    ]
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+        "2001:db8:1:2::/64",
+    ]
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_REMOVE_ALLOWLIST_NETWORK,
+        {ATTR_NETWORK: "2001:db8:1:2:*"},
+        blocking=True,
+    )
+    check_records(caplog.records)
+
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
+        "192.168.1.1/32",
+        "172.17.0.0/24",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_services_support_ipv6_bans_and_allowlist_networks(
     hass: HomeAssistant,
     tmp_path: Path,
@@ -3985,11 +4064,11 @@ async def test_update_geoip_service_writes_logbook(
 
 
 @pytest.mark.asyncio
-async def test_auto_ban_fires_threshold_event_before_ban(
+async def test_auto_ban_fires_threshold_event_after_successful_ban(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test auto-ban fires threshold reached immediately before the ban write."""
+    """Test auto-ban fires threshold reached after the ban write succeeds."""
     events: list[tuple[str, dict[str, Any]]] = []
 
     @callback
@@ -4034,6 +4113,47 @@ async def test_auto_ban_fires_threshold_event_before_ban(
             {ATTR_IP_ADDRESS: "10.0.0.99", ATTR_SOURCE: SOURCE_AUTO},
         ),
     ]
+
+
+@pytest.mark.asyncio
+async def test_auto_ban_write_failure_does_not_fire_events(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test failed native ban writes do not emit automation events."""
+    captured: list[str] = []
+
+    @callback
+    def capture_event(event) -> None:
+        captured.append(event.event_type)
+
+    await setup_ip_ban_manager(hass)
+    remote_addr = ip_address("10.0.0.99")
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 3
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 2
+
+    async def failing_add_ban(_remote_addr: Any) -> None:
+        raise HomeAssistantError("native write failed")
+
+    hass.http.app[KEY_ORIGINAL_ADD_BAN] = failing_add_ban
+    remove_threshold = hass.bus.async_listen(
+        EVENT_LOGIN_THRESHOLD_REACHED, capture_event
+    )
+    remove_banned = hass.bus.async_listen(EVENT_IP_BANNED, capture_event)
+
+    class MockRequest:
+        remote = "10.0.0.99"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    with pytest.raises(HomeAssistantError, match="native write failed"):
+        await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    check_records(caplog.records)
+    remove_threshold()
+    remove_banned()
+
+    assert captured == []
 
 
 @pytest.mark.asyncio

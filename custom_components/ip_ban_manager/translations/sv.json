@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurera IP Ban Manager",
+        "description": "Välj säkra startvärden. Hantera därefter live-spärrar, blockerade nätverk, default-deny och aviseringar via panelen eller Konfigurera.",
+        "data": {
+          "login_attempts_threshold": "Tröskelvärde för inloggningsförsök",
+          "auto_ban_enabled": "Automatiska spärrar",
+          "ban_notifications_enabled": "Automatiska spärraviseringar",
+          "allowlisted_login_notifications_enabled": "Allowlist-inloggningsaviseringar",
+          "allowlisted_logins_can_ban": "Tillåt automatiska spärrar inom tillåtna IP",
+          "default_deny_enabled": "Blockera allt utanför tillåtna IP",
+          "geoip_enabled": "GeoIP-plats-etiketter",
+          "sidebar_panel_enabled": "Visa i sidofältet",
+          "quick_allowlist": "Säkra allowlist-standardvärden",
+          "ban_options": "Alternativ"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Ange giltiga IP-adresser, CIDR-nätverk eller jokernätverk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Det allowlist-värdet skulle lita på varje IP-adress och i praktiken inaktivera IP-spärrar.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager är redan konfigurerad.",
+      "unsafe_allowlist_network": "Den importerade allowlisten innehåller ett värde som skulle lita på varje IP-adress."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hantera IP Ban Manager",
+        "description": "Hantera live-allowlist och spärrlista. Skicka tillämpar ändringar direkt; ingen omstart krävs.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Tillåtna IP",
+            "data": {
+              "allowed_ips": "Tillåtna poster",
+              "quick_allowlist": "Lägg till säkra standardvärden"
+            }
+          },
+          "banned_ips": {
+            "name": "Blockerade IP",
+            "data": {
+              "ban_options": "Alternativ",
+              "advanced_ban_options": "Avancerat",
+              "login_attempts_threshold": "Tröskelvärde för inloggningsförsök",
+              "banned_ips": "Blockerade poster",
+              "blocked_networks": "Blockerade nätverk"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Betrodda IPv4-/IPv6-adresser och nätverk som aldrig ska spärras. En post per rad. CIDR-nätverk och IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds.",
+          "banned_ips": "För närvarande blockerade exakta IPv4-/IPv6-adresser. Befintliga rader visar spärrtid för granskning; nya rader kan vara bara en IP. Lämna tomt för att rensa alla blockerade IP.",
+          "blocked_networks": "IPv4-/IPv6-CIDR-nätverk eller jokernätverk som blockeras utan att skrivas till Home Assistants ip_bans.yaml. Tillåtna poster vinner fortfarande."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Rensa blockerade IP?",
+        "description": "Detta tar bort {ban_count} blockerade IP från Home Assistant och skriver om ip_bans.yaml. Markera rutan för att bekräfta.",
+        "data": {
+          "confirm_clear_bans": "Rensa alla blockerade IP"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Ange giltiga IP-adresser, CIDR-nätverk eller jokernätverk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Ange en exakt IPv4- eller IPv6-adress per rad. CIDR-nätverk och jokertecken hör till Blockerade nätverk.",
+      "invalid_blocked_network": "Ange giltiga IPv4-/IPv6-CIDR-nätverk eller jokernätverk som 203.0.113.* eller 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Det blockerade nätverket skulle blockera varje IP-adress. Använd ett smalare nätverk.",
+      "local_network_block_unprotected": "Den inställningen skulle blockera varje upptäckt lokal åtkomstväg. Lägg till ett aktuellt lokalt nätverk i Tillåtna IP först.",
+      "unsafe_allowlist_network": "Det allowlist-värdet skulle lita på varje IP-adress och i praktiken inaktivera IP-spärrar.",
+      "banned_ip_allowlisted": "En IP kan inte vara både tillåten och spärrad. Ta bort den från en lista och försök igen.",
+      "confirmation_required": "Markera bekräftelserutan innan du rensar alla blockerade IP."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} är inte en giltig IP-adress."
+    },
+    "invalid_network": {
+      "message": "{network} är inte en giltig IP-adress, CIDR-nätverk eller jokernätverk."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} finns på allowlist och spärrades inte."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} är för närvarande inte spärrad."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} blockeras redan av ett blockerat nätverk."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} skulle lita på varje IP-adress och i praktiken inaktivera IP-spärrar."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} innehåller en eller flera för närvarande spärrade IP-adresser. Ta bort dessa spärrar innan du allowlistar detta nätverk."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Sätt confirm till true innan du rensar alla IP-spärrar."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Aktivera HTTP IP-spärrar",
+      "description": "Home Assistants inbyggda HTTP IP-spärrar är för närvarande inaktiverade, så spärrhantering och allowlist-skydd kan inte köras.\n\nSätt denna nyckel i din befintliga `http:`-sektion i `configuration.yaml` och starta om Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager är inaktiverad",
+      "description": "Nödstoppet är aktivt, så IP Ban Manager installerade inte sina runtime-hooks, panel, tjänster, sensorer, hanterade blockerade nätverk eller default-deny-hantering.\n\nTa bort `ip_ban_manager: disabled` från `configuration.yaml` eller radera `/config/ip_ban_manager.disabled`, och starta om Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Ta bort gammalt ban_allowlist-YAML",
+      "description": "IP Ban Manager har redan importerat de gamla `ban_allowlist:`-YAML-inställningarna till UI-konfigurationsposten.\n\nTa bort det gamla `ban_allowlist:`-blocket från `configuration.yaml` och starta om Home Assistant. Integrationen fortsätter använda de importerade UI-inställningarna."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Legacy-rensning kräver uppmärksamhet",
+      "description": "IP Ban Manager kunde inte flytta en eller flera inaktuella legacy-mappar från Home Assistants laddningsväg:\n\n{paths}\n\nKontrollera filbehörigheter, flytta dessa sökvägar från `custom_components` och starta om Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "IP Ban Manager-hälsokontroll kräver uppmärksamhet",
+      "description": "IP Ban Manager hittade ett eller flera installationsproblem som kan påverka live-spärrhantering:\n\n{issues}\n\nÖppna IP Ban Manager-panelen efter att ha åtgärdat dessa för att uppdatera hälsokontrollen."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automatiska spärrar – blockera misslyckade inloggningskällor",
+        "ban_notifications": "Automatiska spärraviseringar – varningar när IP blockeras",
+        "allowlisted_login_notifications": "Allowlist-inloggningsaviseringar – varna vid misslyckade betrodda inloggningar",
+        "sidebar_panel": "Visa i sidofältet – lägg till sidan i vänstermenyn",
+        "geoip": "GeoIP-plats-etiketter – ladda ner lokal DB-IP-databas"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Avancerat: spärrar inom tillåtna IP – betrodda IP kan blockeras",
+        "default_deny": "Avancerat: blockera allt utanför tillåtna IP – var försiktig"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Upptäckta lokala nätverk"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Laddar...",
+    "request_failed": "Begäran misslyckades.",
+    "none": "Ingen",
+    "remove": "Ta bort",
+    "add": "Lägg till",
+    "block": "Blockera",
+    "apply": "Tillämpa",
+    "advanced": "Avancerat",
+    "options": "Alternativ",
+    "added_before_tracking": "Tillagd före spårning",
+    "sources": {
+      "auto": "Automatisk",
+      "configure": "Konfigurera",
+      "default": "Installationsstandard",
+      "detected": "Upptäckt nätverk",
+      "import": "Backup-återställning",
+      "panel": "Panel",
+      "service": "Tjänst",
+      "setup": "Installation",
+      "yaml": "YAML-import"
+    },
+    "allowed_ips": {
+      "title": "Tillåtna IP",
+      "hint": "Betrodda IPv4-/IPv6-adresser och nätverk. Dessa poster vinner över exakta spärrar, blockerade nätverk och default-deny-läge. IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds.",
+      "placeholder": "IPv4-/IPv6-adress, CIDR eller jokertecken",
+      "remove_confirm": "Ta bort denna tillåtna IP? Med aktiv default-deny eller blockerade nätverk kan borttagning av en betrodd post låsa ute åtkomst."
+    },
+    "blocked_ips": {
+      "title": "Blockerade IP",
+      "hint": "Home Assistants inbyggda lista över exakta IPv4-/IPv6-spärrar, skriven äldst först i ip_bans.yaml.",
+      "placeholder": "IPv4-/IPv6-adress"
+    },
+    "blocked_networks": {
+      "title": "Blockerade nätverk",
+      "hint": "Hanterade IPv4-/IPv6-CIDR- eller jokernätverk, tillämpade utan att skriva intervall i ip_bans.yaml.",
+      "placeholder": "CIDR- eller jokernätverk"
+    },
+    "silenced_logins": {
+      "title": "Tystade allowlist-inloggningsaviseringar",
+      "hint": "Adresser tystade från allowlist-inloggningsvarningar."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automatiska spärrar",
+      "auto_ban_enabled_hint": "Blockera misslyckade inloggningskällor.",
+      "ban_notifications_enabled": "Automatiska spärraviseringar",
+      "ban_notifications_enabled_hint": "Visa varningar när IP blockeras.",
+      "allowlisted_login_notifications_enabled": "Allowlist-inloggningsaviseringar",
+      "allowlisted_login_notifications_enabled_hint": "Varna vid misslyckade betrodda inloggningar.",
+      "sidebar_panel_enabled": "Visa i sidofältet",
+      "sidebar_panel_enabled_hint": "Lägg till sidan i vänstermenyn.",
+      "geoip_enabled": "GeoIP-plats-etiketter",
+      "geoip_enabled_hint": "Visa ungefärliga platser för publika IP. Om lokal databas saknas laddar Tillämpa ner den.",
+      "login_attempts_threshold": "Tröskelvärde för inloggningsförsök",
+      "allowlisted_logins_can_ban": "Spärrar inom tillåtna IP",
+      "allowlisted_logins_can_ban_hint": "Var försiktig: betrodda IP kan blockeras.",
+      "default_deny_enabled": "Blockera allt utanför tillåtna IP",
+      "default_deny_enabled_hint": "Var försiktig: endast tillåtna IP kan ansluta."
+    },
+    "backup": {
+      "save_title": "Spara till config",
+      "save_none": "Skriver backup-filen till disk.",
+      "save_last": "Senast sparad: {date}",
+      "save": "Spara",
+      "restore": "Återställ",
+      "restore_confirm": "Återställa från backup på disk och ersätta aktuella IP Ban Manager-inställningar och exakta IP-spärrar?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Ladda ner en kopia till denna enhet, eller ladda upp en backup för att återställa.",
+      "download": "Ladda ner",
+      "upload": "Ladda upp",
+      "upload_confirm": "Ladda upp {filename} och ersätta aktuella IP Ban Manager-inställningar och exakta IP-spärrar?"
+    },
+    "geoip": {
+      "title": "GeoIP-databas",
+      "not_installed": "Inte installerad",
+      "installed": "Installerad - {date}",
+      "download_hint": "Aktivera GeoIP och Tillämpa för att ladda ner",
+      "attribution": "Platsdata:",
+      "update": "Uppdatera"
+    },
+    "health": {
+      "title": "Hälsokontroll kräver uppmärksamhet",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistants inbyggda IP-spärrar är inaktiverade.",
+        "ban_file_not_loaded": "Home Assistants IP-blockering är inte laddad.",
+        "ban_file_not_regular_file": "{path} är inte en vanlig fil.",
+        "ban_file_not_readable_writable": "{path} är inte läsbar och skrivbar.",
+        "ban_file_parent_missing": "{path} finns inte.",
+        "ban_file_parent_not_writable": "{path} är inte skrivbar.",
+        "panel_not_registered": "IP Ban Manager-panelen är inte registrerad.",
+        "legacy_cleanup_pending": "Legacy-rensning har inte slutförts ännu.",
+        "geoip_reader_not_ready": "GeoIP är aktiverat, men den lokala databasläsaren är inte redo."
+      }
+    },
+    "success": {
+      "export_config": "Backup sparad till {path}",
+      "import_config": "Backup återställd från {path}",
+      "download_config": "Backup nedladdad.",
+      "upload_config": "Backup uppladdad och tillämpad."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktiva spärrar"
+      },
+      "allowlisted_networks": {
+        "name": "Allowlist-nätverk"
+      },
+      "blocked_networks": {
+        "name": "Blockerade nätverk"
+      },
+      "failed_login_sources": {
+        "name": "Misslyckade inloggningskällor"
+      }
+    }
+  }
+}

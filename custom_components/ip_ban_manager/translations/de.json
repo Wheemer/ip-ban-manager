@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "IP Ban Manager einrichten",
+        "description": "Wählen Sie sichere Startvorgaben. Verwalten Sie danach Live-Sperren, blockierte Netzwerke, Default-Deny und Benachrichtigungen über das Panel oder Konfigurieren.",
+        "data": {
+          "login_attempts_threshold": "Schwellwert für Login-Versuche",
+          "auto_ban_enabled": "Automatische Sperren",
+          "ban_notifications_enabled": "Automatische Sperr-Benachrichtigungen",
+          "allowlisted_login_notifications_enabled": "Allowlist-Login-Benachrichtigungen",
+          "allowlisted_logins_can_ban": "Automatische Sperren innerhalb erlaubter IPs zulassen",
+          "default_deny_enabled": "Alles außerhalb erlaubter IPs blockieren",
+          "geoip_enabled": "GeoIP-Standortlabels",
+          "sidebar_panel_enabled": "In Seitenleiste anzeigen",
+          "quick_allowlist": "Sichere Allowlist-Standardwerte",
+          "ban_options": "Optionen"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Geben Sie gültige IP-Adressen, CIDR-Netzwerke oder Platzhalternetzwerke wie 192.168.1.* oder 2001:db8:1:2:* ein.",
+      "unsafe_allowlist_network": "Dieser Allowlist-Eintrag würde jede IP-Adresse vertrauen und IP-Sperren praktisch deaktivieren.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager ist bereits konfiguriert.",
+      "unsafe_allowlist_network": "Die importierte Allowlist enthält einen Eintrag, der jeder IP-Adresse vertrauen würde."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IP Ban Manager verwalten",
+        "description": "Verwalten Sie die Live-Allowlist und Sperrliste. Speichern wendet Änderungen sofort an; kein Neustart nötig.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Erlaubte IPs",
+            "data": {
+              "allowed_ips": "Erlaubte Einträge",
+              "quick_allowlist": "Sichere Standardwerte hinzufügen"
+            }
+          },
+          "banned_ips": {
+            "name": "Blockierte IPs",
+            "data": {
+              "ban_options": "Optionen",
+              "advanced_ban_options": "Erweitert",
+              "login_attempts_threshold": "Schwellwert für Login-Versuche",
+              "banned_ips": "Blockierte Einträge",
+              "blocked_networks": "Blockierte Netzwerke"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke, die nie gesperrt werden sollen. Ein Eintrag pro Zeile. CIDR-Netzwerke und IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt.",
+          "banned_ips": "Derzeit blockierte exakte IPv4-/IPv6-Adressen. Bestehende Zeilen zeigen die Sperrzeit zur Prüfung; neue Zeilen können nur eine IP sein. Leer lassen, um alle blockierten IPs zu löschen.",
+          "blocked_networks": "IPv4-/IPv6-CIDR-Netzwerke oder Platzhalternetzwerke, die ohne Eintrag in Home Assistants ip_bans.yaml blockiert werden. Erlaubte Einträge haben weiterhin Vorrang."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Blockierte IPs löschen?",
+        "description": "Dies entfernt {ban_count} blockierte IP(s) aus Home Assistant und schreibt ip_bans.yaml neu. Aktivieren Sie das Kontrollkästchen zur Bestätigung.",
+        "data": {
+          "confirm_clear_bans": "Alle blockierten IPs löschen"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Geben Sie gültige IP-Adressen, CIDR-Netzwerke oder Platzhalternetzwerke wie 192.168.1.* oder 2001:db8:1:2:* ein.",
+      "invalid_banned_ip": "Geben Sie pro Zeile genau eine IPv4- oder IPv6-Adresse ein. CIDR-Netzwerke und Platzhalter gehören unter Blockierte Netzwerke.",
+      "invalid_blocked_network": "Geben Sie gültige IPv4-/IPv6-CIDR-Netzwerke oder Platzhalternetzwerke wie 203.0.113.* oder 2001:db8:1:2:* ein.",
+      "unsafe_blocked_network": "Dieses blockierte Netzwerk würde jede IP-Adresse blockieren. Verwenden Sie ein engeres Netzwerk.",
+      "local_network_block_unprotected": "Diese Einstellung würde jeden erkannten lokalen Zugriffspfad blockieren. Fügen Sie zuerst ein aktuelles lokales Netzwerk zu Erlaubte IPs hinzu.",
+      "unsafe_allowlist_network": "Dieser Allowlist-Eintrag würde jeder IP-Adresse vertrauen und IP-Sperren praktisch deaktivieren.",
+      "banned_ip_allowlisted": "Eine IP kann nicht gleichzeitig erlaubt und gesperrt sein. Entfernen Sie sie aus einer Liste und versuchen Sie es erneut.",
+      "confirmation_required": "Aktivieren Sie das Bestätigungsfeld, bevor Sie alle blockierten IPs löschen."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} ist keine gültige IP-Adresse."
+    },
+    "invalid_network": {
+      "message": "{network} ist keine gültige IP-Adresse, kein CIDR-Netzwerk und kein Platzhalternetzwerk."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} steht auf der Allowlist und wurde nicht gesperrt."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} ist derzeit nicht gesperrt."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} ist bereits durch ein blockiertes Netzwerk blockiert."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} würde jeder IP-Adresse vertrauen und IP-Sperren praktisch deaktivieren."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} enthält eine oder mehrere derzeit gesperrte IP-Adressen. Entfernen Sie diese Sperren, bevor Sie dieses Netzwerk auf die Allowlist setzen."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Setzen Sie confirm auf true, bevor Sie alle IP-Sperren löschen."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "HTTP-IP-Sperren aktivieren",
+      "description": "Home Assistants integrierte HTTP-IP-Sperren sind derzeit deaktiviert, daher können Sperrverwaltung und Allowlist-Schutz nicht ausgeführt werden.\n\nSetzen Sie diesen Schlüssel in Ihrem bestehenden `http:`-Abschnitt in `configuration.yaml` und starten Sie Home Assistant neu:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager ist deaktiviert",
+      "description": "Der Not-Aus-Schalter ist aktiv, daher hat IP Ban Manager seine Laufzeit-Hooks, das Panel, Dienste, Sensoren, verwaltete blockierte Netzwerke oder Default-Deny-Behandlung nicht installiert.\n\nEntfernen Sie `ip_ban_manager: disabled` aus `configuration.yaml` oder löschen Sie `/config/ip_ban_manager.disabled`, und starten Sie Home Assistant neu."
+    },
+    "legacy_yaml_present": {
+      "title": "Altes ban_allowlist-YAML entfernen",
+      "description": "IP Ban Manager hat die alten `ban_allowlist:`-YAML-Einstellungen bereits in den UI-Konfigurationseintrag importiert.\n\nEntfernen Sie den alten `ban_allowlist:`-Block aus `configuration.yaml` und starten Sie Home Assistant neu. Die Integration verwendet weiterhin die importierten UI-Einstellungen."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Legacy-Bereinigung erfordert Aufmerksamkeit",
+      "description": "IP Ban Manager konnte einen oder mehrere veraltete Legacy-Ordner nicht aus Home Assistants Ladepfad verschieben:\n\n{paths}\n\nPrüfen Sie Dateiberechtigungen, verschieben Sie diese Pfade aus `custom_components`, und starten Sie Home Assistant neu."
+    },
+    "health_check_failed": {
+      "title": "IP-Ban-Manager-Integritätsprüfung erfordert Aufmerksamkeit",
+      "description": "IP Ban Manager hat ein oder mehrere Setup-Probleme gefunden, die die Live-Sperrverwaltung beeinträchtigen können:\n\n{issues}\n\nÖffnen Sie nach der Behebung das IP-Ban-Manager-Panel, um die Integritätsprüfung zu aktualisieren."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automatische Sperren – fehlgeschlagene Login-Quellen blockieren",
+        "ban_notifications": "Automatische Sperr-Benachrichtigungen – Warnungen bei blockierten IPs",
+        "allowlisted_login_notifications": "Allowlist-Login-Benachrichtigungen – bei fehlgeschlagenen vertrauenswürdigen Logins warnen",
+        "sidebar_panel": "In Seitenleiste anzeigen – Seite im linken Menü hinzufügen",
+        "geoip": "GeoIP-Standortlabels – lokale DB-IP-Datenbank herunterladen"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Erweitert: Sperren innerhalb erlaubter IPs – vertrauenswürdige IPs können blockiert werden",
+        "default_deny": "Erweitert: Alles außerhalb erlaubter IPs blockieren – Vorsicht"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Erkannte lokale Netzwerk(e)"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Laden...",
+    "request_failed": "Anfrage fehlgeschlagen.",
+    "none": "Keine",
+    "remove": "Entfernen",
+    "add": "Hinzufügen",
+    "block": "Blockieren",
+    "apply": "Anwenden",
+    "advanced": "Erweitert",
+    "options": "Optionen",
+    "added_before_tracking": "Vor der Nachverfolgung hinzugefügt",
+    "sources": {
+      "auto": "Automatisch",
+      "configure": "Konfigurieren",
+      "default": "Setup-Standard",
+      "detected": "Erkanntes Netzwerk",
+      "import": "Backup-Wiederherstellung",
+      "panel": "Panel",
+      "service": "Dienst",
+      "setup": "Einrichtung",
+      "yaml": "YAML-Import"
+    },
+    "allowed_ips": {
+      "title": "Erlaubte IPs",
+      "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke. Diese Einträge haben Vorrang vor exakten Sperren, blockierten Netzwerken und dem Default-Deny-Modus. IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt.",
+      "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter",
+      "remove_confirm": "Diese erlaubte IP entfernen? Bei aktivem Default-Deny oder blockierten Netzwerken kann das den Zugriff sperren."
+    },
+    "blocked_ips": {
+      "title": "Blockierte IPs",
+      "hint": "Home Assistants native exakte IPv4-/IPv6-Sperrliste, in ip_bans.yaml älteste zuerst.",
+      "placeholder": "IPv4-/IPv6-Adresse"
+    },
+    "blocked_networks": {
+      "title": "Blockierte Netzwerke",
+      "hint": "Verwaltete IPv4-/IPv6-CIDR- oder Platzhalternetzwerke, ohne Bereiche in ip_bans.yaml zu schreiben.",
+      "placeholder": "CIDR- oder Platzhalternetzwerk"
+    },
+    "silenced_logins": {
+      "title": "Stummgeschaltete Allowlist-Login-Benachrichtigungen",
+      "hint": "Adressen, für die Allowlist-Login-Warnungen stummgeschaltet sind."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automatische Sperren",
+      "auto_ban_enabled_hint": "Fehlgeschlagene Login-Quellen blockieren.",
+      "ban_notifications_enabled": "Automatische Sperr-Benachrichtigungen",
+      "ban_notifications_enabled_hint": "Warnungen anzeigen, wenn IPs blockiert werden.",
+      "allowlisted_login_notifications_enabled": "Allowlist-Login-Benachrichtigungen",
+      "allowlisted_login_notifications_enabled_hint": "Bei fehlgeschlagenen vertrauenswürdigen Logins warnen.",
+      "sidebar_panel_enabled": "In Seitenleiste anzeigen",
+      "sidebar_panel_enabled_hint": "Seite im linken Menü hinzufügen.",
+      "geoip_enabled": "GeoIP-Standortlabels",
+      "geoip_enabled_hint": "Ungefähre Standorte öffentlicher IPs anzeigen. Fehlt die lokale Datenbank, lädt Anwenden sie herunter.",
+      "login_attempts_threshold": "Schwellwert für Login-Versuche",
+      "allowlisted_logins_can_ban": "Sperren innerhalb erlaubter IPs",
+      "allowlisted_logins_can_ban_hint": "Vorsicht: vertrauenswürdige IPs können blockiert werden.",
+      "default_deny_enabled": "Alles außerhalb erlaubter IPs blockieren",
+      "default_deny_enabled_hint": "Vorsicht: nur erlaubte IPs können verbinden."
+    },
+    "backup": {
+      "save_title": "In Konfiguration speichern",
+      "save_none": "Schreibt die Backup-Datei auf die Festplatte.",
+      "save_last": "Zuletzt gespeichert: {date}",
+      "save": "Speichern",
+      "restore": "Wiederherstellen",
+      "restore_confirm": "Vom Backup auf der Festplatte wiederherstellen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Kopie auf dieses Gerät herunterladen oder ein Backup zum Wiederherstellen hochladen.",
+      "download": "Herunterladen",
+      "upload": "Hochladen",
+      "upload_confirm": "{filename} hochladen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?"
+    },
+    "geoip": {
+      "title": "GeoIP-Datenbank",
+      "not_installed": "Nicht installiert",
+      "installed": "Installiert - {date}",
+      "download_hint": "GeoIP aktivieren und Anwenden zum Herunterladen",
+      "attribution": "Standortdaten:",
+      "update": "Aktualisieren"
+    },
+    "health": {
+      "title": "Integritätsprüfung erfordert Aufmerksamkeit",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistants native IP-Sperren sind deaktiviert.",
+        "ban_file_not_loaded": "Home Assistant IP-Sperren sind nicht geladen.",
+        "ban_file_not_regular_file": "{path} ist keine reguläre Datei.",
+        "ban_file_not_readable_writable": "{path} ist nicht lesbar und beschreibbar.",
+        "ban_file_parent_missing": "{path} existiert nicht.",
+        "ban_file_parent_not_writable": "{path} ist nicht beschreibbar.",
+        "panel_not_registered": "Das IP-Ban-Manager-Panel ist nicht registriert.",
+        "legacy_cleanup_pending": "Die Legacy-Bereinigung wurde noch nicht abgeschlossen.",
+        "geoip_reader_not_ready": "GeoIP ist aktiv, aber der lokale Datenbank-Reader ist nicht bereit."
+      }
+    },
+    "success": {
+      "export_config": "Backup gespeichert unter {path}",
+      "import_config": "Backup wiederhergestellt von {path}",
+      "download_config": "Backup heruntergeladen.",
+      "upload_config": "Backup hochgeladen und angewendet."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktive Sperren"
+      },
+      "allowlisted_networks": {
+        "name": "Allowlist-Netzwerke"
+      },
+      "blocked_networks": {
+        "name": "Blockierte Netzwerke"
+      },
+      "failed_login_sources": {
+        "name": "Fehlgeschlagene Login-Quellen"
+      }
+    }
+  }
+}

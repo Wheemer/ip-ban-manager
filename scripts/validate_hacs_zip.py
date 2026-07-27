@@ -6,19 +6,17 @@ import sys
 from pathlib import Path
 from zipfile import ZipFile
 
-REQUIRED_ROOT_FILES = {
-    "__init__.py",
-    "ban_lookup.py",
-    "config_flow.py",
-    "ha_compat.py",
-    "icon.png",
-    "manifest.json",
-    "panel.js",
-    "sensor.py",
-    "services.yaml",
-    "strings.json",
-    "translations/en.json",
-}
+REPO_ROOT = Path(__file__).resolve().parents[1]
+INTEGRATION_DIR = REPO_ROOT / "custom_components" / "ip_ban_manager"
+
+
+def expected_integration_files() -> set[str]:
+    """Return files that must be present in the flat HACS release zip."""
+    return {
+        path.relative_to(INTEGRATION_DIR).as_posix()
+        for path in INTEGRATION_DIR.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+    }
 
 
 def main() -> int:
@@ -31,7 +29,7 @@ def main() -> int:
     with ZipFile(zip_path) as archive:
         names = set(archive.namelist())
 
-    missing = sorted(REQUIRED_ROOT_FILES - names)
+    missing = sorted(expected_integration_files() - names)
     nested = sorted(name for name in names if name.startswith("custom_components/"))
     caches = sorted(
         name for name in names if "__pycache__/" in name or name.endswith(".pyc")

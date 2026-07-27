@@ -1,13 +1,25 @@
 const PANEL_VERSION = "__VERSION__";
-
 class IPBanManagerPanel extends HTMLElement {
   set hass(hass) {
+    const previousLocale = this._localeSignature(this._hass);
     this._hass = hass;
     const signature = this._stateSignature(hass);
     if (this._lastStateSignature && signature !== this._lastStateSignature) {
       this._scheduleLoad();
     }
     this._lastStateSignature = signature;
+
+    const nextLocale = this._localeSignature(hass);
+    if (
+      this._loaded &&
+      previousLocale &&
+      nextLocale !== previousLocale
+    ) {
+      this._scheduleLoad();
+      if (this._data) {
+        this._renderSafely();
+      }
+    }
 
     if (!this._loaded) {
       this._loaded = true;
@@ -18,7 +30,6 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   connectedCallback() {
-    this._listFilter = "";
     this._renderShell();
     this._autoRefresh = window.setInterval(() => this._scheduleLoad(), 10000);
   }
@@ -28,22 +39,89 @@ class IPBanManagerPanel extends HTMLElement {
     window.clearTimeout(this._loadTimer);
   }
 
-  async _api(method, path, data) {
-    if (this._hass?.callApi) {
-      return this._hass.callApi(method, path, data);
-    }
+  _language() {
+    return this._hass?.locale?.language || this._data?.language || "en";
+  }
 
-    const response = await fetch(`/api/${path}`, {
-      method,
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: data ? JSON.stringify(data) : undefined,
-    });
+  _localeSignature(hass) {
+    if (!hass?.locale) {
+      return "";
+    }
+    const { language, time_zone, time_format, date_format } = hass.locale;
+    return [language, time_zone, time_format, date_format].join("|");
+  }
+
+  _t(key, vars = {}) {
+    const translations = this._data?.translations || {};
+    let text = translations[key] || key;
+    for (const [name, value] of Object.entries(vars)) {
+      text = text.replaceAll(`{${name}}`, String(value));
+    }
+    return text;
+  }
+
+  _statusPath() {
+    const params = new URLSearchParams({ language: this._language() });
+    return `ip_ban_manager/status?${params.toString()}`;
+  }
+
+  _requestFailedMessage() {
+    return this._data?.translations?.request_failed || "Request failed.";
+  }
+
+  _withTimeout(promise, timeoutMs = 30000) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        window.setTimeout(
+          () => reject(new Error(this._requestFailedMessage())),
+          timeoutMs
+        );
+      }),
+    ]);
+  }
+
+  async _readApiResponse(response) {
     const body = await response.json().catch(() => ({}));
     if (!response.ok || body?.ok === false) {
-      throw new Error(body.error || body.message || response.statusText || `HTTP ${response.status}`);
+      throw new Error(
+        body.error || body.message || response.statusText || `HTTP ${response.status}`
+      );
     }
     return body;
+  }
+
+  async _api(method, path, data) {
+    const url = `/api/${path}`;
+    const init = {
+      method,
+      headers: { "Content-Type": "application/json" },
+    };
+    if (data !== undefined) {
+      init.body = JSON.stringify(data);
+    }
+
+    if (this._hass?.fetchWithAuth) {
+      const response = await this._hass.fetchWithAuth(url, init);
+      return this._readApiResponse(response);
+    }
+
+    if (this._hass?.callApi) {
+      const result =
+        method === "GET"
+          ? await this._hass.callApi(method, path)
+          : await this._hass.callApi(method, path, data);
+      if (result?.ok === false) {
+        throw new Error(result.error || result.message || this._requestFailedMessage());
+      }
+      return result;
+    }
+
+    const response = await fetch(url, {
+      ...init,
+      credentials: "same-origin",
+    });
+    return this._readApiResponse(response);
   }
 
   async _load({ silent = false } = {}) {
@@ -56,10 +134,10 @@ class IPBanManagerPanel extends HTMLElement {
     if (!canStayQuiet) {
       this._busy = true;
       this._error = "";
-      this._render();
+      this._renderSafely();
     }
     try {
-      this._data = await this._api("GET", "ip_ban_manager/status");
+      this._data = await this._withTimeout(this._api("GET", this._statusPath()));
       this._error = "";
       loaded = true;
     } catch (err) {
@@ -70,7 +148,7 @@ class IPBanManagerPanel extends HTMLElement {
       this._loading = false;
       this._busy = false;
       if (!canStayQuiet || loaded) {
-        this._render();
+        this._renderSafely();
       }
     }
   }
@@ -87,14 +165,20 @@ class IPBanManagerPanel extends HTMLElement {
     this._busy = true;
     this._error = "";
     this._notice = "";
-    this._render();
+    this._renderSafely();
     let ok = false;
     try {
-      const result = await this._api("POST", "ip_ban_manager/manage", { action, ...extra });
+      const result = await this._withTimeout(
+        this._api("POST", "ip_ban_manager/manage", {
+          action,
+          language: this._language(),
+          ...extra,
+        })
+      );
       if (result?.status && result?.settings) {
         this._data = result;
       } else {
-        this._data = await this._api("GET", "ip_ban_manager/status");
+        this._data = await this._withTimeout(this._api("GET", this._statusPath()));
       }
       if (action === "download_config" && result?.download?.content) {
         this._triggerBrowserDownload(result.download);
@@ -105,7 +189,7 @@ class IPBanManagerPanel extends HTMLElement {
       this._error = this._errorMessage(err);
     } finally {
       this._busy = false;
-      this._render();
+      this._renderSafely();
     }
     return ok;
   }
@@ -122,17 +206,9 @@ class IPBanManagerPanel extends HTMLElement {
 
   _successMessage(action) {
     const path = this._data?.backup?.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml";
-    if (action === "export_config") {
-      return `Saved backup to ${path}`;
-    }
-    if (action === "import_config") {
-      return `Restored backup from ${path}`;
-    }
-    if (action === "download_config") {
-      return "Backup downloaded.";
-    }
-    if (action === "upload_config") {
-      return "Backup uploaded and applied.";
+    const key = `success.${action}`;
+    if (this._data?.translations?.[key]) {
+      return this._t(key, { path });
     }
     return "";
   }
@@ -162,8 +238,14 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   async _runInitialAction(action, payload) {
-    await this._post(action, payload);
-    window.history.replaceState(null, "", window.location.pathname);
+    try {
+      await this._post(action, payload);
+    } finally {
+      window.history.replaceState(null, "", window.location.pathname);
+      if (!this._data) {
+        await this._load();
+      }
+    }
   }
 
   _errorMessage(err) {
@@ -182,7 +264,7 @@ class IPBanManagerPanel extends HTMLElement {
     if (err?.error) {
       return err.error;
     }
-    return "Request failed.";
+    return this._data?.translations?.request_failed || "Request failed.";
   }
 
   _renderShell() {
@@ -254,15 +336,6 @@ class IPBanManagerPanel extends HTMLElement {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 16px;
-        }
-        .list-filter {
-          margin-bottom: 16px;
-        }
-        .list-filter label {
-          display: block;
-          margin-bottom: 6px;
-          color: var(--secondary-text-color);
-          font-size: 14px;
         }
         section {
           background: var(--card-background-color);
@@ -422,7 +495,7 @@ class IPBanManagerPanel extends HTMLElement {
         <div id="content"></div>
       </div>
     `;
-    this._render();
+    this._renderSafely();
   }
 
   _updateVersionLabel() {
@@ -444,6 +517,7 @@ class IPBanManagerPanel extends HTMLElement {
     }
     if (this._busy && !this._data) {
       content.innerHTML = `<section><div class="body">Loading...</div></section>`;
+      this._updateChromeLabels();
       return;
     }
     if (!this._data) {
@@ -451,34 +525,99 @@ class IPBanManagerPanel extends HTMLElement {
       return;
     }
 
-    const status = this._data.status;
-    const settings = this._data.settings;
-    this._updateVersionLabel();
+    const status = this._data.status || {};
+    const settings = this._data.settings || {};
+    this._updateChromeLabels();
     content.innerHTML = `
       ${this._error ? `<div class="error">${this._escape(this._error)}</div>` : ""}
       ${this._notice ? `<div class="notice">${this._escape(this._notice)}</div>` : ""}
-      <div class="list-filter">
-        <label for="list-filter">Filter lists</label>
-        <input id="list-filter" placeholder="Search Allowed IPs, Blocked IPs, and Blocked Networks" value="${this._escape(this._listFilter || "")}">
-      </div>
       <div class="grid">
         ${this._optionsSection(settings)}
-        ${this._listSection("Allowed IPs", "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4 wildcards like 192.168.1.* are supported.", settings.ip_addresses, "remove_allowlist", "add_allowlist", "IPv4/IPv6 address, CIDR, or IPv4 wildcard", this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings))}
-        ${this._banSection(status.banned_ips)}
-        ${this._listSection("Blocked Networks", "Managed IPv4/IPv6 CIDR or IPv4 wildcard networks, enforced without writing ranges into ip_bans.yaml.", settings.blocked_networks, "remove_blocked_network", "add_blocked_network", "CIDR or IPv4 wildcard network")}
+        ${this._listSection(this._t("allowed_ips.title"), this._t("allowed_ips.hint"), this._allowlistRows(settings), "remove_allowlist", "add_allowlist", this._t("allowed_ips.placeholder"), this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings))}
+        ${this._banSection(status.banned_ips || [])}
+        ${this._listSection(this._t("blocked_networks.title"), this._t("blocked_networks.hint"), this._networkRows(settings.blocked_network_entries || settings.blocked_networks || []), "remove_blocked_network", "add_blocked_network", this._t("blocked_networks.placeholder"))}
       </div>
     `;
     this._wireEvents();
+  }
+
+  _renderSafely() {
+    try {
+      this._render();
+    } catch (err) {
+      this._busy = false;
+      this._loading = false;
+      this._error = this._errorMessage(err);
+      const content = this.shadowRoot?.getElementById("content");
+      if (content) {
+        content.innerHTML = `<div class="error">${this._escape(this._error)}</div>`;
+        this._updateChromeLabels();
+      }
+      console.error("IP Ban Manager panel render failed", err);
+    }
+  }
+
+  _updateChromeLabels() {
+    const titleEl = this.shadowRoot?.querySelector("h1");
+    if (titleEl) {
+      titleEl.textContent = this._data?.translations?.title || "IP Ban Manager";
+    }
+    this._updateVersionLabel();
   }
 
   _riskyAllowlistRemoveConfirm(settings) {
     if (!settings.default_deny_enabled && !(settings.blocked_networks || []).length) {
       return "";
     }
-    return "Remove this Allowed IP? With default-deny or blocked networks active, removing a trusted entry can lock out access.";
+    return this._t("allowed_ips.remove_confirm");
+  }
+
+  _allowlistRows(settings) {
+    const entries = settings.ip_addresses || settings.allowlist_entries || [];
+    return entries.map((entry) => {
+      const network = typeof entry === "string" ? entry : entry.network;
+      return { label: network, value: network };
+    });
+  }
+
+  _networkRows(entries) {
+    return (entries || []).map((entry) => {
+      if (typeof entry === "string") {
+        return {
+          label: entry,
+          value: entry,
+          detail: this._t("added_before_tracking"),
+        };
+      }
+      return {
+        label: entry.network,
+        value: entry.network,
+        detail: this._entryDetail(entry),
+      };
+    });
+  }
+
+  _entryDetail(entry) {
+    const parts = [];
+    if (entry.added_at) {
+      parts.push(this._formatDate(entry.added_at));
+    }
+    if (entry.source) {
+      parts.push(this._sourceLabel(entry.source));
+    } else if (!entry.added_at) {
+      parts.push(this._t("added_before_tracking"));
+    }
+    return parts.join(" · ");
+  }
+
+  _sourceLabel(source) {
+    const key = `sources.${source}`;
+    const translated = this._t(key);
+    return translated === key ? source : translated;
   }
 
   _listSection(title, hint, rows, removeAction, addAction, placeholder, extra = "", removeConfirm = "") {
+    const addLabel = addAction === "add_ban" ? this._t("block") : this._t("add");
     return `
       <section>
         <h2>${title}</h2>
@@ -487,7 +626,7 @@ class IPBanManagerPanel extends HTMLElement {
           ${this._rows(rows, removeAction, removeConfirm)}
           <form data-action="${addAction}">
             <input name="value" placeholder="${placeholder}" autocomplete="off">
-            <button class="primary" ${this._busy ? "disabled" : ""}>Add</button>
+            <button class="primary" ${this._busy ? "disabled" : ""}>${addLabel}</button>
           </form>
           ${extra}
         </div>
@@ -496,20 +635,20 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _banSection(bans) {
-    const rows = bans.map((ban) => ({
+    const rows = (bans || []).map((ban) => ({
       label: ban.ip_address,
-      detail: [this._formatDate(ban.banned_at), ban.location].filter(Boolean).join(" - "),
+      detail: [this._formatDate(ban.banned_at), ban.location].filter(Boolean).join(" · "),
       value: ban.ip_address,
     }));
     return `
       <section>
-        <h2>Blocked IPs</h2>
+        <h2>${this._t("blocked_ips.title")}</h2>
         <div class="body">
-          <p class="hint">Home Assistant's native exact IPv4/IPv6 block list, written oldest first in ip_bans.yaml.</p>
+          <p class="hint">${this._t("blocked_ips.hint")}</p>
           ${this._rows(rows, "remove_ban")}
           <form data-action="add_ban">
-            <input name="value" placeholder="IPv4/IPv6 address" autocomplete="off">
-            <button class="primary" ${this._busy ? "disabled" : ""}>Block</button>
+            <input name="value" placeholder="${this._t("blocked_ips.placeholder")}" autocomplete="off">
+            <button class="primary" ${this._busy ? "disabled" : ""}>${this._t("block")}</button>
           </form>
         </div>
       </section>
@@ -517,33 +656,33 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _optionsSection(settings) {
-    const geoip = this._data.geoip || {};
-    const backup = this._data.backup || {};
+    const geoip = this._data?.geoip || {};
+    const backup = this._data?.backup || {};
     return `
       <section>
-        <h2>Options</h2>
+        <h2>${this._t("options")}</h2>
         <div class="body">
-          ${this._healthSummary(this._data.status.health)}
+          ${this._healthSummary(this._data?.status?.health)}
           <div class="options">
-            ${this._checkbox("auto_ban_enabled", "Automatic bans", "Block failed login sources.", settings.auto_ban_enabled)}
-            ${this._checkbox("ban_notifications_enabled", "Automatic ban notifications", "Show alerts when IPs are blocked.", settings.ban_notifications_enabled)}
-            ${this._checkbox("allowlisted_login_notifications_enabled", "Allowlisted login notifications", "Alert on failed trusted logins.", settings.allowlisted_login_notifications_enabled)}
-            ${this._checkbox("sidebar_panel_enabled", "Show in sidebar", "Add the left menu page.", settings.sidebar_panel_enabled)}
-            ${this._checkbox("geoip_enabled", "GeoIP location labels", "Show approximate public-IP locations. If the local database is missing, Apply downloads it.", settings.geoip_enabled)}
+            ${this._checkbox("auto_ban_enabled", this._t("settings.auto_ban_enabled"), this._t("settings.auto_ban_enabled_hint"), settings.auto_ban_enabled)}
+            ${this._checkbox("ban_notifications_enabled", this._t("settings.ban_notifications_enabled"), this._t("settings.ban_notifications_enabled_hint"), settings.ban_notifications_enabled)}
+            ${this._checkbox("allowlisted_login_notifications_enabled", this._t("settings.allowlisted_login_notifications_enabled"), this._t("settings.allowlisted_login_notifications_enabled_hint"), settings.allowlisted_login_notifications_enabled)}
+            ${this._checkbox("sidebar_panel_enabled", this._t("settings.sidebar_panel_enabled"), this._t("settings.sidebar_panel_enabled_hint"), settings.sidebar_panel_enabled)}
+            ${this._checkbox("geoip_enabled", this._t("settings.geoip_enabled"), this._t("settings.geoip_enabled_hint"), settings.geoip_enabled)}
           </div>
           <div class="threshold">
             <label>
-              <p class="hint">Login attempts threshold</p>
+              <p class="hint">${this._t("settings.login_attempts_threshold")}</p>
               <input id="threshold" type="number" min="0" max="100" value="${Number(settings.login_attempts_threshold || 0)}">
             </label>
           </div>
-          <div class="advanced-title">Advanced</div>
+          <div class="advanced-title">${this._t("advanced")}</div>
           <div class="options">
-            ${this._checkbox("allowlisted_logins_can_ban", "Bans inside Allowed IPs", "Be careful: trusted IPs can be blocked.", settings.allowlisted_logins_can_ban, true)}
-            ${this._checkbox("default_deny_enabled", "Block everything outside Allowed IPs", "Be careful: only Allowed IPs can connect.", settings.default_deny_enabled, true)}
+            ${this._checkbox("allowlisted_logins_can_ban", this._t("settings.allowlisted_logins_can_ban"), this._t("settings.allowlisted_logins_can_ban_hint"), settings.allowlisted_logins_can_ban, true)}
+            ${this._checkbox("default_deny_enabled", this._t("settings.default_deny_enabled"), this._t("settings.default_deny_enabled_hint"), settings.default_deny_enabled, true)}
           </div>
           <div class="actions">
-            <button class="primary" id="save-options" ${this._busy ? "disabled" : ""}>Apply</button>
+            <button class="primary" id="save-options" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>
           </div>
           ${this._geoipStatus(geoip)}
           ${this._backupStatus(backup)}
@@ -553,32 +692,32 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _backupStatus(backup) {
-    const updated = backup.last_export ? this._formatDate(backup.last_export) : "No save yet";
+    const updated = backup.last_export ? this._formatDate(backup.last_export) : "";
     return `
       <div class="backup-stack">
         <div class="geoip-status">
           <div>
-            <strong>Save to config</strong>
+            <strong>${this._t("backup.save_title")}</strong>
             <small>${this._escape(backup.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml")}</small>
-            <small>${backup.exists ? `Last saved: ${this._escape(updated)}` : "Writes the on-disk backup file."}</small>
+            <small>${backup.exists ? this._escape(this._t("backup.save_last", { date: updated })) : this._t("backup.save_none")}</small>
           </div>
           <div class="button-row">
-            <button data-action="export_config" ${this._busy ? "disabled" : ""}>Save</button>
+            <button data-action="export_config" ${this._busy ? "disabled" : ""}>${this._t("backup.save")}</button>
             <button
               data-action="import_config"
-              data-confirm="Restore from the on-disk backup and replace current IP Ban Manager settings and exact IP bans?"
+              data-confirm="${this._escape(this._t("backup.restore_confirm"))}"
               ${this._busy || !backup.exists ? "disabled" : ""}
-            >Restore</button>
+            >${this._t("backup.restore")}</button>
           </div>
         </div>
         <div class="geoip-status">
           <div>
-            <strong>Transfer</strong>
-            <small>Download a copy to this device, or upload a backup to restore.</small>
+            <strong>${this._t("backup.transfer_title")}</strong>
+            <small>${this._t("backup.transfer_hint")}</small>
           </div>
           <div class="button-row">
-            <button data-action="download_config" ${this._busy ? "disabled" : ""}>Download</button>
-            <button data-action="upload_config" ${this._busy ? "disabled" : ""}>Upload</button>
+            <button data-action="download_config" ${this._busy ? "disabled" : ""}>${this._t("backup.download")}</button>
+            <button data-action="upload_config" ${this._busy ? "disabled" : ""}>${this._t("backup.upload")}</button>
             <input id="backup-upload" type="file" accept=".yaml,.yml,text/yaml,text/plain" hidden>
           </div>
         </div>
@@ -588,16 +727,16 @@ class IPBanManagerPanel extends HTMLElement {
 
   _geoipStatus(geoip) {
     const installed = Boolean(geoip.geoip_database_present);
-    const updated = geoip.geoip_database_updated ? this._formatDate(geoip.geoip_database_updated) : "Not installed";
-    const status = installed ? `Installed - ${this._escape(updated)}` : "Enable GeoIP and Apply to download";
+    const updated = geoip.geoip_database_updated ? this._formatDate(geoip.geoip_database_updated) : this._t("geoip.not_installed");
+    const status = installed ? this._t("geoip.installed", { date: updated }) : this._t("geoip.download_hint");
     return `
       <div class="geoip-status">
         <div>
-          <strong>GeoIP database</strong>
+          <strong>${this._t("geoip.title")}</strong>
           <small>${status}</small>
-          <small>Location data: <a href="https://db-ip.com" target="_blank" rel="noreferrer">DB-IP City Lite</a></small>
+          <small>${this._t("geoip.attribution")} <a href="https://db-ip.com" target="_blank" rel="noreferrer">DB-IP City Lite</a></small>
         </div>
-        ${installed ? `<button data-action="update_geoip" ${this._busy ? "disabled" : ""}>Update</button>` : ""}
+        ${installed ? `<button data-action="update_geoip" ${this._busy ? "disabled" : ""}>${this._t("geoip.update")}</button>` : ""}
       </div>
     `;
   }
@@ -612,8 +751,15 @@ class IPBanManagerPanel extends HTMLElement {
     }
     return `
       <div class="health warn">
-        <strong>Health check needs attention</strong>
-        <ul>${issues.map((issue) => `<li>${this._escape(issue)}</li>`).join("")}</ul>
+        <strong>${this._t("health.title")}</strong>
+        <ul>${issues.map((issue) => {
+          if (typeof issue === "string") {
+            return `<li>${this._escape(issue)}</li>`;
+          }
+          const key = `health.issues.${issue.key}`;
+          const text = this._t(key, issue.placeholders || {});
+          return `<li>${this._escape(text === key ? issue.key : text)}</li>`;
+        }).join("")}</ul>
       </div>
     `;
   }
@@ -625,8 +771,8 @@ class IPBanManagerPanel extends HTMLElement {
     );
     return `
       <div class="subsection">
-        <h3>Silenced allowlisted-login notifications</h3>
-        <p class="hint">Addresses silenced from allowlisted-login alerts.</p>
+        <h3>${this._t("silenced_logins.title")}</h3>
+        <p class="hint">${this._t("silenced_logins.hint")}</p>
         ${silencedRows}
       </div>
     `;
@@ -641,20 +787,12 @@ class IPBanManagerPanel extends HTMLElement {
     `;
   }
 
-  _matchesFilter(value) {
-    const needle = String(this._listFilter || "").trim().toLowerCase();
-    if (!needle) {
-      return true;
-    }
-    return String(value).toLowerCase().includes(needle);
-  }
-
   _rows(rows, removeAction, removeConfirm = "") {
-    const normalized = rows
-      .map((row) => (typeof row === "string" ? { label: row, value: row } : row))
-      .filter((row) => this._matchesFilter(row.label) || this._matchesFilter(row.value) || this._matchesFilter(row.detail));
+    const normalized = (rows || []).map((row) =>
+      typeof row === "string" ? { label: row, value: row } : row
+    );
     if (!normalized.length) {
-      return `<div class="empty">None</div>`;
+      return `<div class="empty">${this._escape(this._t("none"))}</div>`;
     }
     const confirmAttr = removeConfirm
       ? ` data-confirm="${this._escape(removeConfirm)}"`
@@ -667,7 +805,7 @@ class IPBanManagerPanel extends HTMLElement {
               <code>${this._escape(row.label)}</code>
               ${row.detail ? `<div class="meta">${this._escape(row.detail)}</div>` : ""}
             </div>
-            <button class="danger" data-action="${removeAction}" data-value="${this._escape(row.value)}"${confirmAttr} ${this._busy ? "disabled" : ""}>Remove</button>
+            <button class="danger" data-action="${removeAction}" data-value="${this._escape(row.value)}"${confirmAttr} ${this._busy ? "disabled" : ""}>${this._t("remove")}</button>
           </div>
         `).join("")}
       </div>
@@ -713,7 +851,7 @@ class IPBanManagerPanel extends HTMLElement {
         }
         if (
           !window.confirm(
-            `Upload ${file.name} and replace current IP Ban Manager settings and exact IP bans?`
+            this._t("backup.upload_confirm", { filename: file.name })
           )
         ) {
           return;
@@ -723,7 +861,7 @@ class IPBanManagerPanel extends HTMLElement {
           await this._post("upload_config", { content });
         } catch (err) {
           this._error = this._errorMessage(err);
-          this._render();
+          this._renderSafely();
         }
       });
     }
@@ -740,27 +878,62 @@ class IPBanManagerPanel extends HTMLElement {
         this._post("set_options", { options });
       });
     }
-    const listFilter = this.shadowRoot.getElementById("list-filter");
-    if (listFilter) {
-      listFilter.addEventListener("input", () => {
-        this._listFilter = listFilter.value;
-        this._render();
-      });
+  }
+
+  _resolveTimeZone() {
+    const candidate =
+      this._hass?.locale?.time_zone || this._hass?.config?.time_zone || "";
+    if (typeof candidate !== "string") {
+      return undefined;
+    }
+    const normalized = candidate.trim();
+    if (!normalized) {
+      return undefined;
+    }
+    const lower = normalized.toLowerCase();
+    if (lower === "local" || lower === "server") {
+      return undefined;
+    }
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: normalized });
+      return normalized;
+    } catch {
+      return undefined;
     }
   }
 
   _formatDate(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-      return value;
+      return String(value);
     }
-    return date.toLocaleString(undefined, {
+    const locale = this._hass?.locale?.language;
+    const timeZone = this._resolveTimeZone();
+    const options = {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-    });
+    };
+    if (timeZone) {
+      options.timeZone = timeZone;
+    }
+    const timeFormat = this._hass?.locale?.time_format;
+    if (timeFormat === "24") {
+      options.hour12 = false;
+    } else if (timeFormat === "12") {
+      options.hour12 = true;
+    }
+    try {
+      return new Intl.DateTimeFormat(locale, options).format(date);
+    } catch (err) {
+      try {
+        return date.toLocaleString(locale, timeZone ? { timeZone } : undefined);
+      } catch {
+        return String(value);
+      }
+    }
   }
 
   _isEditing() {
@@ -790,4 +963,6 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define("ip-ban-manager-panel", IPBanManagerPanel);
+if (!customElements.get("ip-ban-manager-panel")) {
+  customElements.define("ip-ban-manager-panel", IPBanManagerPanel);
+}

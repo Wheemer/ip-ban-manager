@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Määritä IP Ban Manager",
+        "description": "Valitse turvalliset oletusasetukset. Hallitse sen jälkeen live-estoja, estettyjä verkkoja, oletus-kielto-tilaa ja ilmoituksia IP Ban Manager -paneelin tai Määritä-näkymän kautta.",
+        "data": {
+          "login_attempts_threshold": "Kirjautumisyritysten kynnysarvo",
+          "auto_ban_enabled": "Automaattiset estot",
+          "ban_notifications_enabled": "Automaattiset estoilmoitukset",
+          "allowlisted_login_notifications_enabled": "Sallittujen kirjautumisten ilmoitukset",
+          "allowlisted_logins_can_ban": "Salli automaattiset estot sallittujen IP-osoitteiden sisällä",
+          "default_deny_enabled": "Estä kaikki sallittujen IP-osoitteiden ulkopuolelta",
+          "geoip_enabled": "GeoIP-sijaintimerkinnät",
+          "sidebar_panel_enabled": "Näytä sivupalkissa",
+          "quick_allowlist": "Turvalliset sallituslistan oletukset",
+          "ban_options": "Asetukset"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Syötä kelvollisia IP-osoitteita, CIDR-verkkoja tai jokeriverkkoja kuten 192.168.1.* tai 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Tämä sallituslistan merkintä luottaisi jokaiseen IP-osoitteeseen ja käytännössä poistaisi IP-estot käytöstä.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager on jo määritetty.",
+      "unsafe_allowlist_network": "Tuodussa sallituslistassa on merkintä, joka luottaisi jokaiseen IP-osoitteeseen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hallitse IP Ban Manageria",
+        "description": "Hallitse live-sallituslistaa ja estolistaa. Lähetä ottaa muutokset heti käyttöön; Home Assistantin uudelleenkäynnistystä ei tarvita.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Sallitut IP-osoitteet",
+            "data": {
+              "allowed_ips": "Sallitut merkinnät",
+              "quick_allowlist": "Lisää turvalliset oletukset"
+            }
+          },
+          "banned_ips": {
+            "name": "Estetyt IP-osoitteet",
+            "data": {
+              "ban_options": "Asetukset",
+              "advanced_ban_options": "Lisäasetukset",
+              "login_attempts_threshold": "Kirjautumisyritysten kynnysarvo",
+              "banned_ips": "Estetyt merkinnät",
+              "blocked_networks": "Estetyt verkot"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Luotetut IPv4-/IPv6-osoitteet ja verkot, joita ei koskaan estetä. Yksi merkintä per rivi. CIDR-verkot ja IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan.",
+          "banned_ips": "Tällä hetkellä estetyt tarkat IPv4-/IPv6-osoitteet. Olemassa olevat rivit näyttävät estoajan tarkistusta varten; uudet rivit voivat olla pelkkä IP. Jätä tyhjäksi tyhjentääksesi kaikki estetyt IP-osoitteet.",
+          "blocked_networks": "IPv4-/IPv6-CIDR-verkot tai jokeriverkot, jotka estetään kirjoittamatta niitä Home Assistantin ip_bans.yaml-tiedostoon. Sallitut merkinnät voittavat silti."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Tyhjennetäänkö estetyt IP-osoitteet?",
+        "description": "Tämä poistaa {ban_count} estettyä IP-osoitetta Home Assistantista ja kirjoittaa ip_bans.yaml-tiedoston uudelleen. Vahvista valitsemalla valintaruutu.",
+        "data": {
+          "confirm_clear_bans": "Tyhjennä kaikki estetyt IP-osoitteet"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Syötä kelvollisia IP-osoitteita, CIDR-verkkoja tai jokeriverkkoja kuten 192.168.1.* tai 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Syötä yksi tarkka IPv4- tai IPv6-osoite per rivi. CIDR-verkot ja jokerit kuuluvat Estetyt verkot -kohtaan.",
+      "invalid_blocked_network": "Syötä kelvollisia IPv4-/IPv6-CIDR-verkkoja tai jokeriverkkoja kuten 203.0.113.* tai 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Tämä estetty verkko estäisi jokaisen IP-osoitteen. Käytä suppeampaa verkkoa.",
+      "local_network_block_unprotected": "Tämä asetus estäisi jokaisen havaittuun paikalliseen käyttöpolkuun. Lisää ensin nykyinen paikallinen verkko Sallitut IP-osoitteet -listaan.",
+      "unsafe_allowlist_network": "Tämä sallituslistan merkintä luottaisi jokaiseen IP-osoitteeseen ja käytännössä poistaisi IP-estot käytöstä.",
+      "banned_ip_allowlisted": "IP-osoite ei voi olla sekä sallittu että estetty. Poista se jostakin listasta ja yritä uudelleen.",
+      "confirmation_required": "Valitse vahvistusruutu ennen kaikkien estettyjen IP-osoitteiden tyhjentämistä."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} ei ole kelvollinen IP-osoite."
+    },
+    "invalid_network": {
+      "message": "{network} ei ole kelvollinen IP-osoite, CIDR-verkko tai jokeriverkko."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} on sallituslistalla, joten sitä ei estetty."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} ei ole tällä hetkellä estetty."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} on jo estetty estetyn verkon toimesta."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} luottaisi jokaiseen IP-osoitteeseen ja käytännössä poistaisi IP-estot käytöstä."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} sisältää yhden tai useamman tällä hetkellä estetyn IP-osoitteen. Poista ne estot ennen tämän verkon lisäämistä sallituslistalle."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Aseta confirm arvoon true ennen kaikkien IP-estojen tyhjentämistä."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Ota HTTP IP -estot käyttöön",
+      "description": "Home Assistantin sisäänrakennetut HTTP IP -estot ovat tällä hetkellä pois käytöstä, joten estojen hallinta ja sallituslistan suojaus eivät voi toimia.\n\nAseta tämä avain olemassa olevaan `http:`-osioon tiedostossa `configuration.yaml` ja käynnistä Home Assistant uudelleen:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager on pois käytöstä",
+      "description": "Hätäkatkaisin on aktiivinen, joten IP Ban Manager ei asentanut ajonaikaisia koukkujaan, paneelia, palveluita, antureita, hallittuja estettyjä verkkoja tai oletus-kielto-käsittelyä.\n\nPoista `ip_ban_manager: disabled` tiedostosta `configuration.yaml` tai poista `/config/ip_ban_manager.disabled`, ja käynnistä Home Assistant uudelleen."
+    },
+    "legacy_yaml_present": {
+      "title": "Poista vanha ban_allowlist-YAML",
+      "description": "IP Ban Manager on jo tuonut vanhat `ban_allowlist:`-YAML-asetukset UI-konfiguraatiomerkintään.\n\nPoista vanha `ban_allowlist:`-lohko tiedostosta `configuration.yaml` ja käynnistä Home Assistant uudelleen. Integraatio jatkaa tuotujen UI-asetusten käyttöä."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Vanhan version siivous vaatii huomiota",
+      "description": "IP Ban Manager ei voinut siirtää yhtä tai useampaa vanhentunutta legacy-kansiota pois Home Assistantin latauspolulta:\n\n{paths}\n\nTarkista tiedosto-oikeudet, siirrä nämä polut pois `custom_components`-kansiosta ja käynnistä Home Assistant uudelleen."
+    },
+    "health_check_failed": {
+      "title": "IP Ban Managerin kuntotarkistus vaatii huomiota",
+      "description": "IP Ban Manager löysi yhden tai useamman asetusongelman, jotka voivat vaikuttaa live-estojen hallintaan:\n\n{issues}\n\nAvaa IP Ban Manager -paneeli korjausten jälkeen päivittääksesi kuntotarkistuksen."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automaattiset estot – estä epäonnistuneet kirjautumislähteet",
+        "ban_notifications": "Automaattiset estoilmoitukset – hälytykset estetyistä IP-osoitteista",
+        "allowlisted_login_notifications": "Sallittujen kirjautumisten ilmoitukset – hälytä epäonnistuneista luotetuista kirjautumisista",
+        "sidebar_panel": "Näytä sivupalkissa – lisää sivu vasempaan valikkoon",
+        "geoip": "GeoIP-sijaintimerkinnät – lataa paikallinen DB-IP-tietokanta"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Lisäasetukset: estot sallittujen IP-osoitteiden sisällä – luotetut IP-osoitteet voidaan estää",
+        "default_deny": "Lisäasetukset: estä kaikki sallittujen IP-osoitteiden ulkopuolelta – ole varovainen"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Havaittu paikallinen verkko/verkot"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Ladataan...",
+    "request_failed": "Pyyntö epäonnistui.",
+    "none": "Ei mitään",
+    "remove": "Poista",
+    "add": "Lisää",
+    "block": "Estä",
+    "apply": "Käytä",
+    "advanced": "Lisäasetukset",
+    "options": "Asetukset",
+    "added_before_tracking": "Lisätty ennen seurantaa",
+    "sources": {
+      "auto": "Automaattinen",
+      "configure": "Määritä",
+      "default": "Asennuksen oletus",
+      "detected": "Havaittu verkko",
+      "import": "Varmuuskopion palautus",
+      "panel": "Panel",
+      "service": "Palvelu",
+      "setup": "Asennus",
+      "yaml": "YAML-tuonti"
+    },
+    "allowed_ips": {
+      "title": "Sallitut IP-osoitteet",
+      "hint": "Luotetut IPv4-/IPv6-osoitteet ja verkot. Nämä merkinnät voittavat tarkat estot, estetyt verkot ja oletus-kielto-tilan. IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan.",
+      "placeholder": "IPv4-/IPv6-osoite, CIDR tai jokeri",
+      "remove_confirm": "Poistetaanko tämä sallittu IP? Kun oletus-kielto tai estetyt verkot ovat aktiivisia, luotetun merkinnän poistaminen voi estää pääsyn."
+    },
+    "blocked_ips": {
+      "title": "Estetyt IP-osoitteet",
+      "hint": "Home Assistantin natiivi tarkkojen IPv4-/IPv6-estojen lista, kirjoitettuna vanhin ensin ip_bans.yaml-tiedostoon.",
+      "placeholder": "IPv4-/IPv6-osoite"
+    },
+    "blocked_networks": {
+      "title": "Estetyt verkot",
+      "hint": "Hallitut IPv4-/IPv6-CIDR- tai jokeriverkot, joita valvotaan kirjoittamatta alueita ip_bans.yaml-tiedostoon.",
+      "placeholder": "CIDR- tai jokeriverkko"
+    },
+    "silenced_logins": {
+      "title": "Mykistetyt sallittujen kirjautumisten ilmoitukset",
+      "hint": "Osoitteet, joille sallittujen kirjautumisten hälytykset on mykistetty."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automaattiset estot",
+      "auto_ban_enabled_hint": "Estä epäonnistuneet kirjautumislähteet.",
+      "ban_notifications_enabled": "Automaattiset estoilmoitukset",
+      "ban_notifications_enabled_hint": "Näytä hälytykset, kun IP-osoitteita estetään.",
+      "allowlisted_login_notifications_enabled": "Sallittujen kirjautumisten ilmoitukset",
+      "allowlisted_login_notifications_enabled_hint": "Hälytä epäonnistuneista luotetuista kirjautumisista.",
+      "sidebar_panel_enabled": "Näytä sivupalkissa",
+      "sidebar_panel_enabled_hint": "Lisää sivu vasempaan valikkoon.",
+      "geoip_enabled": "GeoIP-sijaintimerkinnät",
+      "geoip_enabled_hint": "Näytä likimääräiset julkisten IP-osoitteiden sijainnit. Jos paikallinen tietokanta puuttuu, Käytä lataa sen.",
+      "login_attempts_threshold": "Kirjautumisyritysten kynnysarvo",
+      "allowlisted_logins_can_ban": "Estot sallittujen IP-osoitteiden sisällä",
+      "allowlisted_logins_can_ban_hint": "Ole varovainen: luotetut IP-osoitteet voidaan estää.",
+      "default_deny_enabled": "Estä kaikki sallittujen IP-osoitteiden ulkopuolelta",
+      "default_deny_enabled_hint": "Ole varovainen: vain sallitut IP-osoitteet voivat yhdistää."
+    },
+    "backup": {
+      "save_title": "Tallenna konfiguraatioon",
+      "save_none": "Kirjoittaa varmuuskopiotiedoston levylle.",
+      "save_last": "Viimeksi tallennettu: {date}",
+      "save": "Tallenna",
+      "restore": "Palauta",
+      "restore_confirm": "Palautetaanko levyn varmuuskopiosta ja korvataanko nykyiset IP Ban Manager -asetukset ja tarkat IP-estot?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Lataa kopio tälle laitteelle tai lähetä varmuuskopio palautusta varten.",
+      "download": "Lataa",
+      "upload": "Lähetä",
+      "upload_confirm": "Lähetetäänkö {filename} ja korvataanko nykyiset IP Ban Manager -asetukset ja tarkat IP-estot?"
+    },
+    "geoip": {
+      "title": "GeoIP-tietokanta",
+      "not_installed": "Ei asennettu",
+      "installed": "Asennettu - {date}",
+      "download_hint": "Ota GeoIP käyttöön ja Käytä lataamaan",
+      "attribution": "Sijaintitiedot:",
+      "update": "Päivitä"
+    },
+    "health": {
+      "title": "Kuntotarkistus vaatii huomiota",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistantin natiivit IP-estot ovat pois käytöstä.",
+        "ban_file_not_loaded": "Home Assistantin IP-esto ei ole ladattu.",
+        "ban_file_not_regular_file": "{path} ei ole tavallinen tiedosto.",
+        "ban_file_not_readable_writable": "{path} ei ole luettavissa eikä kirjoitettavissa.",
+        "ban_file_parent_missing": "{path} ei ole olemassa.",
+        "ban_file_parent_not_writable": "{path} ei ole kirjoitettavissa.",
+        "panel_not_registered": "IP Ban Manager -paneelia ei ole rekisteröity.",
+        "legacy_cleanup_pending": "Vanhan komponentin siivous ei ole vielä valmis.",
+        "geoip_reader_not_ready": "GeoIP on käytössä, mutta paikallinen tietokannan lukija ei ole valmis."
+      }
+    },
+    "success": {
+      "export_config": "Varmuuskopio tallennettu kohteeseen {path}",
+      "import_config": "Varmuuskopio palautettu kohteesta {path}",
+      "download_config": "Varmuuskopio ladattu.",
+      "upload_config": "Varmuuskopio lähetetty ja otettu käyttöön."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktiiviset estot"
+      },
+      "allowlisted_networks": {
+        "name": "Sallituslistan verkot"
+      },
+      "blocked_networks": {
+        "name": "Estetyt verkot"
+      },
+      "failed_login_sources": {
+        "name": "Epäonnistuneet kirjautumislähteet"
+      }
+    }
+  }
+}

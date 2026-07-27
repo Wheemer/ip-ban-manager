@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from ipaddress import IPv4Address, ip_address
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import ANY
 
 import pytest
 from homeassistant.components.http.ban import KEY_BAN_MANAGER, IpBanManager
@@ -25,11 +26,13 @@ from custom_components.ip_ban_manager.config_flow import (
 from custom_components.ip_ban_manager.const import (
     ATTR_BANNED_IPS,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWLIST_ENTRY_META,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
+    CONF_BLOCKED_NETWORK_ENTRY_META,
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_GEOIP_ENABLED,
@@ -39,6 +42,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
     LEGACY_DOMAIN,
+    SOURCE_CONFIGURE,
 )
 
 
@@ -52,13 +56,19 @@ def expected_setup_data(ip_addresses: list[str]) -> dict[str, object]:
         CONF_ALLOWLISTED_LOGINS_CAN_BAN: False,
         CONF_DEFAULT_DENY_ENABLED: False,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: 0,
+        CONF_ALLOWLIST_ENTRY_META: {
+            ip_address: {"added_at": ANY, "source": ANY} for ip_address in ip_addresses
+        },
     }
 
 
 def expected_options_data(
-    ip_addresses: list[str], threshold: int = 0
+    ip_addresses: list[str],
+    threshold: int = 0,
+    blocked_networks: list[str] | None = None,
 ) -> dict[str, object]:
     """Return expected options-flow data."""
+    blocked_networks = blocked_networks or []
     return {
         CONF_IP_ADDRESSES: ip_addresses,
         CONF_AUTO_BAN_ENABLED: True,
@@ -69,7 +79,15 @@ def expected_options_data(
         CONF_SIDEBAR_PANEL_ENABLED: True,
         CONF_GEOIP_ENABLED: False,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: threshold,
-        CONF_BLOCKED_NETWORKS: [],
+        CONF_BLOCKED_NETWORKS: blocked_networks,
+        CONF_ALLOWLIST_ENTRY_META: {
+            ip_address: {"added_at": ANY, "source": SOURCE_CONFIGURE}
+            for ip_address in ip_addresses
+        },
+        CONF_BLOCKED_NETWORK_ENTRY_META: {
+            network: {"added_at": ANY, "source": SOURCE_CONFIGURE}
+            for network in blocked_networks
+        },
     }
 
 
@@ -850,6 +868,29 @@ async def test_options_flow_normalizes_ipv4_wildcard_addresses(
 
 
 @pytest.mark.asyncio
+async def test_options_flow_normalizes_ipv6_wildcard_addresses(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test options normalize IPv6 wildcard shorthand to CIDR."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "2001:db8:1:2:*"},
+            CONF_BANNED_IPS: {CONF_BANNED_IPS: "", CONF_BLOCKED_NETWORKS: ""},
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == expected_options_data(["2001:db8:1:2::/64"])
+    assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == ["2001:db8:1:2::/64"]
+
+
+@pytest.mark.asyncio
 async def test_options_flow_accepts_ipv6_addresses_and_networks(
     hass: HomeAssistant, tmp_path: Path
 ) -> None:
@@ -872,10 +913,10 @@ async def test_options_flow_accepts_ipv6_addresses_and_networks(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {
-        **expected_options_data(["2001:db8::/64", "::1"]),
-        CONF_BLOCKED_NETWORKS: ["2001:db8:2::/64"],
-    }
+    assert result["data"] == expected_options_data(
+        ["2001:db8::/64", "::1"],
+        blocked_networks=["2001:db8:2::/64"],
+    )
     assert [str(ip) for ip in hass.http.app[KEY_ALLOWLIST]] == [
         "2001:db8::/64",
         "::1/128",
@@ -1112,6 +1153,31 @@ async def test_options_flow_rejects_wildcard_banned_ip(
 
 
 @pytest.mark.asyncio
+async def test_options_flow_rejects_ipv6_wildcard_banned_ip(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test IPv6 wildcard shorthand is not accepted for exact banned IPs."""
+    entry = await setup_options_entry(hass, tmp_path)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "2001:db8::/64\n::1"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "2001:db8:1:2:*",
+                CONF_BLOCKED_NETWORKS: "",
+            },
+        },
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"] == {ATTR_BANNED_IPS: "invalid_banned_ip"}
+
+
+@pytest.mark.asyncio
 async def test_options_flow_accepts_empty_blocked_networks(
     hass: HomeAssistant, tmp_path: Path
 ) -> None:
@@ -1130,10 +1196,7 @@ async def test_options_flow_accepts_empty_blocked_networks(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {
-        **expected_options_data(["192.168.1.1", "172.17.0.0/24"]),
-        CONF_BLOCKED_NETWORKS: [],
-    }
+    assert result["data"] == expected_options_data(["192.168.1.1", "172.17.0.0/24"])
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None
     assert stored_entry.options[CONF_BLOCKED_NETWORKS] == []
@@ -1233,15 +1296,49 @@ async def test_options_flow_accepts_wildcard_blocked_network(
     )
 
     assert result["type"] == "create_entry"
-    assert result["data"] == {
-        **expected_options_data(["192.168.1.1", "172.17.0.0/24"]),
-        CONF_BLOCKED_NETWORKS: ["192.168.1.0/24"],
-    }
+    assert result["data"] == expected_options_data(
+        ["192.168.1.1", "172.17.0.0/24"],
+        blocked_networks=["192.168.1.0/24"],
+    )
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None
     assert stored_entry.options[CONF_BLOCKED_NETWORKS] == ["192.168.1.0/24"]
     assert ip_address("192.168.1.50") in ban_manager.ip_bans_lookup
     assert ip_address("172.17.0.10") not in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
+async def test_options_flow_accepts_ipv6_wildcard_blocked_network(
+    hass: HomeAssistant, tmp_path: Path
+) -> None:
+    """Test IPv6 wildcard shorthand is accepted as a managed blocked network."""
+    entry = await setup_options_entry(hass, tmp_path)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "form"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_ALLOWED_IPS: {CONF_ALLOWED_IPS: "2001:db8::/64\n::1"},
+            CONF_BANNED_IPS: {
+                CONF_BANNED_IPS: "",
+                CONF_BLOCKED_NETWORKS: "2001:db8:1:2:*",
+            },
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"] == expected_options_data(
+        ["2001:db8::/64", "::1"],
+        blocked_networks=["2001:db8:1:2::/64"],
+    )
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_BLOCKED_NETWORKS] == ["2001:db8:1:2::/64"]
+    assert ip_address("2001:db8:1:2::10") in ban_manager.ip_bans_lookup
+    assert ip_address("2001:db8::10") not in ban_manager.ip_bans_lookup
 
 
 @pytest.mark.asyncio

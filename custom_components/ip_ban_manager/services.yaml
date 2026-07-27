@@ -36,11 +36,11 @@ remove_all_ip_bans:
 
 add_allowlist_network:
   name: Allow IP or network
-  description: IP Ban Manager adds an IPv4 or IPv6 address, CIDR network, or IPv4 wildcard network to the live allowlist without restarting Home Assistant.
+  description: IP Ban Manager adds an IPv4 or IPv6 address, CIDR network, or wildcard network to the live allowlist without restarting Home Assistant.
   fields:
     network:
       name: Network
-      description: The IPv4 or IPv6 address, CIDR network, or IPv4 wildcard network to allowlist.
+      description: The IPv4 or IPv6 address, CIDR network, or wildcard network to allowlist.
       required: true
       selector:
         text:
@@ -48,11 +48,11 @@ add_allowlist_network:
 
 remove_allowlist_network:
   name: Remove allowed IP or network
-  description: IP Ban Manager removes an IPv4 or IPv6 address, CIDR network, or IPv4 wildcard network from the live allowlist without restarting Home Assistant.
+  description: IP Ban Manager removes an IPv4 or IPv6 address, CIDR network, or wildcard network from the live allowlist without restarting Home Assistant.
   fields:
     network:
       name: Network
-      description: The IPv4 or IPv6 address, CIDR network, or IPv4 wildcard network to remove from the allowlist.
+      description: The IPv4 or IPv6 address, CIDR network, or wildcard network to remove from the allowlist.
       required: true
       selector:
         text:
@@ -60,12 +60,11 @@ remove_allowlist_network:
 
 add_blocked_network:
   name: Add blocked network
-  description: IP Ban Manager adds a managed IPv4 or IPv6 CIDR network or IPv4 wildcard network to the live blocked-network list without restarting Home
-    Assistant.
+  description: IP Ban Manager adds a managed IPv4 or IPv6 CIDR network or wildcard network to the live blocked-network list without restarting Home Assistant.
   fields:
     network:
       name: Network
-      description: The IPv4 or IPv6 CIDR network or IPv4 wildcard network to block.
+      description: The IPv4 or IPv6 CIDR network or wildcard network to block.
       required: true
       selector:
         text:
@@ -73,12 +72,12 @@ add_blocked_network:
 
 remove_blocked_network:
   name: Remove blocked network
-  description: IP Ban Manager removes a managed IPv4 or IPv6 CIDR network or IPv4 wildcard network from the live blocked-network list without restarting
-    Home Assistant.
+  description: IP Ban Manager removes a managed IPv4 or IPv6 CIDR network or wildcard network from the live blocked-network list without restarting Home
+    Assistant.
   fields:
     network:
       name: Network
-      description: The IPv4 or IPv6 CIDR network or IPv4 wildcard network to remove from the blocked-network list.
+      description: The IPv4 or IPv6 CIDR network or wildcard network to remove from the blocked-network list.
       required: true
       selector:
         text:

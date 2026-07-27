@@ -121,7 +121,7 @@ class IPBanManagerSensor(SensorEntity):
         self._description = description
         self.entity_description = description
         self._attr_icon = description.icon
-        self._attr_name = description.name
+        self._attr_translation_key = description.key
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._status = cast(dict[str, Any], current_status(hass))
 

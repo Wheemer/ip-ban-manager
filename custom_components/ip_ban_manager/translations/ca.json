@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configura IP Ban Manager",
+        "description": "Trieu valors inicials segurs. Després, gestioneu els bloquejos en directe, les xarxes bloquejades, el mode de denegació per defecte i les notificacions des del panell IP Ban Manager o Configura.",
+        "data": {
+          "login_attempts_threshold": "Llindar d'intents d'inici de sessió",
+          "auto_ban_enabled": "Bloquejos automàtics",
+          "ban_notifications_enabled": "Notificacions de bloqueig automàtic",
+          "allowlisted_login_notifications_enabled": "Notificacions d'inici de sessió a la llista permesa",
+          "allowlisted_logins_can_ban": "Permet bloquejos automàtics dins les IP permeses",
+          "default_deny_enabled": "Bloqueja tot el que quedi fora de les IP permeses",
+          "geoip_enabled": "Etiquetes d'ubicació GeoIP",
+          "sidebar_panel_enabled": "Mostra a la barra lateral",
+          "quick_allowlist": "Valors segurs per defecte de la llista permesa",
+          "ban_options": "Opcions"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Aquesta entrada de la llista permesa confiaria en cada adreça IP i desactivaria efectivament el bloqueig IP.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager ja està configurat.",
+      "unsafe_allowlist_network": "La llista permesa importada conté una entrada que confiaria en cada adreça IP."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gestiona IP Ban Manager",
+        "description": "Gestioneu la llista permesa i la llista de bloqueig en directe. En enviar s'apliquen els canvis immediatament; no cal reiniciar Home Assistant.",
+        "sections": {
+          "allowed_ips": {
+            "name": "IP permeses",
+            "data": {
+              "allowed_ips": "Entrades permeses",
+              "quick_allowlist": "Afegeix valors segurs per defecte"
+            }
+          },
+          "banned_ips": {
+            "name": "IP bloquejades",
+            "data": {
+              "ban_options": "Opcions",
+              "advanced_ban_options": "Avançat",
+              "login_attempts_threshold": "Llindar d'intents d'inici de sessió",
+              "banned_ips": "Entrades bloquejades",
+              "blocked_networks": "Xarxes bloquejades"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Adreces i xarxes IPv4/IPv6 de confiança que no s'han de bloquejar mai. Una entrada per línia. S'admeten xarxes CIDR i comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*.",
+          "banned_ips": "Adreces IPv4/IPv6 exactes bloquejades actualment. Les files existents mostren l'hora de bloqueig per revisió; les noves files poden ser només una IP. Deixeu-ho buit per esborrar totes les IP bloquejades.",
+          "blocked_networks": "Xarxes CIDR o comodí IPv4/IPv6 per bloquejar sense escriure-les a ip_bans.yaml de Home Assistant. Les entrades permeses encara tenen prioritat."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Esborrar les IP bloquejades?",
+        "description": "Això eliminarà {ban_count} IP bloquejada(es) de Home Assistant i reescriurà ip_bans.yaml. Marqueu la casella per confirmar.",
+        "data": {
+          "confirm_clear_bans": "Esborra totes les IP bloquejades"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Introduïu una adreça IPv4 o IPv6 exacta per línia. Les xarxes CIDR i comodins van a Xarxes bloquejades.",
+      "invalid_blocked_network": "Introduïu xarxes CIDR o comodí IPv4/IPv6 vàlides com 203.0.113.* o 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Aquesta xarxa bloquejada bloquejaria cada adreça IP. Utilitzeu una xarxa més estreta.",
+      "local_network_block_unprotected": "Aquesta configuració bloquejaria cada camí d'accés local detectat. Afegiu primer una xarxa local actual a IP permeses.",
+      "unsafe_allowlist_network": "Aquesta entrada de la llista permesa confiaria en cada adreça IP i desactivaria efectivament el bloqueig IP.",
+      "banned_ip_allowlisted": "Una IP no pot estar permesa i bloquejada alhora. Elimineu-la d'una llista i torneu-ho a provar.",
+      "confirmation_required": "Marqueu la casella de confirmació abans d'esborrar totes les IP bloquejades."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} no és una adreça IP vàlida."
+    },
+    "invalid_network": {
+      "message": "{network} no és una adreça IP, xarxa CIDR o xarxa comodí vàlida."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} està a la llista permesa, per tant no s'ha bloquejat."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} no està bloquejada actualment."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} ja està bloquejada per una xarxa bloquejada."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} confiaria en cada adreça IP i desactivaria efectivament el bloqueig IP."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} conté una o més adreces IP bloquejades actualment. Elimineu aquests bloquejos abans d'afegir aquesta xarxa a la llista permesa."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Definiu confirm com a true abans d'esborrar tots els bloquejos IP."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Activa el bloqueig IP HTTP",
+      "description": "El bloqueig IP HTTP integrat de Home Assistant està desactivat actualment, per tant la gestió de bloquejos i la protecció de la llista permesa no poden funcionar.\n\nDefiniu aquesta clau dins la secció `http:` existent a `configuration.yaml` i reinicieu Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager està desactivat",
+      "description": "L'interruptor d'emergència està actiu, per tant IP Ban Manager no ha instal·lat els seus hooks d'execució, el panell, els serveis, els sensors, les xarxes bloquejades gestionades ni la gestió de denegació per defecte.\n\nElimineu `ip_ban_manager: disabled` de `configuration.yaml` o suprimiu `/config/ip_ban_manager.disabled`, i reinicieu Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Elimina l'antic YAML ban_allowlist",
+      "description": "IP Ban Manager ja ha importat la configuració antiga `ban_allowlist:` YAML a l'entrada de configuració de la UI.\n\nElimineu el bloc antic `ban_allowlist:` de `configuration.yaml` i reinicieu Home Assistant. La integració continuarà utilitzant la configuració importada de la UI."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "La neteja legacy necessita atenció",
+      "description": "IP Ban Manager no ha pogut moure una o més carpetes legacy obsoletes fora del camí de càrrega de Home Assistant:\n\n{paths}\n\nComproveu els permisos de fitxer, moveu aquests camins fora de `custom_components` i reinicieu Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "La comprovació de salut d'IP Ban Manager necessita atenció",
+      "description": "IP Ban Manager ha trobat un o més problemes de configuració que poden afectar la gestió de bloquejos en directe:\n\n{issues}\n\nObriu el panell IP Ban Manager després de corregir-los per actualitzar la comprovació de salut."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Bloquejos automàtics – bloqueja fonts d'inici de sessió fallides",
+        "ban_notifications": "Notificacions de bloqueig automàtic – alertes quan es bloquegen IP",
+        "allowlisted_login_notifications": "Notificacions d'inici de sessió a la llista permesa – alerta en inicis de sessió de confiança fallits",
+        "sidebar_panel": "Mostra a la barra lateral – afegeix la pàgina al menú esquerre",
+        "geoip": "Etiquetes d'ubicació GeoIP – descarrega una base de dades DB-IP local"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Avançat: bloquejos dins IP permeses – les IP de confiança es poden bloquejar",
+        "default_deny": "Avançat: bloqueja tot el que quedi fora de les IP permeses – aneu amb compte"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Xarxa(es) local(s) detectada(es)"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "S'està carregant...",
+    "request_failed": "La sol·licitud ha fallat.",
+    "none": "Cap",
+    "remove": "Elimina",
+    "add": "Afegeix",
+    "block": "Bloqueja",
+    "apply": "Aplica",
+    "advanced": "Avançat",
+    "options": "Opcions",
+    "added_before_tracking": "Afegit abans del seguiment",
+    "sources": {
+      "auto": "Automàtic",
+      "configure": "Configura",
+      "default": "Valor per defecte de la instal·lació",
+      "detected": "Xarxa detectada",
+      "import": "Restauració de còpia de seguretat",
+      "panel": "Panel",
+      "service": "Servei",
+      "setup": "Instal·lació",
+      "yaml": "Importació YAML"
+    },
+    "allowed_ips": {
+      "title": "IP permeses",
+      "hint": "Adreces i xarxes IPv4/IPv6 de confiança. Aquestes entrades tenen prioritat sobre bloquejos exactes, xarxes bloquejades i el mode de denegació per defecte. S'admeten comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*.",
+      "placeholder": "Adreça IPv4/IPv6, CIDR o comodí",
+      "remove_confirm": "Eliminar aquesta IP permesa? Amb la denegació per defecte o xarxes bloquejades actives, eliminar una entrada de confiança pot bloquejar l'accés."
+    },
+    "blocked_ips": {
+      "title": "IP bloquejades",
+      "hint": "Llista nativa de Home Assistant d'adreces IPv4/IPv6 exactes bloquejades, escrita de més antiga a més recent a ip_bans.yaml.",
+      "placeholder": "Adreça IPv4/IPv6"
+    },
+    "blocked_networks": {
+      "title": "Xarxes bloquejades",
+      "hint": "Xarxes CIDR o comodí IPv4/IPv6 gestionades, aplicades sense escriure rangs a ip_bans.yaml.",
+      "placeholder": "Xarxa CIDR o comodí"
+    },
+    "silenced_logins": {
+      "title": "Notificacions silenciades d'inici de sessió a la llista permesa",
+      "hint": "Adreces silenciades de les alertes d'inici de sessió a la llista permesa."
+    },
+    "settings": {
+      "auto_ban_enabled": "Bloquejos automàtics",
+      "auto_ban_enabled_hint": "Bloqueja fonts d'inici de sessió fallides.",
+      "ban_notifications_enabled": "Notificacions de bloqueig automàtic",
+      "ban_notifications_enabled_hint": "Mostra alertes quan es bloquegen IP.",
+      "allowlisted_login_notifications_enabled": "Notificacions d'inici de sessió a la llista permesa",
+      "allowlisted_login_notifications_enabled_hint": "Alerta en inicis de sessió de confiança fallits.",
+      "sidebar_panel_enabled": "Mostra a la barra lateral",
+      "sidebar_panel_enabled_hint": "Afegeix la pàgina al menú esquerre.",
+      "geoip_enabled": "Etiquetes d'ubicació GeoIP",
+      "geoip_enabled_hint": "Mostra ubicacions aproximades d'IP públiques. Si falta la base de dades local, Aplica la descarrega.",
+      "login_attempts_threshold": "Llindar d'intents d'inici de sessió",
+      "allowlisted_logins_can_ban": "Bloquejos dins IP permeses",
+      "allowlisted_logins_can_ban_hint": "Aniu amb compte: les IP de confiança es poden bloquejar.",
+      "default_deny_enabled": "Bloqueja tot el que quedi fora de les IP permeses",
+      "default_deny_enabled_hint": "Aniu amb compte: només les IP permeses poden connectar-se."
+    },
+    "backup": {
+      "save_title": "Desa a la configuració",
+      "save_none": "Escriu el fitxer de còpia de seguretat al disc.",
+      "save_last": "Darrera desada: {date}",
+      "save": "Desa",
+      "restore": "Restaura",
+      "restore_confirm": "Restaurar des de la còpia de seguretat del disc i substituir la configuració actual d'IP Ban Manager i els bloquejos IP exactes?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Descarregueu una còpia a aquest dispositiu o pugeu una còpia de seguretat per restaurar.",
+      "download": "Descarrega",
+      "upload": "Puja",
+      "upload_confirm": "Pujar {filename} i substituir la configuració actual d'IP Ban Manager i els bloquejos IP exactes?"
+    },
+    "geoip": {
+      "title": "Base de dades GeoIP",
+      "not_installed": "No instal·lada",
+      "installed": "Instal·lada - {date}",
+      "download_hint": "Activa GeoIP i Aplica per descarregar",
+      "attribution": "Dades d'ubicació:",
+      "update": "Actualitza"
+    },
+    "health": {
+      "title": "La comprovació de salut necessita atenció",
+      "issues": {
+        "native_ip_ban_disabled": "El bloqueig IP natiu de Home Assistant està desactivat.",
+        "ban_file_not_loaded": "El bloqueig IP de Home Assistant no està carregat.",
+        "ban_file_not_regular_file": "{path} no és un fitxer regular.",
+        "ban_file_not_readable_writable": "{path} no es pot llegir ni escriure.",
+        "ban_file_parent_missing": "{path} no existeix.",
+        "ban_file_parent_not_writable": "{path} no es pot escriure.",
+        "panel_not_registered": "El panell IP Ban Manager no està registrat.",
+        "legacy_cleanup_pending": "La neteja del component legacy encara no s'ha completat.",
+        "geoip_reader_not_ready": "GeoIP està activat, però el lector de la base de dades local no està preparat."
+      }
+    },
+    "success": {
+      "export_config": "Còpia de seguretat desada a {path}",
+      "import_config": "Còpia de seguretat restaurada des de {path}",
+      "download_config": "Còpia de seguretat descarregada.",
+      "upload_config": "Còpia de seguretat pujada i aplicada."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Bloquejos actius"
+      },
+      "allowlisted_networks": {
+        "name": "Xarxes a la llista permesa"
+      },
+      "blocked_networks": {
+        "name": "Xarxes bloquejades"
+      },
+      "failed_login_sources": {
+        "name": "Fonts d'inici de sessió fallides"
+      }
+    }
+  }
+}

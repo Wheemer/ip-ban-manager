@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nastaviť IP Ban Manager",
+        "description": "Vyberte bezpečné predvolené hodnoty. Potom spravujte živé zákazy, blokované siete, režim predvoleného zamietnutia a upozornenia cez panel IP Ban Manager alebo obrazovku Konfigurovať.",
+        "data": {
+          "login_attempts_threshold": "Prah pokusov o prihlásenie",
+          "auto_ban_enabled": "Automatické zákazy",
+          "ban_notifications_enabled": "Automatické upozornenia na zákaz",
+          "allowlisted_login_notifications_enabled": "Upozornenia na prihlásenia zo zoznamu povolených",
+          "allowlisted_logins_can_ban": "Povoliť automatické zákazy v rámci povolených IP",
+          "default_deny_enabled": "Blokovať všetko mimo povolených IP",
+          "geoip_enabled": "GeoIP označenia polohy",
+          "sidebar_panel_enabled": "Zobraziť v bočnom paneli",
+          "quick_allowlist": "Bezpečné predvolené hodnoty zoznamu povolených",
+          "ban_options": "Možnosti"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Zadajte platné IP adresy, CIDR siete alebo zástupné siete ako 192.168.1.* alebo 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Táto položka zoznamu povolených by dôverovala každej IP adrese a v podstate by vypnula IP zákazy.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager je už nakonfigurovaný.",
+      "unsafe_allowlist_network": "Importovaný zoznam povolených obsahuje položku, ktorá by dôverovala každej IP adrese."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Spravovať IP Ban Manager",
+        "description": "Spravujte živý zoznam povolených a zoznam zákazov. Odoslanie okamžite uplatní zmeny; reštart Home Assistant nie je potrebný.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Povolené IP",
+            "data": {
+              "allowed_ips": "Povolené položky",
+              "quick_allowlist": "Pridať bezpečné predvolené hodnoty"
+            }
+          },
+          "banned_ips": {
+            "name": "Blokované IP",
+            "data": {
+              "ban_options": "Možnosti",
+              "advanced_ban_options": "Pokročilé",
+              "login_attempts_threshold": "Prah pokusov o prihlásenie",
+              "banned_ips": "Blokované položky",
+              "blocked_networks": "Blokované siete"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Dôveryhodné IPv4/IPv6 adresy a siete, ktoré sa nikdy nemajú zakázať. Jedna položka na riadok. Podporované sú CIDR siete a IPv4/IPv6 zástupné znaky ako 192.168.1.* alebo 2001:db8:1:2:*.",
+          "banned_ips": "Aktuálne blokované presné IPv4/IPv6 adresy. Existujúce riadky zobrazujú čas zákazu na kontrolu; nové riadky môžu byť len IP. Nechajte prázdne na vymazanie všetkých blokovaných IP.",
+          "blocked_networks": "IPv4/IPv6 CIDR siete alebo zástupné siete na blokovanie bez zápisu do ip_bans.yaml Home Assistant. Povolené položky stále majú prednosť."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Vymazať blokované IP?",
+        "description": "Tým sa odstráni {ban_count} blokovaná(ch) IP z Home Assistant a prepíše sa ip_bans.yaml. Na potvrdenie zaškrtnite políčko.",
+        "data": {
+          "confirm_clear_bans": "Vymazať všetky blokované IP"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Zadajte platné IP adresy, CIDR siete alebo zástupné siete ako 192.168.1.* alebo 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Zadajte jednu presnú IPv4 alebo IPv6 adresu na riadok. CIDR siete a zástupné znaky patria do Blokované siete.",
+      "invalid_blocked_network": "Zadajte platné IPv4/IPv6 CIDR siete alebo zástupné siete ako 203.0.113.* alebo 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Táto blokovaná sieť by zablokovala každú IP adresu. Použite užšiu sieť.",
+      "local_network_block_unprotected": "Toto nastavenie by zablokovalo každú zistenú lokálnu prístupovú cestu. Najprv pridajte aktuálnu lokálnu sieť do Povolené IP.",
+      "unsafe_allowlist_network": "Táto položka zoznamu povolených by dôverovala každej IP adrese a v podstate by vypnula IP zákazy.",
+      "banned_ip_allowlisted": "IP nemôže byť súčasne povolená aj zakázaná. Odstráňte ju z jedného zoznamu a skúste znova.",
+      "confirmation_required": "Pred vymazaním všetkých blokovaných IP zaškrtnite potvrdzovacie políčko."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} nie je platná IP adresa."
+    },
+    "invalid_network": {
+      "message": "{network} nie je platná IP adresa, CIDR sieť ani zástupná sieť."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} je na zozname povolených, preto nebola zakázaná."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} nie je momentálne zakázaná."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} je už blokovaná blokovanou sieťou."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} by dôverovala každej IP adrese a v podstate by vypnula IP zákazy."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} obsahuje jednu alebo viac momentálne zakázaných IP adries. Pred pridaním tejto siete do zoznamu povolených odstráňte tieto zákazy."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Pred vymazaním všetkých IP zákazov nastavte confirm na true."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Povoliť HTTP IP zákazy",
+      "description": "Vstavané HTTP IP zákazy Home Assistant sú momentálne vypnuté, preto nemôže fungovať správa zákazov ani ochrana zoznamu povolených.\n\nNastavte tento kľúč vo vašej existujúcej sekcii `http:` v `configuration.yaml` a reštartujte Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager je vypnutý",
+      "description": "Núdzový vypínač je aktívny, preto IP Ban Manager nenainštaloval svoje runtime hooky, panel, služby, senzory, spravované blokované siete ani spracovanie predvoleného zamietnutia.\n\nOdstráňte `ip_ban_manager: disabled` z `configuration.yaml` alebo vymažte `/config/ip_ban_manager.disabled` a reštartujte Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Odstrániť staré ban_allowlist YAML",
+      "description": "IP Ban Manager už importoval staré nastavenia `ban_allowlist:` YAML do konfiguračnej položky UI.\n\nOdstráňte starý blok `ban_allowlist:` z `configuration.yaml` a reštartujte Home Assistant. Integrácia bude naďalej používať importované nastavenia UI."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Legacy čistenie vyžaduje pozornosť",
+      "description": "IP Ban Manager nemohol presunúť jeden alebo viac zastaraných legacy priečinkov mimo cesty načítania Home Assistant:\n\n{paths}\n\nSkontrolujte oprávnenia súborov, presuňte tieto cesty mimo `custom_components` a reštartujte Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "Kontrola stavu IP Ban Manager vyžaduje pozornosť",
+      "description": "IP Ban Manager našiel jeden alebo viac problémov nastavenia, ktoré môžu ovplyvniť správu živých zákazov:\n\n{issues}\n\nPo oprave otvorte panel IP Ban Manager na obnovenie kontroly stavu."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automatické zákazy – blokovať zdroje neúspešného prihlásenia",
+        "ban_notifications": "Automatické upozornenia na zákaz – upozornenia pri blokovaní IP",
+        "allowlisted_login_notifications": "Upozornenia na prihlásenia zo zoznamu povolených – upozorniť pri neúspešných dôveryhodných prihláseniach",
+        "sidebar_panel": "Zobraziť v bočnom paneli – pridať stránku do ľavého menu",
+        "geoip": "GeoIP označenia polohy – stiahnuť lokálnu DB-IP databázu"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Pokročilé: zákazy v rámci povolených IP – dôveryhodné IP môžu byť blokované",
+        "default_deny": "Pokročilé: blokovať všetko mimo povolených IP – buďte opatrní"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Zistená(é) lokálna(e) sieť(e)"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Načítava sa...",
+    "request_failed": "Požiadavka zlyhala.",
+    "none": "Žiadne",
+    "remove": "Odstrániť",
+    "add": "Pridať",
+    "block": "Blokovať",
+    "apply": "Použiť",
+    "advanced": "Pokročilé",
+    "options": "Možnosti",
+    "added_before_tracking": "Pridané pred sledovaním",
+    "sources": {
+      "auto": "Automatické",
+      "configure": "Konfigurovať",
+      "default": "Predvolené nastavenia",
+      "detected": "Zistená sieť",
+      "import": "Obnovenie zálohy",
+      "panel": "Panel",
+      "service": "Služba",
+      "setup": "Inštalácia",
+      "yaml": "Import YAML"
+    },
+    "allowed_ips": {
+      "title": "Povolené IP",
+      "hint": "Dôveryhodné IPv4/IPv6 adresy a siete. Tieto položky majú prednosť pred presnými zákazmi, blokovanými sieťami a režimom predvoleného zamietnutia. Podporované sú IPv4/IPv6 zástupné znaky ako 192.168.1.* alebo 2001:db8:1:2:*.",
+      "placeholder": "IPv4/IPv6 adresa, CIDR alebo zástupný znak",
+      "remove_confirm": "Odstrániť túto povolenú IP? Pri aktívnom predvolenom zamietnutí alebo blokovaných sieťach môže odstránenie dôveryhodnej položky zablokovať prístup."
+    },
+    "blocked_ips": {
+      "title": "Blokované IP",
+      "hint": "Natívny zoznam presných IPv4/IPv6 zákazov Home Assistant, zapísaný od najstaršieho v ip_bans.yaml.",
+      "placeholder": "IPv4/IPv6 adresa"
+    },
+    "blocked_networks": {
+      "title": "Blokované siete",
+      "hint": "Spravované IPv4/IPv6 CIDR alebo zástupné siete, vynucované bez zápisu rozsahov do ip_bans.yaml.",
+      "placeholder": "CIDR alebo zástupná sieť"
+    },
+    "silenced_logins": {
+      "title": "Stlmené upozornenia na prihlásenia zo zoznamu povolených",
+      "hint": "Adresy stlmené z upozornení na prihlásenia zo zoznamu povolených."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automatické zákazy",
+      "auto_ban_enabled_hint": "Blokovať zdroje neúspešného prihlásenia.",
+      "ban_notifications_enabled": "Automatické upozornenia na zákaz",
+      "ban_notifications_enabled_hint": "Zobraziť upozornenia pri blokovaní IP.",
+      "allowlisted_login_notifications_enabled": "Upozornenia na prihlásenia zo zoznamu povolených",
+      "allowlisted_login_notifications_enabled_hint": "Upozorniť pri neúspešných dôveryhodných prihláseniach.",
+      "sidebar_panel_enabled": "Zobraziť v bočnom paneli",
+      "sidebar_panel_enabled_hint": "Pridať stránku do ľavého menu.",
+      "geoip_enabled": "GeoIP označenia polohy",
+      "geoip_enabled_hint": "Zobraziť približné polohy verejných IP. Ak chýba lokálna databáza, Použiť ju stiahne.",
+      "login_attempts_threshold": "Prah pokusov o prihlásenie",
+      "allowlisted_logins_can_ban": "Zákazy v rámci povolených IP",
+      "allowlisted_logins_can_ban_hint": "Buďte opatrní: dôveryhodné IP môžu byť blokované.",
+      "default_deny_enabled": "Blokovať všetko mimo povolených IP",
+      "default_deny_enabled_hint": "Buďte opatrní: pripojiť sa môžu len povolené IP."
+    },
+    "backup": {
+      "save_title": "Uložiť do konfigurácie",
+      "save_none": "Zapíše záložný súbor na disk.",
+      "save_last": "Naposledy uložené: {date}",
+      "save": "Uložiť",
+      "restore": "Obnoviť",
+      "restore_confirm": "Obnoviť zo zálohy na disku a nahradiť aktuálne nastavenia IP Ban Manager a presné IP zákazy?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Stiahnuť kópiu do tohto zariadenia alebo nahrať zálohu na obnovenie.",
+      "download": "Stiahnuť",
+      "upload": "Nahrať",
+      "upload_confirm": "Nahrať {filename} a nahradiť aktuálne nastavenia IP Ban Manager a presné IP zákazy?"
+    },
+    "geoip": {
+      "title": "GeoIP databáza",
+      "not_installed": "Nie je nainštalovaná",
+      "installed": "Nainštalovaná - {date}",
+      "download_hint": "Povoľte GeoIP a Použiť na stiahnutie",
+      "attribution": "Údaje o polohe:",
+      "update": "Aktualizovať"
+    },
+    "health": {
+      "title": "Kontrola stavu vyžaduje pozornosť",
+      "issues": {
+        "native_ip_ban_disabled": "Natívne IP zákazy Home Assistant sú vypnuté.",
+        "ban_file_not_loaded": "Blokovanie IP v Home Assistant nie je načítané.",
+        "ban_file_not_regular_file": "{path} nie je bežný súbor.",
+        "ban_file_not_readable_writable": "{path} nie je čitateľný a zapisovateľný.",
+        "ban_file_parent_missing": "{path} neexistuje.",
+        "ban_file_parent_not_writable": "{path} nie je zapisovateľný.",
+        "panel_not_registered": "Panel IP Ban Manager nie je registrovaný.",
+        "legacy_cleanup_pending": "Legacy čistenie ešte nebolo dokončené.",
+        "geoip_reader_not_ready": "GeoIP je povolené, ale lokálny čítač databázy nie je pripravený."
+      }
+    },
+    "success": {
+      "export_config": "Záloha uložená do {path}",
+      "import_config": "Záloha obnovená z {path}",
+      "download_config": "Záloha stiahnutá.",
+      "upload_config": "Záloha nahraná a použitá."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktívne zákazy"
+      },
+      "allowlisted_networks": {
+        "name": "Siete zo zoznamu povolených"
+      },
+      "blocked_networks": {
+        "name": "Blokované siete"
+      },
+      "failed_login_sources": {
+        "name": "Zdroje neúspešného prihlásenia"
+      }
+    }
+  }
+}

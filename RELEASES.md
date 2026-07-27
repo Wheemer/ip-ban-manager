@@ -4,7 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
-| [v1.8.0](CHANGELOG.md#v180) | Automation events, blocked-network and GeoIP services, logbook entries, panel search/filter, and notification **Open settings** links to the live panel. |
+| [v1.8.0](CHANGELOG.md#v180) | Automation events, blocked-network and GeoIP services, logbook entries, panel version label, IPv6 wildcard shorthand, 26-language i18n, backup/export metadata, blocked-network and ban row labels in the panel, and notification **Open settings** links to the live panel. |
 | [v1.7.1](CHANGELOG.md#v171) | Hardening patch: config-entry unload/reload clears and rebinds panel HTTP handlers and leftover runtime state; Core restart still required for Python updates. |
 | [v1.7.0](CHANGELOG.md#v170) | Backup transfer in the browser (Download/Upload), on-disk Save/Restore kept, and a clearer Options layout for threshold/Advanced/Apply. |
 | [v1.6.2](CHANGELOG.md#v162) | Hardening patch: Configure preserves silenced allowlisted-login addresses, silence API is POST-only for admins, and packaging/upgrade canaries are tighter. |

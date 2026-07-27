@@ -53,7 +53,11 @@ from homeassistant.components.http.ban import (
 )
 from homeassistant.components.http.const import KEY_HASS
 from homeassistant.components.network import async_get_adapters
-from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry, UnknownEntry
+from homeassistant.config_entries import SOURCE_IMPORT as HA_SOURCE_IMPORT
+from homeassistant.config_entries import (
+    ConfigEntry,
+    UnknownEntry,
+)
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -111,11 +115,13 @@ from .const import (
     ATTR_NETWORK,
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWLIST_ENTRY_META,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
+    CONF_BLOCKED_NETWORK_ENTRY_META,
     CONF_BLOCKED_NETWORKS,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_DISABLE_BAN_MANAGER,
@@ -141,8 +147,22 @@ from .const import (
     SERVICE_REMOVE_IP_BAN,
     SERVICE_UPDATE_GEOIP,
     SOURCE_AUTO,
+    SOURCE_IMPORT,
     SOURCE_PANEL,
     SOURCE_SERVICE,
+)
+from .entry_meta import (
+    entry_allowlist_meta,
+    entry_blocked_network_meta,
+    format_network_entries,
+    merge_imported_meta,
+    sync_network_list_meta,
+)
+from .i18n import (
+    format_health_issue_message,
+    load_health_issue_strings,
+    load_panel_translations,
+    normalize_language,
 )
 from .ip_utils import parse_allowlist_network
 
@@ -158,6 +178,12 @@ INTEGRATION_DISABLED_BY_YAML_ISSUE_ID = "integration_disabled_by_yaml"
 LEGACY_YAML_PRESENT_ISSUE_ID = "legacy_yaml_present"
 LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID = "legacy_folder_cleanup_failed"
 HEALTH_CHECK_FAILED_ISSUE_ID = "health_check_failed"
+TRANSIENT_HEALTH_ISSUE_KEYS = frozenset(
+    {
+        "legacy_cleanup_pending",
+        "geoip_reader_not_ready",
+    }
+)
 ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
 DBIP_ATTRIBUTION = "IP geolocation by DB-IP.com"
 DBIP_DOWNLOAD_MAX_BYTES = 250 * 1024 * 1024
@@ -196,10 +222,6 @@ LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
 PANEL_JS_PATH = f"/api/{DOMAIN}/panel.js"
-PANEL_JS_CACHE_TOKEN = int(Path(__file__).with_name("panel.js").stat().st_mtime)
-PANEL_JS_URL = (
-    f"{PANEL_JS_PATH}?v={quote(INTEGRATION_VERSION, safe='')}&t={PANEL_JS_CACHE_TOKEN}"
-)
 PANEL_WEB_COMPONENT = "ip-ban-manager-panel"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
@@ -1006,7 +1028,8 @@ async def _async_handle_status_get(
             status_code=404,
         )
 
-    return view.json(_panel_payload(hass, entry))
+    language = request.query.get("language")
+    return view.json(_panel_payload(hass, entry, language=language))
 
 
 async def _async_handle_manage_post(
@@ -1092,7 +1115,8 @@ async def _async_handle_manage_post(
             {"ok": False, "error": "IP Ban Manager is not loaded."},
             status_code=404,
         )
-    payload = _panel_payload(hass, entry)
+    language = data.get("language") or request.query.get("language")
+    payload = _panel_payload(hass, entry, language=language)
     if download is not None:
         payload["download"] = download
     return view.json(payload)
@@ -1114,15 +1138,26 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
         return await _async_dispatch_http_view(self, request, "silence_post")
 
 
-def _panel_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
+def _panel_payload(
+    hass: HomeAssistant, entry: ConfigEntry, *, language: str | None = None
+) -> dict[str, object]:
     """Return the complete JSON payload used by the bundled panel."""
+    resolved_language = normalize_language(language)
     return {
         "ok": True,
         "version": INTEGRATION_VERSION,
+        "language": resolved_language,
+        "translations": load_panel_translations(resolved_language),
         "status": current_status(hass),
         "settings": {
             CONF_IP_ADDRESSES: _entry_ip_addresses(entry),
             CONF_BLOCKED_NETWORKS: _entry_blocked_networks(entry),
+            "allowlist_entries": format_network_entries(
+                _entry_ip_addresses(entry), entry_allowlist_meta(entry)
+            ),
+            "blocked_network_entries": format_network_entries(
+                _entry_blocked_networks(entry), entry_blocked_network_meta(entry)
+            ),
             CONF_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: _entry_ban_notifications_enabled(entry),
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
@@ -1158,6 +1193,18 @@ def _panel_js_source() -> str:
     return panel_path.read_text(encoding="utf-8").replace(
         "__VERSION__", INTEGRATION_VERSION
     )
+
+
+def _panel_js_cache_token() -> int:
+    """Return the current panel script cache token."""
+    panel_path = Path(__file__).with_name("panel.js")
+    return int(panel_path.stat().st_mtime)
+
+
+def _panel_js_url() -> str:
+    """Return the panel module URL with a cache token from the current file."""
+    cache_token = _panel_js_cache_token()
+    return f"{PANEL_JS_PATH}?v={quote(INTEGRATION_VERSION, safe='')}&t={cache_token}"
 
 
 class IPBanManagerPanelView(HomeAssistantView):
@@ -1337,17 +1384,17 @@ def _install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> No
             return
 
         _LOGGER.info("Banning IP %s", remote_addr)
-        if current_mutation_source() == SOURCE_AUTO:
-            threshold = int(app.get(KEY_LOGIN_THRESHOLD, 0))
-            attempts = int(app[KEY_FAILED_LOGIN_ATTEMPTS].get(remote_addr, 0))
-            if threshold >= 1 and attempts >= threshold:
-                record_login_threshold_reached(
-                    hass,
-                    str(remote_addr),
-                    attempts=attempts,
-                    threshold=threshold,
-                )
+        should_record_threshold = current_mutation_source() == SOURCE_AUTO
+        threshold = int(app.get(KEY_LOGIN_THRESHOLD, 0))
+        attempts = int(app[KEY_FAILED_LOGIN_ATTEMPTS].get(remote_addr, 0))
         await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
+        if should_record_threshold and threshold >= 1 and attempts >= threshold:
+            record_login_threshold_reached(
+                hass,
+                str(remote_addr),
+                attempts=attempts,
+                threshold=threshold,
+            )
         record_ip_banned(hass, str(remote_addr))
 
     ban_manager.async_add_ban = allowlist_async_add_ban  # type: ignore[method-assign]
@@ -1704,43 +1751,52 @@ def _async_update_legacy_folder_cleanup_issue(
     ir.async_delete_issue(hass, DOMAIN, LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID)
 
 
-def _ban_file_access_issue(hass: HomeAssistant) -> str | None:
-    """Return an ip_bans.yaml access issue, if one is visible without writing."""
+def _ban_file_access_issue(hass: HomeAssistant) -> dict[str, object] | None:
+    """Return a structured ip_bans.yaml access issue, if one is visible without writing."""
     ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
     if ban_manager is None:
-        return "Home Assistant IP banning is not loaded."
+        return {"key": "ban_file_not_loaded"}
 
     path = Path(ban_manager.path)
     if path.exists():
         if not path.is_file():
-            return f"{path} is not a regular file."
+            return {
+                "key": "ban_file_not_regular_file",
+                "placeholders": {"path": str(path)},
+            }
         if not os.access(path, os.R_OK | os.W_OK):
-            return f"{path} is not readable and writable."
+            return {
+                "key": "ban_file_not_readable_writable",
+                "placeholders": {"path": str(path)},
+            }
         return None
 
     parent = path.parent
     if not parent.exists():
-        return f"{parent} does not exist."
+        return {"key": "ban_file_parent_missing", "placeholders": {"path": str(parent)}}
     if not os.access(parent, os.W_OK):
-        return f"{parent} is not writable."
+        return {
+            "key": "ban_file_parent_not_writable",
+            "placeholders": {"path": str(parent)},
+        }
     return None
 
 
 def _health_status(hass: HomeAssistant) -> dict[str, object]:
     """Return the latest lightweight integration health summary."""
-    issues: list[str] = []
+    issues: list[dict[str, object]] = []
 
     if not _native_ip_banning_enabled(hass):
-        issues.append("Native Home Assistant IP banning is disabled.")
+        issues.append({"key": "native_ip_ban_disabled"})
 
     if ban_file_issue := _ban_file_access_issue(hass):
         issues.append(ban_file_issue)
 
     if not hass.data.get(KEY_PANEL_REGISTERED, False):
-        issues.append("The IP Ban Manager panel is not registered.")
+        issues.append({"key": "panel_not_registered"})
 
     if not hass.data.get(KEY_LEGACY_FOLDER_CLEANED, False):
-        issues.append("Legacy custom component cleanup has not completed yet.")
+        issues.append({"key": "legacy_cleanup_pending"})
 
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     if (
@@ -1749,7 +1805,7 @@ def _health_status(hass: HomeAssistant) -> dict[str, object]:
         and _geoip_database_path(hass).is_file()
         and _geoip_reader(hass) is None
     ):
-        issues.append("GeoIP is enabled, but the local database reader is not ready.")
+        issues.append({"key": "geoip_reader_not_ready"})
 
     return {
         "ok": not issues,
@@ -1762,17 +1818,14 @@ def _async_update_health_issue(hass: HomeAssistant) -> None:
     """Refresh the lightweight health status and matching Repair issue."""
     health = _health_status(hass)
     hass.data[KEY_HEALTH] = health
-    issues = cast(list[str], health[ATTR_HEALTH_ISSUES])
+    issues = cast(list[dict[str, object]], health[ATTR_HEALTH_ISSUES])
     actionable = [
         issue
         for issue in issues
-        if issue
-        not in (
-            "Legacy custom component cleanup has not completed yet.",
-            "GeoIP is enabled, but the local database reader is not ready.",
-        )
+        if cast(str, issue["key"]) not in TRANSIENT_HEALTH_ISSUE_KEYS
     ]
     if actionable:
+        issue_strings = load_health_issue_strings(hass.config.language)
         ir.async_create_issue(
             hass,
             DOMAIN,
@@ -1782,7 +1835,11 @@ def _async_update_health_issue(hass: HomeAssistant) -> None:
             severity=ir.IssueSeverity.WARNING,
             translation_key=HEALTH_CHECK_FAILED_ISSUE_ID,
             translation_placeholders={
-                "issues": "\n".join(f"- {issue}" for issue in actionable)
+                "issues": "\n".join(f"- {format_health_issue_message(
+                        cast(str, issue['key']),
+                        cast(dict[str, str], issue.get('placeholders')),
+                        issue_strings,
+                    )}" for issue in actionable)
             },
         )
         return
@@ -2243,6 +2300,8 @@ def _config_export_payload(
         "settings": {
             CONF_IP_ADDRESSES: _entry_ip_addresses(entry),
             CONF_BLOCKED_NETWORKS: _entry_blocked_networks(entry),
+            CONF_ALLOWLIST_ENTRY_META: entry_allowlist_meta(entry),
+            CONF_BLOCKED_NETWORK_ENTRY_META: entry_blocked_network_meta(entry),
             CONF_AUTO_BAN_ENABLED: _entry_auto_ban_enabled(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: _entry_ban_notifications_enabled(entry),
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
@@ -2428,6 +2487,20 @@ async def _async_apply_config_backup_payload(
 
     imported_allowlist = _list_from_import(settings, CONF_IP_ADDRESSES)
     imported_blocked_networks = _list_from_import(settings, CONF_BLOCKED_NETWORKS)
+    imported_allowlist_meta = settings.get(CONF_ALLOWLIST_ENTRY_META)
+    imported_blocked_meta = settings.get(CONF_BLOCKED_NETWORK_ENTRY_META)
+    if imported_allowlist_meta is not None and not isinstance(
+        imported_allowlist_meta, dict
+    ):
+        raise HomeAssistantError(
+            "Backup file allowlist metadata must be a YAML mapping."
+        )
+    if imported_blocked_meta is not None and not isinstance(
+        imported_blocked_meta, dict
+    ):
+        raise HomeAssistantError(
+            "Backup file blocked-network metadata must be a YAML mapping."
+        )
     imported_silenced_ips = _list_from_import(
         settings, CONF_SILENCED_ALLOWLISTED_LOGIN_IPS
     )
@@ -2523,11 +2596,41 @@ async def _async_apply_config_backup_payload(
         hass, allowlist, blocked_networks, default_deny_enabled
     )
 
+    if imported_allowlist is not None:
+        allowlist_meta = merge_imported_meta(
+            {},
+            allowlist,
+            imported_allowlist_meta,
+            source=SOURCE_IMPORT,
+        )
+    else:
+        allowlist_meta = {
+            network: entry_allowlist_meta(entry)[network]
+            for network in allowlist
+            if network in entry_allowlist_meta(entry)
+        }
+
+    if imported_blocked_networks is not None:
+        blocked_meta = merge_imported_meta(
+            {},
+            blocked_networks,
+            imported_blocked_meta,
+            source=SOURCE_IMPORT,
+        )
+    else:
+        blocked_meta = {
+            network: entry_blocked_network_meta(entry)[network]
+            for network in blocked_networks
+            if network in entry_blocked_network_meta(entry)
+        }
+
     updated_entry = _update_entry_options(
         hass,
         **{
             CONF_IP_ADDRESSES: allowlist,
             CONF_BLOCKED_NETWORKS: blocked_networks,
+            CONF_ALLOWLIST_ENTRY_META: allowlist_meta,
+            CONF_BLOCKED_NETWORK_ENTRY_META: blocked_meta,
             CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
             CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
@@ -2581,16 +2684,62 @@ async def _async_rewrite_ip_bans_file(
         _mark_config_write(hass)
 
 
-def _update_allowlist_entry(hass: HomeAssistant, ip_addresses: list[str]) -> None:
+def _update_allowlist_entry(
+    hass: HomeAssistant,
+    ip_addresses: list[str],
+    *,
+    meta_source: str | None = None,
+) -> None:
     """Persist and apply the current allowlist without a Home Assistant restart."""
-    _update_entry_options(hass, **{CONF_IP_ADDRESSES: ip_addresses})
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    allowlist_meta = entry_allowlist_meta(entry)
+    if meta_source is None:
+        allowlist_meta = {
+            network: allowlist_meta[network]
+            for network in ip_addresses
+            if network in allowlist_meta
+        }
+    else:
+        allowlist_meta = sync_network_list_meta(
+            allowlist_meta, ip_addresses, source=meta_source
+        )
+    _update_entry_options(
+        hass,
+        **{
+            CONF_IP_ADDRESSES: ip_addresses,
+            CONF_ALLOWLIST_ENTRY_META: allowlist_meta,
+        },
+    )
     hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(ip_addresses)
     _apply_blocked_networks(hass, hass.http.app[KEY_CONFIG_ENTRY])
 
 
-def _update_blocked_networks_entry(hass: HomeAssistant, networks: list[str]) -> None:
+def _update_blocked_networks_entry(
+    hass: HomeAssistant,
+    networks: list[str],
+    *,
+    meta_source: str | None = None,
+) -> None:
     """Persist and apply blocked networks without a Home Assistant restart."""
-    _update_entry_options(hass, **{CONF_BLOCKED_NETWORKS: networks})
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    blocked_meta = entry_blocked_network_meta(entry)
+    if meta_source is None:
+        blocked_meta = {
+            network: blocked_meta[network]
+            for network in networks
+            if network in blocked_meta
+        }
+    else:
+        blocked_meta = sync_network_list_meta(
+            blocked_meta, networks, source=meta_source
+        )
+    _update_entry_options(
+        hass,
+        **{
+            CONF_BLOCKED_NETWORKS: networks,
+            CONF_BLOCKED_NETWORK_ENTRY_META: blocked_meta,
+        },
+    )
     _apply_blocked_networks(hass, hass.http.app[KEY_CONFIG_ENTRY])
 
 
@@ -2690,7 +2839,7 @@ async def _async_add_allowlist_network(
         if source == SOURCE_PANEL:
             raise
         raise ServiceValidationError(str(err)) from err
-    _update_allowlist_entry(hass, updated)
+    _update_allowlist_entry(hass, updated, meta_source=source)
     record_allowlist_network_added(hass, normalized_network, source)
 
 
@@ -2773,7 +2922,7 @@ async def _async_add_blocked_network(
         if source == SOURCE_PANEL:
             raise
         raise ServiceValidationError(str(err)) from err
-    _update_blocked_networks_entry(hass, updated)
+    _update_blocked_networks_entry(hass, updated, meta_source=source)
     record_blocked_network_added(hass, normalized_network, source)
 
 
@@ -3348,7 +3497,7 @@ async def _async_register_panel(
     hass: HomeAssistant, *, sidebar_enabled: bool = True
 ) -> None:
     """Register the bundled IP Ban Manager panel."""
-    module_url = PANEL_JS_URL
+    module_url = _panel_js_url()
     if (
         hass.data.get(KEY_PANEL_REGISTERED)
         and hass.data.get(KEY_PANEL_SIDEBAR_ENABLED) == sidebar_enabled
@@ -3407,7 +3556,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         hass.async_create_task(
             hass.config_entries.flow.async_init(
                 DOMAIN,
-                context={"source": SOURCE_IMPORT},
+                context={"source": HA_SOURCE_IMPORT},
                 data={CONF_IP_ADDRESSES: yaml_config[CONF_IP_ADDRESSES]},
             )
         )

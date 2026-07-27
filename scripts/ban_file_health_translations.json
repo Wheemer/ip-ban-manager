@@ -1,0 +1,177 @@
+{
+  "de": {
+    "ban_file_not_loaded": "Home Assistant IP-Sperren sind nicht geladen.",
+    "ban_file_not_regular_file": "{path} ist keine reguläre Datei.",
+    "ban_file_not_readable_writable": "{path} ist nicht lesbar und beschreibbar.",
+    "ban_file_parent_missing": "{path} existiert nicht.",
+    "ban_file_parent_not_writable": "{path} ist nicht beschreibbar."
+  },
+  "fr": {
+    "ban_file_not_loaded": "Le bannissement IP de Home Assistant n'est pas chargé.",
+    "ban_file_not_regular_file": "{path} n'est pas un fichier ordinaire.",
+    "ban_file_not_readable_writable": "{path} n'est pas lisible et inscriptible.",
+    "ban_file_parent_missing": "{path} n'existe pas.",
+    "ban_file_parent_not_writable": "{path} n'est pas inscriptible."
+  },
+  "nl": {
+    "ban_file_not_loaded": "Home Assistant IP-blokkering is niet geladen.",
+    "ban_file_not_regular_file": "{path} is geen regulier bestand.",
+    "ban_file_not_readable_writable": "{path} is niet leesbaar en beschrijfbaar.",
+    "ban_file_parent_missing": "{path} bestaat niet.",
+    "ban_file_parent_not_writable": "{path} is niet beschrijfbaar."
+  },
+  "es": {
+    "ban_file_not_loaded": "El bloqueo IP de Home Assistant no está cargado.",
+    "ban_file_not_regular_file": "{path} no es un archivo regular.",
+    "ban_file_not_readable_writable": "{path} no es legible ni escribible.",
+    "ban_file_parent_missing": "{path} no existe.",
+    "ban_file_parent_not_writable": "{path} no es escribible."
+  },
+  "it": {
+    "ban_file_not_loaded": "Il blocco IP di Home Assistant non è caricato.",
+    "ban_file_not_regular_file": "{path} non è un file regolare.",
+    "ban_file_not_readable_writable": "{path} non è leggibile e scrivibile.",
+    "ban_file_parent_missing": "{path} non esiste.",
+    "ban_file_parent_not_writable": "{path} non è scrivibile."
+  },
+  "pl": {
+    "ban_file_not_loaded": "Blokowanie IP Home Assistant nie jest załadowane.",
+    "ban_file_not_regular_file": "{path} nie jest zwykłym plikem.",
+    "ban_file_not_readable_writable": "{path} nie jest do odczytu i zapisu.",
+    "ban_file_parent_missing": "{path} nie istnieje.",
+    "ban_file_parent_not_writable": "{path} nie jest zapisywalny."
+  },
+  "pt": {
+    "ban_file_not_loaded": "O bloqueio IP do Home Assistant não está carregado.",
+    "ban_file_not_regular_file": "{path} não é um ficheiro regular.",
+    "ban_file_not_readable_writable": "{path} não é legível e gravável.",
+    "ban_file_parent_missing": "{path} não existe.",
+    "ban_file_parent_not_writable": "{path} não é gravável."
+  },
+  "pt-BR": {
+    "ban_file_not_loaded": "O bloqueio IP do Home Assistant não está carregado.",
+    "ban_file_not_regular_file": "{path} não é um arquivo regular.",
+    "ban_file_not_readable_writable": "{path} não é legível e gravável.",
+    "ban_file_parent_missing": "{path} não existe.",
+    "ban_file_parent_not_writable": "{path} não é gravável."
+  },
+  "sv": {
+    "ban_file_not_loaded": "Home Assistants IP-blockering är inte laddad.",
+    "ban_file_not_regular_file": "{path} är inte en vanlig fil.",
+    "ban_file_not_readable_writable": "{path} är inte läsbar och skrivbar.",
+    "ban_file_parent_missing": "{path} finns inte.",
+    "ban_file_parent_not_writable": "{path} är inte skrivbar."
+  },
+  "cs": {
+    "ban_file_not_loaded": "Blokování IP v Home Assistant není načteno.",
+    "ban_file_not_regular_file": "{path} není běžný soubor.",
+    "ban_file_not_readable_writable": "{path} není čitelný a zapisovatelný.",
+    "ban_file_parent_missing": "{path} neexistuje.",
+    "ban_file_parent_not_writable": "{path} není zapisovatelný."
+  },
+  "ru": {
+    "ban_file_not_loaded": "Блокировка IP Home Assistant не загружена.",
+    "ban_file_not_regular_file": "{path} не является обычным файлом.",
+    "ban_file_not_readable_writable": "{path} недоступен для чтения и записи.",
+    "ban_file_parent_missing": "{path} не существует.",
+    "ban_file_parent_not_writable": "{path} недоступен для записи."
+  },
+  "uk": {
+    "ban_file_not_loaded": "Блокування IP Home Assistant не завантажено.",
+    "ban_file_not_regular_file": "{path} не є звичайним файлом.",
+    "ban_file_not_readable_writable": "{path} недоступний для читання та запису.",
+    "ban_file_parent_missing": "{path} не існує.",
+    "ban_file_parent_not_writable": "{path} недоступний для запису."
+  },
+  "tr": {
+    "ban_file_not_loaded": "Home Assistant IP yasaklama yüklü değil.",
+    "ban_file_not_regular_file": "{path} normal bir dosya değil.",
+    "ban_file_not_readable_writable": "{path} okunabilir ve yazılabilir değil.",
+    "ban_file_parent_missing": "{path} mevcut değil.",
+    "ban_file_parent_not_writable": "{path} yazılabilir değil."
+  },
+  "zh-Hans": {
+    "ban_file_not_loaded": "Home Assistant IP 封禁未加载。",
+    "ban_file_not_regular_file": "{path} 不是常规文件。",
+    "ban_file_not_readable_writable": "{path} 不可读且不可写。",
+    "ban_file_parent_missing": "{path} 不存在。",
+    "ban_file_parent_not_writable": "{path} 不可写。"
+  },
+  "zh-Hant": {
+    "ban_file_not_loaded": "Home Assistant IP 封禁未載入。",
+    "ban_file_not_regular_file": "{path} 不是一般檔案。",
+    "ban_file_not_readable_writable": "{path} 不可讀且不可寫。",
+    "ban_file_parent_missing": "{path} 不存在。",
+    "ban_file_parent_not_writable": "{path} 不可寫。"
+  },
+  "ja": {
+    "ban_file_not_loaded": "Home Assistant の IP 禁止機能が読み込まれていません。",
+    "ban_file_not_regular_file": "{path} は通常のファイルではありません。",
+    "ban_file_not_readable_writable": "{path} は読み書きできません。",
+    "ban_file_parent_missing": "{path} は存在しません。",
+    "ban_file_parent_not_writable": "{path} は書き込みできません。"
+  },
+  "ko": {
+    "ban_file_not_loaded": "Home Assistant IP 차단이 로드되지 않았습니다.",
+    "ban_file_not_regular_file": "{path}는 일반 파일이 아닙니다.",
+    "ban_file_not_readable_writable": "{path}는 읽기 및 쓰기가 불가능합니다.",
+    "ban_file_parent_missing": "{path}가 존재하지 않습니다.",
+    "ban_file_parent_not_writable": "{path}에 쓸 수 없습니다."
+  },
+  "nb": {
+    "ban_file_not_loaded": "Home Assistant IP-blokkering er ikke lastet.",
+    "ban_file_not_regular_file": "{path} er ikke en vanlig fil.",
+    "ban_file_not_readable_writable": "{path} er ikke lesbar og skrivbar.",
+    "ban_file_parent_missing": "{path} finnes ikke.",
+    "ban_file_parent_not_writable": "{path} er ikke skrivbar."
+  },
+  "da": {
+    "ban_file_not_loaded": "Home Assistant IP-blokering er ikke indlæst.",
+    "ban_file_not_regular_file": "{path} er ikke en almindelig fil.",
+    "ban_file_not_readable_writable": "{path} er ikke læsbar og skrivbar.",
+    "ban_file_parent_missing": "{path} findes ikke.",
+    "ban_file_parent_not_writable": "{path} er ikke skrivbar."
+  },
+  "fi": {
+    "ban_file_not_loaded": "Home Assistantin IP-esto ei ole ladattu.",
+    "ban_file_not_regular_file": "{path} ei ole tavallinen tiedosto.",
+    "ban_file_not_readable_writable": "{path} ei ole luettavissa eikä kirjoitettavissa.",
+    "ban_file_parent_missing": "{path} ei ole olemassa.",
+    "ban_file_parent_not_writable": "{path} ei ole kirjoitettavissa."
+  },
+  "ca": {
+    "ban_file_not_loaded": "El bloqueig IP de Home Assistant no està carregat.",
+    "ban_file_not_regular_file": "{path} no és un fitxer regular.",
+    "ban_file_not_readable_writable": "{path} no es pot llegir ni escriure.",
+    "ban_file_parent_missing": "{path} no existeix.",
+    "ban_file_parent_not_writable": "{path} no es pot escriure."
+  },
+  "hu": {
+    "ban_file_not_loaded": "A Home Assistant IP-tiltás nincs betöltve.",
+    "ban_file_not_regular_file": "A(z) {path} nem szabályos fájl.",
+    "ban_file_not_readable_writable": "A(z) {path} nem olvasható és írható.",
+    "ban_file_parent_missing": "A(z) {path} nem létezik.",
+    "ban_file_parent_not_writable": "A(z) {path} nem írható."
+  },
+  "sk": {
+    "ban_file_not_loaded": "Blokovanie IP v Home Assistant nie je načítané.",
+    "ban_file_not_regular_file": "{path} nie je bežný súbor.",
+    "ban_file_not_readable_writable": "{path} nie je čitateľný a zapisovateľný.",
+    "ban_file_parent_missing": "{path} neexistuje.",
+    "ban_file_parent_not_writable": "{path} nie je zapisovateľný."
+  },
+  "ro": {
+    "ban_file_not_loaded": "Blocarea IP Home Assistant nu este încărcată.",
+    "ban_file_not_regular_file": "{path} nu este un fișier obișnuit.",
+    "ban_file_not_readable_writable": "{path} nu poate fi citit și scris.",
+    "ban_file_parent_missing": "{path} nu există.",
+    "ban_file_parent_not_writable": "{path} nu poate fi scris."
+  },
+  "el": {
+    "ban_file_not_loaded": "Ο αποκλεισμός IP του Home Assistant δεν είναι φορτωμένος.",
+    "ban_file_not_regular_file": "Το {path} δεν είναι κανονικό αρχείο.",
+    "ban_file_not_readable_writable": "Το {path} δεν είναι αναγνώσιμο και εγγράψιμο.",
+    "ban_file_parent_missing": "Το {path} δεν υπάρχει.",
+    "ban_file_parent_not_writable": "Το {path} δεν είναι εγγράψιμο."
+  }
+}

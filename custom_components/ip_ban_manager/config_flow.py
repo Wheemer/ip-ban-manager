@@ -31,6 +31,7 @@ from .const import (
     ATTR_NATIVE_IP_BAN_ENABLED,
     ATTR_NETWORKS,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWLIST_ENTRY_META,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
@@ -47,16 +48,16 @@ from .const import (
     DOMAIN,
     LEGACY_DOMAIN,
     MAX_LOGIN_ATTEMPTS_THRESHOLD,
+    SOURCE_CONFIGURE,
+    SOURCE_YAML,
 )
+from .entry_meta import build_imported_meta, build_setup_allowlist_meta
 from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
 DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
 CONF_QUICK_ALLOWLIST = "quick_allowlist"
-CONF_BANNED_IPS_HELP = "banned_ips_help"
-CONF_BLOCKED_NETWORKS_HELP = "blocked_networks_help"
-CONF_ALLOWED_IPS_HELP = "allowed_ips_help"
 CONF_BAN_OPTIONS = "ban_options"
 CONF_ADVANCED_BAN_OPTIONS = "advanced_ban_options"
 CONF_AUTO_BAN_CHECKBOX = "auto_ban"
@@ -277,54 +278,6 @@ def _text_selector() -> selector.TextSelector:
     )
 
 
-def _allowed_ips_help_text() -> str:
-    """Return static guidance for the allowed entries textarea."""
-    return (
-        "Trusted IPv4/IPv6 addresses and networks that should never be "
-        "banned. Use one entry per line. CIDR networks and IPv4 wildcards "
-        "like 192.168.1.* are supported."
-    )
-
-
-def _allowed_ips_help_selector() -> selector.ConstantSelector:
-    """Return static guidance for the allowed entries textarea."""
-    return selector.ConstantSelector(
-        selector.ConstantSelectorConfig(value=_allowed_ips_help_text())
-    )
-
-
-def _banned_ips_help_text() -> str:
-    """Return static guidance for the banned entries textarea."""
-    return (
-        "Currently blocked exact IPv4/IPv6 addresses. Existing rows show the "
-        "block time for review; new rows can be just an IP. Leave this empty "
-        "to clear all blocked IPs."
-    )
-
-
-def _banned_ips_help_selector() -> selector.ConstantSelector:
-    """Return static guidance for the banned entries textarea."""
-    return selector.ConstantSelector(
-        selector.ConstantSelectorConfig(value=_banned_ips_help_text())
-    )
-
-
-def _blocked_networks_help_text() -> str:
-    """Return static guidance for the blocked network textarea."""
-    return (
-        "IPv4/IPv6 CIDR networks or IPv4 wildcard networks to block without "
-        "writing them to Home Assistant's ip_bans.yaml. Allowed entries still "
-        "win."
-    )
-
-
-def _blocked_networks_help_selector() -> selector.ConstantSelector:
-    """Return static guidance for the blocked network textarea."""
-    return selector.ConstantSelector(
-        selector.ConstantSelectorConfig(value=_blocked_networks_help_text())
-    )
-
-
 def _ban_option_values(
     auto_ban_enabled: bool,
     notifications_enabled: bool,
@@ -362,71 +315,45 @@ def _advanced_ban_option_values(
 
 def _ban_options_selector() -> selector.SelectSelector:
     """Return the compact standard option checkbox group."""
-    options: list[selector.SelectOptionDict] = [
-        {
-            "value": CONF_AUTO_BAN_CHECKBOX,
-            "label": "Automatic bans - block failed login sources",
-        },
-        {
-            "value": CONF_BAN_NOTIFICATIONS_CHECKBOX,
-            "label": "Automatic ban notifications - show alerts when IPs are blocked",
-        },
-        {
-            "value": CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
-            "label": "Allowlisted login notifications - alert on failed trusted logins",
-        },
-        {
-            "value": CONF_SIDEBAR_PANEL_CHECKBOX,
-            "label": "Show in sidebar - add the left menu page",
-        },
-        {
-            "value": CONF_GEOIP_CHECKBOX,
-            "label": "GeoIP location labels - download a local DB-IP database",
-        },
-    ]
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
-            options=options,
+            options=[
+                CONF_AUTO_BAN_CHECKBOX,
+                CONF_BAN_NOTIFICATIONS_CHECKBOX,
+                CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                CONF_SIDEBAR_PANEL_CHECKBOX,
+                CONF_GEOIP_CHECKBOX,
+            ],
             multiple=True,
             mode=selector.SelectSelectorMode.LIST,
+            translation_key=CONF_BAN_OPTIONS,
         )
     )
 
 
 def _advanced_ban_options_selector() -> selector.SelectSelector:
     """Return the advanced option checkbox group."""
-    options: list[selector.SelectOptionDict] = [
-        {
-            "value": CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
-            "label": "Advanced: Bans inside Allowed IPs - trusted IPs can be blocked",
-        },
-        {
-            "value": CONF_DEFAULT_DENY_CHECKBOX,
-            "label": "Advanced: Block everything outside Allowed IPs - be careful",
-        },
-    ]
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
-            options=options,
+            options=[
+                CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX,
+                CONF_DEFAULT_DENY_CHECKBOX,
+            ],
             multiple=True,
             mode=selector.SelectSelectorMode.LIST,
+            translation_key=CONF_ADVANCED_BAN_OPTIONS,
         )
     )
 
 
 def _initial_ban_options_selector() -> selector.SelectSelector:
     """Return the first-run automatic-ban checkbox group."""
-    options: list[selector.SelectOptionDict] = [
-        {
-            "value": CONF_AUTO_BAN_CHECKBOX,
-            "label": "Automatic bans - block failed login sources",
-        }
-    ]
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
-            options=options,
+            options=[CONF_AUTO_BAN_CHECKBOX],
             multiple=True,
             mode=selector.SelectSelectorMode.LIST,
+            translation_key=CONF_BAN_OPTIONS,
         )
     )
 
@@ -535,14 +462,6 @@ def _ban_settings_schema(
     )
 
 
-def _local_network_option_label(detected_subnets: list[str]) -> str:
-    """Return a readable dynamic label for the local-network checkbox."""
-    if len(detected_subnets) == 1:
-        return f"Local network {detected_subnets[0]}"
-
-    return f"Local networks {', '.join(detected_subnets)}"
-
-
 def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Schema:
     """Return the first-run setup schema."""
     fields: dict[Any, Any] = {
@@ -568,8 +487,7 @@ def _initial_setup_schema(detected_subnets: list[str], threshold: int) -> vol.Sc
         [
             QUICK_ALLOW_LOCALHOST,
             *([QUICK_ALLOW_LOCAL_NETWORK] if detected_subnets else []),
-        ],
-        detected_subnets,
+        ]
     )
     return vol.Schema(fields)
 
@@ -588,13 +506,7 @@ def _allowlist_management_schema(
                     current_addresses, detected_subnets
                 ),
             )
-        ] = _quick_allowlist_selector(quick_options, detected_subnets)
-    fields[
-        vol_optional(
-            CONF_ALLOWED_IPS_HELP,
-            default=_allowed_ips_help_text(),
-        )
-    ] = _allowed_ips_help_selector()
+        ] = _quick_allowlist_selector(quick_options)
     fields[
         vol.Required(
             CONF_ALLOWED_IPS,
@@ -605,31 +517,14 @@ def _allowlist_management_schema(
     return vol.Schema(fields)
 
 
-def _quick_allowlist_selector(
-    quick_options: list[str], detected_subnets: list[str]
-) -> selector.SelectSelector:
+def _quick_allowlist_selector(quick_options: list[str]) -> selector.SelectSelector:
     """Return a compact checkbox list for common allowlist entries."""
-    options: list[selector.SelectOptionDict] = []
-    if QUICK_ALLOW_LOCALHOST in quick_options:
-        options.append(
-            {
-                "value": QUICK_ALLOW_LOCALHOST,
-                "label": "Localhost 127.0.0.1",
-            }
-        )
-    if QUICK_ALLOW_LOCAL_NETWORK in quick_options:
-        options.append(
-            {
-                "value": QUICK_ALLOW_LOCAL_NETWORK,
-                "label": _local_network_option_label(detected_subnets),
-            }
-        )
-
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
-            options=options,
+            options=quick_options,
             multiple=True,
             mode=selector.SelectSelectorMode.LIST,
+            translation_key=CONF_QUICK_ALLOWLIST,
         )
     )
 
@@ -791,6 +686,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title="IP Ban Manager",
                 data={
                     CONF_IP_ADDRESSES: ip_addresses,
+                    CONF_ALLOWLIST_ENTRY_META: build_setup_allowlist_meta(
+                        ip_addresses,
+                        default_networks=set(DEFAULT_ALLOWED_IPS),
+                        detected_networks=set(detected_subnets),
+                    ),
                     CONF_AUTO_BAN_ENABLED: _ban_option_enabled(
                         user_input,
                         CONF_AUTO_BAN_ENABLED,
@@ -832,7 +732,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         return self.async_create_entry(
             title="IP Ban Manager",
-            data={CONF_IP_ADDRESSES: ip_addresses},
+            data={
+                CONF_IP_ADDRESSES: ip_addresses,
+                CONF_ALLOWLIST_ENTRY_META: build_imported_meta(
+                    ip_addresses, source=SOURCE_YAML
+                ),
+            },
         )
 
     @staticmethod
@@ -898,17 +803,9 @@ class OptionsFlow(config_entries.OptionsFlow):
                                 bool(status[ATTR_GEOIP_ENABLED]),
                             ),
                             vol_optional(
-                                CONF_BANNED_IPS_HELP,
-                                default=_banned_ips_help_text(),
-                            ): _banned_ips_help_selector(),
-                            vol_optional(
                                 CONF_BANNED_IPS,
                                 default=_items_to_text(banned_ips),
                             ): _text_selector(),
-                            vol_optional(
-                                CONF_BLOCKED_NETWORKS_HELP,
-                                default=_blocked_networks_help_text(),
-                            ): _blocked_networks_help_selector(),
                             vol_optional(
                                 CONF_BLOCKED_NETWORKS,
                                 default=_items_to_text(blocked_networks),
@@ -977,12 +874,16 @@ class OptionsFlow(config_entries.OptionsFlow):
         )
         _apply_ban_settings(self.hass, self._config_entry)
         await _async_register_panel(self.hass, sidebar_enabled=sidebar_panel_enabled)
-        _update_allowlist_entry(self.hass, ip_addresses)
-        _update_blocked_networks_entry(self.hass, blocked_networks)
+        _update_allowlist_entry(self.hass, ip_addresses, meta_source=SOURCE_CONFIGURE)
+        _update_blocked_networks_entry(
+            self.hass, blocked_networks, meta_source=SOURCE_CONFIGURE
+        )
         await _async_replace_ip_bans(self.hass, banned_ips)
         self._pending_clear_bans = None
         # Merge into current options so keys managed outside this form
         # (for example silenced allowlisted-login IPs) are not wiped.
+        # Re-read after the live update helpers above, because they may have
+        # stamped per-row metadata into the config entry.
         # Drop the legacy allowed_ips key once the canonical list is written.
         options = {
             **self._config_entry.options,

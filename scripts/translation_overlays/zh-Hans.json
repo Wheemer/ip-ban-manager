@@ -1,0 +1,261 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "设置 IP Ban Manager",
+        "description": "选择安全的起始默认值。设置完成后，请使用 IP Ban Manager 面板或“配置”界面管理实时封禁、阻止的网络、默认拒绝模式以及通知行为。",
+        "data": {
+          "login_attempts_threshold": "登录尝试阈值",
+          "auto_ban_enabled": "自动封禁",
+          "ban_notifications_enabled": "自动封禁通知",
+          "allowlisted_login_notifications_enabled": "白名单登录通知",
+          "allowlisted_logins_can_ban": "允许在“允许的 IP”内自动封禁",
+          "default_deny_enabled": "阻止“允许的 IP”之外的所有访问",
+          "geoip_enabled": "GeoIP 位置标签",
+          "sidebar_panel_enabled": "在侧边栏中显示",
+          "quick_allowlist": "白名单安全默认值",
+          "ban_options": "选项"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "请输入有效的 IP 地址、CIDR 网络或通配符网络，例如 192.168.1.* 或 2001:db8:1:2:*。",
+      "unsafe_allowlist_network": "该白名单条目会信任所有 IP 地址，从而实际上禁用 IP 封禁。"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager 已配置。",
+      "unsafe_allowlist_network": "导入的白名单包含一个会信任所有 IP 地址的条目。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "管理 IP Ban Manager",
+        "description": "管理实时白名单和封禁列表。提交后立即应用更改，无需重启 Home Assistant。",
+        "sections": {
+          "allowed_ips": {
+            "name": "允许的 IP",
+            "data": {
+              "allowed_ips": "允许的条目",
+              "quick_allowlist": "添加安全默认值"
+            }
+          },
+          "banned_ips": {
+            "name": "已阻止的 IP",
+            "data": {
+              "ban_options": "选项",
+              "advanced_ban_options": "高级",
+              "login_attempts_threshold": "登录尝试阈值",
+              "banned_ips": "已阻止的条目",
+              "blocked_networks": "已阻止的网络"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "受信任的 IPv4/IPv6 地址和网络，永不应被封禁。每行一个条目。支持 CIDR 网络以及 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。",
+          "banned_ips": "当前被阻止的精确 IPv4/IPv6 地址。现有行显示封禁时间供审查；新行可以只是 IP。留空可清除所有已阻止的 IP。",
+          "blocked_networks": "IPv4/IPv6 CIDR 网络或通配符网络，可在不写入 Home Assistant 的 ip_bans.yaml 的情况下阻止。允许的条目仍然优先。"
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "清除已阻止的 IP？",
+        "description": "这将从 Home Assistant 中移除 {ban_count} 个已阻止的 IP，并重写 ip_bans.yaml。请勾选复选框以确认。",
+        "data": {
+          "confirm_clear_bans": "清除所有已阻止的 IP"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "请输入有效的 IP 地址、CIDR 网络或通配符网络，例如 192.168.1.* 或 2001:db8:1:2:*。",
+      "invalid_banned_ip": "每行请输入一个精确的 IPv4 或 IPv6 地址。CIDR 网络和通配符应放在“已阻止的网络”中。",
+      "invalid_blocked_network": "请输入有效的 IPv4/IPv6 CIDR 网络或通配符网络，例如 203.0.113.* 或 2001:db8:1:2:*。",
+      "unsafe_blocked_network": "该阻止网络会阻止所有 IP 地址。请使用更窄的网络。",
+      "local_network_block_unprotected": "该设置会阻止所有检测到的本地访问路径。请先将当前本地网络添加到“允许的 IP”。",
+      "unsafe_allowlist_network": "该白名单条目会信任所有 IP 地址，从而实际上禁用 IP 封禁。",
+      "banned_ip_allowlisted": "一个 IP 不能同时处于允许和封禁状态。请从一个列表中移除后重试。",
+      "confirmation_required": "在清除所有已阻止的 IP 之前，请勾选确认框。"
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} 不是有效的 IP 地址。"
+    },
+    "invalid_network": {
+      "message": "{network} 不是有效的 IP 地址、CIDR 网络或通配符网络。"
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} 在白名单中，因此未被封禁。"
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} 当前未被封禁。"
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} 已被阻止网络阻止。"
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} 会信任所有 IP 地址，从而实际上禁用 IP 封禁。"
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} 包含一个或多个当前被封禁的 IP 地址。请先将白名单加入该网络之前移除这些封禁。"
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "在清除所有 IP 封禁之前，请将 confirm 设置为 true。"
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "启用 HTTP IP 封禁",
+      "description": "Home Assistant 内置的 HTTP IP 封禁当前已禁用，因此无法运行封禁管理和白名单保护。\n\n请在 `configuration.yaml` 中现有的 `http:` 部分设置以下键，然后重启 Home Assistant：\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager 已禁用",
+      "description": "紧急禁用开关已激活，因此 IP Ban Manager 未安装其运行时钩子、面板、服务、传感器、托管阻止网络或默认拒绝处理。\n\n当您准备再次使用 IP Ban Manager 时，请从 `configuration.yaml` 中移除 `ip_ban_manager: disabled` 或删除 `/config/ip_ban_manager.disabled`，然后重启 Home Assistant。"
+    },
+    "legacy_yaml_present": {
+      "title": "移除旧的 ban_allowlist YAML",
+      "description": "IP Ban Manager 已将旧的 `ban_allowlist:` YAML 设置导入 UI 配置条目。\n\n请从 `configuration.yaml` 中移除旧的 `ban_allowlist:` 块，然后重启 Home Assistant。集成将继续使用已导入的 UI 设置。"
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "旧版清理需要关注",
+      "description": "IP Ban Manager 无法将一个或多个过时的旧版文件夹移出 Home Assistant 的加载路径：\n\n{paths}\n\n请检查文件权限，将这些路径移出 `custom_components`，然后重启 Home Assistant。"
+    },
+    "health_check_failed": {
+      "title": "IP Ban Manager 健康检查需要关注",
+      "description": "IP Ban Manager 发现一个或多个可能影响实时封禁管理的设置问题：\n\n{issues}\n\n修复这些问题后，请打开 IP Ban Manager 面板以刷新健康检查。"
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "自动封禁 - 阻止登录失败的来源",
+        "ban_notifications": "自动封禁通知 - IP 被阻止时显示警报",
+        "allowlisted_login_notifications": "白名单登录通知 - 受信任登录失败时提醒",
+        "sidebar_panel": "在侧边栏中显示 - 添加左侧菜单页面",
+        "geoip": "GeoIP 位置标签 - 下载本地 DB-IP 数据库"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "高级：在“允许的 IP”内封禁 - 受信任的 IP 也可能被阻止",
+        "default_deny": "高级：阻止“允许的 IP”之外的所有访问 - 请谨慎"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "local_network": "检测到的本地网络"
+      }
+    }
+  },
+  "panel": {
+    "loading": "加载中...",
+    "request_failed": "请求失败。",
+    "none": "无",
+    "remove": "移除",
+    "add": "添加",
+    "block": "阻止",
+    "apply": "应用",
+    "advanced": "高级",
+    "options": "选项",
+    "added_before_tracking": "跟踪前添加",
+    "sources": {
+      "auto": "自动",
+      "configure": "配置",
+      "default": "设置默认值",
+      "detected": "检测到的网络",
+      "import": "备份恢复",
+      "panel": "面板",
+      "service": "服务",
+      "setup": "设置",
+      "yaml": "YAML 导入"
+    },
+    "allowed_ips": {
+      "title": "允许的 IP",
+      "hint": "受信任的 IPv4/IPv6 地址和网络。这些条目优先于精确封禁、阻止网络和默认拒绝模式。支持 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。",
+      "placeholder": "IPv4/IPv6 地址、CIDR 或通配符",
+      "remove_confirm": "移除此允许的 IP？在启用默认拒绝或阻止网络时，移除受信任条目可能导致无法访问。"
+    },
+    "blocked_ips": {
+      "title": "已阻止的 IP",
+      "hint": "Home Assistant 原生精确 IPv4/IPv6 阻止列表，在 ip_bans.yaml 中按最早优先写入。",
+      "placeholder": "IPv4/IPv6 地址"
+    },
+    "blocked_networks": {
+      "title": "已阻止的网络",
+      "hint": "托管的 IPv4/IPv6 CIDR 或通配符网络，在不将范围写入 ip_bans.yaml 的情况下强制执行。",
+      "placeholder": "CIDR 或通配符网络"
+    },
+    "silenced_logins": {
+      "title": "已静音的白名单登录通知",
+      "hint": "已对白名单登录警报静音的地址。"
+    },
+    "settings": {
+      "auto_ban_enabled": "自动封禁",
+      "auto_ban_enabled_hint": "阻止登录失败的来源。",
+      "ban_notifications_enabled": "自动封禁通知",
+      "ban_notifications_enabled_hint": "IP 被阻止时显示警报。",
+      "allowlisted_login_notifications_enabled": "白名单登录通知",
+      "allowlisted_login_notifications_enabled_hint": "受信任登录失败时提醒。",
+      "sidebar_panel_enabled": "在侧边栏中显示",
+      "sidebar_panel_enabled_hint": "添加左侧菜单页面。",
+      "geoip_enabled": "GeoIP 位置标签",
+      "geoip_enabled_hint": "显示公共 IP 的大致位置。若缺少本地数据库，应用时将下载。",
+      "login_attempts_threshold": "登录尝试阈值",
+      "allowlisted_logins_can_ban": "在“允许的 IP”内封禁",
+      "allowlisted_logins_can_ban_hint": "请谨慎：受信任的 IP 也可能被阻止。",
+      "default_deny_enabled": "阻止“允许的 IP”之外的所有访问",
+      "default_deny_enabled_hint": "请谨慎：仅允许的 IP 可以连接。"
+    },
+    "backup": {
+      "save_title": "保存到配置",
+      "save_none": "写入磁盘上的备份文件。",
+      "save_last": "上次保存：{date}",
+      "save": "保存",
+      "restore": "恢复",
+      "restore_confirm": "从磁盘备份恢复并替换当前 IP Ban Manager 设置和精确 IP 封禁？",
+      "transfer_hint": "下载副本到此设备，或上传备份以恢复。",
+      "transfer_title": "传输",
+      "download": "下载",
+      "upload": "上传",
+      "upload_confirm": "上传 {filename} 并替换当前 IP Ban Manager 设置和精确 IP 封禁？"
+    },
+    "geoip": {
+      "title": "GeoIP 数据库",
+      "not_installed": "未安装",
+      "installed": "已安装 - {date}",
+      "download_hint": "启用 GeoIP 并应用以下载",
+      "attribution": "位置数据：",
+      "update": "更新"
+    },
+    "health": {
+      "title": "健康检查需要关注",
+      "issues": {
+        "native_ip_ban_disabled": "Home Assistant 原生 IP 封禁已禁用。",
+        "panel_not_registered": "IP Ban Manager 面板未注册。",
+        "legacy_cleanup_pending": "旧版自定义组件清理尚未完成。",
+        "geoip_reader_not_ready": "GeoIP 已启用，但本地数据库读取器尚未就绪。"
+      }
+    },
+    "success": {
+      "export_config": "备份已保存到 {path}",
+      "import_config": "已从 {path} 恢复备份",
+      "download_config": "备份已下载。",
+      "upload_config": "备份已上传并应用。"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "活动封禁"
+      },
+      "allowlisted_networks": {
+        "name": "白名单网络"
+      },
+      "blocked_networks": {
+        "name": "已阻止的网络"
+      },
+      "failed_login_sources": {
+        "name": "登录失败来源"
+      }
+    }
+  }
+}

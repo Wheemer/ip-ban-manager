@@ -2,20 +2,31 @@
 
 ## v1.8.0
 
-IP Ban Manager 1.8.0 adds automation events, service parity for blocked networks and GeoIP updates, logbook entries for successful state changes, a simple panel search filter, and fixes notification **Open settings** links to open the live panel.
+IP Ban Manager 1.8.0 adds automation events, service parity for blocked networks and GeoIP updates, logbook entries for successful state changes, a version label beside the live panel title, full integration translations in 26 languages, entry metadata for backup/export, IPv6 wildcard shorthand, and fixes notification **Open settings** links to open the live panel.
 
 ### Added
 
 - Home Assistant events for exact IP bans and unbans, login-threshold reached (before auto-ban), allowlisted-login escalation, and allowlist/blocked-network add/remove.
 - `ip_ban_manager.add_blocked_network`, `ip_ban_manager.remove_blocked_network`, and `ip_ban_manager.update_geoip` services.
 - Logbook entries for successful ban, allowlist, blocked-network, and GeoIP database changes.
-- Simple search/filter boxes in the live panel for Allowed IPs, Blocked IPs, and Blocked Networks.
-- Bumped the bundled panel asset to `panel-v28.js` for the search/filter UI.
+- Installed integration version shown beside the **IP Ban Manager** panel title.
+- IPv6 wildcard shorthand for allowlisted and blocked networks, such as `2001:db8:1:2:*` (expands to `/64`) and `2001:db8::*` (expands to `/32`), matching the existing IPv4 `192.168.1.*` flow.
+- Entry metadata (`added_at`, `source`) on allowlist and blocked-network rows for backup import/export and internal tracking.
+- Date/time and source labels on **Blocked network** and **Blocked IP** rows in the live panel, including legacy **Added before tracking** rows where metadata is missing.
+- Panel dates and times follow the signed-in Home Assistant user's locale, timezone, and 12/24-hour preference (with safe fallbacks for non-IANA timezone sentinels such as `local`).
+- Full integration i18n for config flow, options, services, exceptions, repairs, selectors, entity names, and the live panel in **26 languages** (English plus 25 translated locales: Catalan, Czech, Danish, Dutch, Finnish, French, German, Greek, Hungarian, Italian, Japanese, Korean, Norwegian Bokmål, Polish, Portuguese, Brazilian Portuguese, Romanian, Russian, Slovak, Spanish, Swedish, Turkish, Ukrainian, Simplified Chinese, and Traditional Chinese). Unsupported Home Assistant languages fall back to English.
+
+### Changed
+
+- Config-flow and options selectors now use Home Assistant `translation_key` labels instead of hardcoded English option text.
+- Repair health summaries use localized issue templates, including structured `ip_bans.yaml` access messages.
+- **Allowed IP** rows in the live panel show the address only; metadata is still stored for backup/export.
 
 ### Fixed
 
 - Ban and failed-login persistent notifications now link to `/ip_ban_manager` (the live panel) rather than the integration config-entry URL under Settings.
 - When notifications are rewritten, old **Open settings** and **Open integrations** link lines are removed before the current panel link is added.
+- The live panel no longer stays on **Loading…** when Home Assistant passes a non-IANA timezone (for example `local`) to date formatting, or when a render error would previously abort the UI silently.
 
 ## v1.7.1
 

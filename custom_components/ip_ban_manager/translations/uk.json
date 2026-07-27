@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Налаштування IP Ban Manager",
+        "description": "Оберіть безпечні початкові значення. Потім керуйте активними блокуваннями, заблокованими мережами, default-deny та сповіщеннями через панель або Налаштувати.",
+        "data": {
+          "login_attempts_threshold": "Поріг спроб входу",
+          "auto_ban_enabled": "Автоматичні блокування",
+          "ban_notifications_enabled": "Автоматичні сповіщення про блокування",
+          "allowlisted_login_notifications_enabled": "Сповіщення про вхід з allowlist",
+          "allowlisted_logins_can_ban": "Дозволити автоблокування всередині дозволених IP",
+          "default_deny_enabled": "Блокувати все поза дозволеними IP",
+          "geoip_enabled": "Мітки місцезнаходження GeoIP",
+          "sidebar_panel_enabled": "Показувати на бічній панелі",
+          "quick_allowlist": "Безпечні значення allowlist за замовчуванням",
+          "ban_options": "Параметри"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Введіть дійсні IP-адреси, CIDR-мережі або шаблонні мережі, наприклад 192.168.1.* або 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Цей запис allowlist довіряв би кожній IP-адресі та фактично вимкнув би IP-блокування.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "IP Ban Manager уже налаштовано.",
+      "unsafe_allowlist_network": "Імпортований allowlist містить запис, який довіряв би кожній IP-адресі."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Керування IP Ban Manager",
+        "description": "Керуйте активним allowlist і списком блокувань. Надсилання застосовує зміни одразу; перезапуск не потрібен.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Дозволені IP",
+            "data": {
+              "allowed_ips": "Дозволені записи",
+              "quick_allowlist": "Додати безпечні значення за замовчуванням"
+            }
+          },
+          "banned_ips": {
+            "name": "Заблоковані IP",
+            "data": {
+              "ban_options": "Параметри",
+              "advanced_ban_options": "Додатково",
+              "login_attempts_threshold": "Поріг спроб входу",
+              "banned_ips": "Заблоковані записи",
+              "blocked_networks": "Заблоковані мережі"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Довірені IPv4/IPv6 адреси та мережі, які ніколи не повинні блокуватися. Один запис на рядок. Підтримуються CIDR-мережі та шаблони IPv4/IPv6, наприклад 192.168.1.* або 2001:db8:1:2:*.",
+          "banned_ips": "Поточні заблоковані точні IPv4/IPv6 адреси. Наявні рядки показують час блокування для перевірки; нові рядки можуть містити лише IP. Залиште порожнім, щоб очистити всі заблоковані IP.",
+          "blocked_networks": "IPv4/IPv6 CIDR-мережі або шаблонні мережі для блокування без запису в ip_bans.yaml Home Assistant. Дозволені записи все одно мають пріоритет."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Очистити заблоковані IP?",
+        "description": "Це видалить {ban_count} заблокованих IP з Home Assistant і перезапише ip_bans.yaml. Поставте прапорець для підтвердження.",
+        "data": {
+          "confirm_clear_bans": "Очистити всі заблоковані IP"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Введіть дійсні IP-адреси, CIDR-мережі або шаблонні мережі, наприклад 192.168.1.* або 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Введіть одну точну IPv4 або IPv6 адресу на рядок. CIDR-мережі та шаблони належать до Заблокованих мереж.",
+      "invalid_blocked_network": "Введіть дійсні IPv4/IPv6 CIDR-мережі або шаблонні мережі, наприклад 203.0.113.* або 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Ця заблокована мережа заблокувала б кожну IP-адресу. Використовуйте вужчу мережу.",
+      "local_network_block_unprotected": "Це налаштування заблокувало б кожен виявлений локальний шлях доступу. Спочатку додайте поточну локальну мережу до Дозволених IP.",
+      "unsafe_allowlist_network": "Цей запис allowlist довіряв би кожній IP-адресі та фактично вимкнув би IP-блокування.",
+      "banned_ip_allowlisted": "IP не може бути одночасно дозволеним і заблокованим. Видаліть його з одного списку та спробуйте знову.",
+      "confirmation_required": "Поставте прапорець підтвердження перед очищенням усіх заблокованих IP."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} не є дійсною IP-адресою."
+    },
+    "invalid_network": {
+      "message": "{network} не є дійсною IP-адресою, CIDR-мережею або шаблонною мережею."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} у allowlist, тому не було заблоковано."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} зараз не заблоковано."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} уже заблоковано заблокованою мережею."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} довіряв би кожній IP-адресі та фактично вимкнув би IP-блокування."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} містить одну або кілька поточних заблокованих IP-адрес. Видаліть ці блокування перед додаванням цієї мережі до allowlist."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Встановіть confirm у true перед очищенням усіх IP-блокувань."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "Увімкнути HTTP IP-блокування",
+      "description": "Вбудовані HTTP IP-блокування Home Assistant зараз вимкнені, тому керування блокуваннями та захист allowlist не можуть працювати.\n\nВстановіть цей ключ у наявному розділі `http:` у `configuration.yaml` і перезапустіть Home Assistant:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "IP Ban Manager вимкнено",
+      "description": "Активний аварійний вимикач, тому IP Ban Manager не встановив runtime hooks, панель, служби, сенсори, керовані заблоковані мережі та обробку default-deny.\n\nКоли будете готові знову використовувати IP Ban Manager, видаліть `ip_ban_manager: disabled` з `configuration.yaml` або видаліть `/config/ip_ban_manager.disabled`, потім перезапустіть Home Assistant."
+    },
+    "legacy_yaml_present": {
+      "title": "Видалити старий ban_allowlist YAML",
+      "description": "IP Ban Manager уже імпортував старі налаштування `ban_allowlist:` YAML до UI-запису конфігурації.\n\nВидаліть старий блок `ban_allowlist:` з `configuration.yaml` і перезапустіть Home Assistant. Інтеграція продовжить використовувати імпортовані UI-налаштування."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "Legacy-очищення потребує уваги",
+      "description": "IP Ban Manager не зміг перемістити одну або кілька застарілих legacy-папок із шляху завантаження Home Assistant:\n\n{paths}\n\nПеревірте права на файли, перемістіть ці шляхи з `custom_components` і перезапустіть Home Assistant."
+    },
+    "health_check_failed": {
+      "title": "Перевірка стану IP Ban Manager потребує уваги",
+      "description": "IP Ban Manager знайшов одну або кілька проблем налаштування, які можуть вплинути на керування активними блокуваннями:\n\n{issues}\n\nПісля виправлення відкрийте панель IP Ban Manager, щоб оновити перевірку стану."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Автоматичні блокування – блокувати джерела невдалих входів",
+        "ban_notifications": "Автоматичні сповіщення про блокування – попередження при блокуванні IP",
+        "allowlisted_login_notifications": "Сповіщення про вхід з allowlist – попереджати про невдалі довірені входи",
+        "sidebar_panel": "Показувати на бічній панелі – додати сторінку до лівого меню",
+        "geoip": "Мітки місцезнаходження GeoIP – завантажити локальну DB-IP базу"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Додатково: блокування всередині дозволених IP – довірені IP можна блокувати",
+        "default_deny": "Додатково: блокувати все поза дозволеними IP – будьте обережні"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Виявлені локальні мережі"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Завантаження...",
+    "request_failed": "Запит не виконано.",
+    "none": "Немає",
+    "remove": "Видалити",
+    "add": "Додати",
+    "block": "Заблокувати",
+    "apply": "Застосувати",
+    "advanced": "Додатково",
+    "options": "Параметри",
+    "added_before_tracking": "Додано до відстеження",
+    "sources": {
+      "auto": "Автоматично",
+      "configure": "Налаштувати",
+      "default": "Значення за замовчуванням при встановленні",
+      "detected": "Виявлена мережа",
+      "import": "Відновлення з резервної копії",
+      "panel": "Panel",
+      "service": "Служба",
+      "setup": "Встановлення",
+      "yaml": "Імпорт YAML"
+    },
+    "allowed_ips": {
+      "title": "Дозволені IP",
+      "hint": "Довірені IPv4/IPv6 адреси та мережі. Ці записи мають пріоритет над точними блокуваннями, заблокованими мережами та режимом default-deny. Підтримуються шаблони IPv4/IPv6, наприклад 192.168.1.* або 2001:db8:1:2:*.",
+      "placeholder": "IPv4/IPv6 адреса, CIDR або шаблон",
+      "remove_confirm": "Видалити цю дозволену IP? З активним default-deny або заблокованими мережами видалення довіреного запису може заблокувати доступ."
+    },
+    "blocked_ips": {
+      "title": "Заблоковані IP",
+      "hint": "Вбудований список точних IPv4/IPv6 блокувань Home Assistant, записаний від старих до нових у ip_bans.yaml.",
+      "placeholder": "IPv4/IPv6 адреса"
+    },
+    "blocked_networks": {
+      "title": "Заблоковані мережі",
+      "hint": "Керовані IPv4/IPv6 CIDR або шаблонні мережі, що застосовуються без запису діапазонів у ip_bans.yaml.",
+      "placeholder": "CIDR або шаблонна мережа"
+    },
+    "silenced_logins": {
+      "title": "Приглушені сповіщення про вхід з allowlist",
+      "hint": "Адреси, для яких приглушено попередження про вхід з allowlist."
+    },
+    "settings": {
+      "auto_ban_enabled": "Автоматичні блокування",
+      "auto_ban_enabled_hint": "Блокувати джерела невдалих входів.",
+      "ban_notifications_enabled": "Автоматичні сповіщення про блокування",
+      "ban_notifications_enabled_hint": "Показувати попередження при блокуванні IP.",
+      "allowlisted_login_notifications_enabled": "Сповіщення про вхід з allowlist",
+      "allowlisted_login_notifications_enabled_hint": "Попереджати про невдалі довірені входи.",
+      "sidebar_panel_enabled": "Показувати на бічній панелі",
+      "sidebar_panel_enabled_hint": "Додати сторінку до лівого меню.",
+      "geoip_enabled": "Мітки місцезнаходження GeoIP",
+      "geoip_enabled_hint": "Показувати приблизне місцезнаходження публічних IP. Якщо локальної бази немає, Застосувати завантажить її.",
+      "login_attempts_threshold": "Поріг спроб входу",
+      "allowlisted_logins_can_ban": "Блокування всередині дозволених IP",
+      "allowlisted_logins_can_ban_hint": "Будьте обережні: довірені IP можна блокувати.",
+      "default_deny_enabled": "Блокувати все поза дозволеними IP",
+      "default_deny_enabled_hint": "Будьте обережні: підключатися можуть лише дозволені IP."
+    },
+    "backup": {
+      "save_title": "Зберегти в config",
+      "save_none": "Записує резервний файл на диск.",
+      "save_last": "Останнє збереження: {date}",
+      "save": "Зберегти",
+      "restore": "Відновити",
+      "restore_confirm": "Відновити з резервної копії на диску та замінити поточні налаштування IP Ban Manager і точні IP-блокування?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Завантажте копію на цей пристрій або завантажте резервну копію для відновлення.",
+      "download": "Завантажити",
+      "upload": "Завантажити",
+      "upload_confirm": "Завантажити {filename} і замінити поточні налаштування IP Ban Manager і точні IP-блокування?"
+    },
+    "geoip": {
+      "title": "База GeoIP",
+      "not_installed": "Не встановлено",
+      "installed": "Встановлено - {date}",
+      "download_hint": "Увімкніть GeoIP і натисніть Застосувати для завантаження",
+      "attribution": "Дані про місцезнаходження:",
+      "update": "Оновити"
+    },
+    "health": {
+      "title": "Перевірка стану потребує уваги",
+      "issues": {
+        "native_ip_ban_disabled": "Вбудовані IP-блокування Home Assistant вимкнені.",
+        "ban_file_not_loaded": "Блокування IP Home Assistant не завантажено.",
+        "ban_file_not_regular_file": "{path} не є звичайним файлом.",
+        "ban_file_not_readable_writable": "{path} недоступний для читання та запису.",
+        "ban_file_parent_missing": "{path} не існує.",
+        "ban_file_parent_not_writable": "{path} недоступний для запису.",
+        "panel_not_registered": "Панель IP Ban Manager не зареєстрована.",
+        "legacy_cleanup_pending": "Legacy-очищення ще не завершено.",
+        "geoip_reader_not_ready": "GeoIP увімкнено, але локальний ридер бази не готовий."
+      }
+    },
+    "success": {
+      "export_config": "Резервну копію збережено в {path}",
+      "import_config": "Резервну копію відновлено з {path}",
+      "download_config": "Резервну копію завантажено.",
+      "upload_config": "Резервну копію завантажено та застосовано."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Активні блокування"
+      },
+      "allowlisted_networks": {
+        "name": "Allowlist-мережі"
+      },
+      "blocked_networks": {
+        "name": "Заблоковані мережі"
+      },
+      "failed_login_sources": {
+        "name": "Джерела невдалих входів"
+      }
+    }
+  }
+}

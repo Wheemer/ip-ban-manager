@@ -30,15 +30,16 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 
 ## What It Does
 
-- **Allowed IPs:** trust IPv4/IPv6 addresses, CIDR networks, and IPv4 wildcard networks like `192.168.1.*`.
+- **Allowed IPs:** trust IPv4/IPv6 addresses, CIDR networks, and wildcard networks like `192.168.1.*` or `2001:db8:1:2:*`.
 - **Blocked IPs:** add, remove, review, and clear Home Assistant's native exact IP bans without restarting.
-- **Blocked networks:** block CIDR networks and IPv4 wildcard ranges without pretending `ip_bans.yaml` supports ranges.
+- **Blocked networks:** block CIDR networks and wildcard ranges without pretending `ip_bans.yaml` supports ranges.
 - **Default deny:** optionally block everything outside Allowed IPs with guardrails to avoid locking out Home Assistant itself.
 - **Live panel:** manage the whole integration from a dedicated page, with optional sidebar access.
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
 - **GeoIP labels:** optionally download a local DB-IP City Lite database for approximate public-IP location labels.
 - **Backup and restore:** save/restore a readable YAML backup under `/config`, or download/upload a backup in the browser.
 - **Diagnostics and automation:** numeric sensors, `ip_ban_manager.*` services, and Home Assistant events for scripts and automations.
+- **Translations:** config flow, options, repairs, services, entity names, and the live panel follow the signed-in Home Assistant user's language when a locale file is available (26 languages shipped; others fall back to English).
 
 ## Screenshots
 
@@ -94,6 +95,8 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 
 Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
 
+Blocked network and blocked IP rows show when each entry was added and how it was created (setup default, panel, service, backup restore, and similar sources). Legacy rows added before tracking show **Added before tracking**. Allowed IP rows show the address only.
+
 ### Allowed IPs
 
 Allowed IPs are trusted addresses and networks that should not be blocked. Supported entries:
@@ -103,6 +106,7 @@ Allowed IPs are trusted addresses and networks that should not be blocked. Suppo
 - CIDR network: `192.168.1.0/24`
 - IPv6 CIDR network: `2001:db8::/64`
 - IPv4 wildcard network: `192.168.1.*`
+- IPv6 wildcard network: `2001:db8:1:2:*` (expands to `/64`; `2001:db8::*` expands to `/32`)
 
 Allowed entries win over managed blocked networks and default-deny mode.
 
@@ -114,7 +118,7 @@ Existing rows show `IP - local ban time`. Leave the timestamp in place to preser
 
 ### Blocked Networks
 
-Blocked networks are managed by IP Ban Manager. They support IPv4/IPv6 CIDR networks and IPv4 wildcard networks. They are enforced behind Home Assistant's normal request path, but they are not written into `ip_bans.yaml` because Home Assistant's native file only supports exact IP bans.
+Blocked networks are managed by IP Ban Manager. They support IPv4/IPv6 CIDR networks and IPv4/IPv6 wildcard networks. They are enforced behind Home Assistant's normal request path, but they are not written into `ip_bans.yaml` because Home Assistant's native file only supports exact IP bans.
 
 ### Safety Checks
 

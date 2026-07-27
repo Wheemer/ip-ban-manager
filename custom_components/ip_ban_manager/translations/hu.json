@@ -1,0 +1,269 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "IP Ban Manager beállítása",
+        "description": "Válasszon biztonságos kezdőértékeket. Ezután az IP Ban Manager panelen vagy a Beállítás képernyőn kezelheti az élő tiltásokat, blokkolt hálózatokat, alapértelmezett tiltást és értesítéseket.",
+        "data": {
+          "login_attempts_threshold": "Bejelentkezési kísérletek küszöbértéke",
+          "auto_ban_enabled": "Automatikus tiltások",
+          "ban_notifications_enabled": "Automatikus tiltási értesítések",
+          "allowlisted_login_notifications_enabled": "Engedélyezett bejelentkezési értesítések",
+          "allowlisted_logins_can_ban": "Automatikus tiltások engedélyezése az engedélyezett IP-k között",
+          "default_deny_enabled": "Minden blokkolt az engedélyezett IP-ken kívül",
+          "geoip_enabled": "GeoIP helycímkék",
+          "sidebar_panel_enabled": "Megjelenítés az oldalsávban",
+          "quick_allowlist": "Biztonságos engedélyezési lista alapértelmezések",
+          "ban_options": "Beállítások"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*.",
+      "unsafe_allowlist_network": "Ez az engedélyezési lista bejegyzés minden IP-címet megbízhatónak tekintene, és gyakorlatilag kikapcsolná az IP-tiltást.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "Az IP Ban Manager már be van állítva.",
+      "unsafe_allowlist_network": "Az importált engedélyezési lista olyan bejegyzést tartalmaz, amely minden IP-címet megbízhatónak tekintene."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IP Ban Manager kezelése",
+        "description": "Kezelje az élő engedélyezési listát és tiltási listát. A Küldés azonnal alkalmazza a módosításokat; Home Assistant újraindítása nem szükséges.",
+        "sections": {
+          "allowed_ips": {
+            "name": "Engedélyezett IP-k",
+            "data": {
+              "allowed_ips": "Engedélyezett bejegyzések",
+              "quick_allowlist": "Biztonságos alapértelmezések hozzáadása"
+            }
+          },
+          "banned_ips": {
+            "name": "Blokkolt IP-k",
+            "data": {
+              "ban_options": "Beállítások",
+              "advanced_ban_options": "Speciális",
+              "login_attempts_threshold": "Bejelentkezési kísérletek küszöbértéke",
+              "banned_ips": "Blokkolt bejegyzések",
+              "blocked_networks": "Blokkolt hálózatok"
+            }
+          }
+        },
+        "data_description": {
+          "allowed_ips": "Megbízható IPv4/IPv6 címek és hálózatok, amelyeket soha nem szabad tiltani. Soronként egy bejegyzés. CIDR-hálózatok és IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak.",
+          "banned_ips": "Jelenleg blokkolt pontos IPv4/IPv6 címek. A meglévő sorok a tiltás idejét mutatják ellenőrzéshez; az új sorok lehetnek csak IP-címek. Hagyja üresen az összes blokkolt IP törléséhez.",
+          "blocked_networks": "IPv4/IPv6 CIDR-hálózatok vagy helyettesítő hálózatok blokkolása anélkül, hogy a Home Assistant ip_bans.yaml fájljába írná őket. Az engedélyezett bejegyzések továbbra is elsőbbséget élveznek."
+        }
+      },
+      "confirm_clear_bans": {
+        "title": "Blokkolt IP-k törlése?",
+        "description": "Ez eltávolít {ban_count} blokkolt IP-t a Home Assistantból, és újraírja az ip_bans.yaml fájlt. A megerősítéshez jelölje be a jelölőnégyzetet.",
+        "data": {
+          "confirm_clear_bans": "Összes blokkolt IP törlése"
+        }
+      }
+    },
+    "error": {
+      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*.",
+      "invalid_banned_ip": "Soronként egy pontos IPv4 vagy IPv6 címet adjon meg. A CIDR-hálózatok és helyettesítők a Blokkolt hálózatok alá tartoznak.",
+      "invalid_blocked_network": "Adjon meg érvényes IPv4/IPv6 CIDR-hálózatokat vagy helyettesítő hálózatokat, például 203.0.113.* vagy 2001:db8:1:2:*.",
+      "unsafe_blocked_network": "Ez a blokkolt hálózat minden IP-címet blokkoltna. Használjon szűkebb hálózatot.",
+      "local_network_block_unprotected": "Ez a beállítás minden észlelt helyi hozzáférési utat blokkoltna. Először adjon hozzá egy aktuális helyi hálózatot az Engedélyezett IP-khez.",
+      "unsafe_allowlist_network": "Ez az engedélyezési lista bejegyzés minden IP-címet megbízhatónak tekintene, és gyakorlatilag kikapcsolná az IP-tiltást.",
+      "banned_ip_allowlisted": "Egy IP nem lehet egyszerre engedélyezett és tiltott. Távolítsa el az egyik listáról, és próbálja újra.",
+      "confirmation_required": "Jelölje be a megerősítő jelölőnégyzetet az összes blokkolt IP törlése előtt."
+    }
+  },
+  "exceptions": {
+    "invalid_ip_address": {
+      "message": "{ip_address} nem érvényes IP-cím."
+    },
+    "invalid_network": {
+      "message": "{network} nem érvényes IP-cím, CIDR-hálózat vagy helyettesítő hálózat."
+    },
+    "ip_address_allowlisted": {
+      "message": "{ip_address} az engedélyezési listán van, ezért nem lett tiltva."
+    },
+    "ip_address_not_banned": {
+      "message": "{ip_address} jelenleg nincs tiltva."
+    },
+    "ip_address_blocked_network": {
+      "message": "{ip_address} már blokkolt egy blokkolt hálózat miatt."
+    },
+    "unsafe_allowlist_network": {
+      "message": "{network} minden IP-címet megbízhatónak tekintene, és gyakorlatilag kikapcsolná az IP-tiltást."
+    },
+    "network_contains_banned_ip": {
+      "message": "{network} egy vagy több jelenleg tiltott IP-címet tartalmaz. Távolítsa el ezeket a tiltásokat, mielőtt engedélyezné ezt a hálózatot."
+    },
+    "clear_all_ip_bans_confirmation_required": {
+      "message": "Állítsa a confirm értékét true-ra az összes IP-tiltás törlése előtt."
+    }
+  },
+  "issues": {
+    "ip_ban_disabled": {
+      "title": "HTTP IP-tiltás engedélyezése",
+      "description": "A Home Assistant beépített HTTP IP-tiltása jelenleg ki van kapcsolva, ezért a tiltáskezelés és az engedélyezési lista védelme nem futtatható.\n\nÁllítsa be ezt a kulcsot a meglévő `http:` szakaszban a `configuration.yaml` fájlban, majd indítsa újra a Home Assistantot:\n\n```yaml\nhttp:\n  ip_ban_enabled: true\n```"
+    },
+    "integration_disabled_by_yaml": {
+      "title": "Az IP Ban Manager ki van kapcsolva",
+      "description": "A vészleállító kapcsoló aktív, ezért az IP Ban Manager nem telepítette futásidejű hookjait, paneljét, szolgáltatásait, érzékelőit, kezelt blokkolt hálózatait vagy alapértelmezett tiltáskezelését.\n\nTávolítsa el az `ip_ban_manager: disabled` bejegyzést a `configuration.yaml` fájlból, vagy törölje a `/config/ip_ban_manager.disabled` fájlt, majd indítsa újra a Home Assistantot."
+    },
+    "legacy_yaml_present": {
+      "title": "Régi ban_allowlist YAML eltávolítása",
+      "description": "Az IP Ban Manager már importálta a régi `ban_allowlist:` YAML beállításokat a UI konfigurációs bejegyzésbe.\n\nTávolítsa el a régi `ban_allowlist:` blokkot a `configuration.yaml` fájlból, majd indítsa újra a Home Assistantot. Az integráció továbbra is az importált UI beállításokat használja."
+    },
+    "legacy_folder_cleanup_failed": {
+      "title": "A régi verzió takarítása figyelmet igényel",
+      "description": "Az IP Ban Manager nem tudott egy vagy több elavult régi mappát áthelyezni a Home Assistant betöltési útvonalából:\n\n{paths}\n\nEllenőrizze a fájlengedélyeket, helyezze át ezeket az útvonalakat a `custom_components` mappából, majd indítsa újra a Home Assistantot."
+    },
+    "health_check_failed": {
+      "title": "Az IP Ban Manager állapotellenőrzése figyelmet igényel",
+      "description": "Az IP Ban Manager egy vagy több beállítási problémát talált, amelyek befolyásolhatják az élő tiltáskezelést:\n\n{issues}\n\nA javítás után nyissa meg az IP Ban Manager panelt az állapotellenőrzés frissítéséhez."
+    }
+  },
+  "selector": {
+    "ban_options": {
+      "options": {
+        "auto_ban": "Automatikus tiltások – sikertelen bejelentkezési források blokkolása",
+        "ban_notifications": "Automatikus tiltási értesítések – riasztások blokkolt IP-k esetén",
+        "allowlisted_login_notifications": "Engedélyezett bejelentkezési értesítések – riasztás sikertelen megbízható bejelentkezéseknél",
+        "sidebar_panel": "Megjelenítés az oldalsávban – oldal hozzáadása a bal menühöz",
+        "geoip": "GeoIP helycímkék – helyi DB-IP adatbázis letöltése"
+      }
+    },
+    "advanced_ban_options": {
+      "options": {
+        "allowlisted_logins_can_ban": "Speciális: tiltások az engedélyezett IP-k között – megbízható IP-k is blokkolhatók",
+        "default_deny": "Speciális: minden blokkolt az engedélyezett IP-ken kívül – legyen óvatos"
+      }
+    },
+    "quick_allowlist": {
+      "options": {
+        "localhost": "Localhost 127.0.0.1",
+        "local_network": "Észlelt helyi hálózat(ok)"
+      }
+    }
+  },
+  "panel": {
+    "title": "IP Ban Manager",
+    "loading": "Betöltés...",
+    "request_failed": "A kérés sikertelen.",
+    "none": "Nincs",
+    "remove": "Eltávolítás",
+    "add": "Hozzáadás",
+    "block": "Blokkolás",
+    "apply": "Alkalmazás",
+    "advanced": "Speciális",
+    "options": "Beállítások",
+    "added_before_tracking": "Követés előtt hozzáadva",
+    "sources": {
+      "auto": "Automatikus",
+      "configure": "Beállítás",
+      "default": "Telepítési alapértelmezés",
+      "detected": "Észlelt hálózat",
+      "import": "Biztonsági mentés visszaállítása",
+      "panel": "Panel",
+      "service": "Szolgáltatás",
+      "setup": "Telepítés",
+      "yaml": "YAML import"
+    },
+    "allowed_ips": {
+      "title": "Engedélyezett IP-k",
+      "hint": "Megbízható IPv4/IPv6 címek és hálózatok. Ezek a bejegyzések elsőbbséget élveznek a pontos tiltásokkal, blokkolt hálózatokkal és az alapértelmezett tiltással szemben. IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak.",
+      "placeholder": "IPv4/IPv6 cím, CIDR vagy helyettesítő",
+      "remove_confirm": "Eltávolítja ezt az engedélyezett IP-t? Aktív alapértelmezett tiltás vagy blokkolt hálózatok mellett egy megbízható bejegyzés eltávolítása kizárhatja a hozzáférést."
+    },
+    "blocked_ips": {
+      "title": "Blokkolt IP-k",
+      "hint": "A Home Assistant natív pontos IPv4/IPv6 tiltási listája, legrégebbi elöl az ip_bans.yaml fájlban.",
+      "placeholder": "IPv4/IPv6 cím"
+    },
+    "blocked_networks": {
+      "title": "Blokkolt hálózatok",
+      "hint": "Kezelt IPv4/IPv6 CIDR vagy helyettesítő hálózatok, tartományok ip_bans.yaml-ba írása nélkül.",
+      "placeholder": "CIDR vagy helyettesítő hálózat"
+    },
+    "silenced_logins": {
+      "title": "Némított engedélyezett bejelentkezési értesítések",
+      "hint": "Címek, amelyeknél az engedélyezett bejelentkezési riasztások némítva vannak."
+    },
+    "settings": {
+      "auto_ban_enabled": "Automatikus tiltások",
+      "auto_ban_enabled_hint": "Sikertelen bejelentkezési források blokkolása.",
+      "ban_notifications_enabled": "Automatikus tiltási értesítések",
+      "ban_notifications_enabled_hint": "Riasztások megjelenítése blokkolt IP-k esetén.",
+      "allowlisted_login_notifications_enabled": "Engedélyezett bejelentkezési értesítések",
+      "allowlisted_login_notifications_enabled_hint": "Riasztás sikertelen megbízható bejelentkezéseknél.",
+      "sidebar_panel_enabled": "Megjelenítés az oldalsávban",
+      "sidebar_panel_enabled_hint": "Oldal hozzáadása a bal menühöz.",
+      "geoip_enabled": "GeoIP helycímkék",
+      "geoip_enabled_hint": "Hozzávetőleges nyilvános IP helyek megjelenítése. Ha hiányzik a helyi adatbázis, az Alkalmazás letölti.",
+      "login_attempts_threshold": "Bejelentkezési kísérletek küszöbértéke",
+      "allowlisted_logins_can_ban": "Tiltások az engedélyezett IP-k között",
+      "allowlisted_logins_can_ban_hint": "Legyen óvatos: megbízható IP-k is blokkolhatók.",
+      "default_deny_enabled": "Minden blokkolt az engedélyezett IP-ken kívül",
+      "default_deny_enabled_hint": "Legyen óvatos: csak engedélyezett IP-k csatlakozhatnak."
+    },
+    "backup": {
+      "save_title": "Mentés a konfigurációba",
+      "save_none": "A biztonsági mentés fájlt a lemezre írja.",
+      "save_last": "Utolsó mentés: {date}",
+      "save": "Mentés",
+      "restore": "Visszaállítás",
+      "restore_confirm": "Visszaállítja a lemezen lévő biztonsági mentésből, és lecseréli az aktuális IP Ban Manager beállításokat és pontos IP-tiltásokat?",
+      "transfer_title": "Transfer",
+      "transfer_hint": "Másolat letöltése erre az eszközre, vagy biztonsági mentés feltöltése visszaállításhoz.",
+      "download": "Letöltés",
+      "upload": "Feltöltés",
+      "upload_confirm": "Feltölti a {filename} fájlt, és lecseréli az aktuális IP Ban Manager beállításokat és pontos IP-tiltásokat?"
+    },
+    "geoip": {
+      "title": "GeoIP adatbázis",
+      "not_installed": "Nincs telepítve",
+      "installed": "Telepítve - {date}",
+      "download_hint": "Engedélyezze a GeoIP-t, és az Alkalmazás letölti",
+      "attribution": "Helyadatok:",
+      "update": "Frissítés"
+    },
+    "health": {
+      "title": "Az állapotellenőrzés figyelmet igényel",
+      "issues": {
+        "native_ip_ban_disabled": "A Home Assistant natív IP-tiltása ki van kapcsolva.",
+        "ban_file_not_loaded": "A Home Assistant IP-tiltás nincs betöltve.",
+        "ban_file_not_regular_file": "A(z) {path} nem szabályos fájl.",
+        "ban_file_not_readable_writable": "A(z) {path} nem olvasható és írható.",
+        "ban_file_parent_missing": "A(z) {path} nem létezik.",
+        "ban_file_parent_not_writable": "A(z) {path} nem írható.",
+        "panel_not_registered": "Az IP Ban Manager panel nincs regisztrálva.",
+        "legacy_cleanup_pending": "A régi komponens takarítása még nem fejeződött be.",
+        "geoip_reader_not_ready": "A GeoIP engedélyezve van, de a helyi adatbázis-olvasó nem áll készen."
+      }
+    },
+    "success": {
+      "export_config": "Biztonsági mentés mentve ide: {path}",
+      "import_config": "Biztonsági mentés visszaállítva innen: {path}",
+      "download_config": "Biztonsági mentés letöltve.",
+      "upload_config": "Biztonsági mentés feltöltve és alkalmazva."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_bans": {
+        "name": "Aktív tiltások"
+      },
+      "allowlisted_networks": {
+        "name": "Engedélyezési listás hálózatok"
+      },
+      "blocked_networks": {
+        "name": "Blokkolt hálózatok"
+      },
+      "failed_login_sources": {
+        "name": "Sikertelen bejelentkezési források"
+      }
+    }
+  }
+}
