@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Allowed entries",
               "quick_allowlist": "Add safe defaults"
+            },
+            "data_description": {
+              "allowed_ips": "Trusted IPv4/IPv6 addresses and networks that should never be banned. Use one entry per line. CIDR networks and IPv4/IPv6 wildcards like 192.168.1.* or 2001:db8:1:2:* are supported."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Login attempts threshold",
               "banned_ips": "Blocked entries",
               "blocked_networks": "Blocked networks"
+            },
+            "data_description": {
+              "banned_ips": "Currently blocked exact IPv4/IPv6 addresses. Existing rows show the block time for review; new rows can be just an IP. Leave this empty to clear all blocked IPs.",
+              "blocked_networks": "IPv4/IPv6 CIDR networks or IPv4/IPv6 wildcard networks to block without writing them to Home Assistant's ip_bans.yaml. Allowed entries still win."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Trusted IPv4/IPv6 addresses and networks that should never be banned. Use one entry per line. CIDR networks and IPv4/IPv6 wildcards like 192.168.1.* or 2001:db8:1:2:* are supported.",
-          "banned_ips": "Currently blocked exact IPv4/IPv6 addresses. Existing rows show the block time for review; new rows can be just an IP. Leave this empty to clear all blocked IPs.",
-          "blocked_networks": "IPv4/IPv6 CIDR networks or IPv4/IPv6 wildcard networks to block without writing them to Home Assistant's ip_bans.yaml. Allowed entries still win."
         }
       },
       "confirm_clear_bans": {

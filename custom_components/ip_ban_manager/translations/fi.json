@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Sallitut merkinnät",
               "quick_allowlist": "Lisää turvalliset oletukset"
+            },
+            "data_description": {
+              "allowed_ips": "Luotetut IPv4-/IPv6-osoitteet ja verkot, joita ei koskaan estetä. Yksi merkintä per rivi. CIDR-verkot ja IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Kirjautumisyritysten kynnysarvo",
               "banned_ips": "Estetyt merkinnät",
               "blocked_networks": "Estetyt verkot"
+            },
+            "data_description": {
+              "banned_ips": "Tällä hetkellä estetyt tarkat IPv4-/IPv6-osoitteet. Olemassa olevat rivit näyttävät estoajan tarkistusta varten; uudet rivit voivat olla pelkkä IP. Jätä tyhjäksi tyhjentääksesi kaikki estetyt IP-osoitteet.",
+              "blocked_networks": "IPv4-/IPv6-CIDR-verkot tai jokeriverkot, jotka estetään kirjoittamatta niitä Home Assistantin ip_bans.yaml-tiedostoon. Sallitut merkinnät voittavat silti."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Luotetut IPv4-/IPv6-osoitteet ja verkot, joita ei koskaan estetä. Yksi merkintä per rivi. CIDR-verkot ja IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan.",
-          "banned_ips": "Tällä hetkellä estetyt tarkat IPv4-/IPv6-osoitteet. Olemassa olevat rivit näyttävät estoajan tarkistusta varten; uudet rivit voivat olla pelkkä IP. Jätä tyhjäksi tyhjentääksesi kaikki estetyt IP-osoitteet.",
-          "blocked_networks": "IPv4-/IPv6-CIDR-verkot tai jokeriverkot, jotka estetään kirjoittamatta niitä Home Assistantin ip_bans.yaml-tiedostoon. Sallitut merkinnät voittavat silti."
         }
       },
       "confirm_clear_bans": {

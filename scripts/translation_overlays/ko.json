@@ -38,6 +38,9 @@
             "data": {
               "allowed_ips": "허용 항목",
               "quick_allowlist": "안전한 기본값 추가"
+            },
+            "data_description": {
+              "allowed_ips": "절대 차단되지 않아야 하는 신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 한 줄에 하나의 항목을 입력하세요. CIDR 네트워크와 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다."
             }
           },
           "banned_ips": {
@@ -48,13 +51,12 @@
               "login_attempts_threshold": "로그인 시도 임계값",
               "banned_ips": "차단된 항목",
               "blocked_networks": "차단된 네트워크"
+            },
+            "data_description": {
+              "banned_ips": "현재 차단된 정확한 IPv4/IPv6 주소입니다. 기존 행에는 검토용 차단 시간이 표시됩니다. 새 행은 IP만 입력해도 됩니다. 모든 차단 IP를 지우려면 비워 두세요.",
+              "blocked_networks": "Home Assistant의 ip_bans.yaml에 기록하지 않고 차단할 IPv4/IPv6 CIDR 네트워크 또는 와일드카드 네트워크입니다. 허용 항목이 여전히 우선합니다."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "절대 차단되지 않아야 하는 신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 한 줄에 하나의 항목을 입력하세요. CIDR 네트워크와 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다.",
-          "banned_ips": "현재 차단된 정확한 IPv4/IPv6 주소입니다. 기존 행에는 검토용 차단 시간이 표시됩니다. 새 행은 IP만 입력해도 됩니다. 모든 차단 IP를 지우려면 비워 두세요.",
-          "blocked_networks": "Home Assistant의 ip_bans.yaml에 기록하지 않고 차단할 IPv4/IPv6 CIDR 네트워크 또는 와일드카드 네트워크입니다. 허용 항목이 여전히 우선합니다."
         }
       },
       "confirm_clear_bans": {

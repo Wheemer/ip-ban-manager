@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Povolené položky",
               "quick_allowlist": "Pridať bezpečné predvolené hodnoty"
+            },
+            "data_description": {
+              "allowed_ips": "Dôveryhodné IPv4/IPv6 adresy a siete, ktoré sa nikdy nemajú zakázať. Jedna položka na riadok. Podporované sú CIDR siete a IPv4/IPv6 zástupné znaky ako 192.168.1.* alebo 2001:db8:1:2:*."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Prah pokusov o prihlásenie",
               "banned_ips": "Blokované položky",
               "blocked_networks": "Blokované siete"
+            },
+            "data_description": {
+              "banned_ips": "Aktuálne blokované presné IPv4/IPv6 adresy. Existujúce riadky zobrazujú čas zákazu na kontrolu; nové riadky môžu byť len IP. Nechajte prázdne na vymazanie všetkých blokovaných IP.",
+              "blocked_networks": "IPv4/IPv6 CIDR siete alebo zástupné siete na blokovanie bez zápisu do ip_bans.yaml Home Assistant. Povolené položky stále majú prednosť."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Dôveryhodné IPv4/IPv6 adresy a siete, ktoré sa nikdy nemajú zakázať. Jedna položka na riadok. Podporované sú CIDR siete a IPv4/IPv6 zástupné znaky ako 192.168.1.* alebo 2001:db8:1:2:*.",
-          "banned_ips": "Aktuálne blokované presné IPv4/IPv6 adresy. Existujúce riadky zobrazujú čas zákazu na kontrolu; nové riadky môžu byť len IP. Nechajte prázdne na vymazanie všetkých blokovaných IP.",
-          "blocked_networks": "IPv4/IPv6 CIDR siete alebo zástupné siete na blokovanie bez zápisu do ip_bans.yaml Home Assistant. Povolené položky stále majú prednosť."
         }
       },
       "confirm_clear_bans": {

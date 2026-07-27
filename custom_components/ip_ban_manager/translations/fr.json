@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Entrées autorisées",
               "quick_allowlist": "Ajouter des valeurs sûres"
+            },
+            "data_description": {
+              "allowed_ips": "Adresses et réseaux IPv4/IPv6 de confiance qui ne doivent jamais être bannis. Une entrée par ligne. Les réseaux CIDR et jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Seuil de tentatives de connexion",
               "banned_ips": "Entrées bloquées",
               "blocked_networks": "Réseaux bloqués"
+            },
+            "data_description": {
+              "banned_ips": "Adresses IPv4/IPv6 exactes actuellement bloquées. Les lignes existantes affichent l'heure de blocage ; les nouvelles lignes peuvent être une simple IP. Laissez vide pour effacer toutes les IP bloquées.",
+              "blocked_networks": "Réseaux CIDR ou jokers IPv4/IPv6 à bloquer sans les écrire dans ip_bans.yaml de Home Assistant. Les entrées autorisées priment toujours."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Adresses et réseaux IPv4/IPv6 de confiance qui ne doivent jamais être bannis. Une entrée par ligne. Les réseaux CIDR et jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge.",
-          "banned_ips": "Adresses IPv4/IPv6 exactes actuellement bloquées. Les lignes existantes affichent l'heure de blocage ; les nouvelles lignes peuvent être une simple IP. Laissez vide pour effacer toutes les IP bloquées.",
-          "blocked_networks": "Réseaux CIDR ou jokers IPv4/IPv6 à bloquer sans les écrire dans ip_bans.yaml de Home Assistant. Les entrées autorisées priment toujours."
         }
       },
       "confirm_clear_bans": {

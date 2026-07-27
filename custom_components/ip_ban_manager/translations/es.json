@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Entradas permitidas",
               "quick_allowlist": "Añadir valores seguros"
+            },
+            "data_description": {
+              "allowed_ips": "Direcciones y redes IPv4/IPv6 de confianza que nunca deben bloquearse. Una entrada por línea. Se admiten redes CIDR y comodines IPv4/IPv6 como 192.168.1.* o 2001:db8:1:2:*."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Umbral de intentos de inicio de sesión",
               "banned_ips": "Entradas bloqueadas",
               "blocked_networks": "Redes bloqueadas"
+            },
+            "data_description": {
+              "banned_ips": "Direcciones IPv4/IPv6 exactas bloqueadas actualmente. Las filas existentes muestran la hora de bloqueo; las nuevas pueden ser solo una IP. Déjelo vacío para borrar todas las IP bloqueadas.",
+              "blocked_networks": "Redes CIDR o comodín IPv4/IPv6 para bloquear sin escribirlas en ip_bans.yaml de Home Assistant. Las entradas permitidas siguen teniendo prioridad."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Direcciones y redes IPv4/IPv6 de confianza que nunca deben bloquearse. Una entrada por línea. Se admiten redes CIDR y comodines IPv4/IPv6 como 192.168.1.* o 2001:db8:1:2:*.",
-          "banned_ips": "Direcciones IPv4/IPv6 exactas bloqueadas actualmente. Las filas existentes muestran la hora de bloqueo; las nuevas pueden ser solo una IP. Déjelo vacío para borrar todas las IP bloqueadas.",
-          "blocked_networks": "Redes CIDR o comodín IPv4/IPv6 para bloquear sin escribirlas en ip_bans.yaml de Home Assistant. Las entradas permitidas siguen teniendo prioridad."
         }
       },
       "confirm_clear_bans": {

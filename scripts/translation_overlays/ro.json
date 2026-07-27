@@ -38,6 +38,9 @@
             "data": {
               "allowed_ips": "Intrări permise",
               "quick_allowlist": "Adaugă valori sigure implicite"
+            },
+            "data_description": {
+              "allowed_ips": "Adrese și rețele IPv4/IPv6 de încredere care nu trebuie interzise niciodată. O intrare pe linie. Sunt acceptate rețele CIDR și wildcard-uri IPv4/IPv6, cum ar fi 192.168.1.* sau 2001:db8:1:2:*."
             }
           },
           "banned_ips": {
@@ -48,13 +51,12 @@
               "login_attempts_threshold": "Prag de încercări de autentificare",
               "banned_ips": "Intrări blocate",
               "blocked_networks": "Rețele blocate"
+            },
+            "data_description": {
+              "banned_ips": "Adrese IPv4/IPv6 exacte blocate în prezent. Rândurile existente arată ora blocării pentru verificare; rândurile noi pot fi doar o IP. Lasă gol pentru a șterge toate IP-urile blocate.",
+              "blocked_networks": "Rețele CIDR sau wildcard IPv4/IPv6 de blocat fără a le scrie în ip_bans.yaml al Home Assistant. Intrările permise au în continuare prioritate."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Adrese și rețele IPv4/IPv6 de încredere care nu trebuie interzise niciodată. O intrare pe linie. Sunt acceptate rețele CIDR și wildcard-uri IPv4/IPv6, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
-          "banned_ips": "Adrese IPv4/IPv6 exacte blocate în prezent. Rândurile existente arată ora blocării pentru verificare; rândurile noi pot fi doar o IP. Lasă gol pentru a șterge toate IP-urile blocate.",
-          "blocked_networks": "Rețele CIDR sau wildcard IPv4/IPv6 de blocat fără a le scrie în ip_bans.yaml al Home Assistant. Intrările permise au în continuare prioritate."
         }
       },
       "confirm_clear_bans": {

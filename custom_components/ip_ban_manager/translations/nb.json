@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Tillatte oppføringer",
               "quick_allowlist": "Legg til trygge standardverdier"
+            },
+            "data_description": {
+              "allowed_ips": "Pålitelige IPv4-/IPv6-adresser og nettverk som aldri skal utestenges. Én oppføring per linje. CIDR-nettverk og IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* støttes."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Grense for innloggingsforsøk",
               "banned_ips": "Blokkerte oppføringer",
               "blocked_networks": "Blokkerte nettverk"
+            },
+            "data_description": {
+              "banned_ips": "Nåværende blokkerte eksakte IPv4-/IPv6-adresser. Eksisterende rader viser blokkeringstidspunkt for gjennomgang; nye rader kan være bare en IP. La stå tom for å fjerne alle blokkerte IP-er.",
+              "blocked_networks": "IPv4-/IPv6-CIDR-nettverk eller jokernettverk som blokkeres uten å skrives til Home Assistants ip_bans.yaml. Tillatte oppføringer vinner fortsatt."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Pålitelige IPv4-/IPv6-adresser og nettverk som aldri skal utestenges. Én oppføring per linje. CIDR-nettverk og IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* støttes.",
-          "banned_ips": "Nåværende blokkerte eksakte IPv4-/IPv6-adresser. Eksisterende rader viser blokkeringstidspunkt for gjennomgang; nye rader kan være bare en IP. La stå tom for å fjerne alle blokkerte IP-er.",
-          "blocked_networks": "IPv4-/IPv6-CIDR-nettverk eller jokernettverk som blokkeres uten å skrives til Home Assistants ip_bans.yaml. Tillatte oppføringer vinner fortsatt."
         }
       },
       "confirm_clear_bans": {

@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Entradas permitidas",
               "quick_allowlist": "Adicionar predefinições seguras"
+            },
+            "data_description": {
+              "allowed_ips": "Endereços e redes IPv4/IPv6 de confiança que nunca devem ser bloqueados. Uma entrada por linha. São suportadas redes CIDR e wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:*."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Limite de tentativas de login",
               "banned_ips": "Entradas bloqueadas",
               "blocked_networks": "Redes bloqueadas"
+            },
+            "data_description": {
+              "banned_ips": "Endereços IPv4/IPv6 exatos atualmente bloqueados. As linhas existentes mostram a hora do bloqueio para revisão; as novas linhas podem conter apenas um endereço IP. Deixe vazio para limpar todas as IP bloqueadas.",
+              "blocked_networks": "Redes CIDR IPv4/IPv6 ou redes com wildcard a bloquear sem as escrever em ip_bans.yaml do Home Assistant. As entradas permitidas têm sempre prioridade."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Endereços e redes IPv4/IPv6 de confiança que nunca devem ser bloqueados. Uma entrada por linha. São suportadas redes CIDR e wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:*.",
-          "banned_ips": "Endereços IPv4/IPv6 exatos atualmente bloqueados. As linhas existentes mostram a hora do bloqueio para revisão; as novas linhas podem conter apenas um endereço IP. Deixe vazio para limpar todas as IP bloqueadas.",
-          "blocked_networks": "Redes CIDR IPv4/IPv6 ou redes com wildcard a bloquear sem as escrever em ip_bans.yaml do Home Assistant. As entradas permitidas têm sempre prioridade."
         }
       },
       "confirm_clear_bans": {

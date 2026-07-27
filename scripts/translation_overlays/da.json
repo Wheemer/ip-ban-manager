@@ -38,6 +38,9 @@
             "data": {
               "allowed_ips": "Tilladte poster",
               "quick_allowlist": "Tilføj sikre standardværdier"
+            },
+            "data_description": {
+              "allowed_ips": "Pålidelige IPv4-/IPv6-adresser og netværk, der aldrig bør udelukkes. Én post pr. linje. CIDR-netværk og IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes."
             }
           },
           "banned_ips": {
@@ -48,13 +51,12 @@
               "login_attempts_threshold": "Grænse for loginforsøg",
               "banned_ips": "Blokerede poster",
               "blocked_networks": "Blokerede netværk"
+            },
+            "data_description": {
+              "banned_ips": "Nuværende blokerede eksakte IPv4-/IPv6-adresser. Eksisterende rækker viser blokeringstidspunkt til gennemgang; nye rækker kan være blot en IP. Lad stå tom for at rydde alle blokerede IP'er.",
+              "blocked_networks": "IPv4-/IPv6-CIDR-netværk eller jokernetværk, der blokeres uden at skrives til Home Assistants ip_bans.yaml. Tilladte poster vinder stadig."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Pålidelige IPv4-/IPv6-adresser og netværk, der aldrig bør udelukkes. Én post pr. linje. CIDR-netværk og IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes.",
-          "banned_ips": "Nuværende blokerede eksakte IPv4-/IPv6-adresser. Eksisterende rækker viser blokeringstidspunkt til gennemgang; nye rækker kan være blot en IP. Lad stå tom for at rydde alle blokerede IP'er.",
-          "blocked_networks": "IPv4-/IPv6-CIDR-netværk eller jokernetværk, der blokeres uden at skrives til Home Assistants ip_bans.yaml. Tilladte poster vinder stadig."
         }
       },
       "confirm_clear_bans": {

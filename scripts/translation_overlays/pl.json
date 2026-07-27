@@ -38,6 +38,9 @@
             "data": {
               "allowed_ips": "Dozwolone wpisy",
               "quick_allowlist": "Dodaj bezpieczne domyślne"
+            },
+            "data_description": {
+              "allowed_ips": "Zaufane adresy i sieci IPv4/IPv6, które nigdy nie powinny być blokowane. Jeden wpis na wiersz. Obsługiwane są sieci CIDR i maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*."
             }
           },
           "banned_ips": {
@@ -48,13 +51,12 @@
               "login_attempts_threshold": "Próg prób logowania",
               "banned_ips": "Zablokowane wpisy",
               "blocked_networks": "Zablokowane sieci"
+            },
+            "data_description": {
+              "banned_ips": "Aktualnie zablokowane dokładne adresy IPv4/IPv6. Istniejące wiersze pokazują czas blokady do weryfikacji; nowe wiersze mogą zawierać tylko adres IP. Pozostaw puste, aby wyczyścić wszystkie zablokowane IP.",
+              "blocked_networks": "Sieci CIDR IPv4/IPv6 lub sieci z maską do blokowania bez zapisywania ich w ip_bans.yaml Home Assistant. Dozwolone wpisy mają pierwszeństwo."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Zaufane adresy i sieci IPv4/IPv6, które nigdy nie powinny być blokowane. Jeden wpis na wiersz. Obsługiwane są sieci CIDR i maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*.",
-          "banned_ips": "Aktualnie zablokowane dokładne adresy IPv4/IPv6. Istniejące wiersze pokazują czas blokady do weryfikacji; nowe wiersze mogą zawierać tylko adres IP. Pozostaw puste, aby wyczyścić wszystkie zablokowane IP.",
-          "blocked_networks": "Sieci CIDR IPv4/IPv6 lub sieci z maską do blokowania bez zapisywania ich w ip_bans.yaml Home Assistant. Dozwolone wpisy mają pierwszeństwo."
         }
       },
       "confirm_clear_bans": {

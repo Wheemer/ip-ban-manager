@@ -38,6 +38,9 @@
             "data": {
               "allowed_ips": "İzin verilen girişler",
               "quick_allowlist": "Güvenli varsayılanları ekle"
+            },
+            "data_description": {
+              "allowed_ips": "Asla yasaklanmaması gereken güvenilir IPv4/IPv6 adresleri ve ağları. Satır başına bir giriş. 192.168.1.* veya 2001:db8:1:2:* gibi CIDR ağları ve IPv4/IPv6 jokerleri desteklenir."
             }
           },
           "banned_ips": {
@@ -48,13 +51,12 @@
               "login_attempts_threshold": "Giriş denemesi eşiği",
               "banned_ips": "Engellenen girişler",
               "blocked_networks": "Engellenen ağlar"
+            },
+            "data_description": {
+              "banned_ips": "Şu anda engellenen tam IPv4/IPv6 adresleri. Mevcut satırlar inceleme için engel zamanını gösterir; yeni satırlar yalnızca bir IP olabilir. Tüm engellenen IP'leri temizlemek için boş bırakın.",
+              "blocked_networks": "Home Assistant ip_bans.yaml dosyasına yazmadan engellenecek IPv4/IPv6 CIDR ağları veya joker ağlar. İzin verilen girişler yine önceliklidir."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Asla yasaklanmaması gereken güvenilir IPv4/IPv6 adresleri ve ağları. Satır başına bir giriş. 192.168.1.* veya 2001:db8:1:2:* gibi CIDR ağları ve IPv4/IPv6 jokerleri desteklenir.",
-          "banned_ips": "Şu anda engellenen tam IPv4/IPv6 adresleri. Mevcut satırlar inceleme için engel zamanını gösterir; yeni satırlar yalnızca bir IP olabilir. Tüm engellenen IP'leri temizlemek için boş bırakın.",
-          "blocked_networks": "Home Assistant ip_bans.yaml dosyasına yazmadan engellenecek IPv4/IPv6 CIDR ağları veya joker ağlar. İzin verilen girişler yine önceliklidir."
         }
       },
       "confirm_clear_bans": {

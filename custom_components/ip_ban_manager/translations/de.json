@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Erlaubte Einträge",
               "quick_allowlist": "Sichere Standardwerte hinzufügen"
+            },
+            "data_description": {
+              "allowed_ips": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke, die nie gesperrt werden sollen. Ein Eintrag pro Zeile. CIDR-Netzwerke und IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Schwellwert für Login-Versuche",
               "banned_ips": "Blockierte Einträge",
               "blocked_networks": "Blockierte Netzwerke"
+            },
+            "data_description": {
+              "banned_ips": "Derzeit blockierte exakte IPv4-/IPv6-Adressen. Bestehende Zeilen zeigen die Sperrzeit zur Prüfung; neue Zeilen können nur eine IP sein. Leer lassen, um alle blockierten IPs zu löschen.",
+              "blocked_networks": "IPv4-/IPv6-CIDR-Netzwerke oder Platzhalternetzwerke, die ohne Eintrag in Home Assistants ip_bans.yaml blockiert werden. Erlaubte Einträge haben weiterhin Vorrang."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke, die nie gesperrt werden sollen. Ein Eintrag pro Zeile. CIDR-Netzwerke und IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt.",
-          "banned_ips": "Derzeit blockierte exakte IPv4-/IPv6-Adressen. Bestehende Zeilen zeigen die Sperrzeit zur Prüfung; neue Zeilen können nur eine IP sein. Leer lassen, um alle blockierten IPs zu löschen.",
-          "blocked_networks": "IPv4-/IPv6-CIDR-Netzwerke oder Platzhalternetzwerke, die ohne Eintrag in Home Assistants ip_bans.yaml blockiert werden. Erlaubte Einträge haben weiterhin Vorrang."
         }
       },
       "confirm_clear_bans": {

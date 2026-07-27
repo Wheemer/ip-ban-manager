@@ -38,6 +38,9 @@
             "data": {
               "allowed_ips": "Tillåtna poster",
               "quick_allowlist": "Lägg till säkra standardvärden"
+            },
+            "data_description": {
+              "allowed_ips": "Betrodda IPv4-/IPv6-adresser och nätverk som aldrig ska spärras. En post per rad. CIDR-nätverk och IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds."
             }
           },
           "banned_ips": {
@@ -48,13 +51,12 @@
               "login_attempts_threshold": "Tröskelvärde för inloggningsförsök",
               "banned_ips": "Blockerade poster",
               "blocked_networks": "Blockerade nätverk"
+            },
+            "data_description": {
+              "banned_ips": "För närvarande blockerade exakta IPv4-/IPv6-adresser. Befintliga rader visar spärrtid för granskning; nya rader kan vara bara en IP. Lämna tomt för att rensa alla blockerade IP.",
+              "blocked_networks": "IPv4-/IPv6-CIDR-nätverk eller jokernätverk som blockeras utan att skrivas till Home Assistants ip_bans.yaml. Tillåtna poster vinner fortfarande."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Betrodda IPv4-/IPv6-adresser och nätverk som aldrig ska spärras. En post per rad. CIDR-nätverk och IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds.",
-          "banned_ips": "För närvarande blockerade exakta IPv4-/IPv6-adresser. Befintliga rader visar spärrtid för granskning; nya rader kan vara bara en IP. Lämna tomt för att rensa alla blockerade IP.",
-          "blocked_networks": "IPv4-/IPv6-CIDR-nätverk eller jokernätverk som blockeras utan att skrivas till Home Assistants ip_bans.yaml. Tillåtna poster vinner fortfarande."
         }
       },
       "confirm_clear_bans": {

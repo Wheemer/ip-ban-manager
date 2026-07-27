@@ -38,6 +38,9 @@
             "data": {
               "allowed_ips": "Entrades permeses",
               "quick_allowlist": "Afegeix valors segurs per defecte"
+            },
+            "data_description": {
+              "allowed_ips": "Adreces i xarxes IPv4/IPv6 de confiança que no s'han de bloquejar mai. Una entrada per línia. S'admeten xarxes CIDR i comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*."
             }
           },
           "banned_ips": {
@@ -48,13 +51,12 @@
               "login_attempts_threshold": "Llindar d'intents d'inici de sessió",
               "banned_ips": "Entrades bloquejades",
               "blocked_networks": "Xarxes bloquejades"
+            },
+            "data_description": {
+              "banned_ips": "Adreces IPv4/IPv6 exactes bloquejades actualment. Les files existents mostren l'hora de bloqueig per revisió; les noves files poden ser només una IP. Deixeu-ho buit per esborrar totes les IP bloquejades.",
+              "blocked_networks": "Xarxes CIDR o comodí IPv4/IPv6 per bloquejar sense escriure-les a ip_bans.yaml de Home Assistant. Les entrades permeses encara tenen prioritat."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Adreces i xarxes IPv4/IPv6 de confiança que no s'han de bloquejar mai. Una entrada per línia. S'admeten xarxes CIDR i comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*.",
-          "banned_ips": "Adreces IPv4/IPv6 exactes bloquejades actualment. Les files existents mostren l'hora de bloqueig per revisió; les noves files poden ser només una IP. Deixeu-ho buit per esborrar totes les IP bloquejades.",
-          "blocked_networks": "Xarxes CIDR o comodí IPv4/IPv6 per bloquejar sense escriure-les a ip_bans.yaml de Home Assistant. Les entrades permeses encara tenen prioritat."
         }
       },
       "confirm_clear_bans": {

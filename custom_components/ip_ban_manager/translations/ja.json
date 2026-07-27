@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "許可エントリ",
               "quick_allowlist": "安全な既定値を追加"
+            },
+            "data_description": {
+              "allowed_ips": "BAN してはいけない信頼できる IPv4/IPv6 アドレスとネットワーク。1 行に 1 エントリ。CIDR ネットワークと 192.168.1.* や 2001:db8:1:2:* などの IPv4/IPv6 ワイルドカードに対応しています。"
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "ログイン試行のしきい値",
               "banned_ips": "ブロックエントリ",
               "blocked_networks": "ブロックされたネットワーク"
+            },
+            "data_description": {
+              "banned_ips": "現在ブロックされている正確な IPv4/IPv6 アドレス。既存行には確認用のブロック時刻が表示されます。新規行は IP のみでも構いません。すべてのブロック IP を消去する場合は空のままにしてください。",
+              "blocked_networks": "Home Assistant の ip_bans.yaml に書き込まずにブロックする IPv4/IPv6 CIDR ネットワークまたはワイルドカードネットワーク。許可エントリが常に優先されます。"
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "BAN してはいけない信頼できる IPv4/IPv6 アドレスとネットワーク。1 行に 1 エントリ。CIDR ネットワークと 192.168.1.* や 2001:db8:1:2:* などの IPv4/IPv6 ワイルドカードに対応しています。",
-          "banned_ips": "現在ブロックされている正確な IPv4/IPv6 アドレス。既存行には確認用のブロック時刻が表示されます。新規行は IP のみでも構いません。すべてのブロック IP を消去する場合は空のままにしてください。",
-          "blocked_networks": "Home Assistant の ip_bans.yaml に書き込まずにブロックする IPv4/IPv6 CIDR ネットワークまたはワイルドカードネットワーク。許可エントリが常に優先されます。"
         }
       },
       "confirm_clear_bans": {

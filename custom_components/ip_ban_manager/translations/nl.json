@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Toegestane items",
               "quick_allowlist": "Veilige standaarden toevoegen"
+            },
+            "data_description": {
+              "allowed_ips": "Vertrouwde IPv4-/IPv6-adressen en netwerken die nooit geband mogen worden. Eén item per regel. CIDR-netwerken en IPv4-/IPv6-wildcards zoals 192.168.1.* of 2001:db8:1:2:* worden ondersteund."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Drempel voor loginpogingen",
               "banned_ips": "Geblokkeerde items",
               "blocked_networks": "Geblokkeerde netwerken"
+            },
+            "data_description": {
+              "banned_ips": "Momenteel geblokkeerde exacte IPv4-/IPv6-adressen. Bestaande regels tonen de blokkeertijd ter controle; nieuwe regels kunnen alleen een IP zijn. Laat leeg om alle geblokkeerde IP's te wissen.",
+              "blocked_networks": "IPv4-/IPv6-CIDR-netwerken of wildcardnetwerken om te blokkeren zonder ze in Home Assistants ip_bans.yaml te schrijven. Toegestane items winnen nog steeds."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Vertrouwde IPv4-/IPv6-adressen en netwerken die nooit geband mogen worden. Eén item per regel. CIDR-netwerken en IPv4-/IPv6-wildcards zoals 192.168.1.* of 2001:db8:1:2:* worden ondersteund.",
-          "banned_ips": "Momenteel geblokkeerde exacte IPv4-/IPv6-adressen. Bestaande regels tonen de blokkeertijd ter controle; nieuwe regels kunnen alleen een IP zijn. Laat leeg om alle geblokkeerde IP's te wissen.",
-          "blocked_networks": "IPv4-/IPv6-CIDR-netwerken of wildcardnetwerken om te blokkeren zonder ze in Home Assistants ip_bans.yaml te schrijven. Toegestane items winnen nog steeds."
         }
       },
       "confirm_clear_bans": {

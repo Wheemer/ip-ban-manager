@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "允许的条目",
               "quick_allowlist": "添加安全默认值"
+            },
+            "data_description": {
+              "allowed_ips": "受信任的 IPv4/IPv6 地址和网络，永不应被封禁。每行一个条目。支持 CIDR 网络以及 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。"
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "登录尝试阈值",
               "banned_ips": "已阻止的条目",
               "blocked_networks": "已阻止的网络"
+            },
+            "data_description": {
+              "banned_ips": "当前被阻止的精确 IPv4/IPv6 地址。现有行显示封禁时间供审查；新行可以只是 IP。留空可清除所有已阻止的 IP。",
+              "blocked_networks": "IPv4/IPv6 CIDR 网络或通配符网络，可在不写入 Home Assistant 的 ip_bans.yaml 的情况下阻止。允许的条目仍然优先。"
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "受信任的 IPv4/IPv6 地址和网络，永不应被封禁。每行一个条目。支持 CIDR 网络以及 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。",
-          "banned_ips": "当前被阻止的精确 IPv4/IPv6 地址。现有行显示封禁时间供审查；新行可以只是 IP。留空可清除所有已阻止的 IP。",
-          "blocked_networks": "IPv4/IPv6 CIDR 网络或通配符网络，可在不写入 Home Assistant 的 ip_bans.yaml 的情况下阻止。允许的条目仍然优先。"
         }
       },
       "confirm_clear_bans": {

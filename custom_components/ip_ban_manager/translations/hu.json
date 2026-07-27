@@ -39,6 +39,9 @@
             "data": {
               "allowed_ips": "Engedélyezett bejegyzések",
               "quick_allowlist": "Biztonságos alapértelmezések hozzáadása"
+            },
+            "data_description": {
+              "allowed_ips": "Megbízható IPv4/IPv6 címek és hálózatok, amelyeket soha nem szabad tiltani. Soronként egy bejegyzés. CIDR-hálózatok és IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak."
             }
           },
           "banned_ips": {
@@ -49,13 +52,12 @@
               "login_attempts_threshold": "Bejelentkezési kísérletek küszöbértéke",
               "banned_ips": "Blokkolt bejegyzések",
               "blocked_networks": "Blokkolt hálózatok"
+            },
+            "data_description": {
+              "banned_ips": "Jelenleg blokkolt pontos IPv4/IPv6 címek. A meglévő sorok a tiltás idejét mutatják ellenőrzéshez; az új sorok lehetnek csak IP-címek. Hagyja üresen az összes blokkolt IP törléséhez.",
+              "blocked_networks": "IPv4/IPv6 CIDR-hálózatok vagy helyettesítő hálózatok blokkolása anélkül, hogy a Home Assistant ip_bans.yaml fájljába írná őket. Az engedélyezett bejegyzések továbbra is elsőbbséget élveznek."
             }
           }
-        },
-        "data_description": {
-          "allowed_ips": "Megbízható IPv4/IPv6 címek és hálózatok, amelyeket soha nem szabad tiltani. Soronként egy bejegyzés. CIDR-hálózatok és IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak.",
-          "banned_ips": "Jelenleg blokkolt pontos IPv4/IPv6 címek. A meglévő sorok a tiltás idejét mutatják ellenőrzéshez; az új sorok lehetnek csak IP-címek. Hagyja üresen az összes blokkolt IP törléséhez.",
-          "blocked_networks": "IPv4/IPv6 CIDR-hálózatok vagy helyettesítő hálózatok blokkolása anélkül, hogy a Home Assistant ip_bans.yaml fájljába írná őket. Az engedélyezett bejegyzések továbbra is elsőbbséget élveznek."
         }
       },
       "confirm_clear_bans": {
