@@ -41,7 +41,12 @@ from custom_components.ip_ban_manager import (
     ATTR_NOTIFICATION_ID,
     INTEGRATION_CONFIG_URL,
     INTEGRATION_DISABLED_BY_YAML_ISSUE_ID,
+    INTEGRATION_VERSION,
     IP_BAN_DISABLED_ISSUE_ID,
+    IPBanManagerLegacyPanelView,
+    IPBanManagerManageView,
+    IPBanManagerPanelView,
+    IPBanManagerStatusView,
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
     KEY_CONFIG_ENTRY,
@@ -60,11 +65,6 @@ from custom_components.ip_ban_manager import (
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
     LEGACY_YAML_PRESENT_ISSUE_ID,
     NOTIFICATION_ICON_DATA_URL,
-    IPBanManagerLegacyPanelView,
-    IPBanManagerManageView,
-    IPBanManagerPanelView,
-    IPBanManagerStatusView,
-    INTEGRATION_VERSION,
     SilenceAllowlistedLoginNotificationsView,
     _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
@@ -1316,8 +1316,9 @@ async def test_panel_script_urls_serve_current_bundle(hass: HomeAssistant) -> No
         assert response.status == 200
         assert response.text is not None
         assert f'const PANEL_VERSION = "{INTEGRATION_VERSION}"' in response.text
-        assert 'customElements.define("ip-ban-manager-panel"' in response.text
-        assert 'customElements.define("ip-ban-manager-panel-v27"' in response.text
+        assert "ip-ban-manager-panel-v27" in response.text
+        assert "ip-ban-manager-panel" in response.text
+        assert "customElements.define(tag, IPBanManagerPanel)" in response.text
 
 
 @pytest.mark.asyncio
