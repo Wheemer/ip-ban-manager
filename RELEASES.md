@@ -4,7 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
-| [v1.8.1](CHANGELOG.md#v181) | Hotfix: restores the live panel after upgrading from 1.7.x by aliasing legacy `panel-v27.js` and registering both panel web components. |
+| [v1.8.1](CHANGELOG.md#v181) | Hotfix: fixes blank panel after 1.8.0 upgrade by clearing stale frontend panel registrations and re-registering the versioned `panel.js?v=…` module URL. |
 | [v1.8.0](CHANGELOG.md#v180) | Automation events, blocked-network and GeoIP services, logbook entries, panel version label, IPv6 wildcard shorthand, 26-language i18n, backup/export metadata, blocked-network and ban row labels in the panel, and notification **Open settings** links to the live panel. |
 | [v1.7.1](CHANGELOG.md#v171) | Hardening patch: config-entry unload/reload clears and rebinds panel HTTP handlers and leftover runtime state; Core restart still required for Python updates. |
 | [v1.7.0](CHANGELOG.md#v170) | Backup transfer in the browser (Download/Upload), on-disk Save/Restore kept, and a clearer Options layout for threshold/Advanced/Apply. |

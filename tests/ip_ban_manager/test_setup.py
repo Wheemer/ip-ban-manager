@@ -61,7 +61,6 @@ from custom_components.ip_ban_manager import (
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
     LEGACY_YAML_PRESENT_ISSUE_ID,
     NOTIFICATION_ICON_DATA_URL,
-    IPBanManagerLegacyPanelView,
     IPBanManagerManageView,
     IPBanManagerPanelView,
     IPBanManagerStatusView,
@@ -1289,36 +1288,48 @@ async def test_panel_registration_requires_admin(
 ) -> None:
     """Test the bundled panel is only available to administrators."""
     registered: dict[str, object] = {}
+    removed: list[str] = []
 
     async def mock_register_panel(hass: HomeAssistant, **kwargs: object) -> None:
         registered.update(kwargs)
+
+    def mock_remove_panel(hass: HomeAssistant, panel_id: str, **kwargs: object) -> None:
+        removed.append(panel_id)
 
     monkeypatch.setattr(
         "homeassistant.components.panel_custom.async_register_panel",
         mock_register_panel,
     )
+    monkeypatch.setattr(
+        "homeassistant.components.frontend.async_remove_panel",
+        mock_remove_panel,
+    )
 
     await _async_register_panel(hass)
 
+    assert removed == [DOMAIN]
     assert registered["frontend_url_path"] == DOMAIN
     assert registered["config_panel_domain"] == DOMAIN
     assert registered["require_admin"] is True
+    assert registered["webcomponent_name"] == "ip-ban-manager-panel"
+    module_url = cast(str, registered["module_url"])
+    assert module_url.startswith(f"/api/{DOMAIN}/panel.js?v={INTEGRATION_VERSION}&t=")
 
 
 @pytest.mark.asyncio
-async def test_panel_script_urls_serve_current_bundle(hass: HomeAssistant) -> None:
-    """Test current and legacy panel script URLs serve the bundled panel."""
+async def test_panel_script_url_serves_current_bundle(hass: HomeAssistant) -> None:
+    """Test panel.js serves the bundled script with the installed version."""
     await setup_ip_ban_manager(hass)
     request = cast(Any, MockViewRequest(hass.http.app))
 
-    for view in (IPBanManagerPanelView(), IPBanManagerLegacyPanelView()):
-        response = await view.get(request)
-        assert response.status == 200
-        assert response.text is not None
-        assert f'const PANEL_VERSION = "{INTEGRATION_VERSION}"' in response.text
-        assert "ip-ban-manager-panel-v27" in response.text
-        assert "ip-ban-manager-panel" in response.text
-        assert "customElements.define(tag, IPBanManagerPanel)" in response.text
+    response = await IPBanManagerPanelView().get(request)
+    assert response.status == 200
+    assert response.text is not None
+    assert f'const PANEL_VERSION = "{INTEGRATION_VERSION}"' in response.text
+    assert 'customElements.define("ip-ban-manager-panel", IPBanManagerPanel)' in (
+        response.text
+    )
+    assert "ip-ban-manager-panel-v27" not in response.text
 
 
 @pytest.mark.asyncio

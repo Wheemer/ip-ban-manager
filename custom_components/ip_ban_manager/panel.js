@@ -963,8 +963,6 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-for (const tag of ["ip-ban-manager-panel", "ip-ban-manager-panel-v27"]) {
-  if (!customElements.get(tag)) {
-    customElements.define(tag, IPBanManagerPanel);
-  }
+if (!customElements.get("ip-ban-manager-panel")) {
+  customElements.define("ip-ban-manager-panel", IPBanManagerPanel);
 }

@@ -222,7 +222,6 @@ LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
 PANEL_JS_PATH = f"/api/{DOMAIN}/panel.js"
-PANEL_JS_LEGACY_PATH = f"/api/{DOMAIN}/panel-v27.js"
 PANEL_WEB_COMPONENT = "ip-ban-manager-panel"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
@@ -1217,18 +1216,6 @@ class IPBanManagerPanelView(HomeAssistantView):
         return _panel_js_response()
 
 
-class IPBanManagerLegacyPanelView(HomeAssistantView):
-    """Serve the 1.7.x panel script URL for upgraded installations."""
-
-    name = "api:ip_ban_manager:panel_js_legacy"
-    url = PANEL_JS_LEGACY_PATH
-    requires_auth = False
-
-    async def get(self, request: Request) -> Response:
-        """Return the same panel script under the legacy panel-v27.js URL."""
-        return _panel_js_response()
-
-
 def _panel_js_cache_token() -> int:
     """Return the current panel script cache token."""
     panel_path = Path(__file__).with_name("panel.js")
@@ -1270,7 +1257,6 @@ def _integration_view_urls() -> set[str]:
         for url in (
             SilenceAllowlistedLoginNotificationsView.url,
             IPBanManagerPanelView.url,
-            IPBanManagerLegacyPanelView.url,
             IPBanManagerStatusView.url,
             IPBanManagerManageView.url,
         )
@@ -1311,7 +1297,6 @@ def _register_http_views(hass: HomeAssistant) -> None:
     views = (
         SilenceAllowlistedLoginNotificationsView(),
         IPBanManagerPanelView(),
-        IPBanManagerLegacyPanelView(),
         IPBanManagerStatusView(),
         IPBanManagerManageView(),
     )
@@ -3516,7 +3501,13 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
 async def _async_register_panel(
     hass: HomeAssistant, *, sidebar_enabled: bool = True
 ) -> None:
-    """Register the bundled IP Ban Manager panel."""
+    """Register the bundled IP Ban Manager panel.
+
+    The module URL includes the installed integration version and panel file
+    mtime so browsers load the current script after HACS updates. Any stale
+    frontend panel registration is removed first so upgrades from older panel
+    URLs or web component names pick up the new registration.
+    """
     module_url = _panel_js_url()
     if (
         hass.data.get(KEY_PANEL_REGISTERED)
