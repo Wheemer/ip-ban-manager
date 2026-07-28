@@ -60,8 +60,11 @@ from custom_components.ip_ban_manager import (
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
     LEGACY_YAML_PRESENT_ISSUE_ID,
     NOTIFICATION_ICON_DATA_URL,
+    IPBanManagerLegacyPanelView,
     IPBanManagerManageView,
+    IPBanManagerPanelView,
     IPBanManagerStatusView,
+    INTEGRATION_VERSION,
     SilenceAllowlistedLoginNotificationsView,
     _add_manager_links_to_http_notifications,
     _allowlist_process_wrong_login,
@@ -1303,6 +1306,21 @@ async def test_panel_registration_requires_admin(
 
 
 @pytest.mark.asyncio
+async def test_panel_script_urls_serve_current_bundle(hass: HomeAssistant) -> None:
+    """Test current and legacy panel script URLs serve the bundled panel."""
+    await setup_ip_ban_manager(hass)
+    request = cast(Any, MockViewRequest(hass.http.app))
+
+    for view in (IPBanManagerPanelView(), IPBanManagerLegacyPanelView()):
+        response = await view.get(request)
+        assert response.status == 200
+        assert response.text is not None
+        assert f'const PANEL_VERSION = "{INTEGRATION_VERSION}"' in response.text
+        assert 'customElements.define("ip-ban-manager-panel"' in response.text
+        assert 'customElements.define("ip-ban-manager-panel-v27"' in response.text
+
+
+@pytest.mark.asyncio
 async def test_panel_options_clamp_login_threshold(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -2255,7 +2273,7 @@ async def test_status_view_returns_state_for_admin(hass: HomeAssistant) -> None:
     data = json.loads(response.text)
     assert response.status == 200
     assert data["ok"] is True
-    assert data["version"] == "1.8.0"
+    assert data["version"] == INTEGRATION_VERSION
     assert data["status"][ATTR_HEALTH]["ok"] is True
     assert data["status"][ATTR_HEALTH][ATTR_HEALTH_ISSUES] == []
     assert data["status"][ATTR_METRICS]["panel_api_calls"] == 1

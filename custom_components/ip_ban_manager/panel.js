@@ -492,7 +492,7 @@ class IPBanManagerPanel extends HTMLElement {
             </div>
           </div>
         </header>
-        <div id="content"></div>
+        <div id="content"><section><div class="body">Loading...</div></section></div>
       </div>
     `;
     this._renderSafely();
@@ -963,6 +963,8 @@ class IPBanManagerPanel extends HTMLElement {
   }
 }
 
-if (!customElements.get("ip-ban-manager-panel")) {
-  customElements.define("ip-ban-manager-panel", IPBanManagerPanel);
+for (const tag of ["ip-ban-manager-panel", "ip-ban-manager-panel-v27"]) {
+  if (!customElements.get(tag)) {
+    customElements.define(tag, IPBanManagerPanel);
+  }
 }

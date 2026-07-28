@@ -222,6 +222,7 @@ LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 NOTIFICATION_TITLE = " "
 NOTIFICATION_ICON_URL = f"/api/{DOMAIN}/icon.png"
 PANEL_JS_PATH = f"/api/{DOMAIN}/panel.js"
+PANEL_JS_LEGACY_PATH = f"/api/{DOMAIN}/panel-v27.js"
 PANEL_WEB_COMPONENT = "ip-ban-manager-panel"
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
 NOTIFICATION_ICON_DATA_URL = (
@@ -1195,16 +1196,13 @@ def _panel_js_source() -> str:
     )
 
 
-def _panel_js_cache_token() -> int:
-    """Return the current panel script cache token."""
-    panel_path = Path(__file__).with_name("panel.js")
-    return int(panel_path.stat().st_mtime)
-
-
-def _panel_js_url() -> str:
-    """Return the panel module URL with a cache token from the current file."""
-    cache_token = _panel_js_cache_token()
-    return f"{PANEL_JS_PATH}?v={quote(INTEGRATION_VERSION, safe='')}&t={cache_token}"
+def _panel_js_response() -> Response:
+    """Return panel.js with the manifest version baked into the header."""
+    return Response(
+        body=_panel_js_source(),
+        content_type="application/javascript",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 class IPBanManagerPanelView(HomeAssistantView):
@@ -1216,11 +1214,31 @@ class IPBanManagerPanelView(HomeAssistantView):
 
     async def get(self, request: Request) -> Response:
         """Return panel.js with the manifest version baked into the header."""
-        return Response(
-            body=_panel_js_source(),
-            content_type="application/javascript",
-            headers={"Cache-Control": "no-store"},
-        )
+        return _panel_js_response()
+
+
+class IPBanManagerLegacyPanelView(HomeAssistantView):
+    """Serve the 1.7.x panel script URL for upgraded installations."""
+
+    name = "api:ip_ban_manager:panel_js_legacy"
+    url = PANEL_JS_LEGACY_PATH
+    requires_auth = False
+
+    async def get(self, request: Request) -> Response:
+        """Return the same panel script under the legacy panel-v27.js URL."""
+        return _panel_js_response()
+
+
+def _panel_js_cache_token() -> int:
+    """Return the current panel script cache token."""
+    panel_path = Path(__file__).with_name("panel.js")
+    return int(panel_path.stat().st_mtime)
+
+
+def _panel_js_url() -> str:
+    """Return the panel module URL with a cache token from the current file."""
+    cache_token = _panel_js_cache_token()
+    return f"{PANEL_JS_PATH}?v={quote(INTEGRATION_VERSION, safe='')}&t={cache_token}"
 
 
 class IPBanManagerStatusView(HomeAssistantView):
@@ -1252,6 +1270,7 @@ def _integration_view_urls() -> set[str]:
         for url in (
             SilenceAllowlistedLoginNotificationsView.url,
             IPBanManagerPanelView.url,
+            IPBanManagerLegacyPanelView.url,
             IPBanManagerStatusView.url,
             IPBanManagerManageView.url,
         )
@@ -1292,6 +1311,7 @@ def _register_http_views(hass: HomeAssistant) -> None:
     views = (
         SilenceAllowlistedLoginNotificationsView(),
         IPBanManagerPanelView(),
+        IPBanManagerLegacyPanelView(),
         IPBanManagerStatusView(),
         IPBanManagerManageView(),
     )
@@ -3507,6 +3527,10 @@ async def _async_register_panel(
 
     if hass.data.get(KEY_PANEL_REGISTERED):
         _async_remove_panel(hass)
+
+    from homeassistant.components import frontend
+
+    frontend.async_remove_panel(hass, DOMAIN, warn_if_unknown=False)
 
     from homeassistant.components import panel_custom
 

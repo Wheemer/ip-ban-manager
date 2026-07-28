@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.8.1
+
+IP Ban Manager 1.8.1 fixes a blank live panel after upgrading from 1.7.x, when Home Assistant still referenced the old `panel-v27.js` script or `ip-ban-manager-panel-v27` web component.
+
+### Fixed
+
+- Restores the legacy `/api/ip_ban_manager/panel-v27.js` URL as an alias to the current bundled panel script.
+- Registers both `ip-ban-manager-panel` and `ip-ban-manager-panel-v27` custom elements so upgraded installations render the panel again.
+- Re-registers the sidebar panel on setup so the frontend picks up the current module URL after HACS updates.
+- Shows **Loading…** in the panel shell immediately instead of a blank content area before the first status request completes.
+
 ## v1.8.0
 
 IP Ban Manager 1.8.0 adds automation events, service parity for blocked networks and GeoIP updates, logbook entries for successful state changes, a version label beside the live panel title, full integration translations in 26 languages, entry metadata for backup/export, IPv6 wildcard shorthand, and fixes notification **Open settings** links to open the live panel.
