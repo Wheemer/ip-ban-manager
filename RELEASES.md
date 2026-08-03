@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.2](CHANGELOG.md#v182) | Hotfix: removes Home Assistant 2026.8 startup blocking-call warnings by loading bundled panel translations and panel file metadata through executor jobs. |
 | [v1.8.1](CHANGELOG.md#v181) | Hotfix: fixes blank panel after 1.8.0 upgrade by clearing stale frontend panel registrations and re-registering the versioned `panel.js?v=…` module URL. |
 | [v1.8.0](CHANGELOG.md#v180) | Automation events, blocked-network and GeoIP services, logbook entries, panel version label, IPv6 wildcard shorthand, 26-language i18n, backup/export metadata, blocked-network and ban row labels in the panel, and notification **Open settings** links to the live panel. |
 | [v1.7.1](CHANGELOG.md#v171) | Hardening patch: config-entry unload/reload clears and rebinds panel HTTP handlers and leftover runtime state; Core restart still required for Python updates. |

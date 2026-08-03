@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 _PANEL_TRANSLATIONS_DIR = Path(__file__).parent / "panel_translations"
 
@@ -136,6 +139,13 @@ def load_health_issue_strings(language: str | None) -> dict[str, str]:
     return {**english, **localized}
 
 
+async def async_load_health_issue_strings(
+    hass: HomeAssistant, language: str | None
+) -> dict[str, str]:
+    """Return health issue templates without blocking the event loop."""
+    return await hass.async_add_executor_job(load_health_issue_strings, language)
+
+
 def format_health_issue_message(
     issue_key: str,
     placeholders: dict[str, str] | None,
@@ -159,3 +169,10 @@ def load_panel_translations(language: str | None) -> dict[str, str]:
         return english
     localized = _load_panel_language(normalized)
     return {**english, **localized}
+
+
+async def async_load_panel_translations(
+    hass: HomeAssistant, language: str | None
+) -> dict[str, str]:
+    """Return panel strings without blocking the event loop."""
+    return await hass.async_add_executor_job(load_panel_translations, language)

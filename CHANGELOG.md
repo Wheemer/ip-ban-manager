@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.2
+
+IP Ban Manager 1.8.2 removes startup event-loop blocking warnings reported on Home Assistant Core 2026.8 beta by moving bundled panel translation and nearby panel file metadata loading into Home Assistant executor jobs.
+
+### Fixed
+
+- Loads bundled live-panel translation JSON through `hass.async_add_executor_job()` instead of reading files directly in async request and Repair-update paths.
+- Serves `panel.js` and builds the versioned panel URL without synchronous file reads or `stat()` calls in the event loop.
+- Moves panel backup and GeoIP file metadata checks used by the live status payload off the event loop.
+
 ## v1.8.1
 
 IP Ban Manager 1.8.1 fixes a blank live panel after upgrading from 1.7.x to 1.8.0, when Home Assistant still held the old panel registration instead of the versioned `panel.js?v=…&t=…` module URL introduced in 1.8.0.

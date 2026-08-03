@@ -589,6 +589,7 @@ async def test_legacy_yaml_still_present_after_import_creates_repair(
     """Test old ban_allowlist YAML creates a cleanup repair after migration."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="IP Ban Manager",
@@ -2300,7 +2301,7 @@ async def test_status_view_reports_health_issue_for_panel_registration(
     await setup_ip_ban_manager(hass)
     hass.data.pop(KEY_PANEL_REGISTERED)
 
-    _async_update_health_issue(hass)
+    await _async_update_health_issue(hass)
     status = current_status(hass)
     health = cast(dict[str, Any], status[ATTR_HEALTH])
 

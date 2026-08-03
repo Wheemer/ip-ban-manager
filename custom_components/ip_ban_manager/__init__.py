@@ -159,9 +159,9 @@ from .entry_meta import (
     sync_network_list_meta,
 )
 from .i18n import (
+    async_load_health_issue_strings,
+    async_load_panel_translations,
     format_health_issue_message,
-    load_health_issue_strings,
-    load_panel_translations,
     normalize_language,
 )
 from .ip_utils import parse_allowlist_network
@@ -1029,7 +1029,7 @@ async def _async_handle_status_get(
         )
 
     language = request.query.get("language")
-    return view.json(_panel_payload(hass, entry, language=language))
+    return view.json(await _async_panel_payload(hass, entry, language=language))
 
 
 async def _async_handle_manage_post(
@@ -1107,7 +1107,7 @@ async def _async_handle_manage_post(
         _metric_increment(hass, "panel_api_errors")
         return view.json({"ok": False, "error": str(err)}, status_code=400)
 
-    _async_update_health_issue(hass)
+    await _async_update_health_issue(hass)
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     if entry is None:
         _metric_increment(hass, "panel_api_errors")
@@ -1116,7 +1116,7 @@ async def _async_handle_manage_post(
             status_code=404,
         )
     language = data.get("language") or request.query.get("language")
-    payload = _panel_payload(hass, entry, language=language)
+    payload = await _async_panel_payload(hass, entry, language=language)
     if download is not None:
         payload["download"] = download
     return view.json(payload)
@@ -1138,16 +1138,19 @@ class SilenceAllowlistedLoginNotificationsView(HomeAssistantView):
         return await _async_dispatch_http_view(self, request, "silence_post")
 
 
-def _panel_payload(
+async def _async_panel_payload(
     hass: HomeAssistant, entry: ConfigEntry, *, language: str | None = None
 ) -> dict[str, object]:
     """Return the complete JSON payload used by the bundled panel."""
     resolved_language = normalize_language(language)
+    translations = await async_load_panel_translations(hass, resolved_language)
+    backup_status = await hass.async_add_executor_job(_backup_status, hass)
+    geoip_status = await hass.async_add_executor_job(_geoip_status, hass, entry)
     return {
         "ok": True,
         "version": INTEGRATION_VERSION,
         "language": resolved_language,
-        "translations": load_panel_translations(resolved_language),
+        "translations": translations,
         "status": current_status(hass),
         "settings": {
             CONF_IP_ADDRESSES: _entry_ip_addresses(entry),
@@ -1172,8 +1175,8 @@ def _panel_payload(
                 _entry_silenced_allowlisted_login_ip_strings(entry)
             ),
         },
-        "geoip": _geoip_status(hass, entry),
-        ATTR_BACKUP: _backup_status(hass),
+        "geoip": geoip_status,
+        ATTR_BACKUP: backup_status,
     }
 
 
@@ -1187,18 +1190,18 @@ def _backup_status(hass: HomeAssistant) -> dict[str, object]:
     }
 
 
-def _panel_js_source() -> str:
-    """Return the bundled panel script with the installed version injected."""
+def _read_panel_js_source() -> str:
+    """Read the bundled panel script with the installed version injected."""
     panel_path = Path(__file__).with_name("panel.js")
     return panel_path.read_text(encoding="utf-8").replace(
         "__VERSION__", INTEGRATION_VERSION
     )
 
 
-def _panel_js_response() -> Response:
+async def _async_panel_js_response(hass: HomeAssistant) -> Response:
     """Return panel.js with the manifest version baked into the header."""
     return Response(
-        body=_panel_js_source(),
+        body=await hass.async_add_executor_job(_read_panel_js_source),
         content_type="application/javascript",
         headers={"Cache-Control": "no-store"},
     )
@@ -1213,7 +1216,8 @@ class IPBanManagerPanelView(HomeAssistantView):
 
     async def get(self, request: Request) -> Response:
         """Return panel.js with the manifest version baked into the header."""
-        return _panel_js_response()
+        hass = request.app[KEY_HASS]
+        return await _async_panel_js_response(hass)
 
 
 def _panel_js_cache_token() -> int:
@@ -1222,9 +1226,9 @@ def _panel_js_cache_token() -> int:
     return int(panel_path.stat().st_mtime)
 
 
-def _panel_js_url() -> str:
+async def _async_panel_js_url(hass: HomeAssistant) -> str:
     """Return the panel module URL with a cache token from the current file."""
-    cache_token = _panel_js_cache_token()
+    cache_token = await hass.async_add_executor_job(_panel_js_cache_token)
     return f"{PANEL_JS_PATH}?v={quote(INTEGRATION_VERSION, safe='')}&t={cache_token}"
 
 
@@ -1276,6 +1280,15 @@ def _registered_integration_view_urls(hass: HomeAssistant) -> set[str]:
         if canonical in owned_urls:
             registered_urls.add(canonical)
     return registered_urls
+
+
+def _http_route_registered(hass: HomeAssistant, url: str) -> bool:
+    """Return whether a URL path already has an HTTP route."""
+    for route in hass.http.app.router.routes():
+        resource = route.resource
+        if resource is not None and resource.canonical == url:
+            return True
+    return False
 
 
 def _install_http_view_handlers(hass: HomeAssistant) -> None:
@@ -1819,7 +1832,7 @@ def _health_status(hass: HomeAssistant) -> dict[str, object]:
     }
 
 
-def _async_update_health_issue(hass: HomeAssistant) -> None:
+async def _async_update_health_issue(hass: HomeAssistant) -> None:
     """Refresh the lightweight health status and matching Repair issue."""
     health = _health_status(hass)
     hass.data[KEY_HEALTH] = health
@@ -1830,7 +1843,9 @@ def _async_update_health_issue(hass: HomeAssistant) -> None:
         if cast(str, issue["key"]) not in TRANSIENT_HEALTH_ISSUE_KEYS
     ]
     if actionable:
-        issue_strings = load_health_issue_strings(hass.config.language)
+        issue_strings = await async_load_health_issue_strings(
+            hass, hass.config.language
+        )
         ir.async_create_issue(
             hass,
             DOMAIN,
@@ -2157,7 +2172,7 @@ def _async_schedule_geoip_reader_prepare(hass: HomeAssistant) -> None:
             pass
         except Exception:
             _LOGGER.warning("GeoIP reader preparation failed", exc_info=True)
-        _async_update_health_issue(hass)
+        hass.async_create_task(_async_update_health_issue(hass))
 
     task.add_done_callback(_geoip_prepare_done)
 
@@ -3215,7 +3230,7 @@ def _async_schedule_legacy_folder_cleanup(hass: HomeAssistant) -> None:
             pass
         except Exception:
             _LOGGER.warning("Legacy folder cleanup failed", exc_info=True)
-        _async_update_health_issue(hass)
+        hass.async_create_task(_async_update_health_issue(hass))
 
     task.add_done_callback(_legacy_folder_cleanup_done)
 
@@ -3474,28 +3489,35 @@ async def _async_register_static_assets(hass: HomeAssistant) -> None:
     """Register stable local URLs for notification assets."""
     if hass.http.app.get(KEY_STATIC_PATH_REGISTERED):
         return
+    if _http_route_registered(hass, NOTIFICATION_ICON_URL):
+        hass.http.app[KEY_STATIC_PATH_REGISTERED] = True
+        return
 
-    icon_path = str(Path(__file__).with_name("icon.png"))
-    if hasattr(hass.http, "async_register_static_paths"):
-        from homeassistant.components.http import StaticPathConfig
-
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    NOTIFICATION_ICON_URL,
-                    icon_path,
-                    cache_headers=True,
-                ),
-            ]
-        )
-    else:
-        register_static_path = getattr(hass.http, "register_static_path")
-        register_static_path(
-            NOTIFICATION_ICON_URL,
-            icon_path,
-            cache_headers=True,
-        )
     hass.http.app[KEY_STATIC_PATH_REGISTERED] = True
+    icon_path = str(Path(__file__).with_name("icon.png"))
+    try:
+        if hasattr(hass.http, "async_register_static_paths"):
+            from homeassistant.components.http import StaticPathConfig
+
+            await hass.http.async_register_static_paths(
+                [
+                    StaticPathConfig(
+                        NOTIFICATION_ICON_URL,
+                        icon_path,
+                        cache_headers=True,
+                    ),
+                ]
+            )
+        else:
+            register_static_path = getattr(hass.http, "register_static_path")
+            register_static_path(
+                NOTIFICATION_ICON_URL,
+                icon_path,
+                cache_headers=True,
+            )
+    except Exception:
+        hass.http.app.pop(KEY_STATIC_PATH_REGISTERED, None)
+        raise
 
 
 async def _async_register_panel(
@@ -3508,7 +3530,7 @@ async def _async_register_panel(
     frontend panel registration is removed first so upgrades from older panel
     URLs or web component names pick up the new registration.
     """
-    module_url = _panel_js_url()
+    module_url = await _async_panel_js_url(hass)
     if (
         hass.data.get(KEY_PANEL_REGISTERED)
         and hass.data.get(KEY_PANEL_SIDEBAR_ENABLED) == sidebar_enabled
@@ -3628,7 +3650,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _register_services(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    _async_update_health_issue(hass)
+    await _async_update_health_issue(hass)
 
     return True
 

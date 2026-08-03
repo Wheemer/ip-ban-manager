@@ -2,16 +2,47 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
+from typing import Any, Callable, cast
+
+from homeassistant.core import HomeAssistant
 
 from custom_components.ip_ban_manager.i18n import (
     SUPPORTED_LOCALES,
+    async_load_health_issue_strings,
+    async_load_panel_translations,
     format_health_issue_message,
     load_health_issue_strings,
     load_panel_translations,
     normalize_language,
     resolve_translation_language,
 )
+
+
+class FakeHass:
+    """Small executor-job recorder for async i18n wrapper tests."""
+
+    def __init__(self) -> None:
+        """Initialize the call recorder."""
+        self.executor_calls: list[tuple[Callable[..., object], tuple[object, ...]]] = []
+
+    async def async_add_executor_job(
+        self, target: Callable[..., object], *args: object
+    ) -> Any:
+        """Run an executor target while recording that the wrapper used it."""
+        self.executor_calls.append((target, args))
+        return target(*args)
+
+
+def run_async_test(coro: Any) -> Any:
+    """Run a coroutine without leaving pytest's event loop unset."""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+        asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 def test_normalize_language_uses_primary_subtag() -> None:
@@ -41,6 +72,18 @@ def test_load_panel_translations_falls_back_to_english() -> None:
     translations = load_panel_translations("zz")
     assert translations["title"] == "IP Ban Manager"
     assert translations["allowed_ips.title"] == "Allowed IPs"
+
+
+def test_async_load_panel_translations_uses_executor_job() -> None:
+    """Test panel translations are loaded outside the event loop."""
+    hass = FakeHass()
+
+    translations = run_async_test(
+        async_load_panel_translations(cast(HomeAssistant, hass), "de")
+    )
+
+    assert translations["remove"] == "Entfernen"
+    assert hass.executor_calls == [(load_panel_translations, ("de",))]
 
 
 def test_load_panel_translations_overlays_localized_strings() -> None:
@@ -83,3 +126,18 @@ def test_format_health_issue_message_uses_locale_and_placeholders() -> None:
         )
         == "/config ist nicht beschreibbar."
     )
+
+
+def test_async_load_health_issue_strings_uses_executor_job() -> None:
+    """Test health strings are loaded outside the event loop."""
+    hass = FakeHass()
+
+    issue_strings = run_async_test(
+        async_load_health_issue_strings(cast(HomeAssistant, hass), "de")
+    )
+
+    assert (
+        issue_strings["panel_not_registered"]
+        == "Das IP-Ban-Manager-Panel ist nicht registriert."
+    )
+    assert hass.executor_calls == [(load_health_issue_strings, ("de",))]
