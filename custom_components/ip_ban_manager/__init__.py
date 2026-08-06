@@ -115,6 +115,9 @@ from .metrics import metrics as _metrics
 from .network_policy import apply_ban_settings as _apply_ban_settings
 from .network_policy import apply_blocked_networks as _apply_blocked_networks
 from .network_policy import (
+    async_sync_detected_allowlist_defaults as _async_sync_detected_allowlist_defaults,
+)
+from .network_policy import (
     async_update_internal_bypass_networks as _async_update_internal_bypass_networks,
 )
 from .network_policy import update_allowlist_entry as _update_allowlist_entry
@@ -243,6 +246,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Ban manager %s", ban_manager)
     _install_load_bans_patch(hass, ban_manager)
     await _async_update_internal_bypass_networks(hass)
+    await _async_sync_detected_allowlist_defaults(hass)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
     if _entry_geoip_enabled(entry):

@@ -213,6 +213,150 @@ async def test_default_deny_does_not_block_home_assistant_self_address(
 
 
 @pytest.mark.asyncio
+async def test_setup_syncs_new_internal_defaults_when_safe_defaults_active(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test existing safe-default entries gain newly detected internal paths."""
+
+    async def mock_safe_defaults(hass: HomeAssistant) -> list[str]:
+        return ["192.168.1.0/24", "172.17.0.1/32"]
+
+    async def mock_internal_defaults(hass: HomeAssistant) -> list[str]:
+        return ["172.17.0.1/32"]
+
+    monkeypatch.setattr(
+        ban_network_policy,
+        "async_home_assistant_allowlist_safe_defaults",
+        mock_safe_defaults,
+    )
+    monkeypatch.setattr(
+        ban_network_policy,
+        "async_home_assistant_internal_allowlist_networks",
+        mock_internal_defaults,
+    )
+
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["127.0.0.1", "192.168.1.0/24"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options[CONF_IP_ADDRESSES] == [
+        "127.0.0.1",
+        "192.168.1.0/24",
+        "172.17.0.1/32",
+    ]
+    assert [str(network) for network in hass.http.app[KEY_ALLOWLIST]] == [
+        "127.0.0.1/32",
+        "192.168.1.0/24",
+        "172.17.0.1/32",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_setup_skips_internal_default_sync_without_localhost(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test custom entries without localhost are not widened on setup."""
+
+    async def mock_safe_defaults(hass: HomeAssistant) -> list[str]:
+        return ["192.168.1.0/24", "172.17.0.1/32"]
+
+    async def mock_internal_defaults(hass: HomeAssistant) -> list[str]:
+        return ["172.17.0.1/32"]
+
+    monkeypatch.setattr(
+        ban_network_policy,
+        "async_home_assistant_allowlist_safe_defaults",
+        mock_safe_defaults,
+    )
+    monkeypatch.setattr(
+        ban_network_policy,
+        "async_home_assistant_internal_allowlist_networks",
+        mock_internal_defaults,
+    )
+
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.0/24"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options.get(CONF_IP_ADDRESSES) is None
+    assert entry.data[CONF_IP_ADDRESSES] == ["192.168.1.0/24"]
+
+
+@pytest.mark.asyncio
+async def test_setup_does_not_duplicate_equivalent_internal_defaults(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test existing equivalent internal entries are not duplicated."""
+
+    async def mock_safe_defaults(hass: HomeAssistant) -> list[str]:
+        return ["192.168.1.0/24", "172.17.0.1/32"]
+
+    async def mock_internal_defaults(hass: HomeAssistant) -> list[str]:
+        return ["172.17.0.1/32"]
+
+    monkeypatch.setattr(
+        ban_network_policy,
+        "async_home_assistant_allowlist_safe_defaults",
+        mock_safe_defaults,
+    )
+    monkeypatch.setattr(
+        ban_network_policy,
+        "async_home_assistant_internal_allowlist_networks",
+        mock_internal_defaults,
+    )
+
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: [
+                "127.0.0.1",
+                "192.168.1.0/24",
+                "172.17.0.1",
+            ]
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
+    assert stored_entry is not None
+    assert stored_entry.options.get(CONF_IP_ADDRESSES) is None
+    assert entry.data[CONF_IP_ADDRESSES] == [
+        "127.0.0.1",
+        "192.168.1.0/24",
+        "172.17.0.1",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_default_deny_does_not_block_ipv6_link_local_access(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:

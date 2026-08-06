@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.3.2](CHANGELOG.md#v1832) | Hotfix: setup and Configure can add detected local plus container/Supervisor paths directly to Allowed IPs, and existing safe-default entries gain newly detected internal paths on setup/reload. |
 | [v1.8.3.1](CHANGELOG.md#v1831) | Hotfix: safer bundled translation loading, TLS 1.2+ for the GeoIP fallback download, pinned GitHub Actions, tighter workflow permissions, and repository security automation. |
 | [v1.8.3](CHANGELOG.md#v183) | Internal cleanup: splits the large integration module into focused helpers for runtime keys, entry options, file handling, GeoIP, reverse DNS, metrics, YAML disable handling, internal networks, and panel assets. |
 | [v1.8.2](CHANGELOG.md#v182) | Hotfix: removes Home Assistant 2026.8 startup blocking-call warnings by loading bundled panel translations and panel file metadata through executor jobs. |

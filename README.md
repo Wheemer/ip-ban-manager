@@ -24,6 +24,8 @@ Originally created by [palfrey](https://github.com/palfrey). This fork builds on
 
 IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted IPs and networks, live ban review and removal, managed network blocks, default-deny controls, GeoIP labels, backup/restore, services, diagnostics, and branded notifications.
 
+Compatibility target: Home Assistant `2024.7.4` and newer, including older Supervised, Container, Core, and OS installs that are still running in the wild.
+
 ## Release Notes
 
 See the [release summary](RELEASES.md) for a quick version-by-version table, or [CHANGELOG.md](CHANGELOG.md) for every release, upgrade note, and full change detail.
@@ -110,6 +112,11 @@ Allowed IPs are trusted addresses and networks that should not be blocked. Suppo
 
 Allowed entries win over managed blocked networks and default-deny mode.
 
+The setup and Configure safe-default option can add Home Assistant's detected
+local access paths plus relevant internal container/Supervisor addresses. Those
+entries are shown in **Allowed IPs** so they are visible, editable, and backed up
+with the rest of the integration settings.
+
 ### Blocked IPs
 
 Blocked IPs are exact Home Assistant bans. They stay in Home Assistant's native live ban manager and `ip_bans.yaml`.
@@ -124,7 +131,7 @@ Blocked networks are managed by IP Ban Manager. They support IPv4/IPv6 CIDR netw
 
 IP Ban Manager validates changes before writing them. It rejects malformed entries, all-Internet allowlists or network blocks, exact bans that are also allowed, risky default-deny changes, unsafe local lockout cases, and unconfirmed multi-ban clears.
 
-Home Assistant's own exact interface addresses, IPv6 link-local access paths, Supervisor traffic, and add-on internals are protected internally without exposing those implementation details in Allowed IPs.
+Home Assistant's own exact interface addresses and IPv6 link-local access paths are protected internally. Detected container/Supervisor access paths can also be added to **Allowed IPs** by the safe-default option so users can see and manage them directly.
 
 ## Backup And Restore
 

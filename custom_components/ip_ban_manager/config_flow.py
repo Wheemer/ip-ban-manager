@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime
-from ipaddress import IPv4Network, IPv6Network, ip_address, ip_interface
+from ipaddress import IPv4Network, IPv6Network, ip_address
 from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.components.http.ban import ATTR_BANNED_AT, KEY_LOGIN_THRESHOLD
-from homeassistant.components.network import async_get_adapters
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
@@ -52,6 +51,7 @@ from .const import (
     SOURCE_YAML,
 )
 from .entry_meta import build_imported_meta, build_setup_allowlist_meta
+from .internal_networks import async_home_assistant_allowlist_safe_defaults
 from .ip_utils import normalize_allowlist_network, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
@@ -567,38 +567,7 @@ def _apply_quick_allowlist_options(
 
 async def _async_detect_home_assistant_subnets(hass: HomeAssistant) -> list[str]:
     """Detect useful local networks from Home Assistant's enabled adapters."""
-    adapters = await async_get_adapters(hass)
-    enabled_adapters = [adapter for adapter in adapters if adapter["enabled"]]
-    default_adapters = [
-        adapter
-        for adapter in enabled_adapters
-        if adapter["default"] and (adapter["ipv4"] or adapter["ipv6"])
-    ]
-    candidate_adapters = default_adapters or enabled_adapters
-    networks: list[str] = []
-    seen: set[str] = set()
-
-    for adapter in candidate_adapters:
-        for address in (*adapter["ipv4"], *adapter["ipv6"]):
-            interface = ip_interface(
-                f"{address['address']}/{address['network_prefix']}"
-            )
-            network = interface.network
-            if (
-                network.is_loopback
-                or (network.is_link_local and not isinstance(network, IPv6Network))
-                or network.is_multicast
-                or network.is_unspecified
-                or _is_supervisor_internal_network(network)
-            ):
-                continue
-
-            normalized = str(network)
-            if normalized not in seen:
-                seen.add(normalized)
-                networks.append(normalized)
-
-    return networks
+    return await async_home_assistant_allowlist_safe_defaults(hass)
 
 
 def _current_addresses(config_entry: config_entries.ConfigEntry) -> list[str]:

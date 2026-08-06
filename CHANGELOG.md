@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.8.3.2
+
+IP Ban Manager 1.8.3.2 makes safe-default allowlists fully visible: detected local access paths and relevant Home Assistant container/Supervisor paths are written into Allowed IPs where users can review, edit, and back them up.
+
+### Changed
+
+- First-run setup with **Detected local/internal network(s)** selected now stores localhost, detected local networks, and detected internal container/Supervisor entries in the allowlist immediately.
+- Configure uses the same shared detection path, so adding safe defaults later adds the same visible entries.
+- Existing entries that clearly came from safe defaults now gain newly detected internal entries on setup/reload without duplicating equivalent existing entries.
+
+### Fixed
+
+- Home Assistant Container installs can add the default Docker bridge gateway (`172.17.0.1/32`) as a visible allowlist entry when that bridge is detected.
+- Home Assistant OS/Supervised installs can add the Supervisor Docker parent network (`172.30.0.0/16`) as a visible allowlist entry when Supervisor/internal adapters are detected.
+
 ## v1.8.3.1
 
 IP Ban Manager 1.8.3.1 is a stable hotfix release for repository security hardening and two small runtime safety fixes.

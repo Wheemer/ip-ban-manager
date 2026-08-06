@@ -146,7 +146,7 @@
     "quick_allowlist": {
       "options": {
         "localhost": "Localhost 127.0.0.1",
-        "local_network": "Detected local network(s)"
+        "local_network": "Detected local/internal network(s)"
       }
     }
   },

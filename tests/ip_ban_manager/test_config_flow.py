@@ -19,6 +19,7 @@ from voluptuous.schema_builder import Optional as VolOptional
 from custom_components.ip_ban_manager import KEY_ALLOWLIST
 from custom_components.ip_ban_manager import config_flow as ban_config_flow
 from custom_components.ip_ban_manager import geoip as ban_geoip
+from custom_components.ip_ban_manager import internal_networks as ban_internal_networks
 from custom_components.ip_ban_manager import panel as ban_panel
 from custom_components.ip_ban_manager.config_flow import (
     DEFAULT_ALLOWED_IPS,
@@ -44,6 +45,7 @@ from custom_components.ip_ban_manager.const import (
     DOMAIN,
     LEGACY_DOMAIN,
     SOURCE_CONFIGURE,
+    SOURCE_DETECTED,
 )
 
 
@@ -167,6 +169,30 @@ async def supervised_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
     ]
 
 
+async def container_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
+    """Return local and Home Assistant Container-style Docker adapters."""
+    return [
+        {
+            "name": "eth0",
+            "index": 2,
+            "enabled": True,
+            "auto": True,
+            "default": True,
+            "ipv4": [{"address": "192.168.1.40", "network_prefix": 24}],
+            "ipv6": [],
+        },
+        {
+            "name": "docker0",
+            "index": 3,
+            "enabled": True,
+            "auto": True,
+            "default": False,
+            "ipv4": [{"address": "172.17.0.2", "network_prefix": 16}],
+            "ipv6": [],
+        },
+    ]
+
+
 async def load_ip_ban_manager(hass: HomeAssistant) -> None:
     """Load the custom integration."""
     hass.data[DATA_CUSTOM_COMPONENTS] = None
@@ -199,7 +225,7 @@ async def test_detect_home_assistant_subnets(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test subnet detection keeps only useful enabled local networks."""
-    monkeypatch.setattr(ban_config_flow, "async_get_adapters", mixed_adapters)
+    monkeypatch.setattr(ban_internal_networks, "async_get_adapters", mixed_adapters)
 
     assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
         "192.168.1.0/24",
@@ -209,14 +235,30 @@ async def test_detect_home_assistant_subnets(
 
 
 @pytest.mark.asyncio
-async def test_detect_home_assistant_subnets_ignores_supervisor_internal_network(
+async def test_detect_home_assistant_subnets_includes_supervisor_safe_default(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test Supervisor internal networks are not treated as user access paths."""
-    monkeypatch.setattr(ban_config_flow, "async_get_adapters", supervised_adapters)
+    """Test Supervisor internal networks are surfaced as visible safe defaults."""
+    monkeypatch.setattr(
+        ban_internal_networks, "async_get_adapters", supervised_adapters
+    )
 
     assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
         "192.168.1.0/24",
+        "172.30.0.0/16",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_detect_home_assistant_subnets_adds_container_bridge_gateway(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test Docker bridge gateway is surfaced as a visible safe default."""
+    monkeypatch.setattr(ban_internal_networks, "async_get_adapters", container_adapters)
+
+    assert await ban_config_flow._async_detect_home_assistant_subnets(hass) == [
+        "192.168.1.0/24",
+        "172.17.0.1/32",
     ]
 
 
@@ -359,6 +401,89 @@ async def test_user_flow_can_add_detected_ipv4_and_ipv6_subnets(
     assert result["type"] == "create_entry"
     assert result["data"] == expected_setup_data(
         [*DEFAULT_ALLOWED_IPS, "192.168.1.0/24", "fd12:3456:789a::/64"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_user_flow_adds_supervisor_internal_safe_default(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test first-run setup stores Supervisor internal defaults visibly."""
+    await load_ip_ban_manager(hass)
+    monkeypatch.setattr(
+        ban_internal_networks, "async_get_adapters", supervised_adapters
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+    )
+
+    assert result["type"] == "form"
+    assert result["description_placeholders"]["home_assistant_subnets"] == (
+        "192.168.1.0/24\n172.30.0.0/16\n"
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.CONF_QUICK_ALLOWLIST: [
+                ban_config_flow.QUICK_ALLOW_LOCALHOST,
+                ban_config_flow.QUICK_ALLOW_LOCAL_NETWORK,
+            ],
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_IP_ADDRESSES] == [
+        "127.0.0.1",
+        "192.168.1.0/24",
+        "172.30.0.0/16",
+    ]
+    assert (
+        result["data"][CONF_ALLOWLIST_ENTRY_META]["172.30.0.0/16"]["source"]
+        == SOURCE_DETECTED
+    )
+
+
+@pytest.mark.asyncio
+async def test_user_flow_adds_container_bridge_gateway_safe_default(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test first-run setup stores Home Assistant Container bridge defaults."""
+    await load_ip_ban_manager(hass)
+    monkeypatch.delenv("SUPERVISOR", raising=False)
+    monkeypatch.setattr(ban_internal_networks, "async_get_adapters", container_adapters)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": "user"},
+    )
+
+    assert result["type"] == "form"
+    assert result["description_placeholders"]["home_assistant_subnets"] == (
+        "192.168.1.0/24\n172.17.0.1/32\n"
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            ban_config_flow.CONF_QUICK_ALLOWLIST: [
+                ban_config_flow.QUICK_ALLOW_LOCALHOST,
+                ban_config_flow.QUICK_ALLOW_LOCAL_NETWORK,
+            ],
+        },
+    )
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_IP_ADDRESSES] == [
+        "127.0.0.1",
+        "192.168.1.0/24",
+        "172.17.0.1/32",
+    ]
+    assert (
+        result["data"][CONF_ALLOWLIST_ENTRY_META]["172.17.0.1/32"]["source"]
+        == SOURCE_DETECTED
     )
 
 

@@ -18,10 +18,7 @@ from .audit import (
     record_blocked_network_added,
     record_blocked_network_removed,
 )
-from .ban_lookup import (
-    NetworkAwareBanLookup,
-    _supervisor_internal_networks,
-)
+from .ban_lookup import NetworkAwareBanLookup, _supervisor_internal_networks
 from .ban_ops import ban_manager
 from .const import (
     ATTR_NETWORK,
@@ -30,6 +27,7 @@ from .const import (
     CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
     DOMAIN,
+    SOURCE_DETECTED,
     SOURCE_PANEL,
     SOURCE_SERVICE,
 )
@@ -49,7 +47,11 @@ from .entry_meta import (
     entry_blocked_network_meta,
     sync_network_list_meta,
 )
-from .internal_networks import async_home_assistant_self_networks
+from .internal_networks import (
+    async_home_assistant_allowlist_safe_defaults,
+    async_home_assistant_internal_allowlist_networks,
+    async_home_assistant_self_networks,
+)
 from .ip_utils import parse_allowlist_network
 from .storage_keys import (
     KEY_ALLOWLIST,
@@ -72,6 +74,42 @@ async def async_update_internal_bypass_networks(hass: HomeAssistant) -> None:
 
     if isinstance(lookup, NetworkAwareBanLookup):
         lookup.internal_bypass_networks = networks
+
+
+async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
+    """Add newly detected internal defaults for entries using safe local defaults."""
+    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    current = entry_ip_addresses(entry)
+    current_networks = {parse_allowlist_network(network) for network in current}
+    if parse_allowlist_network("127.0.0.1") not in current_networks:
+        return
+
+    safe_defaults = await async_home_assistant_allowlist_safe_defaults(hass)
+    internal_defaults = await async_home_assistant_internal_allowlist_networks(hass)
+    internal_networks = {
+        parse_allowlist_network(network) for network in internal_defaults
+    }
+    local_defaults = [
+        network
+        for network in safe_defaults
+        if parse_allowlist_network(network) not in internal_networks
+    ]
+    if not any(
+        parse_allowlist_network(network) in current_networks
+        for network in local_defaults
+    ):
+        return
+
+    updated = [
+        *current,
+        *(
+            network
+            for network in internal_defaults
+            if parse_allowlist_network(network) not in current_networks
+        ),
+    ]
+    if updated != current:
+        update_allowlist_entry(hass, updated, meta_source=SOURCE_DETECTED)
 
 
 def dismiss_http_notifications(hass: HomeAssistant) -> None:
