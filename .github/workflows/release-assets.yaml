@@ -14,7 +14,7 @@ jobs:
     name: Upload HACS zip
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         ref: ${{ github.event.release.tag_name }}
     - name: Build HACS release zip
