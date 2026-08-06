@@ -7,14 +7,14 @@ on:
     - published
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   upload-hacs-zip:
     name: Upload HACS zip
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
         ref: ${{ github.event.release.tag_name }}
     - name: Build HACS release zip
@@ -26,6 +26,7 @@ jobs:
         python scripts/validate_hacs_zip.py ip-ban-manager.zip
     - name: Upload release asset
       env:
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       run: |
+        test -n "$GH_TOKEN"
         gh release upload "${{ github.event.release.tag_name }}" ip-ban-manager.zip --clobber

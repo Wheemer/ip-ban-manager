@@ -128,6 +128,7 @@ def open_geoip_download_url(url: str) -> Iterator[HTTPResponse]:
     if parsed.query:
         target = f"{target}?{parsed.query}"
     context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     for address in geoip_resolve_download_host_via_https():
         fallback_response: HTTPResponse | None = None
         tls_socket = None

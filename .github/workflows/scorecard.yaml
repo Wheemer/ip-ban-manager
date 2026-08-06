@@ -24,14 +24,14 @@ jobs:
       id-token: write
       security-events: write
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
     - name: Run Scorecard
-      uses: ossf/scorecard-action@v2.4.4
+      uses: ossf/scorecard-action@55891bbd73f2425e97637d96e306fc9d491d0b21 # v2.4.4
       with:
         results_file: results.sarif
         results_format: sarif
         publish_results: true
     - name: Upload Scorecard results
-      uses: github/codeql-action/upload-sarif@v4.37.6
+      uses: github/codeql-action/upload-sarif@9e3211c9a3b9311dfe05da2ed48eea3386f042dd # v4.37.6
       with:
         sarif_file: results.sarif

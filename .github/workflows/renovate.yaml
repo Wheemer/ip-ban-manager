@@ -18,14 +18,11 @@ jobs:
     name: Renovate
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
       security-events: read
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
     - name: Run Renovate
-      uses: renovatebot/github-action@v46.2.1
+      uses: renovatebot/github-action@316d7cd859606d6039a2182b7d69199e9b036835 # v46.2.1
       env:
         LOG_LEVEL: info
         RENOVATE_CONFIG_FILE: .github/renovate.json5
