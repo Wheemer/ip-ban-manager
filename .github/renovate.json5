@@ -1,30 +1,40 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    ":ignoreModulesAndTests",
+    "config:recommended",
     "group:monorepos",
     "group:recommended",
     "replacements:all",
     "workarounds:all",
   ],
+  dependencyDashboard: true,
+  labels: ["dependencies"],
   packageRules: [
     {
-      // Don't really need to upgrade Python
+      // GitHub runners own the Python runtime; keep this intentional.
       matchDepNames: ["python"],
       enabled: false,
     },
     {
-      matchUpdateTypes: ["patch", "minor"],
-      enabled: false
+      groupName: "GitHub Actions",
+      matchManagers: ["github-actions"],
+      matchUpdateTypes: ["minor", "patch"],
+      automerge: true,
     },
     {
-      matchPackageNames: ["*"],
-      automerge: true
+      groupName: "Python test dependencies",
+      matchManagers: ["pip_requirements"],
+      matchFileNames: ["requirements.test.in"],
+      matchUpdateTypes: ["minor", "patch"],
+    },
+    {
+      matchUpdateTypes: ["major"],
+      dependencyDashboardApproval: true,
     },
   ],
-  "prConcurrentLimit": 2,
-  "vulnerabilityAlerts": {
-    "enabled": true
+  prConcurrentLimit: 2,
+  vulnerabilityAlerts: {
+    enabled: true,
   },
-  "osvVulnerabilityAlerts": true
+  osvVulnerabilityAlerts: true,
 }
