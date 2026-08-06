@@ -42,6 +42,11 @@ SUPPORTED_LOCALES: frozenset[str] = frozenset(
     }
 )
 
+_PANEL_TRANSLATION_FILES = {
+    language: _PANEL_TRANSLATIONS_DIR / f"{language}.json"
+    for language in {"en", *SUPPORTED_LOCALES}
+}
+
 
 def _flatten_strings(value: object, prefix: str = "") -> dict[str, str]:
     """Flatten nested translation mappings into dotted lookup keys."""
@@ -59,7 +64,9 @@ def _flatten_strings(value: object, prefix: str = "") -> dict[str, str]:
 
 def _load_panel_file(language: str) -> dict[str, Any]:
     """Load one bundled panel locale JSON file when present."""
-    path = _PANEL_TRANSLATIONS_DIR / f"{language}.json"
+    path = _PANEL_TRANSLATION_FILES.get(language)
+    if path is None:
+        return {}
     if not path.is_file():
         return {}
     try:
@@ -105,10 +112,8 @@ def resolve_translation_language(language: str | None) -> str:
         add(tag.lower())
 
     for code in candidates:
-        if (
-            code in SUPPORTED_LOCALES
-            and (_PANEL_TRANSLATIONS_DIR / f"{code}.json").is_file()
-        ):
+        path = _PANEL_TRANSLATION_FILES.get(code)
+        if code in SUPPORTED_LOCALES and path is not None and path.is_file():
             return code
     return "en"
 
