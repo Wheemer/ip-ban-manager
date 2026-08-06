@@ -33,8 +33,4 @@
     },
   ],
   prConcurrentLimit: 2,
-  vulnerabilityAlerts: {
-    enabled: true,
-  },
-  osvVulnerabilityAlerts: true,
 }
