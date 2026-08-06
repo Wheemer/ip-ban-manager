@@ -211,14 +211,11 @@ async def async_update_health_issue(hass: HomeAssistant) -> None:
             severity=ir.IssueSeverity.WARNING,
             translation_key=HEALTH_CHECK_FAILED_ISSUE_ID,
             translation_placeholders={
-                "issues": "\n".join(
-                    f"- {format_health_issue_message(
+                "issues": "\n".join(f"- {format_health_issue_message(
                         cast(str, issue['key']),
                         cast(dict[str, str], issue.get('placeholders')),
                         issue_strings,
-                    )}"
-                    for issue in actionable
-                )
+                    )}" for issue in actionable)
             },
         )
         return

@@ -10,7 +10,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
-from .ban_ops import dismiss_ban_notification_for_ips
 from .const import (
     ATTR_BACKUP,
     ATTR_LAST_EXPORT,

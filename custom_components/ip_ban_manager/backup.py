@@ -26,7 +26,6 @@ from .ban_ops import (
     ip_ban_file_payload,
 )
 from .const import (
-    ATTR_BACKUP,
     ATTR_BANNED_IPS,
     CONF_ALLOWLIST_ENTRY_META,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
@@ -83,9 +82,7 @@ from .storage_keys import KEY_ALLOWLIST, KEY_CONFIG_ENTRY
 CONFIG_EXPORT_FORMAT_VERSION = 1
 
 
-def config_export_payload(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> dict[str, object]:
+def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
     """Return a stable manual export payload for IP Ban Manager."""
     manager = hass.http.app.get(KEY_BAN_MANAGER)
     return {

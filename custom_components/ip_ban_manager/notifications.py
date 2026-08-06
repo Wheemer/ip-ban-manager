@@ -34,9 +34,7 @@ ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
 INTEGRATION_CONFIG_URL = f"/config/integrations/integration/{DOMAIN}"
 NOTIFICATION_LINK_LABEL = "Open settings"
 ALLOWLISTED_LOGIN_SILENCE_LABEL = "Don't show for this address again"
-ALLOWLISTED_LOGIN_SILENCE_URL = (
-    f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
-)
+ALLOWLISTED_LOGIN_SILENCE_URL = f"/api/{DOMAIN}/silence_allowlisted_login_notifications"
 PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN = "silence_allowlisted_login"
 PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN = "unsilence_allowlisted_login"
 ATTR_NOTIFICATION_ID = "notification_id"

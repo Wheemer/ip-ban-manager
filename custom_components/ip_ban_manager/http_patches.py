@@ -55,7 +55,9 @@ def _request_remote_ip(request: Request) -> IPAddress | None:
     try:
         return _normalize_remote_addr(ip_address(request.remote))
     except ValueError:
-        _LOGGER.debug("Ignoring invalid remote address from request: %s", request.remote)
+        _LOGGER.debug(
+            "Ignoring invalid remote address from request: %s", request.remote
+        )
         return None
 
 
