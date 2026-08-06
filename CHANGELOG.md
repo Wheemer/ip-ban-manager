@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.8.3
+
+IP Ban Manager 1.8.3 is an internal cleanup release that keeps the 1.8.x behavior intact while making the integration easier to maintain and safer to review.
+
+### Changed
+
+- Split shared runtime keys, config-entry helpers, file handling, GeoIP, reverse DNS, metrics, YAML disable handling, internal network detection, panel asset serving, HTTP patches, notifications, panel/API views, ban operations, network policy, backup/import, legacy cleanup, health checks, services, and status payloads out of the main integration module.
+- Kept the existing panel registration, notification, ban-management, backup/import, GeoIP, and service behavior wired through the same public integration surface.
+- Split the large setup regression test file into focused module-level test files and updated monkeypatch targets to patch the extracted modules directly.
+
+### Validation
+
+- Full Linux Home Assistant custom-component test suite passes.
+- Formatting, lint, and type checks pass on the refactored files.
+
 ## v1.8.2
 
 IP Ban Manager 1.8.2 removes startup event-loop blocking warnings reported on Home Assistant Core 2026.8 beta by moving bundled panel translation and nearby panel file metadata loading into Home Assistant executor jobs.

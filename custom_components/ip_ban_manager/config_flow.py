@@ -759,7 +759,7 @@ class OptionsFlow(config_entries.OptionsFlow):
 
     def _management_schema(self) -> vol.Schema:
         """Return the live management form schema."""
-        from . import current_status
+        from .status import current_status
 
         status = current_status(self.hass)
         banned_ips = [
@@ -843,18 +843,18 @@ class OptionsFlow(config_entries.OptionsFlow):
         login_attempts_threshold: int,
     ) -> config_entries.ConfigFlowResult:
         """Persist validated options and apply them immediately."""
-        from . import (
-            _apply_ban_settings,
-            _async_download_geoip_database,
-            _async_register_panel,
-            _async_replace_ip_bans,
-            _geoip_database_path,
-            _update_allowlist_entry,
-            _update_blocked_networks_entry,
+        from .ban_ops import async_replace_ip_bans
+        from .file_store import geoip_database_path
+        from .geoip import async_download_geoip_database
+        from .network_policy import (
+            apply_ban_settings,
+            update_allowlist_entry,
+            update_blocked_networks_entry,
         )
+        from .panel import async_register_panel
 
-        if geoip_enabled and not _geoip_database_path(self.hass).is_file():
-            await _async_download_geoip_database(self.hass)
+        if geoip_enabled and not geoip_database_path(self.hass).is_file():
+            await async_download_geoip_database(self.hass)
         self.hass.config_entries.async_update_entry(
             self._config_entry,
             options={
@@ -872,13 +872,13 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_BLOCKED_NETWORKS: blocked_networks,
             },
         )
-        _apply_ban_settings(self.hass, self._config_entry)
-        await _async_register_panel(self.hass, sidebar_enabled=sidebar_panel_enabled)
-        _update_allowlist_entry(self.hass, ip_addresses, meta_source=SOURCE_CONFIGURE)
-        _update_blocked_networks_entry(
+        apply_ban_settings(self.hass, self._config_entry)
+        await async_register_panel(self.hass, sidebar_enabled=sidebar_panel_enabled)
+        update_allowlist_entry(self.hass, ip_addresses, meta_source=SOURCE_CONFIGURE)
+        update_blocked_networks_entry(
             self.hass, blocked_networks, meta_source=SOURCE_CONFIGURE
         )
-        await _async_replace_ip_bans(self.hass, banned_ips)
+        await async_replace_ip_bans(self.hass, banned_ips)
         self._pending_clear_bans = None
         # Merge into current options so keys managed outside this form
         # (for example silenced allowlisted-login IPs) are not wiped.
@@ -905,7 +905,7 @@ class OptionsFlow(config_entries.OptionsFlow):
 
     def _description_placeholders(self) -> dict[str, str]:
         """Return current live status details for the management form."""
-        from . import current_status
+        from .status import current_status
 
         status = current_status(self.hass)
         banned_ips = cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
@@ -938,7 +938,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Manage allowlisted and banned IP entries."""
-        from . import current_status
+        from .status import current_status
 
         errors: dict[str, str] = {}
         self._detected_subnets = await _async_detect_home_assistant_subnets(self.hass)

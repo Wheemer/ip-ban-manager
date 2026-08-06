@@ -16,9 +16,10 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from voluptuous.schema_builder import Optional as VolOptional
 
-import custom_components.ip_ban_manager as ipbm
 from custom_components.ip_ban_manager import KEY_ALLOWLIST
 from custom_components.ip_ban_manager import config_flow as ban_config_flow
+from custom_components.ip_ban_manager import geoip as ban_geoip
+from custom_components.ip_ban_manager import panel as ban_panel
 from custom_components.ip_ban_manager.config_flow import (
     DEFAULT_ALLOWED_IPS,
     _format_banned_at,
@@ -661,7 +662,7 @@ async def test_options_flow_can_hide_sidebar_panel(
         nonlocal registered_sidebar_enabled
         registered_sidebar_enabled = sidebar_enabled
 
-    monkeypatch.setattr(ipbm, "_async_register_panel", mock_register_panel)
+    monkeypatch.setattr(ban_panel, "async_register_panel", mock_register_panel)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
@@ -716,7 +717,7 @@ async def test_options_flow_can_enable_geoip(
         downloaded = mock_hass is hass
 
     monkeypatch.setattr(
-        ipbm, "_async_download_geoip_database", mock_download_geoip_database
+        ban_geoip, "async_download_geoip_database", mock_download_geoip_database
     )
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
