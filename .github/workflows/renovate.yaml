@@ -21,6 +21,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+      security-events: read
     steps:
     - uses: actions/checkout@v6
     - name: Run Renovate
@@ -30,4 +31,4 @@ jobs:
         RENOVATE_CONFIG_FILE: .github/renovate.json5
         RENOVATE_PLATFORM: github
         RENOVATE_REPOSITORIES: ${{ github.repository }}
-        RENOVATE_TOKEN: ${{ github.token }}
+        RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN || github.token }}
