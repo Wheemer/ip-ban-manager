@@ -33,7 +33,4 @@
     },
   ],
   prConcurrentLimit: 2,
-  vulnerabilityAlerts: {
-    enabled: false,
-  },
 }
