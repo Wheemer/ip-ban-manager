@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.8.3.1
+
+IP Ban Manager 1.8.3.1 is a stable hotfix release for repository security hardening and two small runtime safety fixes.
+
+### Fixed
+
+- Restricts live-panel translation loading to bundled locale files instead of resolving arbitrary locale paths.
+- Requires TLS 1.2 or newer for the manual GeoIP database download fallback.
+
+### Changed
+
+- Pins GitHub Actions to immutable commit SHAs.
+- Tightens workflow token permissions and release-asset upload credentials.
+- Adds CodeQL, Scorecard, Renovate, and repository security reporting configuration.
+
 ## v1.8.3
 
 IP Ban Manager 1.8.3 is an internal cleanup release that keeps the 1.8.x behavior intact while making the integration easier to maintain and safer to review.
