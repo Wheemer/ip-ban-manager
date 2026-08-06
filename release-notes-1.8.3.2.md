@@ -13,9 +13,3 @@ This hotfix makes safe-default allowlists fully visible. Detected local access p
 - Home Assistant OS/Supervised installs can surface the Supervisor Docker parent network (`172.30.0.0/16`) when Supervisor/internal adapters are detected.
 - Home Assistant Container installs can surface the default Docker bridge gateway (`172.17.0.1/32`) when that bridge is detected.
 - Custom allowlists that do not look like safe-default setups are left alone.
-
-### ✅ Validation
-
-- Added first-run setup coverage for Supervisor and Container safe defaults.
-- Added setup/reload coverage for existing safe-default entries, custom allowlists, and equivalent-entry duplicate prevention.
-- Full Linux Home Assistant custom-component test suite passes.
