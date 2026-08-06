@@ -22,6 +22,7 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+    - uses: actions/checkout@v6
     - name: Run Renovate
       uses: renovatebot/github-action@v46.2.1
       env:
