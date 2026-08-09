@@ -18,6 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .audit import record_allowlisted_login_escalated
+from .ban_lookup import _is_allowed
 from .const import (
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
@@ -28,7 +29,12 @@ from .entry_helpers import (
     update_entry_options,
 )
 from .geoip import DBIP_ATTRIBUTION, geoip_location_for_ip
-from .storage_keys import KEY_CONFIG_ENTRY, KEY_PANEL_REGISTERED, IPAddress
+from .storage_keys import (
+    KEY_ALLOWLIST,
+    KEY_CONFIG_ENTRY,
+    KEY_PANEL_REGISTERED,
+    IPAddress,
+)
 
 ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD = 10
 INTEGRATION_CONFIG_URL = f"/config/integrations/integration/{DOMAIN}"
@@ -109,14 +115,7 @@ def manager_notification_link(hass: HomeAssistant) -> str:
 
 def with_manager_link(hass: HomeAssistant, message: str) -> str:
     """Append or refresh the manager panel link."""
-    cleaned = "\n".join(
-        line
-        for line in message.splitlines()
-        if not (
-            line.strip().startswith(f"[{NOTIFICATION_LINK_LABEL}](")
-            or line.strip().startswith("[Open integrations](")
-        )
-    ).rstrip()
+    cleaned = strip_notification_action_links(message)
     return f"{cleaned}\n\n{manager_notification_link(hass)}"
 
 
@@ -318,6 +317,14 @@ def geoip_notification_detail(
     return f"Location: {location}"
 
 
+def is_allowlisted_source(hass: HomeAssistant, remote_addr: IPAddress) -> bool:
+    """Return whether a source is covered by IP Ban Manager's allowlist."""
+    http = getattr(hass, "http", None)
+    app = getattr(http, "app", {})
+    allowlist = app.get(KEY_ALLOWLIST, ())
+    return isinstance(allowlist, tuple) and _is_allowed(remote_addr, allowlist)
+
+
 def create_manager_notification(
     hass: HomeAssistant, message: str, notification_id: str
 ) -> None:
@@ -444,12 +451,13 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         notification = notifications.get(notification_id)
         if notification is None:
             continue
-        heading = notification_heading(notification_id, notification["message"])
-        message = with_notification_heading(heading, notification["message"])
+        notification_message = strip_notification_action_links(notification["message"])
+        heading = notification_heading(notification_id, notification_message)
+        message = with_notification_heading(heading, notification_message)
         remote_addr = first_ip_address_in_text(message)
         has_geoip_detail = False
         if (
-            notification_id == NOTIFICATION_ID_BAN
+            remote_addr is not None
             and (geoip_detail := geoip_notification_detail(hass, remote_addr))
             and geoip_detail not in message
         ):
@@ -462,10 +470,15 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
                 heading = "Repeated allowlisted login failures"
                 message = with_notification_heading(heading, message)
             if entry is not None:
-                if should_notify_allowlisted_login(hass, remote_addr, attempts):
+                source_is_allowlisted = is_allowlisted_source(hass, remote_addr)
+                if source_is_allowlisted and should_notify_allowlisted_login(
+                    hass, remote_addr, attempts
+                ):
                     message = with_allowlisted_login_silence_link(
                         entry, message, remote_addr, notification_id
                     )
+                elif not source_is_allowlisted:
+                    message = with_manager_link(hass, message)
                 else:
                     persistent_notification.async_dismiss(hass, notification_id)
                     continue

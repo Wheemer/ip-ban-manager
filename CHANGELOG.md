@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.3.3
+
+IP Ban Manager 1.8.3.3 fixes branded Home Assistant HTTP login notifications so location labels and action links match the actual source address.
+
+### Fixed
+
+- Rewritten Home Assistant `http-login` notifications now include GeoIP location details when local GeoIP is enabled and the address is found in the local database.
+- Public or otherwise non-allowlisted failed-login notifications no longer receive the allowlisted **Don't show for this address again** action.
+- Stale notification action links are stripped before notification headings and links are rebuilt, so an old bad link cannot keep a rewritten notification in the wrong mode.
+
 ## v1.8.3.2
 
 IP Ban Manager 1.8.3.2 makes safe-default allowlists fully visible: detected local access paths and relevant Home Assistant container/Supervisor paths are written into Allowed IPs where users can review, edit, and back them up.

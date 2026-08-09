@@ -214,8 +214,9 @@ async def test_imported_auth_wrong_login_gets_branded_notification(
     assert message.startswith("## <img ")
     assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
     assert "**Login attempt failed**" in message
-    assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
-    assert f"/{DOMAIN}?action=silence_allowlisted_login" in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+    assert f"/{DOMAIN}?action=silence_allowlisted_login" not in message
+    assert message.endswith(f"[Open settings](/{DOMAIN})")
     assert "/config/integrations/" not in message
 
 
@@ -697,10 +698,73 @@ async def test_setup_entry_rewrites_existing_http_notifications(
     assert message.startswith("## <img ")
     assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
     assert "**Login attempt failed**" in message
-    assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
-    assert f"/{DOMAIN}?action=silence_allowlisted_login" in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+    assert f"/{DOMAIN}?action=silence_allowlisted_login" not in message
+    assert message.endswith(f"[Open settings](/{DOMAIN})")
     assert "/config/integrations/" not in message
     assert "IP Ban Manager icon" not in message
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_adds_geoip_to_rewritten_login_notification(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test rewritten Home Assistant login notifications include GeoIP details."""
+    monkeypatch.setattr(
+        ban_notifications,
+        "geoip_location_for_ip",
+        lambda _hass, remote_addr: (
+            "Mountain View, United States" if str(remote_addr) == "8.8.8.8" else None
+        ),
+    )
+    persistent_notification.async_create(
+        hass,
+        "Login attempt or request with invalid authentication from dns.google (8.8.8.8).",
+        "Login attempt failed",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    await setup_ip_ban_manager(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "Location: Mountain View, United States" in message
+    assert "<small><sub>IP geolocation by DB-IP.com</sub></small>" in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_removes_wrong_public_login_silence_link(
+    hass: HomeAssistant,
+) -> None:
+    """Test stale public login notifications do not keep allowlisted actions."""
+    persistent_notification.async_create(
+        hass,
+        (
+            "## IP Ban Manager\n\n"
+            "**Login attempt failed**\n\n"
+            "Login attempt or request with invalid authentication from "
+            "dns.google (8.8.8.8). See the log for details.\n\n"
+            "[Don't show for this address again]"
+            "(/ip_ban_manager?action=silence_allowlisted_login"
+            "&ip_address=8.8.8.8&notification_id=http-login)"
+        ),
+        " ",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    await setup_ip_ban_manager(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "**Login attempt failed**" in message
+    assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+    assert f"/{DOMAIN}?action=silence_allowlisted_login" not in message
+    assert message.endswith(f"[Open settings](/{DOMAIN})")
 
 
 @pytest.mark.asyncio
@@ -714,8 +778,8 @@ async def test_setup_entry_rewrites_stale_allowlisted_notification_action(
             "## IP Ban Manager\n\n"
             "**Allowlisted login failed**\n\n"
             "Login attempt or request with invalid authentication from "
-            "192.168.0.108 (192.168.0.108). See the log for details.\n\n"
-            "Current failed-login count: 2/3. 192.168.0.108 is allowlisted, "
+            "192.168.1.1 (192.168.1.1). See the log for details.\n\n"
+            "Current failed-login count: 2/3. 192.168.1.1 is allowlisted, "
             "so it will not be banned.\n\n"
             "[Allowlisted login notifications](/config/integrations/"
             "integration/ip_ban_manager)"
@@ -733,7 +797,7 @@ async def test_setup_entry_rewrites_stale_allowlisted_notification_action(
     assert "Allowlisted login notifications" not in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
     assert f"/{DOMAIN}?action=silence_allowlisted_login" in message
-    assert "&ip_address=192.168.0.108" in message
+    assert "&ip_address=192.168.1.1" in message
     assert f"&{ATTR_NOTIFICATION_ID}={NOTIFICATION_ID_LOGIN}" in message
     assert "&token=" not in message
 
@@ -749,8 +813,8 @@ async def test_setup_entry_rewrites_stale_allowlisted_ipv6_notification_action(
             "## IP Ban Manager\n\n"
             "**Allowlisted login failed**\n\n"
             "Login attempt or request with invalid authentication from "
-            "localhost (::1). See the log for details.\n\n"
-            "Current failed-login count: 2/3. ::1 is allowlisted, "
+            "localhost (::ffff:172.17.0.5). See the log for details.\n\n"
+            "Current failed-login count: 2/3. ::ffff:172.17.0.5 is allowlisted, "
             "so it will not be banned.\n\n"
             "[Allowlisted login notifications](/config/integrations/"
             "integration/ip_ban_manager)"
@@ -768,7 +832,7 @@ async def test_setup_entry_rewrites_stale_allowlisted_ipv6_notification_action(
     assert "Allowlisted login notifications" not in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL in message
     assert f"/{DOMAIN}?action=silence_allowlisted_login" in message
-    assert "&ip_address=%3A%3A1" in message
+    assert "&ip_address=172.17.0.5" in message
     assert f"&{ATTR_NOTIFICATION_ID}={NOTIFICATION_ID_LOGIN}" in message
     assert "&token=" not in message
 
