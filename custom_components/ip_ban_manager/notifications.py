@@ -59,6 +59,9 @@ IPV4_IN_TEXT = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])")
 IPV6_IN_TEXT = re.compile(
     r"(?<![0-9A-Fa-f:.])(?:[0-9A-Fa-f]{0,4}:){2,}[0-9A-Fa-f:.%]*(?![0-9A-Fa-f:.])"
 )
+REMOTE_HOST_WITH_ADDR_IN_TEXT = re.compile(
+    r"\bfrom\s+(?P<host>[^()\n]+?)\s+\((?P<addr>[^()\n]+)\)"
+)
 
 
 def format_remote_display(remote_host: str | None, remote_addr: IPAddress) -> str:
@@ -67,6 +70,32 @@ def format_remote_display(remote_host: str | None, remote_addr: IPAddress) -> st
     if remote_host and remote_host != remote_addr_text:
         return f"{remote_host} ({remote_addr_text})"
     return remote_addr_text
+
+
+def clarify_remote_source_text(message: str) -> tuple[str, str | None]:
+    """Make source text IP-first and return a reverse-DNS detail when present."""
+    reverse_host: str | None = None
+
+    def replace(match: re.Match[str]) -> str:
+        nonlocal reverse_host
+        host = match.group("host").strip()
+        addr = match.group("addr").strip()
+        normalized_addr = addr.strip("[]").split("%", 1)[0]
+        with suppress(ValueError):
+            ip_address(normalized_addr)
+            if host != addr and reverse_host is None:
+                reverse_host = host
+            return f"from {addr}"
+        return match.group(0)
+
+    return REMOTE_HOST_WITH_ADDR_IN_TEXT.sub(replace, message, count=1), reverse_host
+
+
+def append_reverse_dns_detail(message: str, reverse_host: str | None) -> str:
+    """Append reverse-DNS detail without making it look like the source identity."""
+    if not reverse_host or "Reverse DNS:" in message:
+        return message
+    return f"{message}\n\nReverse DNS: {reverse_host}"
 
 
 def notifications_enabled(hass: HomeAssistant) -> bool:
@@ -403,7 +432,10 @@ def create_allowlisted_login_notification(
         return
 
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    base_message, reverse_host = clarify_remote_source_text(base_message)
     details = [base_message]
+    if reverse_host:
+        details.append(f"Reverse DNS: {reverse_host}")
     has_geoip_detail = False
     if geoip_detail := geoip_notification_detail(hass, remote_addr):
         details.append(geoip_detail)
@@ -452,9 +484,13 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         if notification is None:
             continue
         notification_message = strip_notification_action_links(notification["message"])
+        notification_message, reverse_host = clarify_remote_source_text(
+            notification_message
+        )
         heading = notification_heading(notification_id, notification_message)
         message = with_notification_heading(heading, notification_message)
         remote_addr = first_ip_address_in_text(message)
+        message = append_reverse_dns_detail(message, reverse_host)
         has_geoip_detail = False
         if (
             remote_addr is not None

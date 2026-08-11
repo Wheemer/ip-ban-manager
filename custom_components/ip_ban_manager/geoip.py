@@ -55,6 +55,76 @@ DBIP_SOURCE_NAME = "DB-IP City Lite"
 DNS_OVER_HTTPS_URL = (
     "https://cloudflare-dns.com/dns-query?name=download.db-ip.com&type=A"
 )
+SUBDIVISION_SHORT_CODES_BY_COUNTRY = {
+    "CA": {
+        "Alberta": "AB",
+        "British Columbia": "BC",
+        "Manitoba": "MB",
+        "New Brunswick": "NB",
+        "Newfoundland and Labrador": "NL",
+        "Northwest Territories": "NT",
+        "Nova Scotia": "NS",
+        "Nunavut": "NU",
+        "Ontario": "ON",
+        "Prince Edward Island": "PE",
+        "Quebec": "QC",
+        "Saskatchewan": "SK",
+        "Yukon": "YT",
+    },
+    "US": {
+        "Alabama": "AL",
+        "Alaska": "AK",
+        "Arizona": "AZ",
+        "Arkansas": "AR",
+        "California": "CA",
+        "Colorado": "CO",
+        "Connecticut": "CT",
+        "Delaware": "DE",
+        "District of Columbia": "DC",
+        "Florida": "FL",
+        "Georgia": "GA",
+        "Hawaii": "HI",
+        "Idaho": "ID",
+        "Illinois": "IL",
+        "Indiana": "IN",
+        "Iowa": "IA",
+        "Kansas": "KS",
+        "Kentucky": "KY",
+        "Louisiana": "LA",
+        "Maine": "ME",
+        "Maryland": "MD",
+        "Massachusetts": "MA",
+        "Michigan": "MI",
+        "Minnesota": "MN",
+        "Mississippi": "MS",
+        "Missouri": "MO",
+        "Montana": "MT",
+        "Nebraska": "NE",
+        "Nevada": "NV",
+        "New Hampshire": "NH",
+        "New Jersey": "NJ",
+        "New Mexico": "NM",
+        "New York": "NY",
+        "North Carolina": "NC",
+        "North Dakota": "ND",
+        "Ohio": "OH",
+        "Oklahoma": "OK",
+        "Oregon": "OR",
+        "Pennsylvania": "PA",
+        "Rhode Island": "RI",
+        "South Carolina": "SC",
+        "South Dakota": "SD",
+        "Tennessee": "TN",
+        "Texas": "TX",
+        "Utah": "UT",
+        "Vermont": "VT",
+        "Virginia": "VA",
+        "Washington": "WA",
+        "West Virginia": "WV",
+        "Wisconsin": "WI",
+        "Wyoming": "WY",
+    },
+}
 
 
 def geoip_download_months(now: datetime | None = None) -> list[str]:
@@ -279,6 +349,44 @@ def localized_geoip_name(value: object) -> str | None:
     return name if isinstance(name, str) and name else None
 
 
+def geoip_iso_code(value: object) -> str | None:
+    """Return an ISO code from a DB-IP/MaxMind-style field."""
+    if not isinstance(value, dict):
+        return None
+    iso_code = value.get("iso_code")
+    return iso_code if isinstance(iso_code, str) and iso_code else None
+
+
+def geoip_subdivision_name(value: object, country_code: str | None) -> str | None:
+    """Return a short subdivision label from a DB-IP/MaxMind-style field."""
+    name = localized_geoip_name(value)
+    if name is None:
+        return None
+    if country_code is None:
+        return name
+    return SUBDIVISION_SHORT_CODES_BY_COUNTRY.get(country_code, {}).get(name, name)
+
+
+def geoip_location_from_result(result: dict[str, object]) -> str | None:
+    """Return a human-readable GeoIP location from an MMDB record."""
+    city = localized_geoip_name(result.get("city"))
+
+    subdivision_data = None
+    subdivision = None
+    subdivisions = result.get("subdivisions")
+    if isinstance(subdivisions, list) and subdivisions:
+        subdivision_data = subdivisions[0]
+    elif isinstance(subdivisions, dict):
+        subdivision_data = subdivisions
+    country_code = geoip_iso_code(result.get("country"))
+    subdivision = geoip_iso_code(subdivision_data) or geoip_subdivision_name(
+        subdivision_data, country_code
+    )
+
+    parts = [part for part in (city, subdivision, country_code) if part]
+    return ", ".join(parts) if parts else None
+
+
 def geoip_location_for_ip(hass: HomeAssistant, remote_addr: IPAddress) -> str | None:
     """Return a human-readable local GeoIP location for a public IP address."""
     normalized_addr = _normalize_remote_addr(remote_addr)
@@ -301,15 +409,7 @@ def geoip_location_for_ip(hass: HomeAssistant, remote_addr: IPAddress) -> str | 
     if not isinstance(result, dict):
         return None
 
-    city = localized_geoip_name(result.get("city"))
-    country = localized_geoip_name(result.get("country"))
-    country_code = None
-    country_data = result.get("country")
-    if isinstance(country_data, dict) and isinstance(country_data.get("iso_code"), str):
-        country_code = country_data["iso_code"]
-
-    parts = [part for part in (city, country or country_code) if part]
-    return ", ".join(parts) if parts else None
+    return geoip_location_from_result(result)
 
 
 def geoip_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:

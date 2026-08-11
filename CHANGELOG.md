@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.8.3.4
+
+IP Ban Manager 1.8.3.4 tightens failed-login notification identity and location labels so public addresses use external PTR lookups and GeoIP output is compact but still readable.
+
+### Fixed
+
+- Public reverse-DNS labels now use DNS-over-HTTPS instead of the Home Assistant host resolver, avoiding local resolver quirks in failed-login notifications.
+- Failed-login notifications show the numeric source address first, with reverse DNS shown as separate detail instead of making the PTR hostname look like the source identity.
+- GeoIP location labels now include subdivision/region detail when the local DB-IP database provides it.
+- GeoIP locations now prefer compact labels such as `Channel-Port aux Basques, NL, CA`, while keeping full subdivision names outside country-safe abbreviation fallbacks.
+
 ## v1.8.3.3
 
 IP Ban Manager 1.8.3.3 fixes branded Home Assistant HTTP login notifications so location labels and action links match the actual source address.

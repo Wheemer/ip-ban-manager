@@ -5,6 +5,9 @@
 # flake8: noqa
 # ruff: noqa: F403,F405
 
+from custom_components.ip_ban_manager.geoip import geoip_location_from_result
+from custom_components.ip_ban_manager.storage_keys import IPAddress
+
 from .test_setup import *
 
 
@@ -125,7 +128,9 @@ async def test_allowlisted_wrong_login_keeps_real_reverse_name(
 
     notifications = persistent_notification._async_get_or_create_notifications(hass)
     message = notifications[NOTIFICATION_ID_LOGIN]["message"]
-    assert "from server.lan (192.168.1.1)." in message
+    assert "from server.lan (192.168.1.1)." not in message
+    assert "from 192.168.1.1." in message
+    assert "Reverse DNS: server.lan" in message
 
 
 @pytest.mark.asyncio
@@ -154,10 +159,91 @@ async def test_allowlisted_wrong_login_caches_reverse_dns_name(
 
     assert lookup_count == 1
     notifications = persistent_notification._async_get_or_create_notifications(hass)
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "from server.lan (192.168.1.1)." not in message
+    assert "from 192.168.1.1." in message
+    assert "Reverse DNS: server.lan" in message
+
+
+@pytest.mark.asyncio
+async def test_reverse_dns_public_ip_uses_external_lookup(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test public reverse DNS uses DNS-over-HTTPS as the primary lookup."""
+    calls: list[str] = []
+
+    async def fake_external(
+        mock_hass: HomeAssistant, remote_addr: IPAddress
+    ) -> str | None:
+        calls.append(f"external:{remote_addr}")
+        return "dns.google"
+
+    async def fail_local(
+        mock_hass: HomeAssistant, remote_addr: IPAddress
+    ) -> str | None:
+        raise AssertionError("local resolver should not run after external success")
+
+    monkeypatch.setattr(reverse_dns, "_async_external_reverse_dns_name", fake_external)
+    monkeypatch.setattr(reverse_dns, "_async_local_reverse_dns_name", fail_local)
+
     assert (
-        "from server.lan (192.168.1.1)."
-        in notifications[NOTIFICATION_ID_LOGIN]["message"]
+        await reverse_dns.async_reverse_dns_name(hass, ip_address("8.8.8.8"))
+        == "dns.google"
     )
+    assert calls == ["external:8.8.8.8"]
+
+
+@pytest.mark.asyncio
+async def test_reverse_dns_public_ip_does_not_fall_back_to_local_lookup(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test public reverse DNS does not use the local resolver after DoH misses."""
+    calls: list[str] = []
+
+    async def fake_external(
+        mock_hass: HomeAssistant, remote_addr: IPAddress
+    ) -> str | None:
+        calls.append(f"external:{remote_addr}")
+        return None
+
+    async def fail_local(
+        mock_hass: HomeAssistant, remote_addr: IPAddress
+    ) -> str | None:
+        raise AssertionError("local resolver should not run for public addresses")
+
+    monkeypatch.setattr(reverse_dns, "_async_external_reverse_dns_name", fake_external)
+    monkeypatch.setattr(reverse_dns, "_async_local_reverse_dns_name", fail_local)
+
+    assert await reverse_dns.async_reverse_dns_name(hass, ip_address("8.8.4.4")) is None
+    assert calls == ["external:8.8.4.4"]
+
+
+@pytest.mark.asyncio
+async def test_reverse_dns_private_ip_uses_local_lookup(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test private reverse DNS stays on Home Assistant's local resolver."""
+    calls: list[str] = []
+
+    async def fail_external(
+        mock_hass: HomeAssistant, remote_addr: IPAddress
+    ) -> str | None:
+        raise AssertionError("external resolver should not run for private addresses")
+
+    async def fake_local(
+        mock_hass: HomeAssistant, remote_addr: IPAddress
+    ) -> str | None:
+        calls.append(f"local:{remote_addr}")
+        return "server.lan"
+
+    monkeypatch.setattr(reverse_dns, "_async_external_reverse_dns_name", fail_external)
+    monkeypatch.setattr(reverse_dns, "_async_local_reverse_dns_name", fake_local)
+
+    assert (
+        await reverse_dns.async_reverse_dns_name(hass, ip_address("192.168.1.1"))
+        == "server.lan"
+    )
+    assert calls == ["local:192.168.1.1"]
 
 
 @pytest.mark.asyncio
@@ -703,6 +789,9 @@ async def test_setup_entry_rewrites_existing_http_notifications(
     assert message.endswith(f"[Open settings](/{DOMAIN})")
     assert "/config/integrations/" not in message
     assert "IP Ban Manager icon" not in message
+    assert "from host (10.0.0.1)." not in message
+    assert "from 10.0.0.1." in message
+    assert "Reverse DNS: host" in message
 
 
 @pytest.mark.asyncio
@@ -731,6 +820,9 @@ async def test_setup_entry_adds_geoip_to_rewritten_login_notification(
     )  # noqa: SLF001
     message = notifications[NOTIFICATION_ID_LOGIN]["message"]
     assert "Location: Mountain View, United States" in message
+    assert "from dns.google (8.8.8.8)." not in message
+    assert "from 8.8.8.8." in message
+    assert "Reverse DNS: dns.google" in message
     assert "<small><sub>IP geolocation by DB-IP.com</sub></small>" in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
 
@@ -762,6 +854,9 @@ async def test_setup_entry_removes_wrong_public_login_silence_link(
     )  # noqa: SLF001
     message = notifications[NOTIFICATION_ID_LOGIN]["message"]
     assert "**Login attempt failed**" in message
+    assert "from dns.google (8.8.8.8)." not in message
+    assert "from 8.8.8.8." in message
+    assert "Reverse DNS: dns.google" in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
     assert f"/{DOMAIN}?action=silence_allowlisted_login" not in message
     assert message.endswith(f"[Open settings](/{DOMAIN})")
@@ -1008,3 +1103,60 @@ async def test_remove_ip_ban_keeps_unrelated_notification(
         hass
     )  # noqa: SLF001
     assert NOTIFICATION_ID_BAN in notifications
+
+
+def test_geoip_location_includes_subdivision() -> None:
+    """Test GeoIP locations prefer province/state short codes when available."""
+    assert (
+        geoip_location_from_result(
+            {
+                "city": {"names": {"en": "St. John's"}},
+                "subdivisions": [
+                    {"names": {"en": "Newfoundland and Labrador"}, "iso_code": "NL"}
+                ],
+                "country": {"names": {"en": "Canada"}, "iso_code": "CA"},
+            }
+        )
+        == "St. John's, NL, CA"
+    )
+
+
+def test_geoip_location_shortens_known_subdivision_names() -> None:
+    """Test GeoIP locations shorten known provinces without subdivision ISO codes."""
+    assert (
+        geoip_location_from_result(
+            {
+                "city": {"names": {"en": "Channel-Port aux Basques"}},
+                "subdivisions": [{"names": {"en": "Newfoundland and Labrador"}}],
+                "country": {"names": {"en": "Canada"}, "iso_code": "CA"},
+            }
+        )
+        == "Channel-Port aux Basques, NL, CA"
+    )
+
+
+def test_geoip_location_keeps_unknown_subdivision_names() -> None:
+    """Test GeoIP locations do not guess subdivision codes for other countries."""
+    assert (
+        geoip_location_from_result(
+            {
+                "city": {"names": {"en": "Berlin"}},
+                "subdivisions": [{"names": {"en": "Berlin"}}],
+                "country": {"names": {"en": "Germany"}, "iso_code": "DE"},
+            }
+        )
+        == "Berlin, Berlin, DE"
+    )
+
+
+def test_geoip_location_falls_back_to_country_code() -> None:
+    """Test GeoIP locations use ISO country code when country name is missing."""
+    assert (
+        geoip_location_from_result(
+            {
+                "subdivisions": [{"names": {"en": "Ontario"}}],
+                "country": {"iso_code": "CA"},
+            }
+        )
+        == "Ontario, CA"
+    )
