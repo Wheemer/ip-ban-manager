@@ -11,3 +11,8 @@ This hotfix improves failed-login notification details so the source address, re
 
 - Location labels now include subdivision or region information when the local DB-IP database provides it.
 - Country labels use short ISO codes, and known Canada/US subdivision names are safely shortened when the database does not include a subdivision code.
+
+### 🔧 Maintenance
+
+- Updated `uv` to `v0.12.3`.
+- Updated `renovatebot/github-action` to `v46.2.2`.
