@@ -487,10 +487,12 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         notification_message, reverse_host = clarify_remote_source_text(
             notification_message
         )
+        remote_addr = first_ip_address_in_text(notification_message)
         heading = notification_heading(notification_id, notification_message)
+        notification_message = append_reverse_dns_detail(
+            notification_message, reverse_host
+        )
         message = with_notification_heading(heading, notification_message)
-        remote_addr = first_ip_address_in_text(message)
-        message = append_reverse_dns_detail(message, reverse_host)
         has_geoip_detail = False
         if (
             remote_addr is not None

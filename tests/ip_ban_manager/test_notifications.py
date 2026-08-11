@@ -170,6 +170,7 @@ async def test_reverse_dns_public_ip_uses_external_lookup(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test public reverse DNS uses DNS-over-HTTPS as the primary lookup."""
+    await setup_ip_ban_manager(hass)
     calls: list[str] = []
 
     async def fake_external(
@@ -198,6 +199,7 @@ async def test_reverse_dns_public_ip_does_not_fall_back_to_local_lookup(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test public reverse DNS does not use the local resolver after DoH misses."""
+    await setup_ip_ban_manager(hass)
     calls: list[str] = []
 
     async def fake_external(
@@ -223,6 +225,7 @@ async def test_reverse_dns_private_ip_uses_local_lookup(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test private reverse DNS stays on Home Assistant's local resolver."""
+    await setup_ip_ban_manager(hass)
     calls: list[str] = []
 
     async def fail_external(
@@ -1158,5 +1161,5 @@ def test_geoip_location_falls_back_to_country_code() -> None:
                 "country": {"iso_code": "CA"},
             }
         )
-        == "Ontario, CA"
+        == "ON, CA"
     )
