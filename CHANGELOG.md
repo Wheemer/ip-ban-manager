@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.8.3.5
+
+IP Ban Manager 1.8.3.5 closes a startup race where Home Assistant could write an exact ban for an allowlisted address before IP Ban Manager finished loading, and tightens the notification rewrite pass for same-turn Home Assistant login notices.
+
+### Fixed
+
+- Startup now reconciles Home Assistant's exact ban list against Allowed IPs after IP Ban Manager loads. If an allowlisted tablet or dashboard is banned during early Home Assistant startup, IP Ban Manager removes that exact ban automatically unless **Bans inside Allowed IPs** is enabled.
+- Startup reconciliation rewrites `ip_bans.yaml`, clears the matching failed-login counter, dismisses the matching Home Assistant HTTP ban/login notification, and records a normal `ip_ban_manager_ip_unbanned` event with `source: setup`.
+- Home Assistant login notifications created later in the same event-loop turn are rewritten again, so branded notification formatting, GeoIP details, and action links are less likely to be missed.
+- Rebuilt login notifications now strip stale generated location/attribution details before recalculating them.
+
+### Changed
+
+- README automation examples now use the actual `ip_ban_manager.remove_ip_ban` service and document `source: setup` for startup reconciliation events.
+
 ## v1.8.3.4
 
 IP Ban Manager 1.8.3.4 tightens failed-login notification identity and location labels so public addresses use external PTR lookups and GeoIP output is compact but still readable.

@@ -36,6 +36,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 import custom_components.ip_ban_manager as ipbm
 import custom_components.ip_ban_manager.config_flow as ban_config_flow
 import custom_components.ip_ban_manager.geoip_lifecycle as ban_geoip_lifecycle
+import custom_components.ip_ban_manager.http_patches as ipbm_http_patches
 import custom_components.ip_ban_manager.legacy_migration as ban_legacy_migration
 import custom_components.ip_ban_manager.network_policy as ban_network_policy
 import custom_components.ip_ban_manager.notifications as ban_notifications
@@ -149,6 +150,7 @@ from custom_components.ip_ban_manager.const import (
     SOURCE_AUTO,
     SOURCE_PANEL,
     SOURCE_SERVICE,
+    SOURCE_SETUP,
     SOURCE_YAML,
 )
 
@@ -260,6 +262,73 @@ async def setup_ip_ban_manager(hass: HomeAssistant) -> None:
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_removes_preexisting_allowlisted_ban(
+    hass: HomeAssistant,
+) -> None:
+    """Test startup clears exact bans written before allowlist protection loaded."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    remote_addr = ip_address("192.168.1.50")
+    ban_manager.ip_bans_lookup[remote_addr] = IpBan(remote_addr)
+    persistent_notification.async_create(
+        hass,
+        f"Banned IP {remote_addr} for too many failed login attempts.",
+        "Banning IP address",
+        NOTIFICATION_ID_BAN,
+    )
+    events: list[dict[str, str]] = []
+    remove_listener = hass.bus.async_listen(
+        EVENT_IP_UNBANNED, lambda event: events.append(event.data)
+    )
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.0/24"]},
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    remove_listener()
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    assert remote_addr not in ban_manager.ip_bans_lookup
+    assert NOTIFICATION_ID_BAN not in notifications
+    assert events == [{ATTR_IP_ADDRESS: str(remote_addr), ATTR_SOURCE: SOURCE_SETUP}]
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_keeps_preexisting_allowlisted_ban_when_enabled(
+    hass: HomeAssistant,
+) -> None:
+    """Test startup leaves exact allowlisted bans when the user opted into them."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    remote_addr = ip_address("192.168.1.50")
+    ban_manager.ip_bans_lookup[remote_addr] = IpBan(remote_addr)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["192.168.1.0/24"],
+            CONF_ALLOWLISTED_LOGINS_CAN_BAN: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert remote_addr in ban_manager.ip_bans_lookup
 
 
 @pytest.mark.asyncio

@@ -30,7 +30,6 @@ from .network_policy import apply_blocked_networks
 from .notifications import (
     create_allowlisted_login_notification,
     format_remote_display,
-    handle_http_notifications,
 )
 from .reverse_dns import async_reverse_dns_name
 from .storage_keys import (
@@ -45,6 +44,18 @@ from .storage_keys import (
 _LOGGER = logging.getLogger(__name__)
 
 _ORIGINAL_PROCESS_WRONG_LOGIN = http_ban.process_wrong_login
+
+
+def _handle_http_notifications(hass: HomeAssistant) -> None:
+    """Rewrite Home Assistant HTTP notifications using the current module code."""
+    from .notifications import handle_http_notifications
+
+    handle_http_notifications(hass)
+
+
+def _schedule_http_notification_rewrite(hass: HomeAssistant) -> None:
+    """Rewrite again after Home Assistant finishes same-turn notification work."""
+    hass.loop.call_soon(_handle_http_notifications, hass)
 
 
 def _request_remote_ip(request: Request) -> IPAddress | None:
@@ -64,7 +75,9 @@ def _request_remote_ip(request: Request) -> IPAddress | None:
 async def _async_handle_standard_wrong_login(request: Request) -> None:
     """Process failed logins that may become automatic exact bans."""
     await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
-    handle_http_notifications(request.app[KEY_HASS])
+    hass = request.app[KEY_HASS]
+    _handle_http_notifications(hass)
+    _schedule_http_notification_rewrite(hass)
 
 
 async def _allowlist_process_wrong_login(request: Request) -> None:

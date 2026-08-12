@@ -67,9 +67,31 @@ REMOTE_HOST_WITH_ADDR_IN_TEXT = re.compile(
 def format_remote_display(remote_host: str | None, remote_addr: IPAddress) -> str:
     """Return a compact, non-duplicated host/address label."""
     remote_addr_text = str(remote_addr)
-    if remote_host and remote_host != remote_addr_text:
+    if (
+        remote_host
+        and remote_host != remote_addr_text
+        and reverse_dns_name_is_useful(remote_host, remote_addr)
+    ):
         return f"{remote_host} ({remote_addr_text})"
     return remote_addr_text
+
+
+def reverse_dns_name_is_useful(
+    reverse_host: str | None, remote_addr: IPAddress | None = None
+) -> bool:
+    """Return whether a reverse-DNS name is worth showing to the user."""
+    if not reverse_host:
+        return False
+
+    host = reverse_host.rstrip(".").lower()
+    if remote_addr is None:
+        return True
+
+    remote_addr_text = str(remote_addr).lower()
+    if host == remote_addr_text:
+        return False
+
+    return True
 
 
 def clarify_remote_source_text(message: str) -> tuple[str, str | None]:
@@ -93,7 +115,12 @@ def clarify_remote_source_text(message: str) -> tuple[str, str | None]:
 
 def append_reverse_dns_detail(message: str, reverse_host: str | None) -> str:
     """Append reverse-DNS detail without making it look like the source identity."""
-    if not reverse_host or "Reverse DNS:" in message:
+    remote_addr = first_ip_address_in_text(message)
+    if (
+        not reverse_host
+        or "Reverse DNS:" in message
+        or not reverse_dns_name_is_useful(reverse_host, remote_addr)
+    ):
         return message
     return f"{message}\n\nReverse DNS: {reverse_host}"
 
@@ -197,6 +224,15 @@ def strip_notification_action_links(message: str) -> str:
         line
         for line in message.splitlines()
         if not any(line.startswith(f"[{label}](") for label in action_labels)
+    ).rstrip()
+
+
+def strip_generated_notification_details(message: str) -> str:
+    """Remove generated details that are recalculated during notification rebuild."""
+    return "\n".join(
+        line
+        for line in message.splitlines()
+        if not (line.startswith("Location: ") or DBIP_ATTRIBUTION in line)
     ).rstrip()
 
 
@@ -434,7 +470,7 @@ def create_allowlisted_login_notification(
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     base_message, reverse_host = clarify_remote_source_text(base_message)
     details = [base_message]
-    if reverse_host:
+    if reverse_dns_name_is_useful(reverse_host, remote_addr):
         details.append(f"Reverse DNS: {reverse_host}")
     has_geoip_detail = False
     if geoip_detail := geoip_notification_detail(hass, remote_addr):
@@ -483,7 +519,9 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         notification = notifications.get(notification_id)
         if notification is None:
             continue
-        notification_message = strip_notification_action_links(notification["message"])
+        notification_message = strip_generated_notification_details(
+            strip_notification_action_links(notification["message"])
+        )
         notification_message, reverse_host = clarify_remote_source_text(
             notification_message
         )

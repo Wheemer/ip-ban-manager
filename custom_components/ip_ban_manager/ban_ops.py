@@ -24,7 +24,8 @@ from homeassistant.util import dt as dt_util
 
 from .audit import record_ip_unbanned
 from .ban_lookup import _is_allowed, _is_blocked, _supervisor_internal_networks
-from .const import ATTR_IP_ADDRESS, DOMAIN, SOURCE_PANEL, SOURCE_SERVICE
+from .const import ATTR_IP_ADDRESS, DOMAIN, SOURCE_PANEL, SOURCE_SERVICE, SOURCE_SETUP
+from .entry_helpers import allowlisted_logins_can_ban
 from .file_store import (
     atomic_write_text,
     snapshot_dir,
@@ -187,6 +188,36 @@ async def async_remove_ip_ban(
     await async_rewrite_ip_bans_file(hass, ban_manager_)
     dismiss_ban_notification_for_ips(hass, [remote_addr])
     record_ip_unbanned(hass, str(remote_addr), source)
+
+
+async def async_remove_allowlisted_ip_bans(hass: HomeAssistant) -> list[IPAddress]:
+    """Remove exact bans that were written before allowlist protection loaded."""
+    if allowlisted_logins_can_ban(hass):
+        return []
+
+    allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
+    if not allowlist:
+        return []
+
+    ban_manager_ = ban_manager(hass)
+    removed_addrs = [
+        remote_addr
+        for remote_addr in list(ban_manager_.ip_bans_lookup)
+        if _is_allowed(remote_addr, allowlist)
+    ]
+    if not removed_addrs:
+        return []
+
+    for remote_addr in removed_addrs:
+        ban_manager_.ip_bans_lookup.pop(remote_addr, None)
+        hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
+
+    await async_rewrite_ip_bans_file(hass, ban_manager_)
+    dismiss_ban_notification_for_ips(hass, removed_addrs)
+    for remote_addr in removed_addrs:
+        record_ip_unbanned(hass, str(remote_addr), SOURCE_SETUP)
+
+    return removed_addrs
 
 
 async def async_remove_all_ip_bans(hass: HomeAssistant) -> None:

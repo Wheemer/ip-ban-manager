@@ -134,6 +134,33 @@ async def test_allowlisted_wrong_login_keeps_real_reverse_name(
 
 
 @pytest.mark.asyncio
+async def test_allowlisted_wrong_login_suppresses_ip_encoded_reverse_name(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test provider reverse names still show as reverse-DNS detail."""
+    await setup_ip_ban_manager(hass)
+    monkeypatch.setattr(
+        reverse_dns,
+        "gethostbyaddr",
+        lambda remote: ("238.12.235.8.bc.googleusercontent.com", [], [remote]),
+    )
+
+    class MockRequest:
+        remote = "8.235.12.238"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+
+    notifications = persistent_notification._async_get_or_create_notifications(hass)
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert "from 238.12.235.8.bc.googleusercontent.com" not in message
+    assert "from 8.235.12.238." in message
+    assert "Reverse DNS: 238.12.235.8.bc.googleusercontent.com" in message
+
+
+@pytest.mark.asyncio
 async def test_allowlisted_wrong_login_caches_reverse_dns_name(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -828,6 +855,99 @@ async def test_setup_entry_adds_geoip_to_rewritten_login_notification(
     assert "Reverse DNS: dns.google" in message
     assert "<small><sub>IP geolocation by DB-IP.com</sub></small>" in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_rebuilds_stale_google_host_login_notification(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test stale generated notification details do not survive a rebuild."""
+    monkeypatch.setattr(
+        ban_notifications,
+        "geoip_location_for_ip",
+        lambda _hass, remote_addr: (
+            "Las Vegas, NV, US" if str(remote_addr) == "34.125.117.155" else None
+        ),
+    )
+    persistent_notification.async_create(
+        hass,
+        (
+            '## <img src="/api/ip_ban_manager/icon.png" width="28" height="28" '
+            'alt="IP Ban Manager icon">&nbsp;&nbsp;IP Ban Manager\n\n'
+            "**Login attempt failed**\n\n"
+            "Login attempt or request with invalid authentication from "
+            "155.117.125.34.bc.googleusercontent.com (34.125.117.155). "
+            "See the log for details.\n\n"
+            "Location: Las Vegas, United States\n\n"
+            "<small><sub>IP geolocation by DB-IP.com</sub></small>\n\n"
+            "[Open settings](/ip_ban_manager)"
+        ),
+        " ",
+        NOTIFICATION_ID_LOGIN,
+    )
+
+    await setup_ip_ban_manager(hass)
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert message.startswith("## <img ")
+    assert message.count(NOTIFICATION_ICON_DATA_URL) == 1
+    assert "/api/ip_ban_manager/icon.png" not in message
+    assert "IP Ban Manager icon" not in message
+    assert "from 155.117.125.34.bc.googleusercontent.com" not in message
+    assert "from 34.125.117.155." in message
+    assert "Reverse DNS: 155.117.125.34.bc.googleusercontent.com" in message
+    assert "Location: Las Vegas, United States" not in message
+    assert "Location: Las Vegas, NV, US" in message
+    assert message.count("IP geolocation by DB-IP.com") == 1
+
+
+@pytest.mark.asyncio
+async def test_standard_wrong_login_rewrites_same_turn_notification(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test standard HA notifications created later in the loop are rewritten."""
+    await setup_ip_ban_manager(hass)
+
+    async def delayed_original_process_wrong_login(request: Any) -> None:
+        hass.loop.call_soon(
+            persistent_notification.async_create,
+            hass,
+            (
+                "Login attempt or request with invalid authentication from "
+                "dns.google (8.8.8.8). See the log for details."
+            ),
+            "Login attempt failed",
+            NOTIFICATION_ID_LOGIN,
+        )
+
+    monkeypatch.setattr(
+        ipbm_http_patches,
+        "_ORIGINAL_PROCESS_WRONG_LOGIN",
+        delayed_original_process_wrong_login,
+    )
+
+    class MockRequest:
+        remote = "8.8.8.8"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    await hass.async_block_till_done()
+
+    notifications = persistent_notification._async_get_or_create_notifications(
+        hass
+    )  # noqa: SLF001
+    message = notifications[NOTIFICATION_ID_LOGIN]["message"]
+    assert notifications[NOTIFICATION_ID_LOGIN]["title"] == " "
+    assert "**Login attempt failed**" in message
+    assert "from dns.google (8.8.8.8)." not in message
+    assert "from 8.8.8.8." in message
+    assert "Reverse DNS: dns.google" in message
+    assert message.endswith(f"[Open settings](/{DOMAIN})")
 
 
 @pytest.mark.asyncio

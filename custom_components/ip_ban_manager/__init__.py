@@ -26,6 +26,9 @@ from .backup import async_restore_exact_bans as _async_restore_exact_bans
 from .backup import config_download_payload as _config_download_payload
 from .backup import config_export_payload as _config_export_payload
 from .ban_lookup import NetworkAwareBanLookup, _supervisor_internal_networks
+from .ban_ops import (
+    async_remove_allowlisted_ip_bans as _async_remove_allowlisted_ip_bans,
+)
 from .ban_ops import async_replace_ip_bans as _async_replace_ip_bans
 from .ban_ops import ban_manager as _ban_manager
 from .ban_ops import ip_ban_file_payload as _ip_ban_file_payload
@@ -249,6 +252,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_sync_detected_allowlist_defaults(hass)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
+    await _async_remove_allowlisted_ip_bans(hass)
     if _entry_geoip_enabled(entry):
         _async_schedule_geoip_reader_prepare(hass)
     allowlist = hass.http.app[KEY_ALLOWLIST]

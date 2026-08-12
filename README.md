@@ -205,7 +205,7 @@ IP Ban Manager fires small, stable Home Assistant events you can use in automati
 - `ip_ban_manager_allowlist_network_added` / `ip_ban_manager_allowlist_network_removed` — allowlist changes (`network`, `source`)
 - `ip_ban_manager_blocked_network_added` / `ip_ban_manager_blocked_network_removed` — blocked-network changes (`network`, `source`)
 
-`source` is one of `auto`, `panel`, or `service`. Successful **state changes** (ban/unban, allowlist/blocked-network mutations, GeoIP updates) also appear in the Home Assistant logbook. Threshold and escalation events are automation signals only and do not write logbook entries.
+`source` is one of `auto`, `panel`, `service`, or `setup`. Successful **state changes** (ban/unban, allowlist/blocked-network mutations, GeoIP updates) also appear in the Home Assistant logbook. Threshold and escalation events are automation signals only and do not write logbook entries.
 
 Example automation trigger:
 
@@ -213,11 +213,15 @@ Example automation trigger:
 trigger:
   - platform: event
     event_type: ip_ban_manager_ip_banned
+    event_data:
+      ip_address: "203.0.113.10"
 action:
-  - service: notify.notify
+  - service: ip_ban_manager.remove_ip_ban
     data:
-      message: "IP Ban Manager banned {{ trigger.event.data.ip_address }}"
+      ip_address: "{{ trigger.event.data.ip_address }}"
 ```
+
+On startup, IP Ban Manager also reconciles Home Assistant's exact ban list against Allowed IPs. If Home Assistant bans a trusted address before IP Ban Manager finishes loading, the ban is removed automatically after setup unless **Bans inside Allowed IPs** is enabled.
 
 ## Diagnostic Sensors
 
