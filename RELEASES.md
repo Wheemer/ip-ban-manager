@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.3.6](CHANGELOG.md#v1836) | Hotfix: GeoIP now uses IP Ban Manager's bundled pure-Python MaxMind DB reader instead of Home Assistant runtime package installation, fixing Docker installs where site-packages is not writable. |
 | [v1.8.3.5](CHANGELOG.md#v1835) | Hotfix: startup removes exact bans that landed before allowlist protection loaded, and same-turn Home Assistant login notifications get a second rewrite pass. |
 | [v1.8.3.4](CHANGELOG.md#v1834) | Hotfix: public PTR labels use external DNS-over-HTTPS, failed-login notifications keep IPs as the visible source, and GeoIP labels include compact region/country codes when available. |
 | [v1.8.3.3](CHANGELOG.md#v1833) | Hotfix: rewritten Home Assistant login notifications now get GeoIP labels when available, public login notices no longer show allowlisted-only actions, and stale action links are cleaned before rebuilding the notification. |

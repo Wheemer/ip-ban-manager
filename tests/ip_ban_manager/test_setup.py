@@ -4,6 +4,7 @@
 
 import json
 import logging
+import sys
 from asyncio import Event, wait_for
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address
 from pathlib import Path
@@ -35,6 +36,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 import custom_components.ip_ban_manager as ipbm
 import custom_components.ip_ban_manager.config_flow as ban_config_flow
+import custom_components.ip_ban_manager.geoip as ban_geoip
 import custom_components.ip_ban_manager.geoip_lifecycle as ban_geoip_lifecycle
 import custom_components.ip_ban_manager.http_patches as ipbm_http_patches
 import custom_components.ip_ban_manager.legacy_migration as ban_legacy_migration
@@ -247,6 +249,38 @@ def test_repository_ships_one_hacs_integration_folder() -> None:
     )
 
     assert integration_folders == [DOMAIN]
+
+
+def test_manifest_does_not_require_runtime_geoip_install() -> None:
+    """Test GeoIP cannot block setup through runtime package installs."""
+    manifest_path = (
+        Path(__file__).parents[2] / "custom_components" / DOMAIN / "manifest.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert manifest["requirements"] == []
+
+
+def test_geoip_reader_uses_bundled_reader_when_dependency_is_not_installed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test the bundled reader is used instead of requiring site-packages."""
+    opened: list[str] = []
+
+    class MockMaxMindDB:
+        @staticmethod
+        def open_database(path: str) -> object:
+            opened.append(path)
+            return object()
+
+    database_path = tmp_path / "dbip-city-lite.mmdb"
+    database_path.write_bytes(b"not a real database")
+    monkeypatch.setitem(sys.modules, "maxminddb", None)
+    monkeypatch.setattr(ban_geoip, "_maxminddb_module", lambda: MockMaxMindDB)
+
+    assert ban_geoip.open_geoip_reader(database_path) is not None
+    assert opened == [str(database_path)]
 
 
 async def setup_ip_ban_manager(hass: HomeAssistant) -> None:

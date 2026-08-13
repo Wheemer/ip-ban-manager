@@ -7,6 +7,7 @@ import logging
 import os
 import socket
 import ssl
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -21,7 +22,6 @@ from urllib.parse import urlsplit
 from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
 
-import maxminddb
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -52,6 +52,7 @@ DBIP_DOWNLOAD_MAX_BYTES = 250 * 1024 * 1024
 DBIP_DOWNLOAD_TIMEOUT = 120
 DBIP_DOWNLOAD_USER_AGENT = "IPBanManager/1.6.2"
 DBIP_SOURCE_NAME = "DB-IP City Lite"
+MAXMINDDB_VENDOR_PATH = Path(__file__).with_name("vendor")
 DNS_OVER_HTTPS_URL = (
     "https://cloudflare-dns.com/dns-query?name=download.db-ip.com&type=A"
 )
@@ -296,6 +297,27 @@ def close_geoip_reader(hass: HomeAssistant) -> None:
         close()
 
 
+def _maxminddb_module() -> Any:
+    """Return the bundled MMDB reader module without requiring runtime pip."""
+    try:
+        import maxminddb
+
+        return maxminddb
+    except ImportError:
+        pass
+
+    vendor_path = str(MAXMINDDB_VENDOR_PATH)
+    if vendor_path not in sys.path:
+        sys.path.insert(0, vendor_path)
+
+    if sys.modules.get("maxminddb") is None:
+        sys.modules.pop("maxminddb", None)
+
+    import maxminddb
+
+    return maxminddb
+
+
 def open_geoip_reader(path: Path) -> tuple[object, float] | None:
     """Open the local MMDB reader from an executor thread."""
     if not path.is_file():
@@ -307,8 +329,9 @@ def open_geoip_reader(path: Path) -> tuple[object, float] | None:
         return None
 
     try:
+        maxminddb = _maxminddb_module()
         reader = maxminddb.open_database(str(path))
-    except (OSError, RuntimeError):
+    except (ImportError, OSError, RuntimeError):
         _LOGGER.warning("Could not open GeoIP database %s", path, exc_info=True)
         return None
     return reader, mtime

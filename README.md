@@ -117,6 +117,10 @@ local access paths plus relevant internal container/Supervisor addresses. Those
 entries are shown in **Allowed IPs** so they are visible, editable, and backed up
 with the rest of the integration settings.
 
+GeoIP uses a downloaded local DB-IP City Lite database and IP Ban Manager's
+bundled pure-Python MaxMind DB reader, so Docker installs do not need Home
+Assistant to write Python packages into the container at startup.
+
 ### Blocked IPs
 
 Blocked IPs are exact Home Assistant bans. They stay in Home Assistant's native live ban manager and `ip_bans.yaml`.

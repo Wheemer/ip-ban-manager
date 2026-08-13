@@ -16,8 +16,6 @@
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/Wheemer/ip-ban-manager/issues",
-  "requirements": [
-    "maxminddb==3.1.1"
-  ],
-  "version": "1.8.3.5"
+  "requirements": [],
+  "version": "1.8.3.6"
 }
