@@ -13,7 +13,7 @@
 [![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
 [![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&label=LICENSE&labelColor=555555&color=64748B)](https://github.com/Wheemer/ip-ban-manager/blob/main/LICENSE)
 
-[Install](#install) • [Configure](#configure) • [Live Panel](#live-panel) • [Backup And Restore](#backup-and-restore) • [Release Summary](RELEASES.md) • [Changelog](CHANGELOG.md)
+[Install](#install) • [Configure](#configure) • [Live Panel](#live-panel) • [Backup And Restore](#backup-and-restore) • [Translations](docs/translations.md) • [Release Summary](RELEASES.md) • [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -41,7 +41,7 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 - **GeoIP labels:** optionally download a local DB-IP City Lite database for approximate public-IP location labels.
 - **Backup and restore:** save/restore a readable YAML backup under `/config`, or download/upload a backup in the browser.
 - **Diagnostics and automation:** numeric sensors, `ip_ban_manager.*` services, and Home Assistant events for scripts and automations.
-- **Translations:** config flow, options, repairs, services, entity names, and the live panel follow the signed-in Home Assistant user's language when a locale file is available (26 languages shipped; others fall back to English).
+- **Translations:** config flow, options, repairs, services, entity names, and the live panel follow the signed-in Home Assistant user's language when a locale file is available. See [Translations](docs/translations.md) for the shipped locales and maintenance notes.
 
 ## Screenshots
 
