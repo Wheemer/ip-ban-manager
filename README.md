@@ -11,7 +11,7 @@
 [![Home Assistant 2024.7.4+](https://img.shields.io/badge/HOME%20ASSISTANT-2024.7.4%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
 [![Latest release](https://img.shields.io/github/v/release/Wheemer/ip-ban-manager?style=for-the-badge&logo=github&logoColor=white&label=RELEASE&labelColor=555555&color=22C55E)](https://github.com/Wheemer/ip-ban-manager/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
-[![License](https://img.shields.io/github/license/Wheemer/ip-ban-manager?style=for-the-badge&label=LICENSE&labelColor=555555&color=64748B)](https://github.com/Wheemer/ip-ban-manager/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/LICENSE-AGPL--3.0-64748B?style=for-the-badge&labelColor=555555)](https://github.com/Wheemer/ip-ban-manager/blob/main/LICENSE)
 
 [Install](#install) • [Configure](#configure) • [Live Panel](#live-panel) • [Backup And Restore](#backup-and-restore) • [Translations](docs/translations.md) • [Release Summary](RELEASES.md) • [Changelog](CHANGELOG.md)
 
