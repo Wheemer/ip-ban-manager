@@ -7,7 +7,7 @@
     "replacements:all",
     "workarounds:all",
   ],
-  dependencyDashboard: true,
+  dependencyDashboard: false,
   labels: ["dependencies"],
   packageRules: [
     {
