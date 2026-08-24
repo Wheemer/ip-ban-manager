@@ -22,12 +22,6 @@
       automerge: true,
     },
     {
-      groupName: "Python test dependencies",
-      matchManagers: ["pip_requirements"],
-      matchFileNames: ["requirements.test.in"],
-      matchUpdateTypes: ["minor", "patch"],
-    },
-    {
       matchUpdateTypes: ["major"],
       dependencyDashboardApproval: true,
     },

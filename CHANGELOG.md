@@ -2,13 +2,15 @@
 
 ## v1.8.3.6
 
-IP Ban Manager 1.8.3.6 fixes GeoIP startup on Docker installs where Home Assistant cannot write runtime Python packages into the container site-packages directory.
+IP Ban Manager 1.8.3.6 is a maintenance hotfix for repository automation and test tooling. No user-facing behavior changes are included.
 
-### Fixed
+### Maintenance
 
-- GeoIP no longer depends on Home Assistant installing `maxminddb` from `manifest.json` during startup.
-- IP Ban Manager now ships the pure-Python MaxMind DB reader it needs, so GeoIP labels still work on Home Assistant OS, Supervised, Container, Core, and restricted Docker installs without a startup package install.
-- Existing systems that already have `maxminddb` installed continue to work; new installs use the bundled reader without changing Home Assistant's Python environment.
+- Updated `renovatebot/github-action` to `v46.2.4`.
+- Updated the repo `uv` tool version to `v0.12.5`.
+- Refreshed pinned GitHub Actions.
+- Regenerated the Linux test dependency lock.
+- Expanded startup/status test coverage.
 
 ## v1.8.3.5
 

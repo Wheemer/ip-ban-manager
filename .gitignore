@@ -4,11 +4,10 @@
 .uv-python/
 .uv-tools/
 .uv-tools-bin/
-.pre-commit-home/
 __pycache__/
 .dmypy.json
 .vscode/
 ip-ban-manager.zip
 docs/images/_mcp-sample-dashboard.png
-release-notes-1.8.0.md
+release-notes-*.md
 scripts/docker_validate_release.sh
