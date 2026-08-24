@@ -726,11 +726,8 @@ class OptionsFlow(config_entries.OptionsFlow):
         self._detected_subnets: list[str] = []
         self._pending_clear_bans: dict[str, Any] | None = None
 
-    def _management_schema(self) -> vol.Schema:
+    def _management_schema(self, status: dict[str, object]) -> vol.Schema:
         """Return the live management form schema."""
-        from .status import current_status
-
-        status = current_status(self.hass)
         banned_ips = [
             f"{ban[ATTR_IP_ADDRESS]} - {_format_banned_at(ban[ATTR_BANNED_AT])}"
             for ban in cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
@@ -813,7 +810,7 @@ class OptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         """Persist validated options and apply them immediately."""
         from .ban_ops import async_replace_ip_bans
-        from .file_store import geoip_database_path
+        from .file_store import geoip_database_path, path_is_file
         from .geoip import async_download_geoip_database
         from .network_policy import (
             apply_ban_settings,
@@ -822,7 +819,10 @@ class OptionsFlow(config_entries.OptionsFlow):
         )
         from .panel import async_register_panel
 
-        if geoip_enabled and not geoip_database_path(self.hass).is_file():
+        geoip_database_present = await self.hass.async_add_executor_job(
+            path_is_file, geoip_database_path(self.hass)
+        )
+        if geoip_enabled and not geoip_database_present:
             await async_download_geoip_database(self.hass)
         self.hass.config_entries.async_update_entry(
             self._config_entry,
@@ -872,11 +872,8 @@ class OptionsFlow(config_entries.OptionsFlow):
         options.pop(CONF_ALLOWED_IPS, None)
         return self.async_create_entry(title="", data=options)
 
-    def _description_placeholders(self) -> dict[str, str]:
+    def _description_placeholders(self, status: dict[str, object]) -> dict[str, str]:
         """Return current live status details for the management form."""
-        from .status import current_status
-
-        status = current_status(self.hass)
         banned_ips = cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
         failed_login_attempts = cast(dict[str, int], status[ATTR_FAILED_LOGIN_ATTEMPTS])
         blocked_networks = cast(list[str], status[ATTR_BLOCKED_NETWORKS])
@@ -907,10 +904,11 @@ class OptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         """Manage allowlisted and banned IP entries."""
-        from .status import current_status
+        from .status import async_current_status
 
         errors: dict[str, str] = {}
         self._detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
+        status = await async_current_status(self.hass)
 
         if user_input is not None:
             allowed_input = cast(dict[str, Any], user_input[SECTION_ALLOWED_IPS])
@@ -1061,9 +1059,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                     errors[CONF_BLOCKED_NETWORKS] = "local_network_block_unprotected"
 
             if not errors:
-                current_bans = cast(
-                    list[dict[str, str]], current_status(self.hass)[ATTR_BANNED_IPS]
-                )
+                current_bans = cast(list[dict[str, str]], status[ATTR_BANNED_IPS])
                 if len(current_bans) > 1 and not banned_ips:
                     self._pending_clear_bans = {
                         CONF_IP_ADDRESSES: ip_addresses,
@@ -1103,8 +1099,8 @@ class OptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=self._management_schema(),
-            description_placeholders=self._description_placeholders(),
+            data_schema=self._management_schema(status),
+            description_placeholders=self._description_placeholders(status),
             errors=errors,
         )
 

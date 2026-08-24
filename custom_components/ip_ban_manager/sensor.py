@@ -16,7 +16,6 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import current_status
 from .const import (
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
@@ -24,6 +23,7 @@ from .const import (
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_NETWORKS,
 )
+from .status import async_current_status
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -80,6 +80,17 @@ SENSOR_DESCRIPTIONS = (
 )
 
 
+def _initial_status() -> dict[str, Any]:
+    """Return a complete zero-value status payload for pre-update sensor reads."""
+    return {
+        ATTR_BANNED_IPS: [],
+        ATTR_NETWORKS: [],
+        ATTR_BLOCKED_NETWORKS: [],
+        ATTR_DEFAULT_DENY_ENABLED: False,
+        ATTR_FAILED_LOGIN_ATTEMPTS: {},
+    }
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -90,7 +101,8 @@ async def async_setup_entry(
         [
             IPBanManagerSensor(hass, entry, description)
             for description in SENSOR_DESCRIPTIONS
-        ]
+        ],
+        update_before_add=True,
     )
 
 
@@ -123,11 +135,11 @@ class IPBanManagerSensor(SensorEntity):
         self._attr_icon = description.icon
         self._attr_translation_key = description.key
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._status = cast(dict[str, Any], current_status(hass))
+        self._status = _initial_status()
 
     async def async_update(self) -> None:
         """Refresh the cached diagnostic status."""
-        self._status = cast(dict[str, Any], current_status(self.hass))
+        self._status = cast(dict[str, Any], await async_current_status(self.hass))
 
     @property
     def native_value(self) -> int:

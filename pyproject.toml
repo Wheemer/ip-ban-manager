@@ -4,6 +4,9 @@ show_error_codes = true
 show_error_context = true
 explicit_package_bases = true
 warn_unused_ignores = true
+exclude = [
+  "^custom_components/ip_ban_manager/vendor/",
+]
 
 [tool.flake8]
 max_line_length = 110

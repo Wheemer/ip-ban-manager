@@ -18,7 +18,7 @@ from .const import (
     LEGACY_DOMAIN,
 )
 from .entry_helpers import entry_geoip_enabled, native_ip_banning_enabled
-from .file_store import geoip_database_path
+from .file_store import geoip_database_path, path_is_file
 from .geoip import geoip_reader
 from .i18n import (
     async_load_health_issue_strings,
@@ -45,6 +45,7 @@ TRANSIENT_HEALTH_ISSUE_KEYS = frozenset(
 HTTP_IP_BAN_DOCS_URL = (
     "https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning"
 )
+_UNSET = object()
 
 
 def async_create_ip_ban_disabled_issue(hass: HomeAssistant) -> None:
@@ -125,13 +126,8 @@ def async_update_legacy_folder_cleanup_issue(
     ir.async_delete_issue(hass, DOMAIN, LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID)
 
 
-def ban_file_access_issue(hass: HomeAssistant) -> dict[str, object] | None:
-    """Return a structured ip_bans.yaml access issue, if one is visible without writing."""
-    ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
-    if ban_manager is None:
-        return {"key": "ban_file_not_loaded"}
-
-    path = Path(ban_manager.path)
+def _ban_file_access_issue_for_path(path: Path) -> dict[str, object]:
+    """Return a structured ip_bans.yaml access issue for a concrete path."""
     if path.exists():
         if not path.is_file():
             return {
@@ -143,7 +139,7 @@ def ban_file_access_issue(hass: HomeAssistant) -> dict[str, object] | None:
                 "key": "ban_file_not_readable_writable",
                 "placeholders": {"path": str(path)},
             }
-        return None
+        return {}
 
     parent = path.parent
     if not parent.exists():
@@ -153,18 +149,34 @@ def ban_file_access_issue(hass: HomeAssistant) -> dict[str, object] | None:
             "key": "ban_file_parent_not_writable",
             "placeholders": {"path": str(parent)},
         }
-    return None
+    return {}
 
 
-def health_status(hass: HomeAssistant) -> dict[str, object]:
+def ban_file_access_issue(hass: HomeAssistant) -> dict[str, object] | None:
+    """Return a structured ip_bans.yaml access issue, if one is visible."""
+    ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
+    if ban_manager is None:
+        return {"key": "ban_file_not_loaded"}
+
+    return _ban_file_access_issue_for_path(Path(ban_manager.path)) or None
+
+
+def health_status(
+    hass: HomeAssistant,
+    *,
+    geoip_database_present: bool | None = None,
+    ban_file_issue: dict[str, object] | None | object = _UNSET,
+) -> dict[str, object]:
     """Return the latest lightweight integration health summary."""
     issues: list[dict[str, object]] = []
 
     if not native_ip_banning_enabled(hass):
         issues.append({"key": "native_ip_ban_disabled"})
 
-    if ban_file_issue := ban_file_access_issue(hass):
-        issues.append(ban_file_issue)
+    if ban_file_issue is _UNSET:
+        ban_file_issue = ban_file_access_issue(hass)
+    if ban_file_issue:
+        issues.append(cast(dict[str, object], ban_file_issue))
 
     if not hass.data.get(KEY_PANEL_REGISTERED, False):
         issues.append({"key": "panel_not_registered"})
@@ -176,7 +188,11 @@ def health_status(hass: HomeAssistant) -> dict[str, object]:
     if (
         entry is not None
         and entry_geoip_enabled(entry)
-        and geoip_database_path(hass).is_file()
+        and (
+            geoip_database_present
+            if geoip_database_present is not None
+            else geoip_database_path(hass).is_file()
+        )
         and geoip_reader(hass) is None
     ):
         issues.append({"key": "geoip_reader_not_ready"})
@@ -188,9 +204,29 @@ def health_status(hass: HomeAssistant) -> dict[str, object]:
     }
 
 
+async def async_health_status(hass: HomeAssistant) -> dict[str, object]:
+    """Return health status without blocking the event loop on file checks."""
+    geoip_database_present = await hass.async_add_executor_job(
+        path_is_file, geoip_database_path(hass)
+    )
+    ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
+    ban_file_issue: dict[str, object]
+    if ban_manager is None:
+        ban_file_issue = {"key": "ban_file_not_loaded"}
+    else:
+        ban_file_issue = await hass.async_add_executor_job(
+            _ban_file_access_issue_for_path, Path(ban_manager.path)
+        )
+    return health_status(
+        hass,
+        geoip_database_present=geoip_database_present,
+        ban_file_issue=ban_file_issue,
+    )
+
+
 async def async_update_health_issue(hass: HomeAssistant) -> None:
     """Refresh the lightweight health status and matching Repair issue."""
-    health = health_status(hass)
+    health = await async_health_status(hass)
     hass.data[KEY_HEALTH] = health
     issues = cast(list[dict[str, object]], health[ATTR_HEALTH_ISSUES])
     actionable = [

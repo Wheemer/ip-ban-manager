@@ -24,6 +24,7 @@ from .health import (
     async_update_legacy_folder_cleanup_issue,
 )
 from .storage_keys import (
+    KEY_CONFIG_ENTRY,
     KEY_LEGACY_CLEANUP_SCHEDULED,
     KEY_LEGACY_FOLDER_CLEANED,
     KEY_LEGACY_FOLDER_CLEANUP_TASK,
@@ -200,10 +201,11 @@ def async_schedule_legacy_folder_cleanup(hass: HomeAssistant) -> None:
         try:
             done_task.result()
         except CancelledError:
-            pass
+            return
         except Exception:
             _LOGGER.warning("Legacy folder cleanup failed", exc_info=True)
-        hass.async_create_task(async_update_health_issue(hass))
+        if KEY_CONFIG_ENTRY in hass.http.app:
+            hass.async_create_task(async_update_health_issue(hass))
 
     task.add_done_callback(_legacy_folder_cleanup_done)
 

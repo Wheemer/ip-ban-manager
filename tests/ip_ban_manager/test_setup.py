@@ -2,6 +2,7 @@
 
 # flake8: noqa: F401
 
+import builtins
 import json
 import logging
 import sys
@@ -43,6 +44,7 @@ import custom_components.ip_ban_manager.legacy_migration as ban_legacy_migration
 import custom_components.ip_ban_manager.network_policy as ban_network_policy
 import custom_components.ip_ban_manager.notifications as ban_notifications
 import custom_components.ip_ban_manager.panel as ban_panel
+import custom_components.ip_ban_manager.panel_assets as ban_panel_assets
 import custom_components.ip_ban_manager.reverse_dns as reverse_dns
 import custom_components.ip_ban_manager.services as ban_services
 from custom_components.ip_ban_manager import (
@@ -53,7 +55,6 @@ from custom_components.ip_ban_manager import (
     ATTR_NOTIFICATION_ID,
     INTEGRATION_CONFIG_URL,
     INTEGRATION_DISABLED_BY_YAML_ISSUE_ID,
-    INTEGRATION_VERSION,
     IP_BAN_DISABLED_ISSUE_ID,
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
@@ -261,6 +262,39 @@ def test_manifest_does_not_require_runtime_geoip_install() -> None:
     assert manifest["requirements"] == []
 
 
+def test_geoip_module_falls_back_to_vendored_reader(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test the real GeoIP module loader falls back to the bundled reader."""
+    original_import = builtins.__import__
+    vendor_path = str(ban_geoip.MAXMINDDB_VENDOR_PATH)
+    monkeypatch.setattr(sys, "path", [path for path in sys.path if path != vendor_path])
+    monkeypatch.setitem(sys.modules, "maxminddb", None)
+
+    def import_without_site_package(
+        name: str,
+        globals: dict[str, Any] | None = None,
+        locals: dict[str, Any] | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name == "maxminddb" and vendor_path not in sys.path:
+            raise ImportError("Simulated missing site-package maxminddb")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", import_without_site_package)
+
+    module = ban_geoip._maxminddb_module()
+
+    assert module.__name__ == "maxminddb"
+    assert (
+        Path(module.__file__)
+        .resolve()
+        .is_relative_to(ban_geoip.MAXMINDDB_VENDOR_PATH.resolve())
+    )
+    assert sys.path[0] == vendor_path
+
+
 def test_geoip_reader_uses_bundled_reader_when_dependency_is_not_installed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -366,6 +400,33 @@ async def test_setup_entry_keeps_preexisting_allowlisted_ban_when_enabled(
 
 
 @pytest.mark.asyncio
+async def test_setup_entry_removes_preexisting_internal_ban_even_when_enabled(
+    hass: HomeAssistant,
+) -> None:
+    """Test startup always clears exact bans for Home Assistant internal paths."""
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    remote_addr = ip_address("172.30.32.2")
+    ban_manager.ip_bans_lookup[remote_addr] = IpBan(remote_addr)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: [],
+            CONF_ALLOWLISTED_LOGINS_CAN_BAN: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert remote_addr not in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
 async def test_setup_entry_does_not_wait_for_legacy_folder_cleanup(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
@@ -405,6 +466,51 @@ async def test_setup_entry_does_not_wait_for_legacy_folder_cleanup(
 
 
 @pytest.mark.asyncio
+async def test_unload_cancels_legacy_folder_cleanup_without_health_refresh(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test cancelled legacy cleanup tasks do not recreate health state after unload."""
+    cleanup_started = Event()
+    cleanup_can_finish = Event()
+    health_updates: list[HomeAssistant] = []
+
+    async def slow_cleanup(mock_hass: HomeAssistant) -> None:
+        cleanup_started.set()
+        await cleanup_can_finish.wait()
+
+    async def record_health_update(mock_hass: HomeAssistant) -> None:
+        health_updates.append(mock_hass)
+
+    monkeypatch.setattr(
+        ban_legacy_migration, "async_cleanup_legacy_component_folder", slow_cleanup
+    )
+    monkeypatch.setattr(
+        ban_legacy_migration, "async_update_health_issue", record_health_update
+    )
+
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={CONF_IP_ADDRESSES: ["192.168.1.1"]},
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await wait_for(cleanup_started.wait(), timeout=1)
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    cleanup_can_finish.set()
+    await hass.async_block_till_done()
+    assert health_updates == []
+
+
+@pytest.mark.asyncio
 async def test_setup_entry_does_not_wait_for_geoip_reader_prepare(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
@@ -438,6 +544,52 @@ async def test_setup_entry_does_not_wait_for_geoip_reader_prepare(
 
     prepare_can_finish.set()
     await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_unload_cancels_geoip_prepare_without_health_refresh(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test cancelled GeoIP warmup tasks do not recreate health state after unload."""
+    prepare_started = Event()
+    prepare_can_finish = Event()
+    health_updates: list[HomeAssistant] = []
+
+    async def slow_prepare(mock_hass: HomeAssistant) -> None:
+        prepare_started.set()
+        await prepare_can_finish.wait()
+
+    async def record_health_update(mock_hass: HomeAssistant) -> None:
+        health_updates.append(mock_hass)
+
+    monkeypatch.setattr(ban_geoip_lifecycle, "async_prepare_geoip_reader", slow_prepare)
+    monkeypatch.setattr(
+        ban_geoip_lifecycle, "async_update_health_issue", record_health_update
+    )
+
+    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    assert "ip_ban_manager" in (await async_get_custom_components(hass))
+    await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="IP Ban Manager",
+        data={
+            CONF_IP_ADDRESSES: ["192.168.1.1"],
+            CONF_GEOIP_ENABLED: True,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await wait_for(prepare_started.wait(), timeout=1)
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    prepare_can_finish.set()
+    await hass.async_block_till_done()
+    assert health_updates == []
 
 
 async def detected_local_subnets(hass: HomeAssistant) -> list[str]:

@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 
 from .geoip import async_prepare_geoip_reader
 from .health import async_update_health_issue
-from .storage_keys import KEY_GEOIP_READER_PREPARE_TASK
+from .storage_keys import KEY_CONFIG_ENTRY, KEY_GEOIP_READER_PREPARE_TASK
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,9 +28,10 @@ def async_schedule_geoip_reader_prepare(hass: HomeAssistant) -> None:
         try:
             done_task.result()
         except CancelledError:
-            pass
+            return
         except Exception:
             _LOGGER.warning("GeoIP reader preparation failed", exc_info=True)
-        hass.async_create_task(async_update_health_issue(hass))
+        if KEY_CONFIG_ENTRY in hass.http.app:
+            hass.async_create_task(async_update_health_issue(hass))
 
     task.add_done_callback(_geoip_prepare_done)

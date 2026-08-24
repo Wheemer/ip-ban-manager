@@ -141,7 +141,8 @@ async def test_panel_registration_requires_admin(
     assert registered["require_admin"] is True
     assert registered["webcomponent_name"] == "ip-ban-manager-panel"
     module_url = cast(str, registered["module_url"])
-    assert module_url.startswith(f"/api/{DOMAIN}/panel.js?v={INTEGRATION_VERSION}&t=")
+    version = ban_panel_assets.integration_version()
+    assert module_url.startswith(f"/api/{DOMAIN}/panel.js?v={version}&t=")
 
 
 @pytest.mark.asyncio
@@ -153,7 +154,10 @@ async def test_panel_script_url_serves_current_bundle(hass: HomeAssistant) -> No
     response = await IPBanManagerPanelView().get(request)
     assert response.status == 200
     assert response.text is not None
-    assert f'const PANEL_VERSION = "{INTEGRATION_VERSION}"' in response.text
+    assert (
+        f'const PANEL_VERSION = "{ban_panel_assets.integration_version()}"'
+        in response.text
+    )
     assert 'customElements.define("ip-ban-manager-panel", IPBanManagerPanel)' in (
         response.text
     )
@@ -210,7 +214,7 @@ async def test_status_view_returns_state_for_admin(hass: HomeAssistant) -> None:
     data = json.loads(response.text)
     assert response.status == 200
     assert data["ok"] is True
-    assert data["version"] == INTEGRATION_VERSION
+    assert data["version"] == ban_panel_assets.integration_version()
     assert data["status"][ATTR_HEALTH]["ok"] is True
     assert data["status"][ATTR_HEALTH][ATTR_HEALTH_ISSUES] == []
     assert data["status"][ATTR_METRICS]["panel_api_calls"] == 1

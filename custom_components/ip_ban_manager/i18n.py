@@ -86,6 +86,11 @@ def normalize_language(language: str | None) -> str:
     return resolve_translation_language(language)
 
 
+async def async_normalize_language(hass: HomeAssistant, language: str | None) -> str:
+    """Return the translation file code without blocking the event loop."""
+    return await hass.async_add_executor_job(normalize_language, language)
+
+
 def resolve_translation_language(language: str | None) -> str:
     """Resolve a locale tag to an on-disk translation file, falling back to English."""
     if not language:

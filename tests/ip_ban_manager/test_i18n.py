@@ -12,6 +12,7 @@ from custom_components.ip_ban_manager.i18n import (
     SUPPORTED_LOCALES,
     async_load_health_issue_strings,
     async_load_panel_translations,
+    async_normalize_language,
     format_health_issue_message,
     load_health_issue_strings,
     load_panel_translations,
@@ -53,6 +54,18 @@ def test_normalize_language_uses_primary_subtag() -> None:
     assert resolve_translation_language("zh-Hant") == "zh-Hant"
     assert resolve_translation_language("pt-BR") == "pt-BR"
     assert resolve_translation_language("pt") == "pt"
+
+
+def test_async_normalize_language_uses_executor_job() -> None:
+    """Test locale resolution is kept outside the event loop."""
+    hass = FakeHass()
+
+    language = run_async_test(
+        async_normalize_language(cast(HomeAssistant, hass), "de-DE")
+    )
+
+    assert language == "de"
+    assert hass.executor_calls == [(normalize_language, ("de-DE",))]
 
 
 def test_supported_locales_match_translation_files() -> None:

@@ -151,7 +151,6 @@ from .panel import async_panel_set_options as _async_panel_set_options
 from .panel import async_register_panel as _async_register_panel
 from .panel import async_register_static_assets as _async_register_static_assets
 from .panel import async_remove_panel as _async_remove_panel
-from .panel_assets import INTEGRATION_VERSION
 from .services import (
     IP_ADDRESS_SCHEMA,
     NETWORK_SCHEMA,
@@ -183,7 +182,9 @@ from .storage_keys import (
     KEY_STATIC_PATH_REGISTERED,
 )
 from .yaml_config import CONFIG_SCHEMA  # noqa: F401
-from .yaml_config import emergency_disable_requested as _emergency_disable_requested
+from .yaml_config import (
+    async_emergency_disable_requested as _async_emergency_disable_requested,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ PLATFORMS = ["sensor"]
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
-    emergency_disabled = _emergency_disable_requested(hass, config)
+    emergency_disabled = await _async_emergency_disable_requested(hass, config)
     hass.data[KEY_EMERGENCY_DISABLED] = emergency_disabled
     _async_update_emergency_disabled_issue(hass, emergency_disabled)
     if emergency_disabled:

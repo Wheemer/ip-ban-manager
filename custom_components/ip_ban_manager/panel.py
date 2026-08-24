@@ -58,7 +58,7 @@ from .geoip import (
     close_geoip_reader,
     geoip_status,
 )
-from .i18n import async_load_panel_translations, normalize_language
+from .i18n import async_load_panel_translations, async_normalize_language
 from .legacy_migration import ENTRY_TITLE
 from .network_policy import (
     apply_ban_settings,
@@ -74,11 +74,11 @@ from .notifications import (
     unsilence_allowlisted_login_notifications,
 )
 from .panel_assets import (
-    INTEGRATION_VERSION,
     PANEL_WEB_COMPONENT,
+    async_integration_version,
     async_panel_js_url,
 )
-from .status import current_status
+from .status import async_current_status
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_PANEL_MODULE_URL,
@@ -92,16 +92,17 @@ async def async_panel_payload(
     hass: HomeAssistant, entry: ConfigEntry, *, language: str | None = None
 ) -> dict[str, object]:
     """Return the complete JSON payload used by the bundled panel."""
-    resolved_language = normalize_language(language)
+    resolved_language = await async_normalize_language(hass, language)
     translations = await async_load_panel_translations(hass, resolved_language)
     backup_status = await hass.async_add_executor_job(_backup_status, hass)
     geoip = await hass.async_add_executor_job(geoip_status, hass, entry)
+    version = await async_integration_version(hass)
     return {
         "ok": True,
-        "version": INTEGRATION_VERSION,
+        "version": version,
         "language": resolved_language,
         "translations": translations,
-        "status": current_status(hass),
+        "status": await async_current_status(hass),
         "settings": {
             CONF_IP_ADDRESSES: entry_ip_addresses(entry),
             CONF_BLOCKED_NETWORKS: entry_blocked_networks(entry),

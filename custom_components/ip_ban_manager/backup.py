@@ -68,6 +68,7 @@ from .file_store import (
     atomic_write_text,
     config_export_path,
     geoip_database_path,
+    path_is_file,
 )
 from .geoip import async_prepare_geoip_reader, close_geoip_reader
 from .network_policy import (
@@ -439,7 +440,10 @@ async def async_apply_config_backup_payload(
     hass.http.app[KEY_ALLOWLIST] = parse_allowlist(allowlist)
     apply_ban_settings(hass, updated_entry)
     apply_blocked_networks(hass, updated_entry)
-    if geoip_enabled and geoip_database_path(hass).is_file():
+    geoip_database_present = await hass.async_add_executor_job(
+        path_is_file, geoip_database_path(hass)
+    )
+    if geoip_enabled and geoip_database_present:
         await async_prepare_geoip_reader(hass)
     elif not geoip_enabled:
         close_geoip_reader(hass)

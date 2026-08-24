@@ -192,18 +192,20 @@ async def async_remove_ip_ban(
 
 async def async_remove_allowlisted_ip_bans(hass: HomeAssistant) -> list[IPAddress]:
     """Remove exact bans that were written before allowlist protection loaded."""
-    if allowlisted_logins_can_ban(hass):
-        return []
-
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
-    if not allowlist:
+    internal_bypass_networks = hass.http.app.get(
+        KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
+    )
+    remove_allowlisted_bans = not allowlisted_logins_can_ban(hass)
+    if not allowlist and not internal_bypass_networks:
         return []
 
     ban_manager_ = ban_manager(hass)
     removed_addrs = [
         remote_addr
         for remote_addr in list(ban_manager_.ip_bans_lookup)
-        if _is_allowed(remote_addr, allowlist)
+        if _is_allowed(remote_addr, internal_bypass_networks)
+        or (remove_allowlisted_bans and _is_allowed(remote_addr, allowlist))
     ]
     if not removed_addrs:
         return []

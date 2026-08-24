@@ -72,3 +72,13 @@ def emergency_disable_file_exists(hass: HomeAssistant) -> bool:
 def emergency_disable_requested(hass: HomeAssistant, config: ConfigType) -> bool:
     """Return whether any supported emergency disable path is active."""
     return yaml_disable_ban_manager(config) or emergency_disable_file_exists(hass)
+
+
+async def async_emergency_disable_requested(
+    hass: HomeAssistant, config: ConfigType
+) -> bool:
+    """Return whether the emergency disable path is active without blocking."""
+    if yaml_disable_ban_manager(config):
+        return True
+
+    return await hass.async_add_executor_job(emergency_disable_file_exists, hass)

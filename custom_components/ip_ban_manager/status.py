@@ -40,9 +40,9 @@ from .entry_helpers import (
     entry_login_threshold,
     native_ip_banning_enabled,
 )
-from .file_store import geoip_database_path
+from .file_store import geoip_database_path, path_is_file
 from .geoip import geoip_location_for_ip
-from .health import health_status
+from .health import async_health_status, health_status
 from .metrics import metrics
 from .storage_keys import (
     KEY_ALLOWLIST,
@@ -63,12 +63,23 @@ def format_ip_ban(hass: HomeAssistant, ip_ban: IpBan) -> dict[str, str]:
     return formatted
 
 
-def current_status(hass: HomeAssistant) -> dict[str, object]:
+def current_status(
+    hass: HomeAssistant,
+    *,
+    geoip_database_present: bool | None = None,
+    health: dict[str, object] | None = None,
+) -> dict[str, object]:
     """Return the live ban and allowlist status for UI surfaces."""
     ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
     failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
-    health = hass.data.get(KEY_HEALTH) or health_status(hass)
+    health = (
+        health
+        or hass.data.get(KEY_HEALTH)
+        or health_status(hass, geoip_database_present=geoip_database_present)
+    )
+    if geoip_database_present is None:
+        geoip_database_present = geoip_database_path(hass).is_file()
     return {
         ATTR_NATIVE_IP_BAN_ENABLED: native_ip_banning_enabled(hass),
         ATTR_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry) if entry else False,
@@ -96,7 +107,7 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
             entry_default_deny_enabled(entry) if entry else False
         ),
         ATTR_GEOIP_ENABLED: entry_geoip_enabled(entry) if entry else False,
-        ATTR_GEOIP_DATABASE_PRESENT: geoip_database_path(hass).is_file(),
+        ATTR_GEOIP_DATABASE_PRESENT: geoip_database_present,
         ATTR_BANNED_IPS: [
             format_ip_ban(hass, ip_ban)
             for ip_ban in (chronological_ip_bans(ban_manager) if ban_manager else ())
@@ -112,3 +123,16 @@ def current_status(hass: HomeAssistant) -> dict[str, object]:
         ATTR_HEALTH: health,
         ATTR_METRICS: dict(metrics(hass)),
     }
+
+
+async def async_current_status(hass: HomeAssistant) -> dict[str, object]:
+    """Return the live status without blocking the event loop on file checks."""
+    geoip_database_present = await hass.async_add_executor_job(
+        path_is_file, geoip_database_path(hass)
+    )
+    health = hass.data.get(KEY_HEALTH) or await async_health_status(hass)
+    return current_status(
+        hass,
+        geoip_database_present=geoip_database_present,
+        health=health,
+    )

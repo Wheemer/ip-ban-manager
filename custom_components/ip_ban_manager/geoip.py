@@ -300,7 +300,7 @@ def close_geoip_reader(hass: HomeAssistant) -> None:
 def _maxminddb_module() -> Any:
     """Return the bundled MMDB reader module without requiring runtime pip."""
     try:
-        import maxminddb
+        import maxminddb  # type: ignore[import-not-found]
 
         return maxminddb
     except ImportError:
