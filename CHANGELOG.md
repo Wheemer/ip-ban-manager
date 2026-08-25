@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.8.3.8
+
+IP Ban Manager 1.8.3.8 fixes Home Assistant statistics repair warnings for the diagnostic count sensors.
+
+### Fixed
+
+- Removed the empty sensor unit from IP Ban Manager diagnostic count sensors so existing installs do not get unit-change repair warnings.
+- Kept the sensors numeric by retaining their measurement state class and integer native values.
+
 ## v1.8.3.7
 
 IP Ban Manager 1.8.3.7 tightens the live panel and GeoIP access controls added after 1.8.3.6.

@@ -110,7 +110,6 @@ class IPBanManagerSensor(SensorEntity):
     """Expose one live IP Ban Manager diagnostic count."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_native_unit_of_measurement = ""
     _attr_state_class = SensorStateClass.MEASUREMENT
     # Keep list details available on state, but do not persist them in Recorder.
     _unrecorded_attributes = frozenset(

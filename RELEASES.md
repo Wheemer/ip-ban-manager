@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.3.8](CHANGELOG.md#v1838) | Hotfix: removes the empty unit from diagnostic count sensors to stop unit-change repair warnings on existing installs. |
 | [v1.8.3.7](CHANGELOG.md#v1837) | Hotfix: keeps the panel version visible, hardens config-entry reloads, adds toast feedback, and adds Public Region Lock plus callback-route protection controls. |
 | [v1.8.3.6](CHANGELOG.md#v1836) | Maintenance hotfix: repository automation, GitHub Actions pins, uv tooling, Linux test lock, and startup/status test coverage. |
 | [v1.8.3.5](CHANGELOG.md#v1835) | Hotfix: startup removes exact bans that landed before allowlist protection loaded, and same-turn Home Assistant login notifications get a second rewrite pass. |
