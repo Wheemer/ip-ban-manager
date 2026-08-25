@@ -11,8 +11,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
+    ALLOWED_REGION_ANYWHERE,
     ATTR_BACKUP,
     ATTR_LAST_EXPORT,
+    CONF_ALLOWED_REGION_COUNTRY,
+    CONF_ALLOWED_REGION_MODE,
+    CONF_ALLOWED_REGION_SUBDIVISION,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
@@ -27,6 +31,10 @@ from .const import (
     DOMAIN,
 )
 from .entry_helpers import (
+    coerce_allowed_region_options,
+    entry_allowed_region_country,
+    entry_allowed_region_mode,
+    entry_allowed_region_subdivision,
     entry_allowlisted_login_notifications_enabled,
     entry_allowlisted_logins_can_ban,
     entry_auto_ban_enabled,
@@ -54,6 +62,7 @@ from .file_store import (
 )
 from .geoip import (
     async_download_geoip_database,
+    async_local_geoip_region,
     async_prepare_geoip_reader,
     close_geoip_reader,
     geoip_status,
@@ -78,6 +87,10 @@ from .panel_assets import (
     async_integration_version,
     async_panel_js_url,
 )
+from .runtime_options import (
+    CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
+    entry_callback_route_protection_enabled,
+)
 from .status import async_current_status
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
@@ -96,6 +109,7 @@ async def async_panel_payload(
     translations = await async_load_panel_translations(hass, resolved_language)
     backup_status = await hass.async_add_executor_job(_backup_status, hass)
     geoip = await hass.async_add_executor_job(geoip_status, hass, entry)
+    geoip["local_region"] = await async_local_geoip_region(hass)
     version = await async_integration_version(hass)
     return {
         "ok": True,
@@ -114,11 +128,17 @@ async def async_panel_payload(
             ),
             CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
+            CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
+                entry_callback_route_protection_enabled(entry)
+            ),
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                 entry_allowlisted_login_notifications_enabled(entry)
             ),
             CONF_ALLOWLISTED_LOGINS_CAN_BAN: entry_allowlisted_logins_can_ban(entry),
             CONF_DEFAULT_DENY_ENABLED: entry_default_deny_enabled(entry),
+            CONF_ALLOWED_REGION_MODE: entry_allowed_region_mode(entry),
+            CONF_ALLOWED_REGION_COUNTRY: entry_allowed_region_country(entry),
+            CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
             CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
             CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
             CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
@@ -146,20 +166,43 @@ def coerce_panel_boolean(value: object) -> bool:
     return cv.boolean(value)
 
 
+def _config_entry(hass: HomeAssistant) -> ConfigEntry:
+    """Return the active config entry, tolerating a prior AppKey hot reload."""
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if isinstance(entry, ConfigEntry):
+        return entry
+
+    for key, value in hass.http.app.items():
+        if (
+            "ip_ban_manager_config_entry" in repr(key)
+            and isinstance(value, ConfigEntry)
+        ):
+            hass.http.app[KEY_CONFIG_ENTRY] = value
+            return value
+
+    raise KeyError(KEY_CONFIG_ENTRY)
+
+
 async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     """Persist and apply panel-managed booleans and threshold."""
     if not isinstance(options, dict):
         raise HomeAssistantError("Options must be a JSON object.")
 
-    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    entry = _config_entry(hass)
     current_options = {
         CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
         CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
+        CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
+            entry_callback_route_protection_enabled(entry)
+        ),
         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
             entry_allowlisted_login_notifications_enabled(entry)
         ),
         CONF_ALLOWLISTED_LOGINS_CAN_BAN: entry_allowlisted_logins_can_ban(entry),
         CONF_DEFAULT_DENY_ENABLED: entry_default_deny_enabled(entry),
+        CONF_ALLOWED_REGION_MODE: entry_allowed_region_mode(entry),
+        CONF_ALLOWED_REGION_COUNTRY: entry_allowed_region_country(entry),
+        CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
         CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
         CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
         CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
@@ -167,6 +210,7 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     for key in (
         CONF_AUTO_BAN_ENABLED,
         CONF_BAN_NOTIFICATIONS_ENABLED,
+        CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
         CONF_ALLOWLISTED_LOGINS_CAN_BAN,
         CONF_DEFAULT_DENY_ENABLED,
@@ -180,6 +224,30 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
         current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = (
             normalize_login_attempts_threshold(options[CONF_LOGIN_ATTEMPTS_THRESHOLD])
         )
+    current_options.update(
+        coerce_allowed_region_options(
+            {
+                CONF_ALLOWED_REGION_MODE: current_options[CONF_ALLOWED_REGION_MODE],
+                CONF_ALLOWED_REGION_COUNTRY: current_options[
+                    CONF_ALLOWED_REGION_COUNTRY
+                ],
+                CONF_ALLOWED_REGION_SUBDIVISION: current_options[
+                    CONF_ALLOWED_REGION_SUBDIVISION
+                ],
+                **{
+                    key: options[key]
+                    for key in (
+                        CONF_ALLOWED_REGION_MODE,
+                        CONF_ALLOWED_REGION_COUNTRY,
+                        CONF_ALLOWED_REGION_SUBDIVISION,
+                    )
+                    if key in options
+                },
+            }
+        )
+    )
+    if current_options[CONF_ALLOWED_REGION_MODE] != ALLOWED_REGION_ANYWHERE:
+        current_options[CONF_GEOIP_ENABLED] = True
 
     await async_validate_panel_network_safety(
         hass,
@@ -209,7 +277,7 @@ def panel_silence_allowlisted_login_notification(
     notification_id: object,
 ) -> None:
     """Silence allowlisted login notifications from a panel action link."""
-    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    entry = _config_entry(hass)
     try:
         remote_addr = ip_address(ip_address_value)
     except ValueError as err:
@@ -228,7 +296,7 @@ def panel_unsilence_allowlisted_login_notification(
     ip_address_value: str,
 ) -> None:
     """Unsilence allowlisted login notifications from the admin panel API."""
-    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    entry = _config_entry(hass)
     try:
         remote_addr = ip_address(ip_address_value)
     except ValueError as err:

@@ -27,6 +27,23 @@
     "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter",
     "remove_confirm": "Diese erlaubte IP entfernen? Bei aktivem Default-Deny oder blockierten Netzwerken kann das den Zugriff sperren."
   },
+  "allowed_regions": {
+    "title": "Public Region Lock",
+    "hint": "Restrict public access to one detected or custom GeoIP region.",
+    "warning": "High impact: when a region is selected, public IPs outside it are blocked before login. Allowed IPs, Home Assistant internal traffic, and the Protect integration callbacks option are respected.",
+    "detected": "Detected from this Home Assistant server: {location}",
+    "unavailable": "Local country and province/state choices will appear after the GeoIP database is ready on this Home Assistant server.",
+    "anywhere": "Anywhere",
+    "anywhere_hint": "Do not limit public access by GeoIP location.",
+    "local_country": "Country",
+    "local_country_hint": "Only public IPs from this country can connect.",
+    "local_subdivision": "Province / State",
+    "local_subdivision_hint": "Only public IPs from this province/state can connect.",
+    "custom": "Custom region",
+    "custom_hint": "Use ISO codes only when you need a different country or province/state.",
+    "country_placeholder": "Country, e.g. CA",
+    "subdivision_placeholder": "Province/state, e.g. CA-NL"
+  },
   "blocked_ips": {
     "title": "Blockierte IPs",
     "hint": "Home Assistants native exakte IPv4-/IPv6-Sperrliste, in ip_bans.yaml älteste zuerst.",
@@ -48,10 +65,26 @@
     "ban_notifications_enabled_hint": "Warnungen anzeigen, wenn IPs blockiert werden.",
     "allowlisted_login_notifications_enabled": "Allowlist-Login-Benachrichtigungen",
     "allowlisted_login_notifications_enabled_hint": "Bei fehlgeschlagenen vertrauenswürdigen Logins warnen.",
+    "callback_route_protection_enabled": "Protect integration callbacks",
+    "callback_route_protection_enabled_hint": "Let Home Assistant webhook callbacks pass managed blocking rules.",
     "sidebar_panel_enabled": "In Seitenleiste anzeigen",
     "sidebar_panel_enabled_hint": "Seite im linken Menü hinzufügen.",
     "geoip_enabled": "GeoIP-Standortlabels",
     "geoip_enabled_hint": "Ungefähre Standorte öffentlicher IPs anzeigen. Fehlt die lokale Datenbank, lädt Anwenden sie herunter.",
+    "allowed_region_title": "GeoIP access limit",
+    "allowed_region_mode": "Public access from",
+    "allowed_region_country": "Custom country code",
+    "allowed_region_subdivision": "Custom province/state code",
+    "allowed_region_hint": "Optional public-IP blocking rule. Allowed IPs and Home Assistant internal traffic always win.",
+    "use_local_country": "Local country {country}",
+    "use_local_subdivision": "Local province/state {subdivision}",
+    "local_region_detected": "Detected local region: {location}",
+    "local_region_unavailable": "Local country or province/state will appear here after GeoIP is enabled and the database is ready.",
+    "allowed_region_modes": {
+      "anywhere": "Anywhere",
+      "country": "Local or custom country",
+      "subdivision": "Local or custom province/state"
+    },
     "login_attempts_threshold": "Schwellwert für Login-Versuche",
     "allowlisted_logins_can_ban": "Sperren innerhalb erlaubter IPs",
     "allowlisted_logins_can_ban_hint": "Vorsicht: vertrauenswürdige IPs können blockiert werden.",
@@ -94,6 +127,7 @@
     }
   },
   "success": {
+    "set_options": "Options applied.",
     "export_config": "Backup gespeichert unter {path}",
     "import_config": "Backup wiederhergestellt von {path}",
     "download_config": "Backup heruntergeladen.",

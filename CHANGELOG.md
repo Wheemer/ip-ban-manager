@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.8.3.7
+
+IP Ban Manager 1.8.3.7 tightens the live panel and GeoIP access controls added after 1.8.3.6.
+
+### Fixed
+
+- The live panel version label now stays visible after Home Assistant serves the versioned panel script.
+- Config-entry reloads no longer lose IP Ban Manager runtime keys after hot-loading updated source files.
+- Panel save and import/export actions now show bottom-right toast feedback instead of a page-level status block.
+- Error toast feedback now matches the success toast styling with a red background and exclamation badge.
+
+### Changed
+
+- Added Public Region Lock panel controls for country or province/state GeoIP access limits.
+- Added callback-route protection so Home Assistant webhook callback routes can pass managed blocking rules.
+- Updated panel and integration translations for the new controls.
+
 ## v1.8.3.6
 
 IP Ban Manager 1.8.3.6 is a maintenance hotfix for repository automation and test tooling. No user-facing behavior changes are included.

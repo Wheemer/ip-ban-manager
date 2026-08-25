@@ -40,6 +40,9 @@ KEY_GEOIP_READER_MTIME = AppKey[float]("ip_ban_manager_geoip_reader_mtime")
 KEY_GEOIP_READER_PREPARE_TASK = AppKey[Task[None]](
     "ip_ban_manager_geoip_reader_prepare_task"
 )
+KEY_LOCAL_GEOIP_REGION_CACHE = AppKey[dict[str, Any]](
+    "ip_ban_manager_local_geoip_region_cache"
+)
 KEY_REVERSE_DNS_CACHE = AppKey[dict[IPAddress, Any]]("ip_ban_manager_reverse_dns_cache")
 KEY_HEALTH = AppKey[dict[str, object]]("ip_ban_manager_health")
 KEY_METRICS = AppKey[dict[str, object]]("ip_ban_manager_metrics")

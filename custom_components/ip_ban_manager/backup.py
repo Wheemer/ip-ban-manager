@@ -26,7 +26,11 @@ from .ban_ops import (
     ip_ban_file_payload,
 )
 from .const import (
+    ALLOWED_REGION_ANYWHERE,
     ATTR_BANNED_IPS,
+    CONF_ALLOWED_REGION_COUNTRY,
+    CONF_ALLOWED_REGION_MODE,
+    CONF_ALLOWED_REGION_SUBDIVISION,
     CONF_ALLOWLIST_ENTRY_META,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
@@ -44,6 +48,10 @@ from .const import (
     SOURCE_IMPORT,
 )
 from .entry_helpers import (
+    coerce_allowed_region_options,
+    entry_allowed_region_country,
+    entry_allowed_region_mode,
+    entry_allowed_region_subdivision,
     entry_allowlisted_login_notifications_enabled,
     entry_allowlisted_logins_can_ban,
     entry_auto_ban_enabled,
@@ -78,6 +86,10 @@ from .network_policy import (
 )
 from .notifications import entry_silenced_allowlisted_login_ip_strings
 from .panel import async_register_panel
+from .runtime_options import (
+    CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
+    entry_callback_route_protection_enabled,
+)
 from .storage_keys import KEY_ALLOWLIST, KEY_CONFIG_ENTRY
 
 CONFIG_EXPORT_FORMAT_VERSION = 1
@@ -97,11 +109,17 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
             CONF_BLOCKED_NETWORK_ENTRY_META: entry_blocked_network_meta(entry),
             CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
+            CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
+                entry_callback_route_protection_enabled(entry)
+            ),
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                 entry_allowlisted_login_notifications_enabled(entry)
             ),
             CONF_ALLOWLISTED_LOGINS_CAN_BAN: entry_allowlisted_logins_can_ban(entry),
             CONF_DEFAULT_DENY_ENABLED: entry_default_deny_enabled(entry),
+            CONF_ALLOWED_REGION_MODE: entry_allowed_region_mode(entry),
+            CONF_ALLOWED_REGION_COUNTRY: entry_allowed_region_country(entry),
+            CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
             CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
             CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
             CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
@@ -340,6 +358,11 @@ async def async_apply_config_backup_payload(
         CONF_BAN_NOTIFICATIONS_ENABLED,
         entry_ban_notifications_enabled(entry),
     )
+    callback_route_protection_enabled = _bool_from_import(
+        settings,
+        CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
+        entry_callback_route_protection_enabled(entry),
+    )
     allowlisted_login_notifications_enabled = _bool_from_import(
         settings,
         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
@@ -353,9 +376,25 @@ async def async_apply_config_backup_payload(
     default_deny_enabled = _bool_from_import(
         settings, CONF_DEFAULT_DENY_ENABLED, entry_default_deny_enabled(entry)
     )
+    allowed_region_options = coerce_allowed_region_options(
+        {
+            CONF_ALLOWED_REGION_MODE: settings.get(
+                CONF_ALLOWED_REGION_MODE, entry_allowed_region_mode(entry)
+            ),
+            CONF_ALLOWED_REGION_COUNTRY: settings.get(
+                CONF_ALLOWED_REGION_COUNTRY, entry_allowed_region_country(entry)
+            ),
+            CONF_ALLOWED_REGION_SUBDIVISION: settings.get(
+                CONF_ALLOWED_REGION_SUBDIVISION,
+                entry_allowed_region_subdivision(entry),
+            ),
+        }
+    )
     geoip_enabled = _bool_from_import(
         settings, CONF_GEOIP_ENABLED, entry_geoip_enabled(entry)
     )
+    if allowed_region_options[CONF_ALLOWED_REGION_MODE] != ALLOWED_REGION_ANYWHERE:
+        geoip_enabled = True
     sidebar_panel_enabled = _bool_from_import(
         settings, CONF_SIDEBAR_PANEL_ENABLED, entry_sidebar_panel_enabled(entry)
     )
@@ -426,11 +465,13 @@ async def async_apply_config_backup_payload(
             CONF_BLOCKED_NETWORK_ENTRY_META: blocked_meta,
             CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
             CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+            CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: callback_route_protection_enabled,
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                 allowlisted_login_notifications_enabled
             ),
             CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
             CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
+            **allowed_region_options,
             CONF_GEOIP_ENABLED: geoip_enabled,
             CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
             CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,

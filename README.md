@@ -22,7 +22,7 @@ Originally created by [palfrey](https://github.com/palfrey). This fork builds on
 > [!WARNING]
 > **THIS IS A HACK. USE AT YOUR OWN RISK.** Home Assistant does not provide a public integration API for changing the HTTP IP ban manager at runtime, so this integration uses a small internal hook around Home Assistant's built-in ban manager.
 
-IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted IPs and networks, live ban review and removal, managed network blocks, default-deny controls, GeoIP labels, backup/restore, services, diagnostics, and branded notifications.
+IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted IPs and networks, live ban review and removal, managed network blocks, default-deny controls, GeoIP labels and region limits, backup/restore, services, diagnostics, and branded notifications.
 
 Compatibility target: Home Assistant `2024.7.4` and newer, including older Supervised, Container, Core, and OS installs that are still running in the wild.
 
@@ -38,7 +38,7 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 - **Default deny:** optionally block everything outside Allowed IPs with guardrails to avoid locking out Home Assistant itself.
 - **Live panel:** manage the whole integration from a dedicated page, with optional sidebar access.
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
-- **GeoIP labels:** optionally download a local DB-IP City Lite database for approximate public-IP location labels.
+- **GeoIP labels and limits:** optionally download a local DB-IP City Lite database for approximate public-IP location labels and country/province access limits.
 - **Backup and restore:** save/restore a readable YAML backup under `/config`, or download/upload a backup in the browser.
 - **Diagnostics and automation:** numeric sensors, `ip_ban_manager.*` services, and Home Assistant events for scripts and automations.
 - **Translations:** config flow, options, repairs, services, entity names, and the live panel follow the signed-in Home Assistant user's language when a locale file is available. See [Translations](docs/translations.md) for the shipped locales and maintenance notes.
@@ -93,6 +93,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 - Default-deny mode
 - Allowlisted-login notification settings
 - Local GeoIP database download/update
+- Optional GeoIP allowed-region access control
 - Manual on-disk backup, browser download, and browser upload restore
 
 Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
@@ -137,6 +138,8 @@ IP Ban Manager validates changes before writing them. It rejects malformed entri
 
 Home Assistant's own exact interface addresses and IPv6 link-local access paths are protected internally. Detected container/Supervisor access paths can also be added to **Allowed IPs** by the safe-default option so users can see and manage them directly.
 
+**Protect integration callbacks** is on by default. It keeps Home Assistant webhook callback routes reachable through IP Ban Manager's managed rules, including blocked networks, default-deny mode, and GeoIP region limits. Exact IP bans still apply.
+
 ## Backup And Restore
 
 The live panel can **Save**, **Restore**, **Download**, and **Upload** a YAML backup.
@@ -160,6 +163,16 @@ GeoIP labels are optional. When enabled, IP Ban Manager downloads the free DB-IP
 ```
 
 Lookups are local only. No live online IP lookup is made while handling logins or bans. Private, loopback, and local-network addresses are not looked up. Location data is approximate and provided by DB-IP.com.
+
+### Public Region Lock
+
+The live panel can also lock public access to one GeoIP region:
+
+- **Anywhere**: no GeoIP access limit.
+- **Country**: allow only public IPs from one ISO 3166-1 alpha-2 country code, such as `CA`.
+- **Province/state**: allow only public IPs from one ISO 3166-2 subdivision code, such as `CA-NL`.
+
+Allowed IPs, local/private traffic, Home Assistant's own internal access paths, and protected callback routes are checked before the GeoIP rule. When a country or province/state is selected, public IPs outside that region, or public IPs that cannot be resolved to that region, are blocked.
 
 ## Emergency Disable
 

@@ -9,6 +9,7 @@
           "auto_ban_enabled": "Automatische Sperren",
           "ban_notifications_enabled": "Automatische Sperr-Benachrichtigungen",
           "allowlisted_login_notifications_enabled": "Allowlist-Login-Benachrichtigungen",
+          "callback_route_protection_enabled": "Protect integration callbacks",
           "allowlisted_logins_can_ban": "Automatische Sperren innerhalb erlaubter IPs zulassen",
           "default_deny_enabled": "Alles außerhalb erlaubter IPs blockieren",
           "geoip_enabled": "GeoIP-Standortlabels",
@@ -133,6 +134,7 @@
         "auto_ban": "Automatische Sperren – fehlgeschlagene Login-Quellen blockieren",
         "ban_notifications": "Automatische Sperr-Benachrichtigungen – Warnungen bei blockierten IPs",
         "allowlisted_login_notifications": "Allowlist-Login-Benachrichtigungen – bei fehlgeschlagenen vertrauenswürdigen Logins warnen",
+        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
         "sidebar_panel": "In Seitenleiste anzeigen – Seite im linken Menü hinzufügen",
         "geoip": "GeoIP-Standortlabels – lokale DB-IP-Datenbank herunterladen"
       }

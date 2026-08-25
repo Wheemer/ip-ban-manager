@@ -9,6 +9,7 @@
           "auto_ban_enabled": "Blocchi automatici",
           "ban_notifications_enabled": "Notifiche di blocco automatico",
           "allowlisted_login_notifications_enabled": "Notifiche accesso Allowlist",
+          "callback_route_protection_enabled": "Protect integration callbacks",
           "allowlisted_logins_can_ban": "Consenti blocchi automatici nelle IP consentite",
           "default_deny_enabled": "Blocca tutto al di fuori delle IP consentite",
           "geoip_enabled": "Etichette posizione GeoIP",
@@ -133,6 +134,7 @@
         "auto_ban": "Blocchi automatici – blocca le fonti di accesso fallite",
         "ban_notifications": "Notifiche di blocco automatico – avvisi quando le IP vengono bloccate",
         "allowlisted_login_notifications": "Notifiche accesso Allowlist – avvisa su accessi attendibili falliti",
+        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
         "sidebar_panel": "Mostra nella barra laterale – aggiungi la pagina al menu sinistro",
         "geoip": "Etichette posizione GeoIP – scarica un database DB-IP locale"
       }

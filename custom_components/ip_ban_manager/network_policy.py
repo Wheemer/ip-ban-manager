@@ -21,6 +21,7 @@ from .audit import (
 from .ban_lookup import NetworkAwareBanLookup, _supervisor_internal_networks
 from .ban_ops import ban_manager
 from .const import (
+    ALLOWED_REGION_ANYWHERE,
     ATTR_NETWORK,
     CONF_ALLOWLIST_ENTRY_META,
     CONF_BLOCKED_NETWORK_ENTRY_META,
@@ -33,6 +34,9 @@ from .const import (
 )
 from .entry_helpers import (
     effective_login_threshold,
+    entry_allowed_region_country,
+    entry_allowed_region_mode,
+    entry_allowed_region_subdivision,
     entry_ban_notifications_enabled,
     entry_blocked_networks,
     entry_default_deny_enabled,
@@ -47,12 +51,14 @@ from .entry_meta import (
     entry_blocked_network_meta,
     sync_network_list_meta,
 )
+from .geoip import geoip_region_allows_ip
 from .internal_networks import (
     async_home_assistant_allowlist_safe_defaults,
     async_home_assistant_internal_allowlist_networks,
     async_home_assistant_self_networks,
 )
 from .ip_utils import parse_allowlist_network
+from .runtime_options import entry_callback_route_protection_enabled
 from .storage_keys import (
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
@@ -60,6 +66,23 @@ from .storage_keys import (
     KEY_DEFAULT_DENY,
     KEY_INTERNAL_BYPASS_NETWORKS,
 )
+
+
+def _config_entry(hass: HomeAssistant) -> ConfigEntry:
+    """Return the active config entry, tolerating a prior AppKey hot reload."""
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if isinstance(entry, ConfigEntry):
+        return entry
+
+    for key, value in hass.http.app.items():
+        if (
+            "ip_ban_manager_config_entry" in repr(key)
+            and isinstance(value, ConfigEntry)
+        ):
+            hass.http.app[KEY_CONFIG_ENTRY] = value
+            return value
+
+    raise KeyError(KEY_CONFIG_ENTRY)
 
 
 async def async_update_internal_bypass_networks(hass: HomeAssistant) -> None:
@@ -78,7 +101,7 @@ async def async_update_internal_bypass_networks(hass: HomeAssistant) -> None:
 
 async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
     """Add newly detected internal defaults for entries using safe local defaults."""
-    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    entry = _config_entry(hass)
     current = entry_ip_addresses(entry)
     current_networks = {parse_allowlist_network(network) for network in current}
     if parse_allowlist_network("127.0.0.1") not in current_networks:
@@ -132,6 +155,20 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Apply blocked network settings to Home Assistant's live ban lookup."""
     blocked_networks = parse_blocked_networks(entry_blocked_networks(entry))
     default_deny_enabled = entry_default_deny_enabled(entry)
+    allowed_region_mode = entry_allowed_region_mode(entry)
+    allowed_region_country = entry_allowed_region_country(entry)
+    allowed_region_subdivision = entry_allowed_region_subdivision(entry)
+    geoip_access_allowed = (
+        None
+        if allowed_region_mode == ALLOWED_REGION_ANYWHERE
+        else lambda remote_addr: geoip_region_allows_ip(
+            hass,
+            remote_addr,
+            allowed_region_mode,
+            allowed_region_country,
+            allowed_region_subdivision,
+        )
+    )
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
     hass.http.app[KEY_BLOCKED_NETWORKS] = blocked_networks
     hass.http.app[KEY_DEFAULT_DENY] = default_deny_enabled
@@ -148,6 +185,10 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         lookup.internal_bypass_networks = hass.http.app.get(
             KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
         )
+        lookup.geoip_access_allowed = geoip_access_allowed
+        lookup.callback_route_protection_enabled = (
+            entry_callback_route_protection_enabled(entry)
+        )
         return
 
     ban_manager_.ip_bans_lookup = NetworkAwareBanLookup(
@@ -158,6 +199,8 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         hass.http.app.get(
             KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
         ),
+        geoip_access_allowed,
+        entry_callback_route_protection_enabled(entry),
     )
 
 
@@ -168,7 +211,7 @@ def update_allowlist_entry(
     meta_source: str | None = None,
 ) -> None:
     """Persist and apply the current allowlist without a Home Assistant restart."""
-    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    entry = _config_entry(hass)
     allowlist_meta = entry_allowlist_meta(entry)
     if meta_source is None:
         allowlist_meta = {
@@ -188,7 +231,7 @@ def update_allowlist_entry(
         },
     )
     hass.http.app[KEY_ALLOWLIST] = parse_allowlist(ip_addresses)
-    apply_blocked_networks(hass, hass.http.app[KEY_CONFIG_ENTRY])
+    apply_blocked_networks(hass, _config_entry(hass))
 
 
 def update_blocked_networks_entry(
@@ -198,7 +241,7 @@ def update_blocked_networks_entry(
     meta_source: str | None = None,
 ) -> None:
     """Persist and apply blocked networks without a Home Assistant restart."""
-    entry = hass.http.app[KEY_CONFIG_ENTRY]
+    entry = _config_entry(hass)
     blocked_meta = entry_blocked_network_meta(entry)
     if meta_source is None:
         blocked_meta = {
@@ -217,17 +260,17 @@ def update_blocked_networks_entry(
             CONF_BLOCKED_NETWORK_ENTRY_META: blocked_meta,
         },
     )
-    apply_blocked_networks(hass, hass.http.app[KEY_CONFIG_ENTRY])
+    apply_blocked_networks(hass, _config_entry(hass))
 
 
 def current_allowlist_strings(hass: HomeAssistant) -> list[str]:
     """Return the persisted allowlist strings."""
-    return entry_ip_addresses(hass.http.app[KEY_CONFIG_ENTRY])
+    return entry_ip_addresses(_config_entry(hass))
 
 
 def current_blocked_network_strings(hass: HomeAssistant) -> list[str]:
     """Return the persisted blocked network strings."""
-    return entry_blocked_networks(hass.http.app[KEY_CONFIG_ENTRY])
+    return entry_blocked_networks(_config_entry(hass))
 
 
 async def async_validate_panel_network_safety(

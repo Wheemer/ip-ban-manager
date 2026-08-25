@@ -9,6 +9,7 @@
           "auto_ban_enabled": "Automatiske utestengelser",
           "ban_notifications_enabled": "Automatiske utestengelsesvarsler",
           "allowlisted_login_notifications_enabled": "Varsler for tillatte innlogginger",
+          "callback_route_protection_enabled": "Protect integration callbacks",
           "allowlisted_logins_can_ban": "Tillat automatiske utestengelser innenfor tillatte IP-er",
           "default_deny_enabled": "Blokker alt utenfor tillatte IP-er",
           "geoip_enabled": "GeoIP-posisjonsetiketter",
@@ -133,6 +134,7 @@
         "auto_ban": "Automatiske utestengelser – blokker mislykkede innloggingskilder",
         "ban_notifications": "Automatiske utestengelsesvarsler – vis varsler når IP-er blokkeres",
         "allowlisted_login_notifications": "Varsler for tillatte innlogginger – varsle ved mislykkede pålitelige innlogginger",
+        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
         "sidebar_panel": "Vis i sidepanelet – legg til siden i venstremenyen",
         "geoip": "GeoIP-posisjonsetiketter – last ned lokal DB-IP-database"
       }

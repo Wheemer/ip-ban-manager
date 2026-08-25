@@ -27,6 +27,23 @@
     "placeholder": "IPv4/IPv6 地址、CIDR 或通配符",
     "remove_confirm": "移除此允許的 IP？在啟用預設拒绝或封鎖網絡時，移除受信任條目可能導致無法訪問。"
   },
+  "allowed_regions": {
+    "title": "Public Region Lock",
+    "hint": "Restrict public access to one detected or custom GeoIP region.",
+    "warning": "High impact: when a region is selected, public IPs outside it are blocked before login. Allowed IPs, Home Assistant internal traffic, and the Protect integration callbacks option are respected.",
+    "detected": "Detected from this Home Assistant server: {location}",
+    "unavailable": "Local country and province/state choices will appear after the GeoIP database is ready on this Home Assistant server.",
+    "anywhere": "Anywhere",
+    "anywhere_hint": "Do not limit public access by GeoIP location.",
+    "local_country": "Country",
+    "local_country_hint": "Only public IPs from this country can connect.",
+    "local_subdivision": "Province / State",
+    "local_subdivision_hint": "Only public IPs from this province/state can connect.",
+    "custom": "Custom region",
+    "custom_hint": "Use ISO codes only when you need a different country or province/state.",
+    "country_placeholder": "Country, e.g. CA",
+    "subdivision_placeholder": "Province/state, e.g. CA-NL"
+  },
   "blocked_ips": {
     "title": "已封鎖的 IP",
     "hint": "Home Assistant 原生精確 IPv4/IPv6 封鎖列表，在 ip_bans.yaml 中按最早优先寫入。",
@@ -48,10 +65,26 @@
     "ban_notifications_enabled_hint": "IP 被封鎖時顯示警报。",
     "allowlisted_login_notifications_enabled": "白名單登入通知",
     "allowlisted_login_notifications_enabled_hint": "受信任登入失敗時提醒。",
+    "callback_route_protection_enabled": "Protect integration callbacks",
+    "callback_route_protection_enabled_hint": "Let Home Assistant webhook callbacks pass managed blocking rules.",
     "sidebar_panel_enabled": "在側邊欄中顯示",
     "sidebar_panel_enabled_hint": "新增左側菜單頁面。",
     "geoip_enabled": "GeoIP 位置标签",
     "geoip_enabled_hint": "顯示公共 IP 的大致位置。若缺少本地資料庫，套用時將下載。",
+    "allowed_region_title": "GeoIP access limit",
+    "allowed_region_mode": "Public access from",
+    "allowed_region_country": "Custom country code",
+    "allowed_region_subdivision": "Custom province/state code",
+    "allowed_region_hint": "Optional public-IP blocking rule. Allowed IPs and Home Assistant internal traffic always win.",
+    "use_local_country": "Local country {country}",
+    "use_local_subdivision": "Local province/state {subdivision}",
+    "local_region_detected": "Detected local region: {location}",
+    "local_region_unavailable": "Local country or province/state will appear here after GeoIP is enabled and the database is ready.",
+    "allowed_region_modes": {
+      "anywhere": "Anywhere",
+      "country": "Local or custom country",
+      "subdivision": "Local or custom province/state"
+    },
     "login_attempts_threshold": "登入嘗试閾值",
     "allowlisted_logins_can_ban": "在“允許的 IP”内封鎖",
     "allowlisted_logins_can_ban_hint": "請謹慎：受信任的 IP 也可能被封鎖。",
@@ -94,6 +127,7 @@
     }
   },
   "success": {
+    "set_options": "Options applied.",
     "export_config": "備份已儲存到 {path}",
     "import_config": "已從 {path} 還原備份",
     "download_config": "備份已下載。",

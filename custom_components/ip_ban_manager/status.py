@@ -12,6 +12,10 @@ from homeassistant.core import HomeAssistant
 
 from .ban_ops import chronological_ip_bans
 from .const import (
+    ALLOWED_REGION_ANYWHERE,
+    ATTR_ALLOWED_REGION_COUNTRY,
+    ATTR_ALLOWED_REGION_MODE,
+    ATTR_ALLOWED_REGION_SUBDIVISION,
     ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     ATTR_ALLOWLISTED_LOGINS_CAN_BAN,
     ATTR_AUTO_BAN_ENABLED,
@@ -31,6 +35,9 @@ from .const import (
 )
 from .entry_helpers import (
     current_login_threshold,
+    entry_allowed_region_country,
+    entry_allowed_region_mode,
+    entry_allowed_region_subdivision,
     entry_allowlisted_login_notifications_enabled,
     entry_allowlisted_logins_can_ban,
     entry_auto_ban_enabled,
@@ -44,6 +51,10 @@ from .file_store import geoip_database_path, path_is_file
 from .geoip import geoip_location_for_ip
 from .health import async_health_status, health_status
 from .metrics import metrics
+from .runtime_options import (
+    CONF_CALLBACK_ROUTE_PROTECTION_ENABLED as ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED,
+    entry_callback_route_protection_enabled,
+)
 from .storage_keys import (
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
@@ -86,6 +97,9 @@ def current_status(
         ATTR_BAN_NOTIFICATIONS_ENABLED: (
             entry_ban_notifications_enabled(entry) if entry else True
         ),
+        ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED: (
+            entry_callback_route_protection_enabled(entry) if entry else True
+        ),
         ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
             entry_allowlisted_login_notifications_enabled(entry) if entry else True
         ),
@@ -105,6 +119,15 @@ def current_status(
         ],
         ATTR_DEFAULT_DENY_ENABLED: (
             entry_default_deny_enabled(entry) if entry else False
+        ),
+        ATTR_ALLOWED_REGION_MODE: (
+            entry_allowed_region_mode(entry) if entry else ALLOWED_REGION_ANYWHERE
+        ),
+        ATTR_ALLOWED_REGION_COUNTRY: (
+            entry_allowed_region_country(entry) if entry else ""
+        ),
+        ATTR_ALLOWED_REGION_SUBDIVISION: (
+            entry_allowed_region_subdivision(entry) if entry else ""
         ),
         ATTR_GEOIP_ENABLED: entry_geoip_enabled(entry) if entry else False,
         ATTR_GEOIP_DATABASE_PRESENT: geoip_database_present,

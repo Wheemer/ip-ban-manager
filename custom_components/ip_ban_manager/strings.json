@@ -9,6 +9,7 @@
           "auto_ban_enabled": "Automatic bans",
           "ban_notifications_enabled": "Automatic ban notifications",
           "allowlisted_login_notifications_enabled": "Allowlisted login notifications",
+          "callback_route_protection_enabled": "Protect integration callbacks",
           "allowlisted_logins_can_ban": "Allow automatic bans inside Allowed IPs",
           "default_deny_enabled": "Block everything outside Allowed IPs",
           "geoip_enabled": "GeoIP location labels",
@@ -133,6 +134,7 @@
         "auto_ban": "Automatic bans - block failed login sources",
         "ban_notifications": "Automatic ban notifications - show alerts when IPs are blocked",
         "allowlisted_login_notifications": "Allowlisted login notifications - alert on failed trusted logins",
+        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
         "sidebar_panel": "Show in sidebar - add the left menu page",
         "geoip": "GeoIP location labels - download a local DB-IP database"
       }

@@ -22,6 +22,7 @@ from .const import (
     ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
+    ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED,
     ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_GEOIP_ENABLED,
@@ -37,6 +38,7 @@ from .const import (
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
+    CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
@@ -62,6 +64,7 @@ CONF_BAN_OPTIONS = "ban_options"
 CONF_ADVANCED_BAN_OPTIONS = "advanced_ban_options"
 CONF_AUTO_BAN_CHECKBOX = "auto_ban"
 CONF_BAN_NOTIFICATIONS_CHECKBOX = "ban_notifications"
+CONF_CALLBACK_ROUTE_PROTECTION_CHECKBOX = "callback_route_protection"
 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX = "allowlisted_login_notifications"
 CONF_ALLOWLISTED_LOGINS_CAN_BAN_CHECKBOX = "allowlisted_logins_can_ban"
 CONF_DEFAULT_DENY_CHECKBOX = "default_deny"
@@ -282,6 +285,7 @@ def _ban_option_values(
     auto_ban_enabled: bool,
     notifications_enabled: bool,
     allowlisted_login_notifications_enabled: bool,
+    callback_route_protection_enabled: bool = True,
     sidebar_panel_enabled: bool = True,
     geoip_enabled: bool = False,
 ) -> list[str]:
@@ -293,6 +297,8 @@ def _ban_option_values(
         values.append(CONF_BAN_NOTIFICATIONS_CHECKBOX)
     if allowlisted_login_notifications_enabled:
         values.append(CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX)
+    if callback_route_protection_enabled:
+        values.append(CONF_CALLBACK_ROUTE_PROTECTION_CHECKBOX)
     if sidebar_panel_enabled:
         values.append(CONF_SIDEBAR_PANEL_CHECKBOX)
     if geoip_enabled:
@@ -321,6 +327,7 @@ def _ban_options_selector() -> selector.SelectSelector:
                 CONF_AUTO_BAN_CHECKBOX,
                 CONF_BAN_NOTIFICATIONS_CHECKBOX,
                 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_CHECKBOX,
+                CONF_CALLBACK_ROUTE_PROTECTION_CHECKBOX,
                 CONF_SIDEBAR_PANEL_CHECKBOX,
                 CONF_GEOIP_CHECKBOX,
             ],
@@ -406,6 +413,7 @@ def _ban_settings_fields(
     threshold: int,
     notifications_enabled: bool = True,
     allowlisted_login_notifications_enabled: bool = True,
+    callback_route_protection_enabled: bool = True,
     allowlisted_logins_can_ban: bool = False,
     default_deny_enabled: bool = False,
     sidebar_panel_enabled: bool = True,
@@ -419,6 +427,7 @@ def _ban_settings_fields(
                 auto_ban_enabled,
                 notifications_enabled,
                 allowlisted_login_notifications_enabled,
+                callback_route_protection_enabled,
                 sidebar_panel_enabled,
                 geoip_enabled,
             ),
@@ -442,6 +451,7 @@ def _ban_settings_schema(
     threshold: int,
     notifications_enabled: bool = True,
     allowlisted_login_notifications_enabled: bool = True,
+    callback_route_protection_enabled: bool = True,
     allowlisted_logins_can_ban: bool = False,
     default_deny_enabled: bool = False,
     sidebar_panel_enabled: bool = True,
@@ -454,6 +464,7 @@ def _ban_settings_schema(
             threshold,
             notifications_enabled,
             allowlisted_login_notifications_enabled,
+            callback_route_protection_enabled,
             allowlisted_logins_can_ban,
             default_deny_enabled,
             sidebar_panel_enabled,
@@ -585,6 +596,7 @@ def _legacy_entry_data(config_entry: config_entries.ConfigEntry) -> dict[str, An
     """Return a new-domain config payload from a legacy config entry."""
     data = dict(config_entry.data)
     data[CONF_IP_ADDRESSES] = _validate_ip_addresses(_current_addresses(config_entry))
+    data.setdefault(CONF_CALLBACK_ROUTE_PROTECTION_ENABLED, True)
     data[CONF_LEGACY_ENTRY_ID] = config_entry.entry_id
     return data
 
@@ -667,6 +679,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         True,
                     ),
                     CONF_BAN_NOTIFICATIONS_ENABLED: True,
+                    CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: True,
                     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: True,
                     CONF_ALLOWLISTED_LOGINS_CAN_BAN: False,
                     CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
@@ -756,6 +769,11 @@ class OptionsFlow(config_entries.OptionsFlow):
                                 bool(
                                     status[ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]
                                 ),
+                                bool(
+                                    status[
+                                        ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED
+                                    ]
+                                ),
                                 bool(status[ATTR_ALLOWLISTED_LOGINS_CAN_BAN]),
                                 bool(status[ATTR_DEFAULT_DENY_ENABLED]),
                                 bool(
@@ -801,6 +819,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         blocked_networks: list[str],
         auto_ban_enabled: bool,
         ban_notifications_enabled: bool,
+        callback_route_protection_enabled: bool,
         allowlisted_login_notifications_enabled: bool,
         allowlisted_logins_can_ban: bool,
         default_deny_enabled: bool,
@@ -830,6 +849,9 @@ class OptionsFlow(config_entries.OptionsFlow):
                 **self._config_entry.options,
                 CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
                 CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+                CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
+                    callback_route_protection_enabled
+                ),
                 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                     allowlisted_login_notifications_enabled
                 ),
@@ -859,6 +881,7 @@ class OptionsFlow(config_entries.OptionsFlow):
             CONF_IP_ADDRESSES: ip_addresses,
             CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
             CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+            CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: callback_route_protection_enabled,
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                 allowlisted_login_notifications_enabled
             ),
@@ -936,6 +959,20 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_BAN_NOTIFICATIONS_ENABLED,
                 CONF_BAN_NOTIFICATIONS_CHECKBOX,
                 current_ban_notifications_enabled,
+            )
+            current_callback_route_protection_enabled = bool(
+                self._config_entry.options.get(
+                    CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
+                    self._config_entry.data.get(
+                        CONF_CALLBACK_ROUTE_PROTECTION_ENABLED, True
+                    ),
+                )
+            )
+            callback_route_protection_enabled = _ban_option_enabled(
+                banned_input,
+                CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
+                CONF_CALLBACK_ROUTE_PROTECTION_CHECKBOX,
+                current_callback_route_protection_enabled,
             )
             current_allowlisted_login_notifications_enabled = bool(
                 self._config_entry.options.get(
@@ -1067,6 +1104,9 @@ class OptionsFlow(config_entries.OptionsFlow):
                         CONF_BLOCKED_NETWORKS: blocked_networks,
                         CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
                         CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+                        CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
+                            callback_route_protection_enabled
+                        ),
                         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                             allowlisted_login_notifications_enabled
                         ),
@@ -1089,6 +1129,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                     blocked_networks,
                     auto_ban_enabled,
                     ban_notifications_enabled,
+                    callback_route_protection_enabled,
                     allowlisted_login_notifications_enabled,
                     allowlisted_logins_can_ban,
                     default_deny_enabled,
@@ -1123,6 +1164,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                     cast(list[str], pending[CONF_BLOCKED_NETWORKS]),
                     cast(bool, pending[CONF_AUTO_BAN_ENABLED]),
                     cast(bool, pending[CONF_BAN_NOTIFICATIONS_ENABLED]),
+                    cast(bool, pending[CONF_CALLBACK_ROUTE_PROTECTION_ENABLED]),
                     cast(bool, pending[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]),
                     cast(bool, pending[CONF_ALLOWLISTED_LOGINS_CAN_BAN]),
                     cast(bool, pending[CONF_DEFAULT_DENY_ENABLED]),

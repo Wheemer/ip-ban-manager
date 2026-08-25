@@ -4,7 +4,11 @@
 
 from __future__ import annotations
 
+import importlib
 import logging
+from collections.abc import Callable
+from types import ModuleType
+from typing import Any
 
 from homeassistant.components.http.ban import KEY_BAN_MANAGER, IpBanManager
 from homeassistant.config_entries import SOURCE_IMPORT as HA_SOURCE_IMPORT
@@ -190,6 +194,242 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor"]
 
+_RELOADABLE_MODULES = (
+    "custom_components.ip_ban_manager.const",
+    "custom_components.ip_ban_manager.backup",
+    "custom_components.ip_ban_manager.ban_lookup",
+    "custom_components.ip_ban_manager.ban_ops",
+    "custom_components.ip_ban_manager.entry_helpers",
+    "custom_components.ip_ban_manager.geoip",
+    "custom_components.ip_ban_manager.geoip_lifecycle",
+    "custom_components.ip_ban_manager.health",
+    "custom_components.ip_ban_manager.http_patches",
+    "custom_components.ip_ban_manager.http_views",
+    "custom_components.ip_ban_manager.legacy_migration",
+    "custom_components.ip_ban_manager.metrics",
+    "custom_components.ip_ban_manager.network_policy",
+    "custom_components.ip_ban_manager.notifications",
+    "custom_components.ip_ban_manager.panel",
+    "custom_components.ip_ban_manager.services",
+    "custom_components.ip_ban_manager.status",
+    "custom_components.ip_ban_manager.yaml_config",
+)
+
+_RELOADABLE_BINDINGS: dict[str, tuple[str, str]] = {
+    "CONF_IP_ADDRESSES": ("const", "CONF_IP_ADDRESSES"),
+    "DOMAIN": ("const", "DOMAIN"),
+    "LEGACY_DOMAIN": ("const", "LEGACY_DOMAIN"),
+    "SERVICE_ADD_ALLOWLIST_NETWORK": ("const", "SERVICE_ADD_ALLOWLIST_NETWORK"),
+    "SERVICE_ADD_BLOCKED_NETWORK": ("const", "SERVICE_ADD_BLOCKED_NETWORK"),
+    "SERVICE_ADD_IP_BAN": ("const", "SERVICE_ADD_IP_BAN"),
+    "SERVICE_EXPORT_CONFIG": ("const", "SERVICE_EXPORT_CONFIG"),
+    "SERVICE_IMPORT_CONFIG": ("const", "SERVICE_IMPORT_CONFIG"),
+    "SERVICE_REMOVE_ALL_IP_BANS": ("const", "SERVICE_REMOVE_ALL_IP_BANS"),
+    "SERVICE_REMOVE_ALLOWLIST_NETWORK": (
+        "const",
+        "SERVICE_REMOVE_ALLOWLIST_NETWORK",
+    ),
+    "SERVICE_REMOVE_BLOCKED_NETWORK": ("const", "SERVICE_REMOVE_BLOCKED_NETWORK"),
+    "SERVICE_REMOVE_IP_BAN": ("const", "SERVICE_REMOVE_IP_BAN"),
+    "SERVICE_UPDATE_GEOIP": ("const", "SERVICE_UPDATE_GEOIP"),
+    "CONFIG_EXPORT_FORMAT_VERSION": ("backup", "CONFIG_EXPORT_FORMAT_VERSION"),
+    "_async_apply_config_backup_payload": (
+        "backup",
+        "async_apply_config_backup_payload",
+    ),
+    "_async_export_config": ("backup", "async_export_config"),
+    "_async_import_config": ("backup", "async_import_config"),
+    "_async_import_config_from_yaml": ("backup", "async_import_config_from_yaml"),
+    "_async_restore_exact_bans": ("backup", "async_restore_exact_bans"),
+    "_config_download_payload": ("backup", "config_download_payload"),
+    "_config_export_payload": ("backup", "config_export_payload"),
+    "NetworkAwareBanLookup": ("ban_lookup", "NetworkAwareBanLookup"),
+    "_supervisor_internal_networks": ("ban_lookup", "_supervisor_internal_networks"),
+    "_async_remove_allowlisted_ip_bans": (
+        "ban_ops",
+        "async_remove_allowlisted_ip_bans",
+    ),
+    "_async_replace_ip_bans": ("ban_ops", "async_replace_ip_bans"),
+    "_ban_manager": ("ban_ops", "ban_manager"),
+    "_ip_ban_file_payload": ("ban_ops", "ip_ban_file_payload"),
+    "_entry_allowlisted_login_notifications_enabled": (
+        "entry_helpers",
+        "entry_allowlisted_login_notifications_enabled",
+    ),
+    "_entry_geoip_enabled": ("entry_helpers", "entry_geoip_enabled"),
+    "_entry_ip_addresses": ("entry_helpers", "entry_ip_addresses"),
+    "_entry_sidebar_panel_enabled": ("entry_helpers", "entry_sidebar_panel_enabled"),
+    "_parse_allowlist": ("entry_helpers", "parse_allowlist"),
+    "_close_geoip_reader": ("geoip", "close_geoip_reader"),
+    "_async_schedule_geoip_reader_prepare": (
+        "geoip_lifecycle",
+        "async_schedule_geoip_reader_prepare",
+    ),
+    "INTEGRATION_DISABLED_BY_YAML_ISSUE_ID": (
+        "health",
+        "INTEGRATION_DISABLED_BY_YAML_ISSUE_ID",
+    ),
+    "IP_BAN_DISABLED_ISSUE_ID": ("health", "IP_BAN_DISABLED_ISSUE_ID"),
+    "LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID": (
+        "health",
+        "LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID",
+    ),
+    "LEGACY_YAML_PRESENT_ISSUE_ID": ("health", "LEGACY_YAML_PRESENT_ISSUE_ID"),
+    "_async_create_ip_ban_disabled_issue": (
+        "health",
+        "async_create_ip_ban_disabled_issue",
+    ),
+    "_async_delete_ip_ban_disabled_issue": (
+        "health",
+        "async_delete_ip_ban_disabled_issue",
+    ),
+    "_async_update_emergency_disabled_issue": (
+        "health",
+        "async_update_emergency_disabled_issue",
+    ),
+    "_async_update_health_issue": ("health", "async_update_health_issue"),
+    "_async_update_legacy_yaml_issue": ("health", "async_update_legacy_yaml_issue"),
+    "_ORIGINAL_PROCESS_WRONG_LOGIN": ("http_patches", "_ORIGINAL_PROCESS_WRONG_LOGIN"),
+    "_allowlist_process_wrong_login": (
+        "http_patches",
+        "_allowlist_process_wrong_login",
+    ),
+    "_async_handle_standard_wrong_login": (
+        "http_patches",
+        "_async_handle_standard_wrong_login",
+    ),
+    "_process_allowlisted_wrong_login": (
+        "http_patches",
+        "_process_allowlisted_wrong_login",
+    ),
+    "_request_remote_ip": ("http_patches", "_request_remote_ip"),
+    "_install_add_ban_patch": ("http_patches", "install_add_ban_patch"),
+    "_install_load_bans_patch": ("http_patches", "install_load_bans_patch"),
+    "_install_wrong_login_patch": ("http_patches", "install_wrong_login_patch"),
+    "_uninstall_patches": ("http_patches", "uninstall_patches"),
+    "IPBanManagerManageView": ("http_views", "IPBanManagerManageView"),
+    "IPBanManagerPanelView": ("http_views", "IPBanManagerPanelView"),
+    "IPBanManagerStatusView": ("http_views", "IPBanManagerStatusView"),
+    "SilenceAllowlistedLoginNotificationsView": (
+        "http_views",
+        "SilenceAllowlistedLoginNotificationsView",
+    ),
+    "_register_http_views": ("http_views", "register_http_views"),
+    "_unregister_http_views": ("http_views", "unregister_http_views"),
+    "LEGACY_BACKUP_DIR": ("legacy_migration", "LEGACY_BACKUP_DIR"),
+    "LEGACY_CLEANUP_DIR": ("legacy_migration", "LEGACY_CLEANUP_DIR"),
+    "_async_cleanup_entry_metadata": (
+        "legacy_migration",
+        "async_cleanup_entry_metadata",
+    ),
+    "_async_cleanup_legacy_component_folder": (
+        "legacy_migration",
+        "async_cleanup_legacy_component_folder",
+    ),
+    "_async_remove_legacy_entries": ("legacy_migration", "async_remove_legacy_entries"),
+    "_async_schedule_legacy_cleanup": (
+        "legacy_migration",
+        "async_schedule_legacy_cleanup",
+    ),
+    "_async_schedule_legacy_folder_cleanup": (
+        "legacy_migration",
+        "async_schedule_legacy_folder_cleanup",
+    ),
+    "_cleanup_destination": ("legacy_migration", "cleanup_destination"),
+    "_metrics": ("metrics", "metrics"),
+    "_apply_ban_settings": ("network_policy", "apply_ban_settings"),
+    "_apply_blocked_networks": ("network_policy", "apply_blocked_networks"),
+    "_async_sync_detected_allowlist_defaults": (
+        "network_policy",
+        "async_sync_detected_allowlist_defaults",
+    ),
+    "_async_update_internal_bypass_networks": (
+        "network_policy",
+        "async_update_internal_bypass_networks",
+    ),
+    "_update_allowlist_entry": ("network_policy", "update_allowlist_entry"),
+    "ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD": (
+        "notifications",
+        "ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD",
+    ),
+    "ALLOWLISTED_LOGIN_SILENCE_LABEL": (
+        "notifications",
+        "ALLOWLISTED_LOGIN_SILENCE_LABEL",
+    ),
+    "ALLOWLISTED_LOGIN_SILENCE_URL": ("notifications", "ALLOWLISTED_LOGIN_SILENCE_URL"),
+    "ATTR_NOTIFICATION_ID": ("notifications", "ATTR_NOTIFICATION_ID"),
+    "INTEGRATION_CONFIG_URL": ("notifications", "INTEGRATION_CONFIG_URL"),
+    "NOTIFICATION_ICON_DATA_URL": ("notifications", "NOTIFICATION_ICON_DATA_URL"),
+    "NOTIFICATION_ICON_URL": ("notifications", "NOTIFICATION_ICON_URL"),
+    "NOTIFICATION_TITLE": ("notifications", "NOTIFICATION_TITLE"),
+    "PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN": (
+        "notifications",
+        "PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN",
+    ),
+    "PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN": (
+        "notifications",
+        "PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN",
+    ),
+    "_add_manager_links_to_http_notifications": (
+        "notifications",
+        "add_manager_links_to_http_notifications",
+    ),
+    "_allowlisted_login_silence_panel_url": (
+        "notifications",
+        "allowlisted_login_silence_panel_url",
+    ),
+    "_create_allowlisted_login_notification": (
+        "notifications",
+        "create_allowlisted_login_notification",
+    ),
+    "_create_manager_notification": ("notifications", "create_manager_notification"),
+    "_handle_http_notifications": ("notifications", "handle_http_notifications"),
+    "_async_panel_set_options": ("panel", "async_panel_set_options"),
+    "_async_register_panel": ("panel", "async_register_panel"),
+    "_async_register_static_assets": ("panel", "async_register_static_assets"),
+    "_async_remove_panel": ("panel", "async_remove_panel"),
+    "IP_ADDRESS_SCHEMA": ("services", "IP_ADDRESS_SCHEMA"),
+    "NETWORK_SCHEMA": ("services", "NETWORK_SCHEMA"),
+    "REGISTERED_SERVICES": ("services", "REGISTERED_SERVICES"),
+    "REMOVE_ALL_IP_BANS_SCHEMA": ("services", "REMOVE_ALL_IP_BANS_SCHEMA"),
+    "_register_services": ("services", "register_services"),
+    "current_status": ("status", "current_status"),
+    "CONFIG_SCHEMA": ("yaml_config", "CONFIG_SCHEMA"),
+    "_async_emergency_disable_requested": (
+        "yaml_config",
+        "async_emergency_disable_requested",
+    ),
+}
+
+
+def _reload_runtime_modules_sync() -> None:
+    """Reload IP Ban Manager submodules so config-entry reloads pick up new code."""
+    importlib.invalidate_caches()
+    modules: dict[str, ModuleType] = {}
+    for module_name in _RELOADABLE_MODULES:
+        module = importlib.import_module(module_name)
+        modules[module_name.rsplit(".", 1)[-1]] = importlib.reload(module)
+
+    globals().update(
+        {
+            binding: getattr(modules[module_name], attribute)
+            for binding, (module_name, attribute) in _RELOADABLE_BINDINGS.items()
+        }
+    )
+    storage_keys = importlib.import_module("custom_components.ip_ban_manager.storage_keys")
+    globals().update(
+        {
+            name: getattr(storage_keys, name)
+            for name in list(globals())
+            if name.startswith("KEY_") and hasattr(storage_keys, name)
+        }
+    )
+
+
+async def _async_reload_runtime_modules(hass: HomeAssistant) -> None:
+    """Reload IP Ban Manager code off the event loop before setting up an entry."""
+    await hass.async_add_executor_job(_reload_runtime_modules_sync)
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up IP Ban Manager and import YAML configuration."""
@@ -227,6 +467,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _async_update_emergency_disabled_issue(hass, True)
         return True
 
+    await _async_reload_runtime_modules(hass)
     _async_cleanup_entry_metadata(hass, entry)
     _async_schedule_legacy_cleanup(hass)
     _async_schedule_legacy_folder_cleanup(hass)

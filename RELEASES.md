@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.3.7](CHANGELOG.md#v1837) | Hotfix: keeps the panel version visible, hardens config-entry reloads, adds toast feedback, and adds Public Region Lock plus callback-route protection controls. |
 | [v1.8.3.6](CHANGELOG.md#v1836) | Maintenance hotfix: repository automation, GitHub Actions pins, uv tooling, Linux test lock, and startup/status test coverage. |
 | [v1.8.3.5](CHANGELOG.md#v1835) | Hotfix: startup removes exact bans that landed before allowlist protection loaded, and same-turn Home Assistant login notifications get a second rewrite pass. |
 | [v1.8.3.4](CHANGELOG.md#v1834) | Hotfix: public PTR labels use external DNS-over-HTTPS, failed-login notifications keep IPs as the visible source, and GeoIP labels include compact region/country codes when available. |

@@ -27,6 +27,23 @@
     "placeholder": "Adresă IPv4/IPv6, CIDR sau wildcard",
     "remove_confirm": "Elimini această IP permisă? Cu refuzul implicit sau rețelele blocate active, eliminarea unei intrări de încredere poate bloca accesul."
   },
+  "allowed_regions": {
+    "title": "Public Region Lock",
+    "hint": "Restrict public access to one detected or custom GeoIP region.",
+    "warning": "High impact: when a region is selected, public IPs outside it are blocked before login. Allowed IPs, Home Assistant internal traffic, and the Protect integration callbacks option are respected.",
+    "detected": "Detected from this Home Assistant server: {location}",
+    "unavailable": "Local country and province/state choices will appear after the GeoIP database is ready on this Home Assistant server.",
+    "anywhere": "Anywhere",
+    "anywhere_hint": "Do not limit public access by GeoIP location.",
+    "local_country": "Country",
+    "local_country_hint": "Only public IPs from this country can connect.",
+    "local_subdivision": "Province / State",
+    "local_subdivision_hint": "Only public IPs from this province/state can connect.",
+    "custom": "Custom region",
+    "custom_hint": "Use ISO codes only when you need a different country or province/state.",
+    "country_placeholder": "Country, e.g. CA",
+    "subdivision_placeholder": "Province/state, e.g. CA-NL"
+  },
   "blocked_ips": {
     "title": "IP-uri blocate",
     "hint": "Lista nativă Home Assistant de blocări exacte IPv4/IPv6, scrisă de la cea mai veche în ip_bans.yaml.",
@@ -48,10 +65,26 @@
     "ban_notifications_enabled_hint": "Afișează alerte când IP-urile sunt blocate.",
     "allowlisted_login_notifications_enabled": "Notificări de autentificare pe lista permisă",
     "allowlisted_login_notifications_enabled_hint": "Alerte la autentificări de încredere eșuate.",
+    "callback_route_protection_enabled": "Protect integration callbacks",
+    "callback_route_protection_enabled_hint": "Let Home Assistant webhook callbacks pass managed blocking rules.",
     "sidebar_panel_enabled": "Afișează în bara laterală",
     "sidebar_panel_enabled_hint": "Adaugă pagina în meniul din stânga.",
     "geoip_enabled": "Etichete de locație GeoIP",
     "geoip_enabled_hint": "Afișează locații aproximative ale IP-urilor publice. Dacă baza de date locală lipsește, Aplică o descarcă.",
+    "allowed_region_title": "GeoIP access limit",
+    "allowed_region_mode": "Public access from",
+    "allowed_region_country": "Custom country code",
+    "allowed_region_subdivision": "Custom province/state code",
+    "allowed_region_hint": "Optional public-IP blocking rule. Allowed IPs and Home Assistant internal traffic always win.",
+    "use_local_country": "Local country {country}",
+    "use_local_subdivision": "Local province/state {subdivision}",
+    "local_region_detected": "Detected local region: {location}",
+    "local_region_unavailable": "Local country or province/state will appear here after GeoIP is enabled and the database is ready.",
+    "allowed_region_modes": {
+      "anywhere": "Anywhere",
+      "country": "Local or custom country",
+      "subdivision": "Local or custom province/state"
+    },
     "login_attempts_threshold": "Prag de încercări de autentificare",
     "allowlisted_logins_can_ban": "Interdicții în IP-urile permise",
     "allowlisted_logins_can_ban_hint": "Ai grijă: IP-urile de încredere pot fi blocate.",
@@ -94,6 +127,7 @@
     }
   },
   "success": {
+    "set_options": "Options applied.",
     "export_config": "Backup salvat în {path}",
     "import_config": "Backup restaurat din {path}",
     "download_config": "Backup descărcat.",

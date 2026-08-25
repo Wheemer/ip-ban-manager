@@ -9,6 +9,7 @@
           "auto_ban_enabled": "Interdicții automate",
           "ban_notifications_enabled": "Notificări automate de interdicție",
           "allowlisted_login_notifications_enabled": "Notificări de autentificare pe lista permisă",
+          "callback_route_protection_enabled": "Protect integration callbacks",
           "allowlisted_logins_can_ban": "Permite interdicții automate în IP-urile permise",
           "default_deny_enabled": "Blochează tot ce este în afara IP-urilor permise",
           "geoip_enabled": "Etichete de locație GeoIP",
@@ -133,6 +134,7 @@
         "auto_ban": "Interdicții automate – blochează sursele de autentificare eșuate",
         "ban_notifications": "Notificări automate de interdicție – alerte când IP-urile sunt blocate",
         "allowlisted_login_notifications": "Notificări de autentificare pe lista permisă – alerte la autentificări de încredere eșuate",
+        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
         "sidebar_panel": "Afișează în bara laterală – adaugă pagina în meniul din stânga",
         "geoip": "Etichete de locație GeoIP – descarcă o bază de date DB-IP locală"
       }

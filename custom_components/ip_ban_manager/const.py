@@ -7,6 +7,7 @@ ATTR_BAN_NOTIFICATIONS_ENABLED = "ban_notifications_enabled"
 ATTR_BANNED_IPS = "banned_ips"
 ATTR_BACKUP = "backup"
 ATTR_BLOCKED_NETWORKS = "blocked_networks"
+ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED = "callback_route_protection_enabled"
 ATTR_CONFIRM = "confirm"
 ATTR_DEFAULT_DENY_ENABLED = "default_deny_enabled"
 ATTR_FAILED_LOGIN_ATTEMPTS = "failed_login_attempts"
@@ -15,6 +16,9 @@ ATTR_GEOIP_DATABASE_PRESENT = "geoip_database_present"
 ATTR_GEOIP_DATABASE_SOURCE = "geoip_database_source"
 ATTR_GEOIP_DATABASE_UPDATED = "geoip_database_updated"
 ATTR_GEOIP_ENABLED = "geoip_enabled"
+ATTR_ALLOWED_REGION_COUNTRY = "allowed_region_country"
+ATTR_ALLOWED_REGION_MODE = "allowed_region_mode"
+ATTR_ALLOWED_REGION_SUBDIVISION = "allowed_region_subdivision"
 ATTR_HEALTH = "health"
 ATTR_HEALTH_ISSUES = "health_issues"
 ATTR_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
@@ -39,10 +43,14 @@ CONF_BAN_NOTIFICATIONS_ENABLED = "ban_notifications_enabled"
 CONF_BANNED_IPS = "banned_ips"
 CONF_BLOCKED_NETWORKS = "blocked_networks"
 CONF_BLOCKED_NETWORK_ENTRY_META = "blocked_network_entry_meta"
+CONF_CALLBACK_ROUTE_PROTECTION_ENABLED = "callback_route_protection_enabled"
 CONF_DEFAULT_DENY_ENABLED = "default_deny_enabled"
 CONF_DISABLED = "disabled"
 CONF_DISABLE_BAN_MANAGER = "disable_ban_manager"
 CONF_GEOIP_ENABLED = "geoip_enabled"
+CONF_ALLOWED_REGION_COUNTRY = "allowed_region_country"
+CONF_ALLOWED_REGION_MODE = "allowed_region_mode"
+CONF_ALLOWED_REGION_SUBDIVISION = "allowed_region_subdivision"
 CONF_IP_ADDRESSES = "ip_addresses"
 CONF_LEGACY_ENTRY_ID = "legacy_entry_id"
 CONF_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
@@ -54,6 +62,18 @@ LEGACY_DOMAIN = "ban_allowlist"
 
 DEFAULT_LOGIN_ATTEMPTS_THRESHOLD = 5
 MAX_LOGIN_ATTEMPTS_THRESHOLD = 100
+
+ALLOWED_REGION_ANYWHERE = "anywhere"
+ALLOWED_REGION_COUNTRY = "country"
+ALLOWED_REGION_SUBDIVISION = "subdivision"
+ALLOWED_REGION_MODES = {
+    ALLOWED_REGION_ANYWHERE,
+    ALLOWED_REGION_COUNTRY,
+    ALLOWED_REGION_SUBDIVISION,
+}
+DEFAULT_ALLOWED_REGION_COUNTRY = ""
+DEFAULT_ALLOWED_REGION_MODE = ALLOWED_REGION_ANYWHERE
+DEFAULT_ALLOWED_REGION_SUBDIVISION = ""
 
 SERVICE_ADD_ALLOWLIST_NETWORK = "add_allowlist_network"
 SERVICE_ADD_BLOCKED_NETWORK = "add_blocked_network"

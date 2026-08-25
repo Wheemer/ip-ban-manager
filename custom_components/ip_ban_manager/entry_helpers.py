@@ -7,19 +7,31 @@ from typing import Any
 from homeassistant.components.http.ban import KEY_BAN_MANAGER, KEY_LOGIN_THRESHOLD
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
+    ALLOWED_REGION_ANYWHERE,
+    ALLOWED_REGION_COUNTRY,
+    ALLOWED_REGION_MODES,
+    ALLOWED_REGION_SUBDIVISION,
     CONF_ALLOWED_IPS,
+    CONF_ALLOWED_REGION_COUNTRY,
+    CONF_ALLOWED_REGION_MODE,
+    CONF_ALLOWED_REGION_SUBDIVISION,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
     CONF_ALLOWLISTED_LOGINS_CAN_BAN,
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BLOCKED_NETWORKS,
+    CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_SIDEBAR_PANEL_ENABLED,
+    DEFAULT_ALLOWED_REGION_COUNTRY,
+    DEFAULT_ALLOWED_REGION_MODE,
+    DEFAULT_ALLOWED_REGION_SUBDIVISION,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     MAX_LOGIN_ATTEMPTS_THRESHOLD,
 )
@@ -91,6 +103,16 @@ def entry_ban_notifications_enabled(entry: ConfigEntry) -> bool:
     )
 
 
+def entry_callback_route_protection_enabled(entry: ConfigEntry) -> bool:
+    """Return whether managed rules should protect HA callback routes."""
+    return bool(
+        entry.options.get(
+            CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
+            entry.data.get(CONF_CALLBACK_ROUTE_PROTECTION_ENABLED, True),
+        )
+    )
+
+
 def entry_allowlisted_login_notifications_enabled(entry: ConfigEntry) -> bool:
     """Return whether allowlisted failed logins should notify immediately."""
     return bool(
@@ -128,6 +150,101 @@ def entry_geoip_enabled(entry: ConfigEntry) -> bool:
             CONF_GEOIP_ENABLED,
             entry.data.get(CONF_GEOIP_ENABLED, False),
         )
+    )
+
+
+def normalize_allowed_region_mode(value: object) -> str:
+    """Return a supported GeoIP access-control mode."""
+    mode = str(value or DEFAULT_ALLOWED_REGION_MODE).strip().lower()
+    return mode if mode in ALLOWED_REGION_MODES else ALLOWED_REGION_ANYWHERE
+
+
+def normalize_allowed_region_code(value: object) -> str:
+    """Return a normalized GeoIP country or subdivision code."""
+    return str(value or "").strip().upper()
+
+
+def normalize_allowed_region_subdivision_code(value: object, country_code: str) -> str:
+    """Return a normalized ISO 3166-2 subdivision code."""
+    subdivision = normalize_allowed_region_code(value)
+    country = normalize_allowed_region_code(country_code)
+    if not subdivision or not country:
+        return subdivision
+    if "-" in subdivision:
+        return subdivision
+    return f"{country}-{subdivision}"
+
+
+def _valid_region_code(value: str) -> bool:
+    """Return whether a GeoIP region code is plausibly ISO-shaped."""
+    return bool(value) and value.replace("-", "").isalnum()
+
+
+def coerce_allowed_region_options(options: dict[object, object]) -> dict[str, str]:
+    """Parse and validate GeoIP allowed-region options."""
+    mode = normalize_allowed_region_mode(
+        options.get(CONF_ALLOWED_REGION_MODE, ALLOWED_REGION_ANYWHERE)
+    )
+    country = normalize_allowed_region_code(
+        options.get(CONF_ALLOWED_REGION_COUNTRY, "")
+    )
+    subdivision = normalize_allowed_region_subdivision_code(
+        options.get(CONF_ALLOWED_REGION_SUBDIVISION, ""),
+        country,
+    )
+
+    if mode in (ALLOWED_REGION_COUNTRY, ALLOWED_REGION_SUBDIVISION):
+        if len(country) != 2 or not country.isalpha():
+            raise HomeAssistantError(
+                "Allowed region country must be an ISO code like CA."
+            )
+
+    if mode == ALLOWED_REGION_SUBDIVISION:
+        if not subdivision.startswith(f"{country}-") or not _valid_region_code(
+            subdivision
+        ):
+            raise HomeAssistantError(
+                "Allowed region province/state must be an ISO code like CA-NL."
+            )
+
+    return {
+        CONF_ALLOWED_REGION_MODE: mode,
+        CONF_ALLOWED_REGION_COUNTRY: country,
+        CONF_ALLOWED_REGION_SUBDIVISION: subdivision,
+    }
+
+
+def entry_allowed_region_mode(entry: ConfigEntry) -> str:
+    """Return the configured GeoIP access-control mode."""
+    return normalize_allowed_region_mode(
+        entry.options.get(
+            CONF_ALLOWED_REGION_MODE,
+            entry.data.get(CONF_ALLOWED_REGION_MODE, DEFAULT_ALLOWED_REGION_MODE),
+        )
+    )
+
+
+def entry_allowed_region_country(entry: ConfigEntry) -> str:
+    """Return the configured allowed GeoIP country code."""
+    return normalize_allowed_region_code(
+        entry.options.get(
+            CONF_ALLOWED_REGION_COUNTRY,
+            entry.data.get(CONF_ALLOWED_REGION_COUNTRY, DEFAULT_ALLOWED_REGION_COUNTRY),
+        )
+    )
+
+
+def entry_allowed_region_subdivision(entry: ConfigEntry) -> str:
+    """Return the configured allowed GeoIP subdivision code."""
+    return normalize_allowed_region_subdivision_code(
+        entry.options.get(
+            CONF_ALLOWED_REGION_SUBDIVISION,
+            entry.data.get(
+                CONF_ALLOWED_REGION_SUBDIVISION,
+                DEFAULT_ALLOWED_REGION_SUBDIVISION,
+            ),
+        ),
+        entry_allowed_region_country(entry),
     )
 
 

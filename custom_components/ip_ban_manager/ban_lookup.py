@@ -3,17 +3,13 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from contextlib import suppress
-from ipaddress import (
-    IPv4Address,
-    IPv4Network,
-    IPv6Address,
-    IPv6Network,
-    ip_address,
-)
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address
 from urllib.parse import urlsplit
 
 from homeassistant.components.http.ban import IpBan
+from homeassistant.helpers.http import current_request
 
 IPAddress = IPv4Address | IPv6Address
 IPNetwork = IPv4Network | IPv6Network
@@ -22,6 +18,7 @@ SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
 SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (
     SUPERVISOR_DOCKER_PARENT_NETWORK,
 )
+CALLBACK_ROUTE_PREFIXES = ("/api/webhook/",)
 
 
 class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
@@ -34,6 +31,8 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         allowlist: tuple[IPNetwork, ...],
         default_deny_enabled: bool,
         internal_bypass_networks: tuple[IPNetwork, ...] | None = None,
+        geoip_access_allowed: Callable[[IPAddress], bool] | None = None,
+        callback_route_protection_enabled: bool = True,
     ) -> None:
         """Initialize the lookup from Home Assistant's exact IP bans."""
         super().__init__(values)
@@ -43,6 +42,8 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         self.internal_bypass_networks = (
             internal_bypass_networks or _supervisor_internal_networks()
         )
+        self.geoip_access_allowed = geoip_access_allowed
+        self.callback_route_protection_enabled = callback_route_protection_enabled
 
     def __contains__(self, key: object) -> bool:
         """Return whether an IP is exactly banned or blocked by network."""
@@ -59,8 +60,16 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         if remote_addr != key and dict.__contains__(self, remote_addr):
             return True
 
+        if self.callback_route_protection_enabled and _current_request_is_callback():
+            return False
+
         if _is_allowed(remote_addr, self.allowlist):
             return False
+
+        if self.geoip_access_allowed is not None and not self.geoip_access_allowed(
+            remote_addr
+        ):
+            return True
 
         if _is_blocked(remote_addr, self.blocked_networks):
             return True
@@ -70,7 +79,10 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
     def __bool__(self) -> bool:
         """Keep Home Assistant's ban middleware active for network-only blocks."""
         return bool(
-            dict.__len__(self) or self.blocked_networks or self.default_deny_enabled
+            dict.__len__(self)
+            or self.blocked_networks
+            or self.default_deny_enabled
+            or self.geoip_access_allowed is not None
         )
 
 
@@ -112,6 +124,15 @@ def _normalize_remote_addr(remote_addr: IPAddress) -> IPAddress:
         return remote_addr.ipv4_mapped
 
     return remote_addr
+
+
+def _current_request_is_callback() -> bool:
+    """Return whether the active HA request is a known callback route."""
+    request = current_request.get()
+    if request is None:
+        return False
+
+    return any(request.path.startswith(prefix) for prefix in CALLBACK_ROUTE_PREFIXES)
 
 
 def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:

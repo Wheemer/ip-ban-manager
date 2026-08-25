@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
 
@@ -16,7 +15,6 @@ PANEL_JS_PATH = f"/api/{DOMAIN}/panel.js"
 PANEL_WEB_COMPONENT = "ip-ban-manager-panel"
 
 
-@lru_cache(maxsize=1)
 def integration_version() -> str:
     """Return the installed integration version from the bundled manifest."""
     return str(

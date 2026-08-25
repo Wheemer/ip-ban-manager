@@ -1,4 +1,7 @@
 const PANEL_VERSION = "__VERSION__";
+const PANEL_VERSION_PLACEHOLDER = "__" + "VERSION__";
+const TOAST_SUCCESS_DURATION_MS = 3500;
+const TOAST_ERROR_DURATION_MS = 6500;
 class IPBanManagerPanel extends HTMLElement {
   set hass(hass) {
     const previousLocale = this._localeSignature(this._hass);
@@ -37,6 +40,7 @@ class IPBanManagerPanel extends HTMLElement {
   disconnectedCallback() {
     window.clearInterval(this._autoRefresh);
     window.clearTimeout(this._loadTimer);
+    window.clearTimeout(this._toastTimer);
   }
 
   _language() {
@@ -164,7 +168,8 @@ class IPBanManagerPanel extends HTMLElement {
   async _post(action, extra = {}) {
     this._busy = true;
     this._error = "";
-    this._notice = "";
+    this._toast = "";
+    this._toastType = "success";
     this._renderSafely();
     let ok = false;
     try {
@@ -183,15 +188,36 @@ class IPBanManagerPanel extends HTMLElement {
       if (action === "download_config" && result?.download?.content) {
         this._triggerBrowserDownload(result.download);
       }
-      this._notice = this._successMessage(action);
+      this._showToast(this._successMessage(action), "success");
       ok = true;
     } catch (err) {
       this._error = this._errorMessage(err);
+      this._showToast(this._error, "error");
     } finally {
       this._busy = false;
       this._renderSafely();
     }
     return ok;
+  }
+
+  _showToast(message, type = "success") {
+    this._toast = message || "";
+    this._toastType = type;
+    this._renderToast();
+    this._scheduleToastClear();
+  }
+
+  _scheduleToastClear() {
+    window.clearTimeout(this._toastTimer);
+    if (!this._toast) {
+      return;
+    }
+    const duration =
+      this._toastType === "error" ? TOAST_ERROR_DURATION_MS : TOAST_SUCCESS_DURATION_MS;
+    this._toastTimer = window.setTimeout(() => {
+      this._toast = "";
+      this._renderToast();
+    }, duration);
   }
 
   _triggerBrowserDownload(download) {
@@ -206,11 +232,18 @@ class IPBanManagerPanel extends HTMLElement {
 
   _successMessage(action) {
     const path = this._data?.backup?.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml";
+    const fallbacks = {
+      set_options: "Options applied.",
+      export_config: `Saved backup to ${path}`,
+      import_config: `Restored backup from ${path}`,
+      download_config: "Backup downloaded.",
+      upload_config: "Backup uploaded and applied.",
+    };
     const key = `success.${action}`;
     if (this._data?.translations?.[key]) {
       return this._t(key, { path });
     }
-    return "";
+    return fallbacks[action] || "Done.";
   }
 
   _handleInitialAction() {
@@ -335,8 +368,18 @@ class IPBanManagerPanel extends HTMLElement {
         .grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-areas:
+            "options allowed"
+            "blocked regions"
+            "networks regions";
           gap: 16px;
+          align-items: start;
         }
+        .options-section { grid-area: options; }
+        .allowed-ips-section { grid-area: allowed; }
+        .allowed-regions-section { grid-area: regions; }
+        .blocked-ips-section { grid-area: blocked; }
+        .blocked-networks-section { grid-area: networks; }
         section {
           background: var(--card-background-color);
           border: 1px solid var(--divider-color);
@@ -412,6 +455,69 @@ class IPBanManagerPanel extends HTMLElement {
           margin-top: 14px;
           max-width: 180px;
         }
+        .policy-choices {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 12px;
+        }
+        .policy-card {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 8px;
+          align-items: center;
+          min-height: 58px;
+          padding: 8px 10px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+        }
+        .policy-card.custom { grid-column: 1 / -1; }
+        .policy-card input[type="radio"] {
+          width: auto;
+          margin: 0;
+          transform: scale(1.05);
+        }
+        .policy-card strong { display: block; margin-bottom: 2px; }
+        .policy-card small {
+          display: block;
+          color: var(--secondary-text-color);
+          font-size: 12px;
+          line-height: 1.25;
+        }
+        .policy-card:has(input:checked) {
+          border-color: var(--primary-color);
+          background: color-mix(in srgb, var(--primary-color) 12%, var(--secondary-background-color));
+        }
+        .allowed-regions-section {
+          border-color: var(--warning-color, #ffa600);
+        }
+        .allowed-region-warning {
+          margin: 0 0 12px;
+          padding: 10px 12px;
+          border: 1px solid var(--warning-color, #ffa600);
+          border-radius: 6px;
+          background: color-mix(in srgb, var(--warning-color, #ffa600) 14%, var(--card-background-color));
+          color: var(--primary-text-color);
+          font-size: 13px;
+          line-height: 1.35;
+        }
+        .policy-card.restrictive {
+          border-color: color-mix(in srgb, var(--warning-color, #ffa600) 70%, var(--divider-color));
+        }
+        .policy-card.restrictive:has(input:checked) {
+          border-color: var(--warning-color, #ffa600);
+          background: color-mix(in srgb, var(--warning-color, #ffa600) 18%, var(--secondary-background-color));
+        }
+        .custom-region-fields {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 10px;
+        }
+        .policy-card.custom:not(:has(input:checked)) .custom-region-fields {
+          display: none;
+        }
         .geoip-status {
           display: flex;
           align-items: center;
@@ -465,21 +571,98 @@ class IPBanManagerPanel extends HTMLElement {
           background: var(--error-color);
           color: var(--text-primary-color);
         }
-        .notice {
-          margin-bottom: 16px;
-          padding: 12px 14px;
-          border: 1px solid var(--success-color, #43a047);
+        .toast {
+          position: fixed;
+          right: 24px;
+          bottom: 24px;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          max-width: min(380px, calc(100vw - 48px));
+          min-height: 44px;
+          padding: 12px 14px 12px 12px;
+          border: 1px solid color-mix(in srgb, var(--success-color, #43a047) 70%, var(--divider-color));
+          border-left: 4px solid var(--success-color, #43a047);
           border-radius: 6px;
+          box-shadow: 0 12px 34px rgba(0, 0, 0, 0.34);
           color: var(--primary-text-color);
-          background: rgba(67, 160, 71, 0.12);
+          background: color-mix(
+            in srgb,
+            var(--success-color, #43a047) 24%,
+            var(--card-background-color)
+          );
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 1.35;
+          animation: toast-in 140ms ease-out;
+        }
+        .toast[hidden] {
+          display: none;
+        }
+        .toast::before {
+          content: "";
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: var(--success-color, #43a047);
+          box-shadow: 0 0 0 4px color-mix(in srgb, var(--success-color, #43a047) 18%, transparent);
+        }
+        .toast.error {
+          border-color: color-mix(in srgb, var(--error-color) 70%, var(--divider-color));
+          border-left-color: var(--error-color);
+          background: color-mix(
+            in srgb,
+            var(--error-color) 24%,
+            var(--card-background-color)
+          );
+        }
+        .toast.error::before {
+          content: "!";
+          width: 18px;
+          height: 18px;
+          background: var(--error-color);
+          box-shadow: 0 0 0 4px color-mix(in srgb, var(--error-color) 20%, transparent);
+          color: var(--text-primary-color, #ffffff);
+          font-size: 13px;
+          font-weight: 800;
+          line-height: 1;
+        }
+        @keyframes toast-in {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         @media (max-width: 760px) {
           :host { padding: 12px; }
           h1 { font-size: 26px; }
-          .grid, .options { grid-template-columns: 1fr; }
+          .grid {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+              "options"
+              "allowed"
+              "regions"
+              "blocked"
+              "networks";
+          }
+          .options, .policy-choices { grid-template-columns: 1fr; }
           form { grid-template-columns: 1fr; }
+          .custom-region-fields { grid-template-columns: 1fr; }
           .threshold { max-width: none; }
           .geoip-status { align-items: flex-start; flex-direction: column; }
+          .toast {
+            right: 12px;
+            bottom: 12px;
+            max-width: calc(100vw - 24px);
+          }
         }
       </style>
       <div class="wrap">
@@ -488,11 +671,12 @@ class IPBanManagerPanel extends HTMLElement {
             <img src="/api/ip_ban_manager/icon.png" alt="">
             <div class="brand-title">
               <h1>IP Ban Manager</h1>
-              <span class="version" id="version">v__VERSION__</span>
+              <span class="version" id="version">${this._initialVersionLabel()}</span>
             </div>
           </div>
         </header>
         <div id="content"><section><div class="body">Loading...</div></section></div>
+        <div id="toast" class="toast" hidden></div>
       </div>
     `;
     this._renderSafely();
@@ -504,7 +688,18 @@ class IPBanManagerPanel extends HTMLElement {
       return;
     }
     const version = this._data?.version || PANEL_VERSION;
-    versionEl.textContent = version ? `v${version}` : "";
+    versionEl.textContent = this._formatVersion(version);
+  }
+
+  _initialVersionLabel() {
+    return this._formatVersion(PANEL_VERSION);
+  }
+
+  _formatVersion(version) {
+    if (!version || version === PANEL_VERSION_PLACEHOLDER) {
+      return "";
+    }
+    return version.startsWith("v") ? version : `v${version}`;
   }
 
   _render() {
@@ -522,23 +717,48 @@ class IPBanManagerPanel extends HTMLElement {
     }
     if (!this._data) {
       content.innerHTML = this._error ? `<div class="error">${this._escape(this._error)}</div>` : "";
+      this._updateChromeLabels();
+      this._renderToast();
       return;
     }
 
     const status = this._data.status || {};
     const settings = this._data.settings || {};
+    const geoip = this._data.geoip || {};
     this._updateChromeLabels();
     content.innerHTML = `
-      ${this._error ? `<div class="error">${this._escape(this._error)}</div>` : ""}
-      ${this._notice ? `<div class="notice">${this._escape(this._notice)}</div>` : ""}
       <div class="grid">
         ${this._optionsSection(settings)}
-        ${this._listSection(this._t("allowed_ips.title"), this._t("allowed_ips.hint"), this._allowlistRows(settings), "remove_allowlist", "add_allowlist", this._t("allowed_ips.placeholder"), this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings))}
+        ${this._listSection(this._t("allowed_ips.title"), this._t("allowed_ips.hint"), this._allowlistRows(settings), "remove_allowlist", "add_allowlist", this._t("allowed_ips.placeholder"), this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings), "allowed-ips-section")}
         ${this._banSection(status.banned_ips || [])}
-        ${this._listSection(this._t("blocked_networks.title"), this._t("blocked_networks.hint"), this._networkRows(settings.blocked_network_entries || settings.blocked_networks || []), "remove_blocked_network", "add_blocked_network", this._t("blocked_networks.placeholder"))}
+        ${geoip.geoip_database_present ? this._allowedRegionSection(settings) : ""}
+        ${this._blockedNetworksSection(settings)}
       </div>
     `;
+    this._renderToast();
     this._wireEvents();
+  }
+
+  _renderToast() {
+    const toast = this.shadowRoot?.getElementById("toast");
+    if (!toast) {
+      return;
+    }
+    if (!this._toast) {
+      toast.hidden = true;
+      toast.textContent = "";
+      toast.removeAttribute("role");
+      toast.removeAttribute("aria-live");
+      return;
+    }
+    toast.className = `toast ${this._toastType === "error" ? "error" : "success"}`;
+    toast.setAttribute("role", this._toastType === "error" ? "alert" : "status");
+    toast.setAttribute(
+      "aria-live",
+      this._toastType === "error" ? "assertive" : "polite"
+    );
+    toast.textContent = this._toast;
+    toast.hidden = false;
   }
 
   _renderSafely() {
@@ -616,10 +836,10 @@ class IPBanManagerPanel extends HTMLElement {
     return translated === key ? source : translated;
   }
 
-  _listSection(title, hint, rows, removeAction, addAction, placeholder, extra = "", removeConfirm = "") {
+  _listSection(title, hint, rows, removeAction, addAction, placeholder, extra = "", removeConfirm = "", className = "") {
     const addLabel = addAction === "add_ban" ? this._t("block") : this._t("add");
     return `
-      <section>
+      <section class="${this._escape(className)}">
         <h2>${title}</h2>
         <div class="body">
           <p class="hint">${hint}</p>
@@ -641,7 +861,7 @@ class IPBanManagerPanel extends HTMLElement {
       value: ban.ip_address,
     }));
     return `
-      <section>
+      <section class="blocked-ips-section">
         <h2>${this._t("blocked_ips.title")}</h2>
         <div class="body">
           <p class="hint">${this._t("blocked_ips.hint")}</p>
@@ -655,11 +875,41 @@ class IPBanManagerPanel extends HTMLElement {
     `;
   }
 
+  _blockedNetworksSection(settings) {
+    const rows = this._networkRows(
+      settings.blocked_network_entries || settings.blocked_networks || []
+    );
+    return this._listSection(
+      this._t("blocked_networks.title"),
+      this._t("blocked_networks.hint"),
+      rows,
+      "remove_blocked_network",
+      "add_blocked_network",
+      this._t("blocked_networks.placeholder"),
+      "",
+      "",
+      "blocked-networks-section"
+    );
+  }
+
+  _allowedRegionSection(settings) {
+    return `
+      <section class="allowed-regions-section">
+        <h2>${this._t("allowed_regions.title")}</h2>
+        <div class="body">
+          <p class="hint">${this._t("allowed_regions.hint")}</p>
+          <div class="allowed-region-warning">${this._t("allowed_regions.warning")}</div>
+          ${this._allowedRegionControls(settings)}
+        </div>
+      </section>
+    `;
+  }
+
   _optionsSection(settings) {
     const geoip = this._data?.geoip || {};
     const backup = this._data?.backup || {};
     return `
-      <section>
+      <section class="options-section">
         <h2>${this._t("options")}</h2>
         <div class="body">
           ${this._healthSummary(this._data?.status?.health)}
@@ -667,6 +917,7 @@ class IPBanManagerPanel extends HTMLElement {
             ${this._checkbox("auto_ban_enabled", this._t("settings.auto_ban_enabled"), this._t("settings.auto_ban_enabled_hint"), settings.auto_ban_enabled)}
             ${this._checkbox("ban_notifications_enabled", this._t("settings.ban_notifications_enabled"), this._t("settings.ban_notifications_enabled_hint"), settings.ban_notifications_enabled)}
             ${this._checkbox("allowlisted_login_notifications_enabled", this._t("settings.allowlisted_login_notifications_enabled"), this._t("settings.allowlisted_login_notifications_enabled_hint"), settings.allowlisted_login_notifications_enabled)}
+            ${this._checkbox("callback_route_protection_enabled", this._t("settings.callback_route_protection_enabled"), this._t("settings.callback_route_protection_enabled_hint"), settings.callback_route_protection_enabled !== false)}
             ${this._checkbox("sidebar_panel_enabled", this._t("settings.sidebar_panel_enabled"), this._t("settings.sidebar_panel_enabled_hint"), settings.sidebar_panel_enabled)}
             ${this._checkbox("geoip_enabled", this._t("settings.geoip_enabled"), this._t("settings.geoip_enabled_hint"), settings.geoip_enabled)}
           </div>
@@ -689,6 +940,132 @@ class IPBanManagerPanel extends HTMLElement {
         </div>
       </section>
     `;
+  }
+
+  _allowedRegionControls(settings) {
+    const geoip = this._data?.geoip || {};
+    const local = geoip.local_region || {};
+    const mode = settings.allowed_region_mode || "anywhere";
+    const localDetail = local.location || local.ip_address || "";
+    const localCountry = local.country_code || this._countryCodeFromLocation(localDetail);
+    const localSubdivision =
+      local.subdivision_code || this._subdivisionCodeFromLocation(localDetail, localCountry);
+    const localCountryName = local.country_name || "";
+    const localSubdivisionLabel = local.subdivision_label || "";
+    const country = settings.allowed_region_country || "";
+    const subdivision = settings.allowed_region_subdivision || "";
+    const isLocalCountry = mode === "country" && country && country === localCountry;
+    const isLocalSubdivision =
+      mode === "subdivision" && subdivision && subdivision === localSubdivision;
+    const selectedPolicy =
+      mode === "anywhere"
+        ? "anywhere"
+        : isLocalCountry
+          ? "local_country"
+          : isLocalSubdivision
+            ? "local_subdivision"
+            : "custom";
+    const localCountryValue = this._regionDisplay(
+      localCountryName || this._countryName(localCountry),
+      localCountry
+    );
+    const localSubdivisionValue = this._subdivisionDisplay(
+      localSubdivisionLabel,
+      localSubdivision
+    );
+    return `
+      <div class="policy-choices">
+        ${this._regionPolicyCard("anywhere", selectedPolicy, "anywhere", "", "", this._t("allowed_regions.anywhere"), this._t("allowed_regions.anywhere_hint"))}
+        ${this._regionPolicyCard("local_country", selectedPolicy, "country", localCountry, "", localCountryValue || this._t("allowed_regions.local_country"), this._t("allowed_regions.local_country_hint"), !localCountry, true)}
+        ${this._regionPolicyCard("local_subdivision", selectedPolicy, "subdivision", localCountry, localSubdivision, localSubdivisionValue || this._t("allowed_regions.local_subdivision"), this._t("allowed_regions.local_subdivision_hint"), !localSubdivision, true)}
+        <label class="policy-card custom restrictive">
+          <input type="radio" name="allowed-region-policy" value="custom" data-region-mode="${mode === "subdivision" ? "subdivision" : "country"}" data-region-country="${this._escape(country)}" data-region-subdivision="${this._escape(subdivision)}" ${selectedPolicy === "custom" ? "checked" : ""}>
+          <span>
+            <strong>${this._t("allowed_regions.custom")}</strong>
+            <small>${this._t("allowed_regions.custom_hint")}</small>
+            <div class="custom-region-fields">
+              <input id="allowed-region-country" maxlength="2" value="${this._escape(country)}" placeholder="${this._t("allowed_regions.country_placeholder")}">
+              <input id="allowed-region-subdivision" maxlength="8" value="${this._escape(subdivision)}" placeholder="${this._t("allowed_regions.subdivision_placeholder")}">
+            </div>
+          </span>
+        </label>
+      </div>
+      <div class="actions">
+        <button class="primary" id="save-region-options" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>
+      </div>
+    `;
+  }
+
+  _regionPolicyCard(policy, selectedPolicy, mode, country, subdivision, label, hint, disabled = false, restrictive = false) {
+    return `
+      <label class="policy-card ${restrictive ? "restrictive" : ""}">
+        <input
+          type="radio"
+          name="allowed-region-policy"
+          value="${policy}"
+          data-region-mode="${mode}"
+          data-region-country="${this._escape(country)}"
+          data-region-subdivision="${this._escape(subdivision)}"
+          ${selectedPolicy === policy ? "checked" : ""}
+          ${disabled ? "disabled" : ""}
+        >
+        <span>
+          <strong>${label}</strong>
+          <small>${hint}</small>
+        </span>
+      </label>
+    `;
+  }
+
+  _shortSubdivisionCode(code) {
+    return code && code.includes("-") ? code.split("-").pop() : code;
+  }
+
+  _subdivisionDisplay(name, code) {
+    const shortCode = this._shortSubdivisionCode(code);
+    if (name && shortCode && name !== shortCode) {
+      return `${name} (${shortCode})`;
+    }
+    return name || shortCode || code || "";
+  }
+
+  _countryCodeFromLocation(location) {
+    if (!location) {
+      return "";
+    }
+    const parts = location.split(",").map((part) => part.trim()).filter(Boolean);
+    const country = parts[parts.length - 1] || "";
+    return /^[A-Z]{2}$/.test(country) ? country : "";
+  }
+
+  _subdivisionCodeFromLocation(location, country) {
+    if (!location || !country) {
+      return "";
+    }
+    const parts = location.split(",").map((part) => part.trim()).filter(Boolean);
+    const subdivision = parts.length >= 2 ? parts[parts.length - 2] : "";
+    if (!/^[A-Z0-9]{1,3}$/.test(subdivision)) {
+      return "";
+    }
+    return `${country}-${subdivision}`;
+  }
+
+  _countryName(code) {
+    if (!code || typeof Intl?.DisplayNames !== "function") {
+      return "";
+    }
+    try {
+      return new Intl.DisplayNames([this._language()], { type: "region" }).of(code) || "";
+    } catch (_err) {
+      return "";
+    }
+  }
+
+  _regionDisplay(name, code) {
+    if (name && code && name !== code) {
+      return `${name} (${code})`;
+    }
+    return name || code || "";
   }
 
   _backupStatus(backup) {
@@ -861,23 +1238,59 @@ class IPBanManagerPanel extends HTMLElement {
           await this._post("upload_config", { content });
         } catch (err) {
           this._error = this._errorMessage(err);
-          this._renderSafely();
+          this._showToast(this._error, "error");
         }
       });
     }
-    const saveOptions = this.shadowRoot.getElementById("save-options");
-    if (saveOptions) {
-      saveOptions.addEventListener("click", () => {
-        const options = {};
-        this.shadowRoot.querySelectorAll("input[data-option]").forEach((input) => {
-          options[input.dataset.option] = input.checked;
-        });
-        options.login_attempts_threshold = Number(
-          this.shadowRoot.getElementById("threshold").value || 0
+    this.shadowRoot.querySelectorAll(".custom-region-fields input").forEach((input) => {
+      input.addEventListener("input", () => {
+        const custom = this.shadowRoot.querySelector(
+          'input[name="allowed-region-policy"][value="custom"]'
         );
-        this._post("set_options", { options });
+        if (custom) {
+          custom.checked = true;
+        }
       });
+    });
+    ["save-options", "save-region-options"].forEach((id) => {
+      const button = this.shadowRoot.getElementById(id);
+      if (button) {
+        button.addEventListener("click", () => {
+          this._post("set_options", { options: this._optionValues() });
+        });
+      }
+    });
+  }
+
+  _optionValues() {
+    const options = {};
+    this.shadowRoot.querySelectorAll("input[data-option]").forEach((input) => {
+      options[input.dataset.option] = input.checked;
+    });
+    options.login_attempts_threshold = Number(
+      this.shadowRoot.getElementById("threshold").value || 0
+    );
+    const regionPolicy = this.shadowRoot.querySelector(
+      'input[name="allowed-region-policy"]:checked'
+    );
+    if (regionPolicy?.value === "custom") {
+      const country =
+        this.shadowRoot.getElementById("allowed-region-country")?.value || "";
+      const subdivision =
+        this.shadowRoot.getElementById("allowed-region-subdivision")?.value || "";
+      options.allowed_region_country = country;
+      options.allowed_region_subdivision = subdivision;
+      options.allowed_region_mode = subdivision ? "subdivision" : country ? "country" : "anywhere";
+    } else if (regionPolicy) {
+      options.allowed_region_mode = regionPolicy.dataset.regionMode || "anywhere";
+      options.allowed_region_country = regionPolicy.dataset.regionCountry || "";
+      options.allowed_region_subdivision = regionPolicy.dataset.regionSubdivision || "";
+    } else {
+      options.allowed_region_mode = "anywhere";
+      options.allowed_region_country = "";
+      options.allowed_region_subdivision = "";
     }
+    return options;
   }
 
   _resolveTimeZone() {
