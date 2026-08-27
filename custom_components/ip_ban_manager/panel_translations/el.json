@@ -110,6 +110,8 @@
     "installed": "Εγκατεστημένη - {date}",
     "download_hint": "Ενεργοποιήστε GeoIP και Εφαρμογή για λήψη",
     "attribution": "Δεδομένα τοποθεσίας:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Ενημέρωση"
   },
   "health": {

@@ -259,8 +259,6 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
         geoip_path = geoip_database_path(hass)
         if await hass.async_add_executor_job(path_is_file, geoip_path):
             await async_prepare_geoip_reader(hass)
-        else:
-            await async_download_geoip_database(hass)
     else:
         close_geoip_reader(hass)
     entry = update_entry_options(hass, **current_options)

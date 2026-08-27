@@ -110,6 +110,8 @@
     "installed": "インストール済み - {date}",
     "download_hint": "GeoIP を有効にして適用するとダウンロードします",
     "attribution": "位置データ:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "更新"
   },
   "health": {

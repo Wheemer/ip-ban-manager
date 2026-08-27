@@ -110,6 +110,8 @@
     "installed": "Instal·lada - {date}",
     "download_hint": "Activa GeoIP i Aplica per descarregar",
     "attribution": "Dades d'ubicació:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Actualitza"
   },
   "health": {

@@ -170,15 +170,20 @@ class IPBanManagerPanel extends HTMLElement {
     this._error = "";
     this._toast = "";
     this._toastType = "success";
+    if (action === "update_geoip") {
+      this._showToast(this._t("geoip.downloading"), "success", false);
+    }
     this._renderSafely();
     let ok = false;
     try {
+      const timeoutMs = action === "update_geoip" ? 120000 : 30000;
       const result = await this._withTimeout(
         this._api("POST", "ip_ban_manager/manage", {
           action,
           language: this._language(),
           ...extra,
-        })
+        }),
+        timeoutMs
       );
       if (result?.status && result?.settings) {
         this._data = result;
@@ -200,11 +205,15 @@ class IPBanManagerPanel extends HTMLElement {
     return ok;
   }
 
-  _showToast(message, type = "success") {
+  _showToast(message, type = "success", autoHide = true) {
     this._toast = message || "";
     this._toastType = type;
     this._renderToast();
-    this._scheduleToastClear();
+    if (autoHide) {
+      this._scheduleToastClear();
+    } else {
+      window.clearTimeout(this._toastTimer);
+    }
   }
 
   _scheduleToastClear() {
@@ -234,6 +243,7 @@ class IPBanManagerPanel extends HTMLElement {
     const path = this._data?.backup?.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml";
     const fallbacks = {
       set_options: "Options applied.",
+      update_geoip: "GeoIP database updated.",
       export_config: `Saved backup to ${path}`,
       import_config: `Restored backup from ${path}`,
       download_config: "Backup downloaded.",
@@ -1106,6 +1116,7 @@ class IPBanManagerPanel extends HTMLElement {
     const installed = Boolean(geoip.geoip_database_present);
     const updated = geoip.geoip_database_updated ? this._formatDate(geoip.geoip_database_updated) : this._t("geoip.not_installed");
     const status = installed ? this._t("geoip.installed", { date: updated }) : this._t("geoip.download_hint");
+    const buttonLabel = installed ? this._t("geoip.update") : this._t("geoip.download");
     return `
       <div class="geoip-status">
         <div>
@@ -1113,7 +1124,7 @@ class IPBanManagerPanel extends HTMLElement {
           <small>${status}</small>
           <small>${this._t("geoip.attribution")} <a href="https://db-ip.com" target="_blank" rel="noreferrer">DB-IP City Lite</a></small>
         </div>
-        ${installed ? `<button data-action="update_geoip" ${this._busy ? "disabled" : ""}>${this._t("geoip.update")}</button>` : ""}
+        <button data-action="update_geoip" ${this._busy ? "disabled" : ""}>${buttonLabel}</button>
       </div>
     `;
   }

@@ -110,6 +110,8 @@
     "installed": "Nainstalována - {date}",
     "download_hint": "Povolte GeoIP a Použít pro stažení",
     "attribution": "Data o poloze:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Aktualizovat"
   },
   "health": {

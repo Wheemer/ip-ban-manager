@@ -110,6 +110,8 @@
     "installed": "Встановлено - {date}",
     "download_hint": "Увімкніть GeoIP і натисніть Застосувати для завантаження",
     "attribution": "Дані про місцезнаходження:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Оновити"
   },
   "health": {

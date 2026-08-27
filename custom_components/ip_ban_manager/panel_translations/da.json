@@ -110,6 +110,8 @@
     "installed": "Installeret - {date}",
     "download_hint": "Aktiver GeoIP og anvend for at downloade",
     "attribution": "Placeringsdata:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Opdater"
   },
   "health": {

@@ -110,6 +110,8 @@
     "installed": "Geïnstalleerd - {date}",
     "download_hint": "Schakel GeoIP in en klik Toepassen om te downloaden",
     "attribution": "Locatiegegevens:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Bijwerken"
   },
   "health": {

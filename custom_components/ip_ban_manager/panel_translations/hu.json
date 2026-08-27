@@ -110,6 +110,8 @@
     "installed": "Telepítve - {date}",
     "download_hint": "Engedélyezze a GeoIP-t, és az Alkalmazás letölti",
     "attribution": "Helyadatok:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Frissítés"
   },
   "health": {

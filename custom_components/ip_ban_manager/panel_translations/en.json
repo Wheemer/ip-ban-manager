@@ -70,7 +70,7 @@
     "sidebar_panel_enabled": "Show in sidebar",
     "sidebar_panel_enabled_hint": "Add the left menu page.",
     "geoip_enabled": "GeoIP location labels",
-    "geoip_enabled_hint": "Show approximate public-IP locations. If the local database is missing, Apply downloads it.",
+    "geoip_enabled_hint": "Show approximate public-IP locations when the local database is installed.",
     "allowed_region_title": "GeoIP access limit",
     "allowed_region_mode": "Public access from",
     "allowed_region_country": "Custom country code",
@@ -108,8 +108,10 @@
     "title": "GeoIP database",
     "not_installed": "Not installed",
     "installed": "Installed - {date}",
-    "download_hint": "Enable GeoIP and Apply to download",
+    "download_hint": "Database not installed",
     "attribution": "Location data:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Update"
   },
   "health": {

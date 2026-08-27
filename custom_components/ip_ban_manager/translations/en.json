@@ -136,7 +136,7 @@
         "allowlisted_login_notifications": "Allowlisted login notifications - alert on failed trusted logins",
         "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
         "sidebar_panel": "Show in sidebar - add the left menu page",
-        "geoip": "GeoIP location labels - download a local DB-IP database"
+        "geoip": "GeoIP location labels - show local DB-IP location labels"
       }
     },
     "advanced_ban_options": {

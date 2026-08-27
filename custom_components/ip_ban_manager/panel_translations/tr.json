@@ -110,6 +110,8 @@
     "installed": "Kurulu - {date}",
     "download_hint": "GeoIP'yi etkinleştirin ve indirmek için Uygula'ya basın",
     "attribution": "Konum verileri:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Güncelle"
   },
   "health": {

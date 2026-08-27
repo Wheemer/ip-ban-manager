@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.3.9
+
+IP Ban Manager 1.8.3.9 restores the explicit GeoIP database download flow.
+
+### Fixed
+
+- Applying options no longer starts a hidden GeoIP database download when the database is missing.
+- The GeoIP database action now shows immediate in-progress feedback and uses a longer request timeout.
+- The panel wording now points users to the visible database action instead of implying Apply will install the database.
+
 ## v1.8.3.8
 
 IP Ban Manager 1.8.3.8 fixes Home Assistant statistics repair warnings for the diagnostic count sensors.

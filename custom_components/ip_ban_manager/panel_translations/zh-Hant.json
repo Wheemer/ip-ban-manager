@@ -110,6 +110,8 @@
     "installed": "已安装 - {date}",
     "download_hint": "啟用 GeoIP 并套用以下載",
     "attribution": "位置數據：",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "更新"
   },
   "health": {

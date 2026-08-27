@@ -110,6 +110,8 @@
     "installed": "Asennettu - {date}",
     "download_hint": "Ota GeoIP käyttöön ja Käytä lataamaan",
     "attribution": "Sijaintitiedot:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Päivitä"
   },
   "health": {

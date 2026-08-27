@@ -110,6 +110,8 @@
     "installed": "설치됨 - {date}",
     "download_hint": "GeoIP를 활성화하고 적용하여 다운로드",
     "attribution": "위치 데이터:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "업데이트"
   },
   "health": {

@@ -110,6 +110,8 @@
     "installed": "Instalată - {date}",
     "download_hint": "Activează GeoIP și Aplică pentru descărcare",
     "attribution": "Date de locație:",
+    "download": "Download",
+    "downloading": "Downloading GeoIP database...",
     "update": "Actualizează"
   },
   "health": {
