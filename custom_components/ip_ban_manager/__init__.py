@@ -128,6 +128,8 @@ from .network_policy import (
     async_update_internal_bypass_networks as _async_update_internal_bypass_networks,
 )
 from .network_policy import update_allowlist_entry as _update_allowlist_entry
+from .nginx_proxy_manager import setup_npm_sync as _setup_npm_sync
+from .nginx_proxy_manager import unload_npm_sync as _unload_npm_sync
 from .notifications import (
     ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD,
     ALLOWLISTED_LOGIN_SILENCE_LABEL,
@@ -196,20 +198,21 @@ PLATFORMS = ["sensor"]
 
 _RELOADABLE_MODULES = (
     "custom_components.ip_ban_manager.const",
-    "custom_components.ip_ban_manager.backup",
+    "custom_components.ip_ban_manager.metrics",
+    "custom_components.ip_ban_manager.entry_helpers",
     "custom_components.ip_ban_manager.ban_lookup",
     "custom_components.ip_ban_manager.ban_ops",
-    "custom_components.ip_ban_manager.entry_helpers",
     "custom_components.ip_ban_manager.geoip",
     "custom_components.ip_ban_manager.geoip_lifecycle",
     "custom_components.ip_ban_manager.health",
-    "custom_components.ip_ban_manager.http_patches",
-    "custom_components.ip_ban_manager.http_views",
     "custom_components.ip_ban_manager.legacy_migration",
-    "custom_components.ip_ban_manager.metrics",
     "custom_components.ip_ban_manager.network_policy",
+    "custom_components.ip_ban_manager.nginx_proxy_manager",
     "custom_components.ip_ban_manager.notifications",
     "custom_components.ip_ban_manager.panel",
+    "custom_components.ip_ban_manager.backup",
+    "custom_components.ip_ban_manager.http_patches",
+    "custom_components.ip_ban_manager.http_views",
     "custom_components.ip_ban_manager.services",
     "custom_components.ip_ban_manager.status",
     "custom_components.ip_ban_manager.yaml_config",
@@ -348,6 +351,8 @@ _RELOADABLE_BINDINGS: dict[str, tuple[str, str]] = {
         "async_update_internal_bypass_networks",
     ),
     "_update_allowlist_entry": ("network_policy", "update_allowlist_entry"),
+    "_setup_npm_sync": ("nginx_proxy_manager", "setup_npm_sync"),
+    "_unload_npm_sync": ("nginx_proxy_manager", "unload_npm_sync"),
     "ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD": (
         "notifications",
         "ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD",
@@ -416,7 +421,9 @@ def _reload_runtime_modules_sync() -> None:
             for binding, (module_name, attribute) in _RELOADABLE_BINDINGS.items()
         }
     )
-    storage_keys = importlib.import_module("custom_components.ip_ban_manager.storage_keys")
+    storage_keys = importlib.import_module(
+        "custom_components.ip_ban_manager.storage_keys"
+    )
     globals().update(
         {
             name: getattr(storage_keys, name)
@@ -509,6 +516,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _handle_http_notifications(hass)
 
     _register_services(hass)
+    _setup_npm_sync(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await _async_update_health_issue(hass)
 
@@ -518,6 +526,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
     _unregister_http_views(hass)
+    _unload_npm_sync(hass)
     _async_remove_panel(hass)
     legacy_cleanup_task = hass.data.pop(KEY_LEGACY_FOLDER_CLEANUP_TASK, None)
     if legacy_cleanup_task is not None:

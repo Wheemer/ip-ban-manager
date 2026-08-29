@@ -14,7 +14,8 @@
           "geoip_enabled": "GeoIP 位置ラベル",
           "sidebar_panel_enabled": "サイドバーに表示",
           "quick_allowlist": "許可リストの安全な既定値",
-          "ban_options": "オプション"
+          "ban_options": "オプション",
+          "callback_route_protection_enabled": "統合コールバックの保護"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "自動 BAN 通知 - IP がブロックされたときにアラートを表示",
         "allowlisted_login_notifications": "許可リストのログイン通知 - 信頼済みログイン失敗時に警告",
         "sidebar_panel": "サイドバーに表示 - 左メニューページを追加",
-        "geoip": "GeoIP 位置ラベル - ローカル DB-IP データベースをダウンロード"
+        "geoip": "GeoIP 位置ラベル - ローカル DB-IP データベースをダウンロード",
+        "callback_route_protection": "統合コールバックを保護する - Webhook コールバックに管理されたブロック ルールを通過させます"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "許可 IP 内の BAN",
       "allowlisted_logins_can_ban_hint": "注意: 信頼済み IP もブロックできます。",
       "default_deny_enabled": "許可 IP 以外をすべてブロック",
-      "default_deny_enabled_hint": "注意: 許可 IP のみ接続できます。"
+      "default_deny_enabled_hint": "注意: 許可 IP のみ接続できます。",
+      "callback_route_protection_enabled": "統合コールバックの保護",
+      "callback_route_protection_enabled_hint": "Home Assistant Webhook コールバックが管理されたブロック ルールを通過できるようにします。",
+      "allowed_region_title": "GeoIP アクセス制限",
+      "allowed_region_mode": "からのパブリックアクセス",
+      "allowed_region_country": "カスタム国コード",
+      "allowed_region_subdivision": "カスタムの州/州コード",
+      "allowed_region_hint": "オプションのパブリック IP ブロック ルール。許可された IP と Home Assistant 内部トラフィックが常に優先されます。",
+      "use_local_country": "地元の国 {country}",
+      "use_local_subdivision": "地方の州/州 {subdivision}",
+      "local_region_detected": "検出されたローカル領域: {location}",
+      "local_region_unavailable": "GeoIP が有効になり、データベースの準備が整うと、地元の国または州がここに表示されます。",
+      "allowed_region_modes": {
+        "anywhere": "どこでも",
+        "country": "現地またはカスタムの国",
+        "subdivision": "ローカルまたはカスタムの州/州"
+      }
     },
     "backup": {
       "save_title": "設定に保存",
@@ -224,7 +242,9 @@
       "installed": "インストール済み - {date}",
       "download_hint": "GeoIP を有効にして適用するとダウンロードします",
       "attribution": "位置データ:",
-      "update": "更新"
+      "update": "更新",
+      "download": "ダウンロード",
+      "downloading": "GeoIP データベースをダウンロードしています..."
     },
     "health": {
       "title": "ヘルスチェックに注意が必要",
@@ -239,7 +259,62 @@
       "export_config": "バックアップを {path} に保存しました",
       "import_config": "{path} からバックアップを復元しました",
       "download_config": "バックアップをダウンロードしました。",
-      "upload_config": "バックアップをアップロードして適用しました。"
+      "upload_config": "バックアップをアップロードして適用しました。",
+      "npm_connect": "Nginx Proxy Manager に接続されました。",
+      "npm_select_host": "プロキシ ホストが選択されました。",
+      "npm_sync": "Nginx Proxy Manager ルールが同期されました。",
+      "npm_disconnect": "Nginx Proxy Manager が切断されました。",
+      "set_options": "オプションが適用されました。"
+    },
+    "allowed_regions": {
+      "title": "パブリック領域ロック",
+      "hint": "パブリック アクセスを 1 つの検出されたまたはカスタム GeoIP リージョンに制限します。",
+      "warning": "大きな影響: リージョンが選択されると、そのリージョン外のパブリック IP はログイン前にブロックされます。許可された IP、Home Assistant 内部トラフィック、および保護統合コールバック オプションが尊重されます。",
+      "detected": "この Home Assistant サーバーから検出されました: {location}",
+      "unavailable": "この Home Assistant サーバー上で GeoIP データベースの準備ができた後、地方の国および州/州の選択肢が表示されます。",
+      "anywhere": "どこでも",
+      "anywhere_hint": "GeoIP の場所によってパブリック アクセスを制限しないでください。",
+      "local_country": "国",
+      "local_country_hint": "この国のパブリック IP のみが接続できます。",
+      "local_subdivision": "州/州",
+      "local_subdivision_hint": "この州/州のパブリック IP のみが接続できます。",
+      "custom": "カスタム領域",
+      "custom_hint": "ISO コードは、別の国または州が必要な場合にのみ使用してください。",
+      "country_placeholder": "国、例:カリフォルニア州",
+      "subdivision_placeholder": "県/州、例:カナダ-北アイルランド"
+    },
+    "regional_thresholds": {
+      "title": "地域ごとのログイン禁止",
+      "hint": "選択したパブリック領域に対して別の再試行制限を使用します。",
+      "ban_after": "以降の禁止",
+      "attempts": "失敗したログイン試行"
+    },
+    "npm": {
+      "hint": "リクエストが Home Assistant に到達する前に、プロキシで IP Ban Manager の明示的な IP およびネットワーク ルールを適用します。",
+      "not_connected": "接続されていません",
+      "connected_short": "接続済み",
+      "active": "エッジ保護がアクティブです",
+      "compact_hint": "リバース プロキシでブロック ルールを適用します。",
+      "url": "NPM URL (例: http://192.168.1.60:81)",
+      "identity": "NPMメール",
+      "secret": "NPMパスワード",
+      "connect": "接続する",
+      "connected": "{url}に接続しました",
+      "external_hostname": "Home Assistant 外部ホスト名: {hostname}",
+      "exact_match": "プロキシとホストの完全な一致: {host}",
+      "selected_host": "選択したプロキシ ホスト: {host}",
+      "no_exact_match": "完全に一致するプロキシとホストが 1 つも見つかりませんでした。 Home Assistant ホストを手動で選択します。",
+      "select_host": "プロキシホストの選択",
+      "select": "選択",
+      "edge_protection": "エッジ保護",
+      "edge_protection_hint": "Nginx Proxy Manager で IP Ban Manager ルールを適用します。",
+      "default_deny_active": "[許可された IP 以外のすべてをブロックする] がアクティブであり、NPM でも強制されます。",
+      "mirror_default_deny_warning": "大きな影響: NPM は、Home Assistant よりも前にこれを適用するため、許可された IP 以外の外部統合コールバックは、Home Assistant の保護されたコールバック例外を使用できません。",
+      "enabled": "エッジ保護が有効になっています。",
+      "last_sync": "最終同期: {date}",
+      "sync": "今すぐ同期する",
+      "disconnect": "切断する",
+      "disconnect_confirm": "Nginx Proxy Manager を切断しますか? IP Ban Manager のルールは、選択したプロキシ ホストから削除されます。"
     }
   },
   "entity": {

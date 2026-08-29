@@ -9,11 +9,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .audit import mutation_source, record_geoip_updated
 from .backup import async_export_config, async_import_config
-from .ban_ops import (
-    async_add_ip_ban,
-    async_remove_all_ip_bans,
-    async_remove_ip_ban,
-)
+from .ban_ops import async_add_ip_ban, async_remove_all_ip_bans, async_remove_ip_ban
 from .const import (
     ATTR_CONFIRM,
     ATTR_IP_ADDRESS,

@@ -10,19 +10,14 @@ from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry, UnknownEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.start import async_at_started
+from homeassistant.helpers.typing import UNDEFINED
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    CONF_BANNED_IPS,
-    CONF_LEGACY_ENTRY_ID,
-    DOMAIN,
-    LEGACY_DOMAIN,
-)
-from .health import (
-    async_update_health_issue,
-    async_update_legacy_folder_cleanup_issue,
-)
+from .const import CONF_BANNED_IPS, CONF_LEGACY_ENTRY_ID, DOMAIN, LEGACY_DOMAIN
+from .health import async_update_health_issue, async_update_legacy_folder_cleanup_issue
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_LEGACY_CLEANUP_SCHEDULED,
@@ -36,6 +31,95 @@ ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
 LEGACY_BACKUP_DIR = "ip_ban_manager_legacy_backup"
 LEGACY_CLEANUP_DIR = ".cleanup"
+
+SENSOR_ENTITY_IDS = {
+    "active_bans": "sensor.ip_ban_manager_active_bans",
+    "allowlisted_networks": "sensor.ip_ban_manager_allowlisted_networks",
+    "blocked_networks": "sensor.ip_ban_manager_blocked_networks",
+    "failed_login_sources": "sensor.ip_ban_manager_failed_login_sources",
+}
+
+
+async def _async_clear_legacy_statistics_unit(
+    hass: HomeAssistant, statistic_id: str
+) -> None:
+    """Normalize the empty unit used by older count sensors."""
+    try:
+        from homeassistant.components.recorder.statistics import (
+            async_update_statistics_metadata,
+        )
+    except ImportError:
+        # Home Assistant 2024.6 predates the async convenience wrapper.
+        from homeassistant.components.recorder import get_instance
+        from homeassistant.components.recorder.statistics import (
+            update_statistics_metadata,
+        )
+
+        instance = get_instance(hass)
+        await instance.async_add_executor_job(
+            update_statistics_metadata,
+            instance,
+            statistic_id,
+            UNDEFINED,
+            None,
+        )
+        return
+
+    async_update_statistics_metadata(
+        hass,
+        statistic_id,
+        new_unit_class=None,
+        new_unit_of_measurement=None,
+    )
+
+
+def _migrate_sensor_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> set[str]:
+    """Reclaim legacy sensor IDs and return every statistics ID to normalize."""
+    registry = er.async_get(hass)
+    statistic_ids = set(SENSOR_ENTITY_IDS.values())
+
+    for key, desired_entity_id in SENSOR_ENTITY_IDS.items():
+        unique_id = f"{entry.entry_id}_{key}"
+        current_entity_id = registry.async_get_entity_id("sensor", DOMAIN, unique_id)
+        if current_entity_id is not None:
+            statistic_ids.add(current_entity_id)
+
+        if (
+            current_entity_id is not None
+            and current_entity_id != desired_entity_id
+            and registry.async_get(desired_entity_id) is None
+        ):
+            registry.async_update_entity(
+                current_entity_id, new_entity_id=desired_entity_id
+            )
+            _LOGGER.info(
+                "Restored IP Ban Manager sensor entity ID %s to %s",
+                current_entity_id,
+                desired_entity_id,
+            )
+
+    return statistic_ids
+
+
+async def _async_migrate_sensor_statistics(
+    hass: HomeAssistant, statistic_ids: set[str]
+) -> None:
+    """Normalize statistics units left by older sensor versions."""
+    if "recorder" in hass.config.components:
+        for statistic_id in statistic_ids:
+            # Updating a statistic ID that has no metadata is a harmless no-op.
+            await _async_clear_legacy_statistics_unit(hass, statistic_id)
+    else:
+        _LOGGER.debug(
+            "Skipping legacy statistics-unit migration because Recorder is not loaded"
+        )
+
+    issue_registry = ir.async_get(hass)
+    for issue in list(issue_registry.issues.values()):
+        if issue.domain == "sensor" and issue.issue_id.startswith(
+            "units_changed_sensor.ip_ban_manager_"
+        ):
+            ir.async_delete_issue(hass, issue.domain, issue.issue_id)
 
 
 def async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -52,6 +136,13 @@ def async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> Non
         options = dict(entry.options)
         options.pop(CONF_BANNED_IPS, None)
         hass.config_entries.async_update_entry(entry, options=options)
+
+    statistic_ids = _migrate_sensor_entity_ids(hass, entry)
+
+    async def _migrate_sensor_statistics(_hass: HomeAssistant) -> None:
+        await _async_migrate_sensor_statistics(_hass, statistic_ids)
+
+    async_at_started(hass, _migrate_sensor_statistics)
 
     if isinstance(legacy_entry_id, str):
         legacy_entry = hass.config_entries.async_get_entry(legacy_entry_id)

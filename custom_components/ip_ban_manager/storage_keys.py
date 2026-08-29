@@ -49,3 +49,6 @@ KEY_METRICS = AppKey[dict[str, object]]("ip_ban_manager_metrics")
 KEY_BAN_FILE_WRITE_LOCK = AppKey[Lock]("ip_ban_manager_ban_file_write_lock")
 KEY_HTTP_VIEWS = AppKey[tuple[HomeAssistantView, ...]]("ip_ban_manager_http_views")
 KEY_HTTP_VIEW_HANDLERS = "ip_ban_manager_http_view_handlers"
+KEY_NPM_RUNTIME = "ip_ban_manager_npm_runtime"
+KEY_NPM_SYNC_TASK = "ip_ban_manager_npm_sync_task"
+KEY_NPM_UNSUBSCRIBERS = "ip_ban_manager_npm_unsubscribers"

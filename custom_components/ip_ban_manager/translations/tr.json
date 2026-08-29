@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Otomatik yasaklar",
           "ban_notifications_enabled": "Otomatik yasak bildirimleri",
           "allowlisted_login_notifications_enabled": "Allowlist giriş bildirimleri",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Entegrasyon geri aramalarını koruyun",
           "allowlisted_logins_can_ban": "İzin verilen IP içinde otomatik yasaklara izin ver",
           "default_deny_enabled": "İzin verilen IP dışındaki her şeyi engelle",
           "geoip_enabled": "GeoIP konum etiketleri",
@@ -134,7 +134,7 @@
         "auto_ban": "Otomatik yasaklar – başarısız giriş kaynaklarını engelle",
         "ban_notifications": "Otomatik yasak bildirimleri – IP'ler engellendiğinde uyarı göster",
         "allowlisted_login_notifications": "Allowlist giriş bildirimleri – güvenilir başarısız girişlerde uyar",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Entegrasyon geri aramalarını koruyun - webhook geri aramalarının yönetilen engelleme kurallarını geçmesine izin verin",
         "sidebar_panel": "Kenar çubuğunda göster – sol menü sayfasını ekle",
         "geoip": "GeoIP konum etiketleri – yerel DB-IP veritabanını indir"
       }

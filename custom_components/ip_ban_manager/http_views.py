@@ -40,6 +40,16 @@ from .network_policy import (
     async_remove_allowlist_network,
     async_remove_blocked_network,
 )
+from .nginx_proxy_manager import (
+    async_connect_npm,
+    async_disconnect_npm,
+    async_enable_npm,
+    async_select_npm_host,
+    async_sync_npm,
+    schedule_npm_sync,
+    setup_npm_sync,
+    unload_npm_sync,
+)
 from .notifications import (
     ALLOWLISTED_LOGIN_SILENCE_URL,
     ATTR_NOTIFICATION_ID,
@@ -82,6 +92,7 @@ RUNTIME_MODULE_NAMES = (
     "custom_components.ip_ban_manager.health",
     "custom_components.ip_ban_manager.i18n",
     "custom_components.ip_ban_manager.network_policy",
+    "custom_components.ip_ban_manager.nginx_proxy_manager",
     "custom_components.ip_ban_manager.notifications",
     "custom_components.ip_ban_manager.panel_assets",
     "custom_components.ip_ban_manager.panel",
@@ -134,6 +145,38 @@ RUNTIME_BINDINGS: dict[str, tuple[str, str]] = {
     "async_remove_blocked_network": (
         "custom_components.ip_ban_manager.network_policy",
         "async_remove_blocked_network",
+    ),
+    "async_connect_npm": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "async_connect_npm",
+    ),
+    "async_disconnect_npm": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "async_disconnect_npm",
+    ),
+    "async_enable_npm": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "async_enable_npm",
+    ),
+    "async_select_npm_host": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "async_select_npm_host",
+    ),
+    "async_sync_npm": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "async_sync_npm",
+    ),
+    "schedule_npm_sync": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "schedule_npm_sync",
+    ),
+    "setup_npm_sync": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "setup_npm_sync",
+    ),
+    "unload_npm_sync": (
+        "custom_components.ip_ban_manager.nginx_proxy_manager",
+        "unload_npm_sync",
     ),
     "dismiss_allowlisted_login_notifications": (
         "custom_components.ip_ban_manager.notifications",
@@ -336,6 +379,21 @@ async def async_handle_manage_post(
                     "Backup upload must include YAML file content."
                 )
             await async_import_config_from_yaml(hass, content)
+        elif action == "npm_connect":
+            await async_connect_npm(
+                hass,
+                data.get("base_url"),
+                data.get("identity"),
+                data.get("secret"),
+            )
+        elif action == "npm_select_host":
+            await async_select_npm_host(hass, data.get("host_id"))
+        elif action == "npm_enable":
+            await async_enable_npm(hass)
+        elif action == "npm_sync":
+            await async_sync_npm(hass)
+        elif action == "npm_disconnect":
+            await async_disconnect_npm(hass)
         elif action == PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN:
             panel_silence_allowlisted_login_notification(
                 hass, value, data.get(ATTR_NOTIFICATION_ID)
@@ -352,6 +410,8 @@ async def async_handle_manage_post(
         metric_increment(hass, "panel_api_errors")
         return view.json({"ok": False, "error": str(err)}, status_code=400)
 
+    if action in {"set_options", "import_config", "upload_config"}:
+        schedule_npm_sync(hass)
     await async_update_health_issue(hass)
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     if entry is None:
@@ -522,6 +582,7 @@ def runtime_module_mtimes(modules: dict[str, ModuleType]) -> dict[str, float]:
 def register_http_views(hass: HomeAssistant) -> None:
     """Register HTTP API views once and bind reloadable handlers on each setup."""
     install_http_view_handlers(hass)
+    setup_npm_sync(hass)
     if hass.data.get(KEY_HTTP_VIEWS):
         return
 
@@ -541,5 +602,6 @@ def register_http_views(hass: HomeAssistant) -> None:
 
 def unregister_http_views(hass: HomeAssistant) -> None:
     """Detach live handlers; sticky HA routes stay but refuse requests."""
+    unload_npm_sync(hass)
     hass.data.pop(KEY_HTTP_VIEW_HANDLERS, None)
     hass.data.pop(KEY_HTTP_VIEWS, None)

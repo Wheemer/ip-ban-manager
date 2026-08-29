@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 from ipaddress import ip_address
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from .const import (
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_REGIONAL_LOGIN_THRESHOLDS,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
@@ -44,8 +46,10 @@ from .entry_helpers import (
     entry_geoip_enabled,
     entry_ip_addresses,
     entry_login_threshold,
+    entry_regional_login_thresholds,
     entry_sidebar_panel_enabled,
     normalize_login_attempts_threshold,
+    normalize_regional_login_thresholds,
     update_entry_options,
 )
 from .entry_meta import (
@@ -61,7 +65,6 @@ from .file_store import (
     path_is_file,
 )
 from .geoip import (
-    async_download_geoip_database,
     async_local_geoip_region,
     async_prepare_geoip_reader,
     close_geoip_reader,
@@ -76,6 +79,7 @@ from .network_policy import (
     current_allowlist_strings,
     current_blocked_network_strings,
 )
+from .nginx_proxy_manager import npm_panel_status, schedule_npm_sync
 from .notifications import (
     NOTIFICATION_ICON_URL,
     entry_silenced_allowlisted_login_ip_strings,
@@ -140,6 +144,7 @@ async def async_panel_payload(
             CONF_ALLOWED_REGION_COUNTRY: entry_allowed_region_country(entry),
             CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
             CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
+            CONF_REGIONAL_LOGIN_THRESHOLDS: entry_regional_login_thresholds(entry),
             CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
             CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: (
@@ -147,6 +152,7 @@ async def async_panel_payload(
             ),
         },
         "geoip": geoip,
+        "nginx_proxy_manager": npm_panel_status(hass, entry),
         ATTR_BACKUP: backup_status,
     }
 
@@ -173,9 +179,8 @@ def _config_entry(hass: HomeAssistant) -> ConfigEntry:
         return entry
 
     for key, value in hass.http.app.items():
-        if (
-            "ip_ban_manager_config_entry" in repr(key)
-            and isinstance(value, ConfigEntry)
+        if "ip_ban_manager_config_entry" in repr(key) and isinstance(
+            value, ConfigEntry
         ):
             hass.http.app[KEY_CONFIG_ENTRY] = value
             return value
@@ -188,6 +193,7 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     if not isinstance(options, dict):
         raise HomeAssistantError("Options must be a JSON object.")
 
+    npm_enabled = options.get("npm_edge_protection_enabled")
     entry = _config_entry(hass)
     current_options = {
         CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
@@ -205,6 +211,7 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
         CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
         CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
         CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
+        CONF_REGIONAL_LOGIN_THRESHOLDS: entry_regional_login_thresholds(entry),
         CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
     }
     for key in (
@@ -223,6 +230,10 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     if CONF_LOGIN_ATTEMPTS_THRESHOLD in options:
         current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = (
             normalize_login_attempts_threshold(options[CONF_LOGIN_ATTEMPTS_THRESHOLD])
+        )
+    if CONF_REGIONAL_LOGIN_THRESHOLDS in options:
+        current_options[CONF_REGIONAL_LOGIN_THRESHOLDS] = (
+            normalize_regional_login_thresholds(options[CONF_REGIONAL_LOGIN_THRESHOLDS])
         )
     current_options.update(
         coerce_allowed_region_options(
@@ -246,7 +257,10 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
             }
         )
     )
-    if current_options[CONF_ALLOWED_REGION_MODE] != ALLOWED_REGION_ANYWHERE:
+    if (
+        current_options[CONF_ALLOWED_REGION_MODE] != ALLOWED_REGION_ANYWHERE
+        or current_options[CONF_REGIONAL_LOGIN_THRESHOLDS]
+    ):
         current_options[CONF_GEOIP_ENABLED] = True
 
     await async_validate_panel_network_safety(
@@ -264,6 +278,16 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     entry = update_entry_options(hass, **current_options)
     apply_ban_settings(hass, entry)
     apply_blocked_networks(hass, entry)
+    if npm_enabled is None:
+        schedule_npm_sync(hass)
+    else:
+        npm_manager = importlib.import_module(
+            "custom_components.ip_ban_manager.nginx_proxy_manager"
+        )
+        if coerce_panel_boolean(npm_enabled):
+            await npm_manager.async_enable_npm(hass)
+        else:
+            await npm_manager.async_disable_npm(hass)
     await async_register_panel(
         hass, sidebar_enabled=bool(current_options[CONF_SIDEBAR_PANEL_ENABLED])
     )

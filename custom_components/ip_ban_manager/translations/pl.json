@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Automatyczne blokady",
           "ban_notifications_enabled": "Powiadomienia o automatycznych blokadach",
           "allowlisted_login_notifications_enabled": "Powiadomienia o logowaniu z Allowlist",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Chroń wywołania zwrotne integracji",
           "allowlisted_logins_can_ban": "Zezwól na automatyczne blokady w dozwolonych IP",
           "default_deny_enabled": "Blokuj wszystko poza dozwolonymi IP",
           "geoip_enabled": "Etykiety lokalizacji GeoIP",
@@ -134,7 +134,7 @@
         "auto_ban": "Automatyczne blokady – blokuj nieudane źródła logowania",
         "ban_notifications": "Powiadomienia o automatycznych blokadach – alerty przy blokowaniu IP",
         "allowlisted_login_notifications": "Powiadomienia o logowaniu z Allowlist – alerty o nieudanych zaufanych logowaniach",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Chroń wywołania zwrotne integracji — pozwól, aby wywołania zwrotne webhooka przechodziły zarządzane reguły blokowania",
         "sidebar_panel": "Pokaż na pasku bocznym – dodaj stronę do lewego menu",
         "geoip": "Etykiety lokalizacji GeoIP – pobierz lokalną bazę DB-IP"
       }

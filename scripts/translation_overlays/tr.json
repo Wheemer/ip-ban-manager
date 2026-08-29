@@ -14,7 +14,8 @@
           "geoip_enabled": "GeoIP konum etiketleri",
           "sidebar_panel_enabled": "Kenar çubuğunda göster",
           "quick_allowlist": "Güvenli allowlist varsayılanları",
-          "ban_options": "Seçenekler"
+          "ban_options": "Seçenekler",
+          "callback_route_protection_enabled": "Entegrasyon geri aramalarını koruyun"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "Otomatik yasak bildirimleri – IP'ler engellendiğinde uyarı göster",
         "allowlisted_login_notifications": "Allowlist giriş bildirimleri – güvenilir başarısız girişlerde uyar",
         "sidebar_panel": "Kenar çubuğunda göster – sol menü sayfasını ekle",
-        "geoip": "GeoIP konum etiketleri – yerel DB-IP veritabanını indir"
+        "geoip": "GeoIP konum etiketleri – yerel DB-IP veritabanını indir",
+        "callback_route_protection": "Entegrasyon geri aramalarını koruyun - webhook geri aramalarının yönetilen engelleme kurallarını geçmesine izin verin"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "İzin verilen IP içinde yasaklar",
       "allowlisted_logins_can_ban_hint": "Dikkatli olun: güvenilir IP'ler engellenebilir.",
       "default_deny_enabled": "İzin verilen IP dışındaki her şeyi engelle",
-      "default_deny_enabled_hint": "Dikkatli olun: yalnızca izin verilen IP'ler bağlanabilir."
+      "default_deny_enabled_hint": "Dikkatli olun: yalnızca izin verilen IP'ler bağlanabilir.",
+      "callback_route_protection_enabled": "Entegrasyon geri aramalarını koruyun",
+      "callback_route_protection_enabled_hint": "Home Assistant web kancası geri aramalarının yönetilen engelleme kurallarını geçmesine izin verin.",
+      "allowed_region_title": "GeoIP erişim sınırı",
+      "allowed_region_mode": "Genel erişim",
+      "allowed_region_country": "Özel ülke kodu",
+      "allowed_region_subdivision": "Özel il/eyalet kodu",
+      "allowed_region_hint": "İsteğe bağlı genel IP engelleme kuralı. İzin verilen IP'ler ve Home Assistant dahili trafik her zaman kazanır.",
+      "use_local_country": "Yerel ülke {country}",
+      "use_local_subdivision": "Yerel il/eyalet {subdivision}",
+      "local_region_detected": "Algılanan yerel bölge: {location}",
+      "local_region_unavailable": "GeoIP etkinleştirildikten ve veritabanı hazır olduktan sonra yerel ülke veya il/eyalet burada görünecektir.",
+      "allowed_region_modes": {
+        "anywhere": "Her yerde",
+        "country": "Yerel veya özel ülke",
+        "subdivision": "Yerel veya özel il/eyalet"
+      }
     },
     "backup": {
       "save_title": "Config'e kaydet",
@@ -224,7 +242,9 @@
       "installed": "Kurulu - {date}",
       "download_hint": "GeoIP'yi etkinleştirin ve indirmek için Uygula'ya basın",
       "attribution": "Konum verileri:",
-      "update": "Güncelle"
+      "update": "Güncelle",
+      "download": "İndir",
+      "downloading": "GeoIP veritabanı indiriliyor..."
     },
     "health": {
       "title": "Sağlık kontrolü dikkat gerektiriyor",
@@ -239,7 +259,62 @@
       "export_config": "Yedek {path} konumuna kaydedildi",
       "import_config": "Yedek {path} konumundan geri yüklendi",
       "download_config": "Yedek indirildi.",
-      "upload_config": "Yedek yüklendi ve uygulandı."
+      "upload_config": "Yedek yüklendi ve uygulandı.",
+      "npm_connect": "Nginx Proxy Manager'ye bağlanıldı.",
+      "npm_select_host": "Proxy ana bilgisayarı seçildi.",
+      "npm_sync": "Nginx Proxy Manager kuralları senkronize edildi.",
+      "npm_disconnect": "Nginx Proxy Manager bağlantısı kesildi.",
+      "set_options": "Seçenekler uygulandı."
+    },
+    "allowed_regions": {
+      "title": "Genel Bölge Kilidi",
+      "hint": "Genel erişimi algılanan veya özel bir GeoIP bölgesiyle kısıtlayın.",
+      "warning": "Yüksek etki: Bir bölge seçildiğinde, bu bölge dışındaki genel IP'ler oturum açmadan önce engellenir. İzin verilen IP'lere, Home Assistant dahili trafiğe ve Koruma entegrasyonu geri aramaları seçeneğine uyulur.",
+      "detected": "Bu Home Assistant sunucusundan algılandı: {location}",
+      "unavailable": "Yerel ülke ve il/eyalet seçimleri, bu Home Assistant sunucusunda GeoIP veritabanı hazır olduktan sonra görünecektir.",
+      "anywhere": "Her yerde",
+      "anywhere_hint": "Genel erişimi GeoIP konumuna göre sınırlamayın.",
+      "local_country": "Ülke",
+      "local_country_hint": "Yalnızca bu ülkedeki genel IP'ler bağlanabilir.",
+      "local_subdivision": "İl / Eyalet",
+      "local_subdivision_hint": "Yalnızca bu eyaletteki/eyaletteki genel IP'ler bağlanabilir.",
+      "custom": "Özel bölge",
+      "custom_hint": "ISO kodlarını yalnızca farklı bir ülkeye veya eyalete/eyalete ihtiyacınız olduğunda kullanın.",
+      "country_placeholder": "Ülke, ör. CA",
+      "subdivision_placeholder": "İl/eyalet, ör. CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "Bölgesel giriş yasakları",
+      "hint": "Seçilen genel bölge için farklı bir yeniden deneme sınırı kullanın.",
+      "ban_after": "Şu tarihten sonra yasakla:",
+      "attempts": "başarısız giriş denemeleri"
+    },
+    "npm": {
+      "hint": "İstekler Home Assistant'ye ulaşmadan önce proxy'de IP Ban Manager'nin açık IP'sini ve ağ kurallarını uygulayın.",
+      "not_connected": "Bağlı değil",
+      "connected_short": "Bağlı",
+      "active": "Kenar koruması etkin",
+      "compact_hint": "Engelleme kurallarını ters proxy'nize uygulayın.",
+      "url": "NPM URL'si, örneğin http://192.168.1.60:81",
+      "identity": "NPM e-postası",
+      "secret": "NPM şifresi",
+      "connect": "Bağlan",
+      "connected": "{url}'ye bağlanıldı",
+      "external_hostname": "Home Assistant harici ana bilgisayar adı: {hostname}",
+      "exact_match": "Tam proxy-ana bilgisayar eşleşmesi: {host}",
+      "selected_host": "Seçilen proxy ana bilgisayarı: {host}",
+      "no_exact_match": "Tek bir tam proxy-ana bilgisayar eşleşmesi bulunamadı. Home Assistant ana bilgisayarını manuel olarak seçin.",
+      "select_host": "Proxy ana bilgisayarını seçin",
+      "select": "Seç",
+      "edge_protection": "Kenar koruması",
+      "edge_protection_hint": "Nginx Proxy Manager'de IP Ban Manager kurallarını uygulayın.",
+      "default_deny_active": "İzin Verilen IP'ler dışındaki her şeyi engelle seçeneği etkindir ve ayrıca NPM'de de uygulanacaktır.",
+      "mirror_default_deny_warning": "Yüksek etki: NPM bunu Home Assistant'den önce uygular, böylece İzin Verilen IP'ler dışındaki harici entegrasyon geri aramaları Home Assistant'nin korumalı geri arama istisnasını kullanamaz.",
+      "enabled": "Kenar koruması etkin.",
+      "last_sync": "Son senkronizasyon: {date}",
+      "sync": "Şimdi senkronize et",
+      "disconnect": "Bağlantıyı kes",
+      "disconnect_confirm": "Nginx Proxy Manager bağlantısı kesilsin mi? IP Ban Manager'nin kuralları seçilen proxy ana bilgisayarından kaldırılacak."
     }
   },
   "entity": {

@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.4](CHANGELOG.md#v184) | Adds optional NGINX Proxy Manager edge enforcement, automatic rule synchronization, and regional failed-login thresholds. |
 | [v1.8.3.9](CHANGELOG.md#v1839) | Hotfix: restores the explicit GeoIP database download flow and prevents Apply from starting a hidden long download. |
 | [v1.8.3.8](CHANGELOG.md#v1838) | Hotfix: removes the empty unit from diagnostic count sensors to stop unit-change repair warnings on existing installs. |
 | [v1.8.3.7](CHANGELOG.md#v1837) | Hotfix: keeps the panel version visible, hardens config-entry reloads, adds toast feedback, and adds Public Region Lock plus callback-route protection controls. |

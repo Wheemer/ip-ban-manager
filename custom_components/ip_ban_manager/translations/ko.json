@@ -9,7 +9,7 @@
           "auto_ban_enabled": "자동 차단",
           "ban_notifications_enabled": "자동 차단 알림",
           "allowlisted_login_notifications_enabled": "허용 목록 로그인 알림",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "통합 콜백 보호",
           "allowlisted_logins_can_ban": "허용 IP 내 자동 차단 허용",
           "default_deny_enabled": "허용 IP 외 모든 접속 차단",
           "geoip_enabled": "GeoIP 위치 레이블",
@@ -134,7 +134,7 @@
         "auto_ban": "자동 차단 - 로그인 실패 소스 차단",
         "ban_notifications": "자동 차단 알림 - IP가 차단될 때 알림 표시",
         "allowlisted_login_notifications": "허용 목록 로그인 알림 - 신뢰 로그인 실패 시 경고",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "통합 콜백 보호 - 웹훅 콜백이 관리형 차단 규칙을 통과하도록 허용",
         "sidebar_panel": "사이드바에 표시 - 왼쪽 메뉴 페이지 추가",
         "geoip": "GeoIP 위치 레이블 - 로컬 DB-IP 데이터베이스 다운로드"
       }

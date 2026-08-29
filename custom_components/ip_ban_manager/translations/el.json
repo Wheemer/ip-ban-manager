@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Αυτόματοι αποκλεισμοί",
           "ban_notifications_enabled": "Αυτόματες ειδοποιήσεις αποκλεισμού",
           "allowlisted_login_notifications_enabled": "Ειδοποιήσεις σύνδεσης από επιτρεπόμενες IP",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Προστατέψτε τις επανακλήσεις ενοποίησης",
           "allowlisted_logins_can_ban": "Να επιτρέπονται αυτόματοι αποκλεισμοί εντός επιτρεπόμενων IP",
           "default_deny_enabled": "Αποκλεισμός όλων εκτός επιτρεπόμενων IP",
           "geoip_enabled": "Ετικέτες τοποθεσίας GeoIP",
@@ -134,7 +134,7 @@
         "auto_ban": "Αυτόματοι αποκλεισμοί – αποκλεισμός πηγών αποτυχημένης σύνδεσης",
         "ban_notifications": "Αυτόματες ειδοποιήσεις αποκλεισμού – ειδοποιήσεις όταν αποκλείονται IP",
         "allowlisted_login_notifications": "Ειδοποιήσεις σύνδεσης από επιτρεπόμενες IP – ειδοποίηση για αποτυχημένες αξιόπιστες συνδέσεις",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Προστατέψτε τις επιστροφές κλήσης ενσωμάτωσης - αφήστε τις επιστροφές κλήσης webhook να περάσουν κανόνες διαχειριζόμενου αποκλεισμού",
         "sidebar_panel": "Εμφάνιση στην πλαϊνή γραμμή – προσθήκη σελίδας στο αριστερό μενού",
         "geoip": "Ετικέτες τοποθεσίας GeoIP – λήψη τοπικής βάσης DB-IP"
       }

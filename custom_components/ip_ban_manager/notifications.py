@@ -10,7 +10,6 @@ from urllib.parse import quote, urlencode
 from aiohttp.web import Response
 from homeassistant.components.http.ban import (
     KEY_FAILED_LOGIN_ATTEMPTS,
-    KEY_LOGIN_THRESHOLD,
     NOTIFICATION_ID_BAN,
     NOTIFICATION_ID_LOGIN,
 )
@@ -28,7 +27,11 @@ from .entry_helpers import (
     entry_allowlisted_login_notifications_enabled,
     update_entry_options,
 )
-from .geoip import DBIP_ATTRIBUTION, geoip_location_for_ip
+from .geoip import (
+    DBIP_ATTRIBUTION,
+    effective_login_threshold_for_ip,
+    geoip_location_for_ip,
+)
 from .storage_keys import (
     KEY_ALLOWLIST,
     KEY_CONFIG_ENTRY,
@@ -454,7 +457,7 @@ def create_allowlisted_login_notification(
     """Create an IP Ban Manager failed-login notification for an allowlisted source."""
     failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
     attempts = int(failed_attempts.get(remote_addr, 0))
-    threshold = int(hass.http.app.get(KEY_LOGIN_THRESHOLD, 0))
+    threshold = effective_login_threshold_for_ip(hass, remote_addr)
     if (
         attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD
         and attempts - 1 < ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD

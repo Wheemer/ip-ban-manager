@@ -769,11 +769,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                                 bool(
                                     status[ATTR_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED]
                                 ),
-                                bool(
-                                    status[
-                                        ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED
-                                    ]
-                                ),
+                                bool(status[ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED]),
                                 bool(status[ATTR_ALLOWLISTED_LOGINS_CAN_BAN]),
                                 bool(status[ATTR_DEFAULT_DENY_ENABLED]),
                                 bool(
@@ -829,8 +825,6 @@ class OptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         """Persist validated options and apply them immediately."""
         from .ban_ops import async_replace_ip_bans
-        from .file_store import geoip_database_path, path_is_file
-        from .geoip import async_download_geoip_database
         from .network_policy import (
             apply_ban_settings,
             update_allowlist_entry,
@@ -838,11 +832,6 @@ class OptionsFlow(config_entries.OptionsFlow):
         )
         from .panel import async_register_panel
 
-        geoip_database_present = await self.hass.async_add_executor_job(
-            path_is_file, geoip_database_path(self.hass)
-        )
-        if geoip_enabled and not geoip_database_present:
-            await async_download_geoip_database(self.hass)
         self.hass.config_entries.async_update_entry(
             self._config_entry,
             options={

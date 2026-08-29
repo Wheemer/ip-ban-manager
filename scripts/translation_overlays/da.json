@@ -14,7 +14,8 @@
           "geoip_enabled": "GeoIP-placeringsetiketter",
           "sidebar_panel_enabled": "Vis i sidepanelet",
           "quick_allowlist": "Sikre standardværdier for tilladt liste",
-          "ban_options": "Indstillinger"
+          "ban_options": "Indstillinger",
+          "callback_route_protection_enabled": "Beskyt integrationsopkald"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "Automatiske udelukkelsesnotifikationer – vis advarsler, når IP'er blokeres",
         "allowlisted_login_notifications": "Notifikationer for tilladte logins – advar ved mislykkede pålidelige logins",
         "sidebar_panel": "Vis i sidepanelet – tilføj siden i venstremenuen",
-        "geoip": "GeoIP-placeringsetiketter – download lokal DB-IP-database"
+        "geoip": "GeoIP-placeringsetiketter – download lokal DB-IP-database",
+        "callback_route_protection": "Beskyt integrationsopkald - lad webhook-tilbagekald passere administrerede blokeringsregler"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "Udelukkelser inden for tilladte IP'er",
       "allowlisted_logins_can_ban_hint": "Vær forsigtig: pålidelige IP'er kan blokeres.",
       "default_deny_enabled": "Bloker alt uden for tilladte IP'er",
-      "default_deny_enabled_hint": "Vær forsigtig: kun tilladte IP'er kan oprette forbindelse."
+      "default_deny_enabled_hint": "Vær forsigtig: kun tilladte IP'er kan oprette forbindelse.",
+      "callback_route_protection_enabled": "Beskyt integrationsopkald",
+      "callback_route_protection_enabled_hint": "Lad Home Assistant webhook-tilbagekald passere administrerede blokeringsregler.",
+      "allowed_region_title": "GeoIP adgangsgrænse",
+      "allowed_region_mode": "Offentlig adgang fra",
+      "allowed_region_country": "Brugerdefineret landekode",
+      "allowed_region_subdivision": "Brugerdefineret provins-/statskode",
+      "allowed_region_hint": "Valgfri offentlig-IP-blokeringsregel. Tilladte IP'er og Home Assistant intern trafik vinder altid.",
+      "use_local_country": "Lokalt land {country}",
+      "use_local_subdivision": "Lokal provins/stat {subdivision}",
+      "local_region_detected": "Detekteret lokal region: {location}",
+      "local_region_unavailable": "Lokalt land eller provins/stat vises her, efter at GeoIP er aktiveret, og databasen er klar.",
+      "allowed_region_modes": {
+        "anywhere": "Hvor som helst",
+        "country": "Lokalt eller brugerdefineret land",
+        "subdivision": "Lokal eller tilpasset provins/stat"
+      }
     },
     "backup": {
       "save_title": "Gem til config",
@@ -224,7 +242,9 @@
       "installed": "Installeret - {date}",
       "download_hint": "Aktiver GeoIP og anvend for at downloade",
       "attribution": "Placeringsdata:",
-      "update": "Opdater"
+      "update": "Opdater",
+      "download": "Download",
+      "downloading": "Downloader GeoIP-database..."
     },
     "health": {
       "title": "Sundhedstjek kræver opmærksomhed",
@@ -239,7 +259,62 @@
       "export_config": "Backup gemt til {path}",
       "import_config": "Backup gendannet fra {path}",
       "download_config": "Backup downloadet.",
-      "upload_config": "Backup uploadet og anvendt."
+      "upload_config": "Backup uploadet og anvendt.",
+      "npm_connect": "Forbundet til Nginx Proxy Manager.",
+      "npm_select_host": "Proxyvært valgt.",
+      "npm_sync": "Nginx Proxy Manager regler synkroniseret.",
+      "npm_disconnect": "Nginx Proxy Manager afbrudt.",
+      "set_options": "Valgmuligheder anvendt."
+    },
+    "allowed_regions": {
+      "title": "Offentlig regionslås",
+      "hint": "Begræns offentlig adgang til én opdaget eller tilpasset GeoIP-region.",
+      "warning": "Stor effekt: Når en region er valgt, blokeres offentlige IP'er uden for den før login. Tilladte IP'er, Home Assistant intern trafik og muligheden for beskyttelse af integrationsopkald respekteres.",
+      "detected": "Registreret fra denne Home Assistant-server: {location}",
+      "unavailable": "Valg af lokale lande og provinser/stater vises efter GeoIP-databasen er klar på denne Home Assistant-server.",
+      "anywhere": "Hvor som helst",
+      "anywhere_hint": "Begræns ikke offentlig adgang efter GeoIP placering.",
+      "local_country": "Land",
+      "local_country_hint": "Kun offentlige IP'er fra dette land kan oprette forbindelse.",
+      "local_subdivision": "Provins/stat",
+      "local_subdivision_hint": "Kun offentlige IP'er fra denne provins/stat kan oprette forbindelse.",
+      "custom": "Brugerdefineret region",
+      "custom_hint": "Brug kun ISO-koder, når du har brug for et andet land eller en anden provins/stat.",
+      "country_placeholder": "Land, f.eks. CA",
+      "subdivision_placeholder": "Provins/stat, f.eks. CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "Regionale loginforbud",
+      "hint": "Brug en anden genforsøgsgrænse for den valgte offentlige region.",
+      "ban_after": "Forbud efter",
+      "attempts": "mislykkede loginforsøg"
+    },
+    "npm": {
+      "hint": "Anvend IP Ban Manager's eksplicitte IP- og netværksregler ved proxyen, før anmodninger når Home Assistant.",
+      "not_connected": "Ikke forbundet",
+      "connected_short": "Forbundet",
+      "active": "Kantbeskyttelse aktiv",
+      "compact_hint": "Anvend blokeringsregler på din omvendte proxy.",
+      "url": "NPM URL, for eksempel http://192.168.1.60:81",
+      "identity": "NPM e-mail",
+      "secret": "NPM adgangskode",
+      "connect": "Forbind",
+      "connected": "Forbundet til {url}",
+      "external_hostname": "Home Assistant eksternt værtsnavn: {hostname}",
+      "exact_match": "Præcis proxy-vært-match: {host}",
+      "selected_host": "Valgt proxy-vært: {host}",
+      "no_exact_match": "Der blev ikke fundet nogen enkelt nøjagtig proxy-vært-match. Vælg Home Assistant-værten manuelt.",
+      "select_host": "Vælg proxy-vært",
+      "select": "Vælg",
+      "edge_protection": "Kantbeskyttelse",
+      "edge_protection_hint": "Anvend IP Ban Manager regler på Nginx Proxy Manager.",
+      "default_deny_active": "Bloker alt uden for Tilladte IP'er er aktiv og vil også blive håndhævet på NPM.",
+      "mirror_default_deny_warning": "Stor effekt: NPM anvender dette før Home Assistant, så eksterne integrationscallbacks uden for Tilladte IP'er kan ikke bruge Home Assistant's beskyttede tilbagekald-undtagelse.",
+      "enabled": "Kantbeskyttelse er aktiv.",
+      "last_sync": "Sidst synkroniseret: {date}",
+      "sync": "Synkroniser nu",
+      "disconnect": "Afbryd forbindelsen",
+      "disconnect_confirm": "Afbryd Nginx Proxy Manager? IP Ban Manager's regler vil blive fjernet fra den valgte proxy-vært."
     }
   },
   "entity": {

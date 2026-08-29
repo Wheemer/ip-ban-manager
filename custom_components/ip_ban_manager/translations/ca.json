@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Bloquejos automàtics",
           "ban_notifications_enabled": "Notificacions de bloqueig automàtic",
           "allowlisted_login_notifications_enabled": "Notificacions d'inici de sessió a la llista permesa",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Protegiu les devolució de trucades d'integració",
           "allowlisted_logins_can_ban": "Permet bloquejos automàtics dins les IP permeses",
           "default_deny_enabled": "Bloqueja tot el que quedi fora de les IP permeses",
           "geoip_enabled": "Etiquetes d'ubicació GeoIP",
@@ -134,7 +134,7 @@
         "auto_ban": "Bloquejos automàtics – bloqueja fonts d'inici de sessió fallides",
         "ban_notifications": "Notificacions de bloqueig automàtic – alertes quan es bloquegen IP",
         "allowlisted_login_notifications": "Notificacions d'inici de sessió a la llista permesa – alerta en inicis de sessió de confiança fallits",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Protegiu les devolucions de trucada d'integració: deixeu que les devolució de trucades de webhook superin les regles de bloqueig gestionades",
         "sidebar_panel": "Mostra a la barra lateral – afegeix la pàgina al menú esquerre",
         "geoip": "Etiquetes d'ubicació GeoIP – descarrega una base de dades DB-IP local"
       }

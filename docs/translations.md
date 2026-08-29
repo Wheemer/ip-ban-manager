@@ -57,6 +57,7 @@ Before release, verify:
 - Every JSON file parses.
 - Every locale has the same string-key set as English.
 - Every localized string preserves the same `{placeholder}` names as English.
+- New feature prose is actually localized instead of being copied from English solely to satisfy key parity.
 - `translations/*.json` does not contain a top-level `panel` section.
 - `panel_translations/*.json` contains panel-only strings.
 - Regenerating translations with `scripts/build_translations.py` produces no unexpected diff.
@@ -66,6 +67,7 @@ Current structural audit result:
 
 - `translations/*.json`: all 25 non-English locales match the English key set and placeholders.
 - `panel_translations/*.json`: all 25 non-English locales match the English key set and placeholders.
+- Public Region Lock, callback protection, regional login thresholds, and NGINX Proxy Manager controls are localized in every shipped panel locale.
 - Regeneration from overlays completed cleanly with no file changes.
 
 ## Acceptable English Carry-Through

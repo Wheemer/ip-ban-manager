@@ -14,7 +14,8 @@
           "geoip_enabled": "Štítky polohy GeoIP",
           "sidebar_panel_enabled": "Zobrazit v postranním panelu",
           "quick_allowlist": "Bezpečné výchozí hodnoty allowlistu",
-          "ban_options": "Možnosti"
+          "ban_options": "Možnosti",
+          "callback_route_protection_enabled": "Chraňte integrační zpětná volání"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "Automatická oznámení o zákazu – upozornění při blokování IP",
         "allowlisted_login_notifications": "Oznámení o přihlášení z allowlistu – upozornit na neúspěšná důvěryhodná přihlášení",
         "sidebar_panel": "Zobrazit v postranním panelu – přidat stránku do levého menu",
-        "geoip": "Štítky polohy GeoIP – stáhnout lokální DB-IP databázi"
+        "geoip": "Štítky polohy GeoIP – stáhnout lokální DB-IP databázi",
+        "callback_route_protection": "Chraňte integrační zpětná volání – nechte zpětná volání webhooku projít řízenými pravidly blokování"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "Zákazy uvnitř povolených IP",
       "allowlisted_logins_can_ban_hint": "Buďte opatrní: důvěryhodné IP lze blokovat.",
       "default_deny_enabled": "Blokovat vše mimo povolené IP",
-      "default_deny_enabled_hint": "Buďte opatrní: mohou se připojit jen povolené IP."
+      "default_deny_enabled_hint": "Buďte opatrní: mohou se připojit jen povolené IP.",
+      "callback_route_protection_enabled": "Chraňte integrační zpětná volání",
+      "callback_route_protection_enabled_hint": "Nechte zpětná volání webhooku Home Assistant projít řízenými pravidly blokování.",
+      "allowed_region_title": "Limit přístupu GeoIP",
+      "allowed_region_mode": "Veřejný přístup z",
+      "allowed_region_country": "Vlastní kód země",
+      "allowed_region_subdivision": "Vlastní kód provincie/státu",
+      "allowed_region_hint": "Volitelné pravidlo blokování veřejné IP. Povolené IP adresy a interní provoz Home Assistant vždy vítězí.",
+      "use_local_country": "Místní země {country}",
+      "use_local_subdivision": "Místní provincie/stát {subdivision}",
+      "local_region_detected": "Zjištěná místní oblast: {location}",
+      "local_region_unavailable": "Po aktivaci GeoIP a připravenosti databáze se zde objeví místní země nebo provincie/stát.",
+      "allowed_region_modes": {
+        "anywhere": "Kdekoli",
+        "country": "Místní nebo vlastní země",
+        "subdivision": "Místní nebo vlastní provincie/stát"
+      }
     },
     "backup": {
       "save_title": "Uložit do config",
@@ -224,7 +242,9 @@
       "installed": "Nainstalována - {date}",
       "download_hint": "Povolte GeoIP a Použít pro stažení",
       "attribution": "Data o poloze:",
-      "update": "Aktualizovat"
+      "update": "Aktualizovat",
+      "download": "Stáhnout",
+      "downloading": "Stahování databáze GeoIP..."
     },
     "health": {
       "title": "Kontrola stavu vyžaduje pozornost",
@@ -239,7 +259,62 @@
       "export_config": "Záloha uložena do {path}",
       "import_config": "Záloha obnovena z {path}",
       "download_config": "Záloha stažena.",
-      "upload_config": "Záloha nahrána a použita."
+      "upload_config": "Záloha nahrána a použita.",
+      "npm_connect": "Připojeno k Nginx Proxy Manager.",
+      "npm_select_host": "Byl vybrán hostitel proxy.",
+      "npm_sync": "Pravidla Nginx Proxy Manager synchronizována.",
+      "npm_disconnect": "Nginx Proxy Manager odpojeno.",
+      "set_options": "Možnosti byly použity."
+    },
+    "allowed_regions": {
+      "title": "Zámek veřejného regionu",
+      "hint": "Omezte veřejný přístup na jednu detekovanou nebo vlastní oblast GeoIP.",
+      "warning": "Vysoký dopad: když je vybrán region, veřejné IP adresy mimo něj jsou před přihlášením zablokovány. Povolené adresy IP, interní provoz Home Assistant a možnost zpětných volání integrace Protect jsou respektovány.",
+      "detected": "Zjištěno z tohoto serveru Home Assistant: {location}",
+      "unavailable": "Volby místní země a provincie/státu se objeví poté, co bude databáze GeoIP připravena na tomto serveru Home Assistant.",
+      "anywhere": "Kdekoli",
+      "anywhere_hint": "Neomezujte veřejný přístup umístěním GeoIP.",
+      "local_country": "země",
+      "local_country_hint": "Připojit se mohou pouze veřejné IP z této země.",
+      "local_subdivision": "Provincie / Stát",
+      "local_subdivision_hint": "Připojit se mohou pouze veřejné IP z této provincie/státu.",
+      "custom": "Vlastní oblast",
+      "custom_hint": "Kódy ISO používejte pouze v případě, že potřebujete jinou zemi nebo provincii/stát.",
+      "country_placeholder": "Země, např. CA",
+      "subdivision_placeholder": "Provincie/stát, např. CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "Regionální zákaz přihlášení",
+      "hint": "Pro vybranou veřejnou oblast použijte jiný limit opakování.",
+      "ban_after": "Zakázat po",
+      "attempts": "neúspěšné pokusy o přihlášení"
+    },
+    "npm": {
+      "hint": "Aplikujte explicitní IP a síťová pravidla IP Ban Manager na proxy dříve, než požadavky dosáhnou Home Assistant.",
+      "not_connected": "Nepřipojeno",
+      "connected_short": "Připojeno",
+      "active": "Ochrana hran je aktivní",
+      "compact_hint": "Použijte pravidla blokování na vašem reverzním proxy.",
+      "url": "URL NPM, například http://192.168.1.60:81",
+      "identity": "E-mail NPM",
+      "secret": "Heslo NPM",
+      "connect": "Připojte se",
+      "connected": "Připojeno k {url}",
+      "external_hostname": "Home Assistant název externího hostitele: {hostname}",
+      "exact_match": "Přesná shoda proxy-hostitel: {host}",
+      "selected_host": "Vybraný hostitel proxy: {host}",
+      "no_exact_match": "Nebyla nalezena žádná přesná shoda proxy-hostitel. Vyberte hostitele Home Assistant ručně.",
+      "select_host": "Vyberte hostitele proxy",
+      "select": "Vyberte",
+      "edge_protection": "Ochrana hran",
+      "edge_protection_hint": "Použijte pravidla IP Ban Manager na Nginx Proxy Manager.",
+      "default_deny_active": "Blokovat vše mimo povolené adresy IP je aktivní a bude také vynuceno na NPM.",
+      "mirror_default_deny_warning": "Velký dopad: NPM to použije před Home Assistant, takže externí integrační zpětná volání mimo povolené IP nemohou používat výjimku chráněného zpětného volání Home Assistant.",
+      "enabled": "Ochrana hran je aktivní.",
+      "last_sync": "Poslední synchronizace: {date}",
+      "sync": "Synchronizovat nyní",
+      "disconnect": "Odpojit",
+      "disconnect_confirm": "Odpojit Nginx Proxy Manager? Pravidla IP Ban Manager budou odstraněna z vybraného hostitele proxy."
     }
   },
   "entity": {

@@ -53,6 +53,8 @@ from .health import async_health_status, health_status
 from .metrics import metrics
 from .runtime_options import (
     CONF_CALLBACK_ROUTE_PROTECTION_ENABLED as ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED,
+)
+from .runtime_options import (
     entry_callback_route_protection_enabled,
 )
 from .storage_keys import (

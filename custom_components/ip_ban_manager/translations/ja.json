@@ -9,7 +9,7 @@
           "auto_ban_enabled": "自動 BAN",
           "ban_notifications_enabled": "自動 BAN 通知",
           "allowlisted_login_notifications_enabled": "許可リストのログイン通知",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "統合コールバックの保護",
           "allowlisted_logins_can_ban": "許可 IP 内での自動 BAN を許可",
           "default_deny_enabled": "許可 IP 以外をすべてブロック",
           "geoip_enabled": "GeoIP 位置ラベル",
@@ -134,7 +134,7 @@
         "auto_ban": "自動 BAN - ログイン失敗の発信元をブロック",
         "ban_notifications": "自動 BAN 通知 - IP がブロックされたときにアラートを表示",
         "allowlisted_login_notifications": "許可リストのログイン通知 - 信頼済みログイン失敗時に警告",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "統合コールバックを保護する - Webhook コールバックに管理されたブロック ルールを通過させます",
         "sidebar_panel": "サイドバーに表示 - 左メニューページを追加",
         "geoip": "GeoIP 位置ラベル - ローカル DB-IP データベースをダウンロード"
       }

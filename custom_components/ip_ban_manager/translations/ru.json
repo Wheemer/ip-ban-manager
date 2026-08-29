@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Автоматические блокировки",
           "ban_notifications_enabled": "Автоматические уведомления о блокировке",
           "allowlisted_login_notifications_enabled": "Уведомления о входе из allowlist",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Защита обратных вызовов интеграции",
           "allowlisted_logins_can_ban": "Разрешить автоблокировки внутри разрешённых IP",
           "default_deny_enabled": "Блокировать всё вне разрешённых IP",
           "geoip_enabled": "Метки местоположения GeoIP",
@@ -134,7 +134,7 @@
         "auto_ban": "Автоматические блокировки – блокировать источники неудачных входов",
         "ban_notifications": "Автоматические уведомления о блокировке – оповещения при блокировке IP",
         "allowlisted_login_notifications": "Уведомления о входе из allowlist – предупреждать о неудачных доверенных входах",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Защитите обратные вызовы интеграции — позвольте обратным вызовам веб-перехватчиков проходить правила управляемой блокировки.",
         "sidebar_panel": "Показывать на боковой панели – добавить страницу в левое меню",
         "geoip": "Метки местоположения GeoIP – загрузить локальную DB-IP базу"
       }

@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Automatikus tiltások",
           "ban_notifications_enabled": "Automatikus tiltási értesítések",
           "allowlisted_login_notifications_enabled": "Engedélyezett bejelentkezési értesítések",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Védje az integrációs visszahívásokat",
           "allowlisted_logins_can_ban": "Automatikus tiltások engedélyezése az engedélyezett IP-k között",
           "default_deny_enabled": "Minden blokkolt az engedélyezett IP-ken kívül",
           "geoip_enabled": "GeoIP helycímkék",
@@ -134,7 +134,7 @@
         "auto_ban": "Automatikus tiltások – sikertelen bejelentkezési források blokkolása",
         "ban_notifications": "Automatikus tiltási értesítések – riasztások blokkolt IP-k esetén",
         "allowlisted_login_notifications": "Engedélyezett bejelentkezési értesítések – riasztás sikertelen megbízható bejelentkezéseknél",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Védje az integrációs visszahívásokat – hagyja, hogy a webhook visszahívások átadják a kezelt blokkolási szabályokat",
         "sidebar_panel": "Megjelenítés az oldalsávban – oldal hozzáadása a bal menühöz",
         "geoip": "GeoIP helycímkék – helyi DB-IP adatbázis letöltése"
       }

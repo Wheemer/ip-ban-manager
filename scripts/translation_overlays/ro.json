@@ -14,7 +14,8 @@
           "geoip_enabled": "Etichete de locație GeoIP",
           "sidebar_panel_enabled": "Afișează în bara laterală",
           "quick_allowlist": "Valori sigure implicite pentru lista permisă",
-          "ban_options": "Opțiuni"
+          "ban_options": "Opțiuni",
+          "callback_route_protection_enabled": "Protejați apelurile de integrare"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "Notificări automate de interdicție – alerte când IP-urile sunt blocate",
         "allowlisted_login_notifications": "Notificări de autentificare pe lista permisă – alerte la autentificări de încredere eșuate",
         "sidebar_panel": "Afișează în bara laterală – adaugă pagina în meniul din stânga",
-        "geoip": "Etichete de locație GeoIP – descarcă o bază de date DB-IP locală"
+        "geoip": "Etichete de locație GeoIP – descarcă o bază de date DB-IP locală",
+        "callback_route_protection": "Protejați apelurile inverse de integrare - permiteți apelurilor de tip webhook să treacă regulile de blocare gestionate"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "Interdicții în IP-urile permise",
       "allowlisted_logins_can_ban_hint": "Ai grijă: IP-urile de încredere pot fi blocate.",
       "default_deny_enabled": "Blochează tot ce este în afara IP-urilor permise",
-      "default_deny_enabled_hint": "Ai grijă: doar IP-urile permise se pot conecta."
+      "default_deny_enabled_hint": "Ai grijă: doar IP-urile permise se pot conecta.",
+      "callback_route_protection_enabled": "Protejați apelurile de integrare",
+      "callback_route_protection_enabled_hint": "Permiteți apelurilor Home Assistant webhook să treacă regulile de blocare gestionate.",
+      "allowed_region_title": "Limită de acces GeoIP",
+      "allowed_region_mode": "Acces public de la",
+      "allowed_region_country": "Cod de țară personalizat",
+      "allowed_region_subdivision": "Cod personalizat de provincie/stat",
+      "allowed_region_hint": "Regulă opțională de blocare a IP-ului public. IP-urile permise și traficul intern Home Assistant câștigă întotdeauna.",
+      "use_local_country": "Țara locală {country}",
+      "use_local_subdivision": "Provincie/stat local {subdivision}",
+      "local_region_detected": "Regiunea locală detectată: {location}",
+      "local_region_unavailable": "Țara locală sau provincia/statul va apărea aici după ce GeoIP este activat și baza de date este gata.",
+      "allowed_region_modes": {
+        "anywhere": "Oriunde",
+        "country": "Țară locală sau personalizată",
+        "subdivision": "Provincie/stat local sau personalizat"
+      }
     },
     "backup": {
       "save_title": "Salvează în configurație",
@@ -224,7 +242,9 @@
       "installed": "Instalată - {date}",
       "download_hint": "Activează GeoIP și Aplică pentru descărcare",
       "attribution": "Date de locație:",
-      "update": "Actualizează"
+      "update": "Actualizează",
+      "download": "Descărcați",
+      "downloading": "Se descarcă baza de date GeoIP..."
     },
     "health": {
       "title": "Verificarea stării necesită atenție",
@@ -239,7 +259,62 @@
       "export_config": "Backup salvat în {path}",
       "import_config": "Backup restaurat din {path}",
       "download_config": "Backup descărcat.",
-      "upload_config": "Backup încărcat și aplicat."
+      "upload_config": "Backup încărcat și aplicat.",
+      "npm_connect": "Conectat la Nginx Proxy Manager.",
+      "npm_select_host": "Gazdă proxy selectată.",
+      "npm_sync": "Regulile Nginx Proxy Manager au fost sincronizate.",
+      "npm_disconnect": "Nginx Proxy Manager deconectat.",
+      "set_options": "Opțiuni aplicate."
+    },
+    "allowed_regions": {
+      "title": "Blocarea regiunii publice",
+      "hint": "Restricționați accesul public la o regiune GeoIP detectată sau personalizată.",
+      "warning": "Impact mare: atunci când o regiune este selectată, IP-urile publice din afara acesteia sunt blocate înainte de autentificare. Sunt respectate IP-urile permise, traficul intern Home Assistant și opțiunea Protejați apelurile inverse de integrare.",
+      "detected": "Detectat de pe acest server Home Assistant: {location}",
+      "unavailable": "Opțiunile locale de țară și provincie/stat vor apărea după ce baza de date GeoIP este gata pe acest server Home Assistant.",
+      "anywhere": "Oriunde",
+      "anywhere_hint": "Nu limitați accesul public prin locația GeoIP.",
+      "local_country": "Țara",
+      "local_country_hint": "Numai IP-urile publice din această țară se pot conecta.",
+      "local_subdivision": "Provincie/Stat",
+      "local_subdivision_hint": "Numai IP-urile publice din această provincie/stat se pot conecta.",
+      "custom": "Regiune personalizată",
+      "custom_hint": "Utilizați codurile ISO numai atunci când aveți nevoie de altă țară sau provincie/stat.",
+      "country_placeholder": "Țara, de ex. CA",
+      "subdivision_placeholder": "Provincie/stat, de ex. CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "Interdicții regionale de conectare",
+      "hint": "Utilizați o limită diferită de reîncercare pentru regiunea publică selectată.",
+      "ban_after": "Ban dupa",
+      "attempts": "încercări de conectare eșuate"
+    },
+    "npm": {
+      "hint": "Aplicați IP-ul și regulile de rețea explicite ale IP Ban Manager la proxy înainte ca solicitările să ajungă la Home Assistant.",
+      "not_connected": "Nu este conectat",
+      "connected_short": "Conectat",
+      "active": "Protecția marginilor activă",
+      "compact_hint": "Aplicați regulile de blocare la proxy invers.",
+      "url": "URL NPM, de exemplu http://192.168.1.60:81",
+      "identity": "NPM e-mail",
+      "secret": "parola NPM",
+      "connect": "Conectați-vă",
+      "connected": "Conectat la {url}",
+      "external_hostname": "Home Assistant nume de gazdă extern: {hostname}",
+      "exact_match": "Potrivire exactă proxy-gazdă: {host}",
+      "selected_host": "Gazdă proxy selectată: {host}",
+      "no_exact_match": "Nu a fost găsită nicio potrivire exactă proxy-gazdă. Selectați manual gazda Home Assistant.",
+      "select_host": "Selectați gazda proxy",
+      "select": "Selectați",
+      "edge_protection": "Protecția marginilor",
+      "edge_protection_hint": "Aplicați regulile IP Ban Manager la Nginx Proxy Manager.",
+      "default_deny_active": "Blocarea totul în afara IP-urilor permise este activă și va fi aplicată și la NPM.",
+      "mirror_default_deny_warning": "Impact mare: NPM aplică acest lucru înainte de Home Assistant, astfel încât apelurile inverse de integrare externă din afara IP-urilor permise nu pot folosi excepția de apelare protejată a Home Assistant.",
+      "enabled": "Protecția marginilor este activă.",
+      "last_sync": "Ultima sincronizare: {date}",
+      "sync": "Sincronizează acum",
+      "disconnect": "Deconectați-vă",
+      "disconnect_confirm": "Deconectați Nginx Proxy Manager? Regulile lui IP Ban Manager vor fi eliminate din gazda proxy selectată."
     }
   },
   "entity": {
