@@ -2,7 +2,8 @@
   "domain": "ip_ban_manager",
   "name": "IP Ban Manager",
   "after_dependencies": [
-    "logbook"
+    "logbook",
+    "recorder"
   ],
   "codeowners": [
     "@Wheemer"
