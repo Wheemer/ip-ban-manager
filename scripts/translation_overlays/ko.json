@@ -14,7 +14,8 @@
           "geoip_enabled": "GeoIP 위치 레이블",
           "sidebar_panel_enabled": "사이드바에 표시",
           "quick_allowlist": "허용 목록 안전 기본값",
-          "ban_options": "옵션"
+          "ban_options": "옵션",
+          "callback_route_protection_enabled": "통합 콜백 보호"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "자동 차단 알림 - IP가 차단될 때 알림 표시",
         "allowlisted_login_notifications": "허용 목록 로그인 알림 - 신뢰 로그인 실패 시 경고",
         "sidebar_panel": "사이드바에 표시 - 왼쪽 메뉴 페이지 추가",
-        "geoip": "GeoIP 위치 레이블 - 로컬 DB-IP 데이터베이스 다운로드"
+        "geoip": "GeoIP 위치 레이블 - 로컬 DB-IP 데이터베이스 다운로드",
+        "callback_route_protection": "통합 콜백 보호 - 웹훅 콜백이 관리형 차단 규칙을 통과하도록 허용"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "허용 IP 내 차단",
       "allowlisted_logins_can_ban_hint": "주의: 신뢰 IP도 차단될 수 있습니다.",
       "default_deny_enabled": "허용 IP 외 모든 접속 차단",
-      "default_deny_enabled_hint": "주의: 허용 IP만 연결할 수 있습니다."
+      "default_deny_enabled_hint": "주의: 허용 IP만 연결할 수 있습니다.",
+      "callback_route_protection_enabled": "통합 콜백 보호",
+      "callback_route_protection_enabled_hint": "Home Assistant 웹훅 콜백이 관리형 차단 규칙을 통과하도록 합니다.",
+      "allowed_region_title": "GeoIP 액세스 제한",
+      "allowed_region_mode": "공개 액세스:",
+      "allowed_region_country": "맞춤 국가 코드",
+      "allowed_region_subdivision": "맞춤 주/도 코드",
+      "allowed_region_hint": "선택적 공용 IP 차단 규칙입니다. 허용된 IP 및 Home Assistant 내부 트래픽이 항상 승리합니다.",
+      "use_local_country": "현지 국가 {country}",
+      "use_local_subdivision": "지방/주 {subdivision}",
+      "local_region_detected": "감지된 로컬 지역: {location}",
+      "local_region_unavailable": "GeoIP가 활성화되고 데이터베이스가 준비된 후에 현지 국가 또는 주/도가 여기에 표시됩니다.",
+      "allowed_region_modes": {
+        "anywhere": "어디서나",
+        "country": "지역 또는 맞춤 국가",
+        "subdivision": "지역 또는 맞춤형 주/주"
+      }
     },
     "backup": {
       "save_title": "구성에 저장",
@@ -224,7 +242,9 @@
       "installed": "설치됨 - {date}",
       "download_hint": "GeoIP를 활성화하고 적용하여 다운로드",
       "attribution": "위치 데이터:",
-      "update": "업데이트"
+      "update": "업데이트",
+      "download": "다운로드",
+      "downloading": "GeoIP 데이터베이스 다운로드 중..."
     },
     "health": {
       "title": "상태 점검에 주의 필요",
@@ -239,7 +259,62 @@
       "export_config": "백업을 {path}에 저장했습니다",
       "import_config": "{path}에서 백업을 복원했습니다",
       "download_config": "백업을 다운로드했습니다.",
-      "upload_config": "백업을 업로드하고 적용했습니다."
+      "upload_config": "백업을 업로드하고 적용했습니다.",
+      "npm_connect": "Nginx Proxy Manager에 연결되었습니다.",
+      "npm_select_host": "프록시 호스트가 선택되었습니다.",
+      "npm_sync": "Nginx Proxy Manager 규칙이 동기화되었습니다.",
+      "npm_disconnect": "Nginx Proxy Manager 연결이 끊어졌습니다.",
+      "set_options": "옵션이 적용되었습니다."
+    },
+    "allowed_regions": {
+      "title": "공개 지역 잠금",
+      "hint": "감지된 하나의 GeoIP 지역 또는 사용자 정의된 지역에 대한 공개 액세스를 제한합니다.",
+      "warning": "높은 영향: 지역을 선택하면 해당 지역 외부의 공용 IP가 로그인 전에 차단됩니다. 허용된 IP, Home Assistant 내부 트래픽 및 통합 콜백 보호 옵션이 존중됩니다.",
+      "detected": "이 Home Assistant 서버에서 감지됨: {location}",
+      "unavailable": "이 Home Assistant 서버에서 GeoIP 데이터베이스가 준비된 후에 현지 국가 및 지방/주 선택 사항이 나타납니다.",
+      "anywhere": "어디서나",
+      "anywhere_hint": "GeoIP 위치로 공개 액세스를 제한하지 마세요.",
+      "local_country": "국가",
+      "local_country_hint": "이 국가의 공개 IP만 연결할 수 있습니다.",
+      "local_subdivision": "지방 / 주",
+      "local_subdivision_hint": "해당 시/도의 공인 IP만 연결할 수 있습니다.",
+      "custom": "맞춤 지역",
+      "custom_hint": "다른 국가나 지방/주/도가 필요한 경우에만 ISO 코드를 사용하세요.",
+      "country_placeholder": "국가(예: 캘리포니아",
+      "subdivision_placeholder": "주/도(예: CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "지역 로그인 금지",
+      "hint": "선택한 공개 지역에 대해 다른 재시도 제한을 사용하세요.",
+      "ban_after": "다음 이후 금지",
+      "attempts": "실패한 로그인 시도"
+    },
+    "npm": {
+      "hint": "요청이 Home Assistant에 도달하기 전에 프록시에서 IP Ban Manager의 명시적 IP 및 네트워크 규칙을 적용합니다.",
+      "not_connected": "연결되지 않음",
+      "connected_short": "연결됨",
+      "active": "가장자리 보호 활성화",
+      "compact_hint": "역방향 프록시에 차단 규칙을 적용합니다.",
+      "url": "NPM URL(예: http://192.168.1.60:81)",
+      "identity": "NPM 이메일",
+      "secret": "NPM 비밀번호",
+      "connect": "연결하다",
+      "connected": "{url}에 연결됨",
+      "external_hostname": "Home Assistant 외부 호스트 이름: {hostname}",
+      "exact_match": "정확한 프록시-호스트 일치: {host}",
+      "selected_host": "선택한 프록시 호스트: {host}",
+      "no_exact_match": "정확히 일치하는 프록시-호스트가 하나도 없습니다. Home Assistant 호스트를 수동으로 선택합니다.",
+      "select_host": "프록시 호스트 선택",
+      "select": "선택",
+      "edge_protection": "가장자리 보호",
+      "edge_protection_hint": "Nginx Proxy Manager에서 IP Ban Manager 규칙을 적용합니다.",
+      "default_deny_active": "허용된 IP 외부의 모든 항목 차단이 활성화되어 있으며 NPM에서도 시행됩니다.",
+      "mirror_default_deny_warning": "높은 영향: NPM는 이를 Home Assistant보다 먼저 적용하므로 허용된 IP 외부의 외부 통합 콜백은 Home Assistant의 보호 콜백 예외를 사용할 수 없습니다.",
+      "enabled": "가장자리 보호가 활성화되었습니다.",
+      "last_sync": "마지막 동기화 날짜: {date}",
+      "sync": "지금 동기화",
+      "disconnect": "연결 끊기",
+      "disconnect_confirm": "Nginx Proxy Manager를 연결 해제하시겠습니까? IP Ban Manager의 규칙이 선택한 프록시 호스트에서 제거됩니다."
     }
   },
   "entity": {

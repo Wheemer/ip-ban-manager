@@ -14,7 +14,8 @@
           "geoip_enabled": "Мітки місцезнаходження GeoIP",
           "sidebar_panel_enabled": "Показувати на бічній панелі",
           "quick_allowlist": "Безпечні значення allowlist за замовчуванням",
-          "ban_options": "Параметри"
+          "ban_options": "Параметри",
+          "callback_route_protection_enabled": "Захист зворотних викликів інтеграції"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "Автоматичні сповіщення про блокування – попередження при блокуванні IP",
         "allowlisted_login_notifications": "Сповіщення про вхід з allowlist – попереджати про невдалі довірені входи",
         "sidebar_panel": "Показувати на бічній панелі – додати сторінку до лівого меню",
-        "geoip": "Мітки місцезнаходження GeoIP – завантажити локальну DB-IP базу"
+        "geoip": "Мітки місцезнаходження GeoIP – завантажити локальну DB-IP базу",
+        "callback_route_protection": "Захистіть зворотні виклики інтеграції – дозвольте зворотним викликам вебхуку передавати керовані правила блокування"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "Блокування всередині дозволених IP",
       "allowlisted_logins_can_ban_hint": "Будьте обережні: довірені IP можна блокувати.",
       "default_deny_enabled": "Блокувати все поза дозволеними IP",
-      "default_deny_enabled_hint": "Будьте обережні: підключатися можуть лише дозволені IP."
+      "default_deny_enabled_hint": "Будьте обережні: підключатися можуть лише дозволені IP.",
+      "callback_route_protection_enabled": "Захист зворотних викликів інтеграції",
+      "callback_route_protection_enabled_hint": "Дозвольте зворотним викликам вебхуку Home Assistant передавати керовані правила блокування.",
+      "allowed_region_title": "Ліміт доступу GeoIP",
+      "allowed_region_mode": "Публічний доступ від",
+      "allowed_region_country": "Спеціальний код країни",
+      "allowed_region_subdivision": "Спеціальний код провінції/штату",
+      "allowed_region_hint": "Додаткове правило блокування публічних IP-адрес. Дозволені IP-адреси та внутрішній трафік Home Assistant завжди виграють.",
+      "use_local_country": "Місцева країна {country}",
+      "use_local_subdivision": "Місцева провінція/штат {subdivision}",
+      "local_region_detected": "Виявлений локальний регіон: {location}",
+      "local_region_unavailable": "Місцева країна чи провінція/штат з’являться тут після того, як GeoIP буде ввімкнено та база даних буде готова.",
+      "allowed_region_modes": {
+        "anywhere": "Де завгодно",
+        "country": "Місцева або спеціальна країна",
+        "subdivision": "Місцева або спеціальна провінція/штат"
+      }
     },
     "backup": {
       "save_title": "Зберегти в config",
@@ -224,7 +242,9 @@
       "installed": "Встановлено - {date}",
       "download_hint": "Увімкніть GeoIP і натисніть Застосувати для завантаження",
       "attribution": "Дані про місцезнаходження:",
-      "update": "Оновити"
+      "update": "Оновити",
+      "download": "Завантажити",
+      "downloading": "Завантаження бази даних GeoIP..."
     },
     "health": {
       "title": "Перевірка стану потребує уваги",
@@ -239,7 +259,62 @@
       "export_config": "Резервну копію збережено в {path}",
       "import_config": "Резервну копію відновлено з {path}",
       "download_config": "Резервну копію завантажено.",
-      "upload_config": "Резервну копію завантажено та застосовано."
+      "upload_config": "Резервну копію завантажено та застосовано.",
+      "npm_connect": "Підключено до Nginx Proxy Manager.",
+      "npm_select_host": "Вибрано проксі-сервер.",
+      "npm_sync": "Правила Nginx Proxy Manager синхронізовано.",
+      "npm_disconnect": "Nginx Proxy Manager відключено.",
+      "set_options": "Застосовані параметри."
+    },
+    "allowed_regions": {
+      "title": "Блокування публічного регіону",
+      "hint": "Обмежте публічний доступ до одного виявленого або спеціального регіону GeoIP.",
+      "warning": "Значний вплив: коли вибрано регіон, публічні IP-адреси за його межами блокуються перед входом. Дозволені IP-адреси, внутрішній трафік Home Assistant і параметр захисту зворотних викликів інтеграції враховуються.",
+      "detected": "Виявлено з цього сервера Home Assistant: {location}",
+      "unavailable": "Вибір місцевої країни та провінції/штату з’явиться після того, як база даних GeoIP буде готова на цьому сервері Home Assistant.",
+      "anywhere": "Де завгодно",
+      "anywhere_hint": "Не обмежуйте публічний доступ місцезнаходженням GeoIP.",
+      "local_country": "Країна",
+      "local_country_hint": "Підключатися можуть лише загальнодоступні IP-адреси з цієї країни.",
+      "local_subdivision": "Провінція / Штат",
+      "local_subdivision_hint": "Лише публічні IP-адреси з цієї провінції/штату можуть підключитися.",
+      "custom": "Індивідуальний регіон",
+      "custom_hint": "Використовуйте коди ISO лише тоді, коли вам потрібна інша країна чи провінція/штат.",
+      "country_placeholder": "Країна, напр. CA",
+      "subdivision_placeholder": "Провінція/штат, напр. CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "Регіональні заборони входу",
+      "hint": "Використовуйте інший ліміт повторних спроб для вибраного публічного регіону.",
+      "ban_after": "Бан після",
+      "attempts": "невдалі спроби входу"
+    },
+    "npm": {
+      "hint": "Застосуйте явні IP-адреси та правила мережі IP Ban Manager на проксі, перш ніж запити досягнуть Home Assistant.",
+      "not_connected": "Не підключено",
+      "connected_short": "Підключено",
+      "active": "Захист країв активний",
+      "compact_hint": "Застосуйте правила блокування на своєму зворотному проксі.",
+      "url": "URL-адреса NPM, наприклад http://192.168.1.60:81",
+      "identity": "Електронна пошта NPM",
+      "secret": "Пароль NPM",
+      "connect": "Підключитися",
+      "connected": "Підключено до {url}",
+      "external_hostname": "Home Assistant зовнішнє ім’я хоста: {hostname}",
+      "exact_match": "Точна відповідність проксі-хосту: {host}",
+      "selected_host": "Вибраний проксі-хост: {host}",
+      "no_exact_match": "Не знайдено точної відповідності проксі-хосту. Виберіть хост Home Assistant вручну.",
+      "select_host": "Виберіть проксі-хост",
+      "select": "Виберіть",
+      "edge_protection": "Захист краю",
+      "edge_protection_hint": "Застосуйте правила IP Ban Manager на Nginx Proxy Manager.",
+      "default_deny_active": "Блокувати все за межами Дозволених IP-адрес активний і також буде застосовуватися на NPM.",
+      "mirror_default_deny_warning": "Високий вплив: NPM застосовує це перед Home Assistant, тому зовнішні зворотні виклики інтеграції за межами дозволених IP-адрес не можуть використовувати виняток захищеного зворотного виклику Home Assistant.",
+      "enabled": "Захист країв активний.",
+      "last_sync": "Остання синхронізація: {date}",
+      "sync": "Синхронізувати зараз",
+      "disconnect": "Відключити",
+      "disconnect_confirm": "Відключити Nginx Proxy Manager? Правила IP Ban Manager буде видалено з вибраного проксі-сервера."
     }
   },
   "entity": {

@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Automatické zákazy",
           "ban_notifications_enabled": "Automatické upozornenia na zákaz",
           "allowlisted_login_notifications_enabled": "Upozornenia na prihlásenia zo zoznamu povolených",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Chráňte integračné spätné volania",
           "allowlisted_logins_can_ban": "Povoliť automatické zákazy v rámci povolených IP",
           "default_deny_enabled": "Blokovať všetko mimo povolených IP",
           "geoip_enabled": "GeoIP označenia polohy",
@@ -134,7 +134,7 @@
         "auto_ban": "Automatické zákazy – blokovať zdroje neúspešného prihlásenia",
         "ban_notifications": "Automatické upozornenia na zákaz – upozornenia pri blokovaní IP",
         "allowlisted_login_notifications": "Upozornenia na prihlásenia zo zoznamu povolených – upozorniť pri neúspešných dôveryhodných prihláseniach",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Chráňte spätné volania integrácie – nechajte spätné volania webhooku prejsť riadenými pravidlami blokovania",
         "sidebar_panel": "Zobraziť v bočnom paneli – pridať stránku do ľavého menu",
         "geoip": "GeoIP označenia polohy – stiahnuť lokálnu DB-IP databázu"
       }

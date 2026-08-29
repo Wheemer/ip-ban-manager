@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Automatiska spärrar",
           "ban_notifications_enabled": "Automatiska spärraviseringar",
           "allowlisted_login_notifications_enabled": "Allowlist-inloggningsaviseringar",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Skydda integrationsuppringningar",
           "allowlisted_logins_can_ban": "Tillåt automatiska spärrar inom tillåtna IP",
           "default_deny_enabled": "Blockera allt utanför tillåtna IP",
           "geoip_enabled": "GeoIP-plats-etiketter",
@@ -134,7 +134,7 @@
         "auto_ban": "Automatiska spärrar – blockera misslyckade inloggningskällor",
         "ban_notifications": "Automatiska spärraviseringar – varningar när IP blockeras",
         "allowlisted_login_notifications": "Allowlist-inloggningsaviseringar – varna vid misslyckade betrodda inloggningar",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Skydda integrationsåteruppringningar - låt webhook-återuppringningar passera hanterade blockeringsregler",
         "sidebar_panel": "Visa i sidofältet – lägg till sidan i vänstermenyn",
         "geoip": "GeoIP-plats-etiketter – ladda ner lokal DB-IP-databas"
       }

@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.8.4
+
+IP Ban Manager 1.8.4 adds optional NGINX Proxy Manager edge enforcement and region-specific failed-login thresholds.
+
+### Added
+
+- Connect an NGINX Proxy Manager instance and select the exact proxy host serving Home Assistant.
+- Mirror Allowed IPs, exact IP bans, blocked networks, and default-deny rules to a managed NPM advanced-config block.
+- Synchronize NPM automatically when managed rules change, with manual sync and clean disconnect controls in the live panel.
+- Set a different failed-login threshold for the country or province/state selected by Public Region Lock.
+
+### Improved
+
+- Preserve unrelated NPM proxy-host configuration and store an API token instead of the account password.
+- Localized the new NPM and regional-threshold controls across all 26 supported panel languages.
+- Completed translations for Public Region Lock and callback-protection controls that previously fell back to English.
+- Declared Home Assistant Recorder as an optional integration dependency for recorder-backed status data.
+
 ## v1.8.3.9
 
 IP Ban Manager 1.8.3.9 restores the explicit GeoIP database download flow.

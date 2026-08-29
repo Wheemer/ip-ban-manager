@@ -39,6 +39,7 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 - **Live panel:** manage the whole integration from a dedicated page, with optional sidebar access.
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
 - **GeoIP labels and limits:** optionally download a local DB-IP City Lite database for approximate public-IP location labels and country/province access limits.
+- **NGINX Proxy Manager edge protection:** optionally mirror managed IP rules to the exact NPM proxy host serving Home Assistant.
 - **Backup and restore:** save/restore a readable YAML backup under `/config`, or download/upload a backup in the browser.
 - **Diagnostics and automation:** numeric sensors, `ip_ban_manager.*` services, and Home Assistant events for scripts and automations.
 - **Translations:** config flow, options, repairs, services, entity names, and the live panel follow the signed-in Home Assistant user's language when a locale file is available. See [Translations](docs/translations.md) for the shipped locales and maintenance notes.
@@ -95,6 +96,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 - Local GeoIP database download/update
 - Optional GeoIP allowed-region access control
 - Optional country and province/state failed-login thresholds
+- Optional NGINX Proxy Manager edge protection
 - Manual on-disk backup, browser download, and browser upload restore
 
 Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
@@ -141,6 +143,17 @@ Home Assistant's own exact interface addresses and IPv6 link-local access paths 
 
 **Protect integration callbacks** is on by default. It keeps Home Assistant webhook callback routes reachable through IP Ban Manager's managed rules, including blocked networks, default-deny mode, and GeoIP region limits. Exact IP bans still apply.
 
+### NGINX Proxy Manager Edge Protection
+
+IP Ban Manager can optionally enforce its managed rules at NGINX Proxy Manager before unwanted requests reach Home Assistant. Connect with the NPM URL, account email, and password. The password is exchanged for an API token and is not stored by IP Ban Manager.
+
+IP Ban Manager matches Home Assistant's configured external hostname against NPM proxy hosts. A single exact hostname match is selected automatically; if there is no unique exact match, the panel asks you to select the correct proxy host. Enabling edge protection then mirrors Allowed IPs, exact IP bans, blocked networks, and **Block everything outside Allowed IPs**. Changes synchronize automatically, and **Sync now** is available for an immediate refresh.
+
+Only the clearly marked IP Ban Manager block in that proxy host's advanced configuration is changed. Existing NPM settings and unrelated advanced configuration are preserved. Disconnecting removes the managed block and the stored token.
+
+> [!WARNING]
+> NPM evaluates edge rules before a request reaches Home Assistant. When **Block everything outside Allowed IPs** is mirrored to NPM, external webhook callbacks outside Allowed IPs cannot use Home Assistant's **Protect integration callbacks** exception.
+
 ## Backup And Restore
 
 The live panel can **Save**, **Restore**, **Download**, and **Upload** a YAML backup.
@@ -177,7 +190,7 @@ Allowed IPs, local/private traffic, Home Assistant's own internal access paths, 
 
 ### Regional Login Thresholds
 
-The normal login-attempt threshold remains the default everywhere. The live panel can add optional overrides using ISO country codes such as `CA` or subdivision codes such as `CA-NL`. A matching subdivision override wins over its country override. Use `0` to disable automatic bans for a region. Private and local addresses always use the normal threshold, and public addresses that cannot be located safely fall back to it.
+The normal login-attempt threshold remains the default everywhere. When Public Region Lock has a country or province/state selected, the live panel can apply a different retry limit to that region. A province/state threshold is more specific than a country threshold, and all other addresses fall back to the normal threshold. Use `0` to disable automatic bans for the selected region. Private and local addresses always use the normal threshold, and public addresses that cannot be located safely fall back to it.
 
 ## Emergency Disable
 

@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Automatiske udelukkelser",
           "ban_notifications_enabled": "Automatiske udelukkelsesnotifikationer",
           "allowlisted_login_notifications_enabled": "Notifikationer for tilladte logins",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Beskyt integrationsopkald",
           "allowlisted_logins_can_ban": "Tillad automatiske udelukkelser inden for tilladte IP'er",
           "default_deny_enabled": "Bloker alt uden for tilladte IP'er",
           "geoip_enabled": "GeoIP-placeringsetiketter",
@@ -134,7 +134,7 @@
         "auto_ban": "Automatiske udelukkelser – bloker mislykkede login-kilder",
         "ban_notifications": "Automatiske udelukkelsesnotifikationer – vis advarsler, når IP'er blokeres",
         "allowlisted_login_notifications": "Notifikationer for tilladte logins – advar ved mislykkede pålidelige logins",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Beskyt integrationsopkald - lad webhook-tilbagekald passere administrerede blokeringsregler",
         "sidebar_panel": "Vis i sidepanelet – tilføj siden i venstremenuen",
         "geoip": "GeoIP-placeringsetiketter – download lokal DB-IP-database"
       }

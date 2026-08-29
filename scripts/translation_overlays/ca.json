@@ -14,7 +14,8 @@
           "geoip_enabled": "Etiquetes d'ubicació GeoIP",
           "sidebar_panel_enabled": "Mostra a la barra lateral",
           "quick_allowlist": "Valors segurs per defecte de la llista permesa",
-          "ban_options": "Opcions"
+          "ban_options": "Opcions",
+          "callback_route_protection_enabled": "Protegiu les devolució de trucades d'integració"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "Notificacions de bloqueig automàtic – alertes quan es bloquegen IP",
         "allowlisted_login_notifications": "Notificacions d'inici de sessió a la llista permesa – alerta en inicis de sessió de confiança fallits",
         "sidebar_panel": "Mostra a la barra lateral – afegeix la pàgina al menú esquerre",
-        "geoip": "Etiquetes d'ubicació GeoIP – descarrega una base de dades DB-IP local"
+        "geoip": "Etiquetes d'ubicació GeoIP – descarrega una base de dades DB-IP local",
+        "callback_route_protection": "Protegiu les devolucions de trucada d'integració: deixeu que les devolució de trucades de webhook superin les regles de bloqueig gestionades"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "Bloquejos dins IP permeses",
       "allowlisted_logins_can_ban_hint": "Aniu amb compte: les IP de confiança es poden bloquejar.",
       "default_deny_enabled": "Bloqueja tot el que quedi fora de les IP permeses",
-      "default_deny_enabled_hint": "Aniu amb compte: només les IP permeses poden connectar-se."
+      "default_deny_enabled_hint": "Aniu amb compte: només les IP permeses poden connectar-se.",
+      "callback_route_protection_enabled": "Protegiu les devolució de trucades d'integració",
+      "callback_route_protection_enabled_hint": "Permet que les devolucions de trucada web de Home Assistant superin les regles de bloqueig gestionades.",
+      "allowed_region_title": "Límit d'accés GeoIP",
+      "allowed_region_mode": "Accés públic des de",
+      "allowed_region_country": "Codi de país personalitzat",
+      "allowed_region_subdivision": "Codi de província/estat personalitzat",
+      "allowed_region_hint": "Regla de bloqueig d'IP pública opcional. Les IP permeses i el trànsit intern de Home Assistant sempre guanyen.",
+      "use_local_country": "País local {country}",
+      "use_local_subdivision": "Província/estat local {subdivision}",
+      "local_region_detected": "Regió local detectada: {location}",
+      "local_region_unavailable": "El país o província/estat local apareixerà aquí després que GeoIP estigui habilitat i la base de dades estigui preparada.",
+      "allowed_region_modes": {
+        "anywhere": "A qualsevol lloc",
+        "country": "País local o personalitzat",
+        "subdivision": "Província/estat local o personalitzat"
+      }
     },
     "backup": {
       "save_title": "Desa a la configuració",
@@ -224,7 +242,9 @@
       "installed": "Instal·lada - {date}",
       "download_hint": "Activa GeoIP i Aplica per descarregar",
       "attribution": "Dades d'ubicació:",
-      "update": "Actualitza"
+      "update": "Actualitza",
+      "download": "Descarregar",
+      "downloading": "S'està baixant la base de dades GeoIP..."
     },
     "health": {
       "title": "La comprovació de salut necessita atenció",
@@ -239,7 +259,62 @@
       "export_config": "Còpia de seguretat desada a {path}",
       "import_config": "Còpia de seguretat restaurada des de {path}",
       "download_config": "Còpia de seguretat descarregada.",
-      "upload_config": "Còpia de seguretat pujada i aplicada."
+      "upload_config": "Còpia de seguretat pujada i aplicada.",
+      "npm_connect": "Connectat a Nginx Proxy Manager.",
+      "npm_select_host": "Amfitrió intermediari seleccionat.",
+      "npm_sync": "Regles Nginx Proxy Manager sincronitzades.",
+      "npm_disconnect": "Nginx Proxy Manager desconnectat.",
+      "set_options": "Opcions aplicades."
+    },
+    "allowed_regions": {
+      "title": "Bloqueig de la Regió Pública",
+      "hint": "Restringeix l'accés públic a una regió GeoIP detectada o personalitzada.",
+      "warning": "Alt impacte: quan es selecciona una regió, les IP públiques fora d'ella es bloquegen abans d'iniciar sessió. Es respecten les IP permeses, el trànsit intern de Home Assistant i l'opció Protegir les devolucions de trucada d'integració.",
+      "detected": "S'ha detectat des d'aquest servidor Home Assistant: {location}",
+      "unavailable": "Les opcions locals de país i província/estat apareixeran quan la base de dades GeoIP estigui preparada en aquest servidor Home Assistant.",
+      "anywhere": "A qualsevol lloc",
+      "anywhere_hint": "No limiteu l'accés públic per la ubicació de GeoIP.",
+      "local_country": "País",
+      "local_country_hint": "Només les IP públiques d'aquest país es poden connectar.",
+      "local_subdivision": "Província/Estat",
+      "local_subdivision_hint": "Només les IP públiques d'aquesta província/estat es poden connectar.",
+      "custom": "Regió personalitzada",
+      "custom_hint": "Utilitzeu els codis ISO només quan necessiteu un país o província o estat diferent.",
+      "country_placeholder": "País, per ex. CA",
+      "subdivision_placeholder": "Província/estat, p. ex. CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "Prohibicions regionals d'inici de sessió",
+      "hint": "Utilitzeu un límit de reintents diferent per a la regió pública seleccionada.",
+      "ban_after": "Ban després",
+      "attempts": "intents fallits d'inici de sessió"
+    },
+    "npm": {
+      "hint": "Apliqueu les regles de xarxa i IP explícites de IP Ban Manager al servidor intermediari abans que les sol·licituds arribin a Home Assistant.",
+      "not_connected": "No connectat",
+      "connected_short": "Connectat",
+      "active": "Protecció de vora activa",
+      "compact_hint": "Apliqueu regles de bloqueig al vostre servidor intermediari invers.",
+      "url": "URL NPM, per exemple http://192.168.1.60:81",
+      "identity": "Correu electrònic NPM",
+      "secret": "Contrasenya NPM",
+      "connect": "Connecta't",
+      "connected": "Connectat a {url}",
+      "external_hostname": "Home Assistant nom d'amfitrió extern: {hostname}",
+      "exact_match": "Coincidència exacta del servidor intermediari amb l'amfitrió: {host}",
+      "selected_host": "Amfitrió intermediari seleccionat: {host}",
+      "no_exact_match": "No s'ha trobat cap coincidència exacta amb el servidor intermediari. Seleccioneu l'amfitrió Home Assistant manualment.",
+      "select_host": "Seleccioneu l'amfitrió del servidor intermediari",
+      "select": "Seleccioneu",
+      "edge_protection": "Protecció de vora",
+      "edge_protection_hint": "Apliqueu les regles IP Ban Manager a Nginx Proxy Manager.",
+      "default_deny_active": "Bloquejar tot el que estigui fora de les IP permeses està actiu i també s'aplicarà a NPM.",
+      "mirror_default_deny_warning": "Alt impacte: NPM ho aplica abans de Home Assistant, de manera que les devolució de trucada d'integració externa fora de les IP permeses no poden utilitzar l'excepció de devolució de trucada protegida de Home Assistant.",
+      "enabled": "La protecció de vora està activa.",
+      "last_sync": "Última sincronització: {date}",
+      "sync": "Sincronitza ara",
+      "disconnect": "Desconnecta",
+      "disconnect_confirm": "Desconnecteu Nginx Proxy Manager? Les regles de IP Ban Manager s'eliminaran de l'amfitrió intermediari seleccionat."
     }
   },
   "entity": {

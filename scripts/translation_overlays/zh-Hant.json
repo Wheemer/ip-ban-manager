@@ -14,7 +14,8 @@
           "geoip_enabled": "GeoIP 位置标签",
           "sidebar_panel_enabled": "在側邊欄中顯示",
           "quick_allowlist": "白名單安全預設值",
-          "ban_options": "選項"
+          "ban_options": "選項",
+          "callback_route_protection_enabled": "保護集成回呼"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "自動封鎖通知 - IP 被封鎖時顯示警报",
         "allowlisted_login_notifications": "白名單登入通知 - 受信任登入失敗時提醒",
         "sidebar_panel": "在側邊欄中顯示 - 新增左側菜單頁面",
-        "geoip": "GeoIP 位置标签 - 下載本地 DB-IP 資料庫"
+        "geoip": "GeoIP 位置标签 - 下載本地 DB-IP 資料庫",
+        "callback_route_protection": "保護整合回呼 - 讓 webhook 回呼傳遞託管阻止規則"
       }
     },
     "advanced_ban_options": {
@@ -205,7 +207,23 @@
       "allowlisted_logins_can_ban": "在“允許的 IP”内封鎖",
       "allowlisted_logins_can_ban_hint": "請謹慎：受信任的 IP 也可能被封鎖。",
       "default_deny_enabled": "封鎖“允許的 IP”之外的所有訪問",
-      "default_deny_enabled_hint": "請謹慎：僅允許的 IP 可以連接。"
+      "default_deny_enabled_hint": "請謹慎：僅允許的 IP 可以連接。",
+      "callback_route_protection_enabled": "保護集成回呼",
+      "callback_route_protection_enabled_hint": "让 Home Assistant webhook 回调传递托管阻止规则。",
+      "allowed_region_title": "GeoIP 存取限制",
+      "allowed_region_mode": "公共訪問來自",
+      "allowed_region_country": "自訂國家代碼",
+      "allowed_region_subdivision": "自訂省/州代碼",
+      "allowed_region_hint": "可選的公共 IP 阻止規則。允許的 IP 和 Home Assistant 內部流量始終獲勝。",
+      "use_local_country": "當地國家 {country}",
+      "use_local_subdivision": "地方省/州 {subdivision}",
+      "local_region_detected": "偵測到的本地區域：{location}",
+      "local_region_unavailable": "啟用 GeoIP 且資料庫準備就緒後，本地國家或省/州將顯示在此。",
+      "allowed_region_modes": {
+        "anywhere": "任何地方",
+        "country": "當地或自訂國家",
+        "subdivision": "當地或自訂省/州"
+      }
     },
     "backup": {
       "save_title": "儲存到設定",
@@ -226,7 +244,9 @@
       "installed": "已安装 - {date}",
       "download_hint": "啟用 GeoIP 并套用以下載",
       "attribution": "位置數據：",
-      "update": "更新"
+      "update": "更新",
+      "download": "下載",
+      "downloading": "正在下載 GeoIP 資料庫..."
     },
     "health": {
       "title": "健康檢查需要關注",
@@ -241,7 +261,62 @@
       "export_config": "備份已儲存到 {path}",
       "import_config": "已從 {path} 還原備份",
       "download_config": "備份已下載。",
-      "upload_config": "備份已上傳并套用。"
+      "upload_config": "備份已上傳并套用。",
+      "npm_connect": "連接到 Nginx Proxy Manager。",
+      "npm_select_host": "已選擇代理主機。",
+      "npm_sync": "Nginx Proxy Manager規則已同步。",
+      "npm_disconnect": "Nginx Proxy Manager 已斷開連線。",
+      "set_options": "應用選項。"
+    },
+    "allowed_regions": {
+      "title": "公共區域鎖",
+      "hint": "限制公众访问一个检测到的或自定义的 GeoIP 区域。",
+      "warning": "高影响：选择一个区域后，该区域之外的公共 IP 在登录前会被阻止。尊重允许的 IP、Home Assistant 内部流量和保护集成回调选项。",
+      "detected": "從此 Home Assistant 伺服器偵測到：{location}",
+      "unavailable": "GeoIP 数据库在此 Home Assistant 服务器上准备就绪后，将显示当地国家和省/州选项。",
+      "anywhere": "任何地方",
+      "anywhere_hint": "不要通过 GeoIP 位置限制公共访问。",
+      "local_country": "國家",
+      "local_country_hint": "只有來自該國家/地區的公共 IP 才能連線。",
+      "local_subdivision": "省/州",
+      "local_subdivision_hint": "只有來自該省/州的公共 IP 才能連線。",
+      "custom": "自訂區域",
+      "custom_hint": "仅当您需要不同的国家或省/州时才使用 ISO 代码。",
+      "country_placeholder": "國家/地區，例如CA",
+      "subdivision_placeholder": "省/州，例如加拿大-NL"
+    },
+    "regional_thresholds": {
+      "title": "區域登入禁令",
+      "hint": "对所选公共区域使用不同的重试限制。",
+      "ban_after": "禁止之後",
+      "attempts": "登入嘗試失敗"
+    },
+    "npm": {
+      "hint": "在请求到达 Home Assistant 之前，在代理上应用 IP Ban Manager 的显式 IP 和网络规则。",
+      "not_connected": "未連接",
+      "connected_short": "已連接",
+      "active": "邊緣保護激活",
+      "compact_hint": "在反向代理上套用阻止規則。",
+      "url": "NPM URL，例如 http://192.168.1.60:81",
+      "identity": "NPM 電子郵件",
+      "secret": "NPM 密碼",
+      "connect": "連接",
+      "connected": "連接到 {url}",
+      "external_hostname": "Home Assistant 外部主機名稱：{hostname}",
+      "exact_match": "代理主機精確比對：{host}",
+      "selected_host": "選擇的代理主機：{host}",
+      "no_exact_match": "未找到任何精確的代理主機匹配。手動選擇Home Assistant主機。",
+      "select_host": "選擇代理主機",
+      "select": "選擇",
+      "edge_protection": "邊緣保護",
+      "edge_protection_hint": "在 Nginx Proxy Manager 應用 IP Ban Manager 規則。",
+      "default_deny_active": "阻止允許的 IP 以外的所有內容均處於活動狀態，並且也將在 NPM 上強制執行。",
+      "mirror_default_deny_warning": "高影響：NPM 在 Home Assistant 之前應用此功能，因此允許的 IP 以外的外部整合回調無法使用 Home Assistant 的受保護回調異常。",
+      "enabled": "邊緣保護已啟動。",
+      "last_sync": "上次同步：{date}",
+      "sync": "立即同步",
+      "disconnect": "斷開連接",
+      "disconnect_confirm": "斷開Nginx Proxy Manager？ IP Ban Manager 的規則將從所選代理主機中刪除。"
     }
   },
   "entity": {

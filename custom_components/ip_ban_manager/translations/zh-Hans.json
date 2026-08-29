@@ -9,7 +9,7 @@
           "auto_ban_enabled": "自动封禁",
           "ban_notifications_enabled": "自动封禁通知",
           "allowlisted_login_notifications_enabled": "白名单登录通知",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "保护集成回调",
           "allowlisted_logins_can_ban": "允许在“允许的 IP”内自动封禁",
           "default_deny_enabled": "阻止“允许的 IP”之外的所有访问",
           "geoip_enabled": "GeoIP 位置标签",
@@ -134,7 +134,7 @@
         "auto_ban": "自动封禁 - 阻止登录失败的来源",
         "ban_notifications": "自动封禁通知 - IP 被阻止时显示警报",
         "allowlisted_login_notifications": "白名单登录通知 - 受信任登录失败时提醒",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "保护集成回调 - 让 webhook 回调传递托管阻止规则",
         "sidebar_panel": "在侧边栏中显示 - 添加左侧菜单页面",
         "geoip": "GeoIP 位置标签 - 下载本地 DB-IP 数据库"
       }

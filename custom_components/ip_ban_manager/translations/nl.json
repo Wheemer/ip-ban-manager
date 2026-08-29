@@ -9,7 +9,7 @@
           "auto_ban_enabled": "Automatische bans",
           "ban_notifications_enabled": "Automatische banmeldingen",
           "allowlisted_login_notifications_enabled": "Allowlist-loginmeldingen",
-          "callback_route_protection_enabled": "Protect integration callbacks",
+          "callback_route_protection_enabled": "Bescherm integratie-callbacks",
           "allowlisted_logins_can_ban": "Automatische bans binnen toegestane IP's toestaan",
           "default_deny_enabled": "Alles buiten toegestane IP's blokkeren",
           "geoip_enabled": "GeoIP-locatielabels",
@@ -134,7 +134,7 @@
         "auto_ban": "Automatische bans – mislukte loginbronnen blokkeren",
         "ban_notifications": "Automatische banmeldingen – waarschuwingen wanneer IP's worden geblokkeerd",
         "allowlisted_login_notifications": "Allowlist-loginmeldingen – waarschuwen bij mislukte vertrouwde logins",
-        "callback_route_protection": "Protect integration callbacks - let webhook callbacks pass managed blocking rules",
+        "callback_route_protection": "Bescherm integratie-callbacks - laat webhook-callbacks beheerde blokkeerregels passeren",
         "sidebar_panel": "Tonen in zijbalk – pagina toevoegen aan linkermenu",
         "geoip": "GeoIP-locatielabels – lokale DB-IP-database downloaden"
       }

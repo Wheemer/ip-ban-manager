@@ -14,7 +14,8 @@
           "geoip_enabled": "Etichette posizione GeoIP",
           "sidebar_panel_enabled": "Mostra nella barra laterale",
           "quick_allowlist": "Valori predefiniti sicuri Allowlist",
-          "ban_options": "Opzioni"
+          "ban_options": "Opzioni",
+          "callback_route_protection_enabled": "Proteggi i callback di integrazione"
         }
       }
     },
@@ -133,7 +134,8 @@
         "ban_notifications": "Notifiche di blocco automatico – avvisi quando le IP vengono bloccate",
         "allowlisted_login_notifications": "Notifiche accesso Allowlist – avvisa su accessi attendibili falliti",
         "sidebar_panel": "Mostra nella barra laterale – aggiungi la pagina al menu sinistro",
-        "geoip": "Etichette posizione GeoIP – scarica un database DB-IP locale"
+        "geoip": "Etichette posizione GeoIP – scarica un database DB-IP locale",
+        "callback_route_protection": "Proteggi i callback di integrazione: consenti ai callback del webhook di superare le regole di blocco gestite"
       }
     },
     "advanced_ban_options": {
@@ -204,7 +206,23 @@
       "allowlisted_logins_can_ban": "Blocchi nelle IP consentite",
       "allowlisted_logins_can_ban_hint": "Attenzione: le IP attendibili possono essere bloccate.",
       "default_deny_enabled": "Blocca tutto al di fuori delle IP consentite",
-      "default_deny_enabled_hint": "Attenzione: solo le IP consentite possono connettersi."
+      "default_deny_enabled_hint": "Attenzione: solo le IP consentite possono connettersi.",
+      "callback_route_protection_enabled": "Proteggi i callback di integrazione",
+      "callback_route_protection_enabled_hint": "Consenti ai callback del webhook Home Assistant di passare le regole di blocco gestite.",
+      "allowed_region_title": "Limite di accesso GeoIP",
+      "allowed_region_mode": "Accesso pubblico da",
+      "allowed_region_country": "Codice paese personalizzato",
+      "allowed_region_subdivision": "Codice provincia/stato personalizzato",
+      "allowed_region_hint": "Regola facoltativa di blocco dell'IP pubblico. Gli IP consentiti e il traffico interno Home Assistant vincono sempre.",
+      "use_local_country": "Paese locale {country}",
+      "use_local_subdivision": "Provincia/stato locale {subdivision}",
+      "local_region_detected": "Regione locale rilevata: {location}",
+      "local_region_unavailable": "Il paese o la provincia/stato locale verranno visualizzati qui dopo che GeoIP sarà abilitato e il database sarà pronto.",
+      "allowed_region_modes": {
+        "anywhere": "Ovunque",
+        "country": "Paese locale o personalizzato",
+        "subdivision": "Provincia/stato locale o personalizzato"
+      }
     },
     "backup": {
       "save_title": "Salva in configurazione",
@@ -224,7 +242,9 @@
       "installed": "Installato - {date}",
       "download_hint": "Abilita GeoIP e Applica per scaricare",
       "attribution": "Dati posizione:",
-      "update": "Aggiorna"
+      "update": "Aggiorna",
+      "download": "Scarica",
+      "downloading": "Download del database GeoIP in corso..."
     },
     "health": {
       "title": "Il controllo integrità richiede attenzione",
@@ -239,7 +259,62 @@
       "export_config": "Backup salvato in {path}",
       "import_config": "Backup ripristinato da {path}",
       "download_config": "Backup scaricato.",
-      "upload_config": "Backup caricato e applicato."
+      "upload_config": "Backup caricato e applicato.",
+      "npm_connect": "Connesso a Nginx Proxy Manager.",
+      "npm_select_host": "Host proxy selezionato.",
+      "npm_sync": "Nginx Proxy Manager regole sincronizzate.",
+      "npm_disconnect": "Nginx Proxy Manager disconnesso.",
+      "set_options": "Opzioni applicate."
+    },
+    "allowed_regions": {
+      "title": "Blocco della regione pubblica",
+      "hint": "Limita l'accesso pubblico a una regione GeoIP rilevata o personalizzata.",
+      "warning": "Impatto elevato: quando viene selezionata una regione, gli IP pubblici al di fuori di essa vengono bloccati prima dell'accesso. Vengono rispettati gli IP consentiti, il traffico interno Home Assistant e l'opzione Proteggi callback di integrazione.",
+      "detected": "Rilevato da questo server Home Assistant: {location}",
+      "unavailable": "Le scelte del paese locale e della provincia/stato verranno visualizzate dopo che il database GeoIP sarà pronto su questo server Home Assistant.",
+      "anywhere": "Ovunque",
+      "anywhere_hint": "Non limitare l'accesso pubblico in base alla posizione GeoIP.",
+      "local_country": "Paese",
+      "local_country_hint": "Possono connettersi solo gli IP pubblici di questo Paese.",
+      "local_subdivision": "Provincia/Stato",
+      "local_subdivision_hint": "Possono connettersi solo gli IP pubblici di questa provincia/stato.",
+      "custom": "Regione personalizzata",
+      "custom_hint": "Utilizza i codici ISO solo quando hai bisogno di un paese o provincia/stato diverso.",
+      "country_placeholder": "Paese, ad es. CA",
+      "subdivision_placeholder": "Provincia/stato, ad es. CA-NL"
+    },
+    "regional_thresholds": {
+      "title": "Divieti di accesso regionali",
+      "hint": "Utilizza un limite di tentativi diverso per l'area pubblica selezionata.",
+      "ban_after": "Divieto dopo",
+      "attempts": "tentativi di accesso falliti"
+    },
+    "npm": {
+      "hint": "Applica l'IP esplicito e le regole di rete di IP Ban Manager al proxy prima che le richieste raggiungano Home Assistant.",
+      "not_connected": "Non connesso",
+      "connected_short": "Connesso",
+      "active": "Protezione bordi attiva",
+      "compact_hint": "Applica le regole di blocco al tuo proxy inverso.",
+      "url": "URL NPM, ad esempio http://192.168.1.60:81",
+      "identity": "E-mail NPM",
+      "secret": "NPM password",
+      "connect": "Connettiti",
+      "connected": "Connesso a {url}",
+      "external_hostname": "Home Assistant nome host esterno: {hostname}",
+      "exact_match": "Corrispondenza esatta proxy-host: {host}",
+      "selected_host": "Host proxy selezionato: {host}",
+      "no_exact_match": "Non è stata trovata alcuna corrispondenza esatta proxy-host. Seleziona manualmente l'host Home Assistant.",
+      "select_host": "Seleziona l'host proxy",
+      "select": "Seleziona",
+      "edge_protection": "Protezione dei bordi",
+      "edge_protection_hint": "Applica le regole IP Ban Manager su Nginx Proxy Manager.",
+      "default_deny_active": "Blocca tutto al di fuori degli IP consentiti è attivo e verrà applicato anche a NPM.",
+      "mirror_default_deny_warning": "Impatto elevato: NPM lo applica prima di Home Assistant, quindi i callback di integrazione esterna al di fuori degli IP consentiti non possono utilizzare l'eccezione di callback protetto di Home Assistant.",
+      "enabled": "La protezione dei bordi è attiva.",
+      "last_sync": "Ultima sincronizzazione: {date}",
+      "sync": "Sincronizza ora",
+      "disconnect": "Disconnetti",
+      "disconnect_confirm": "Disconnettere Nginx Proxy Manager? Le regole di IP Ban Manager verranno rimosse dall'host proxy selezionato."
     }
   },
   "entity": {
