@@ -1,0 +1,17 @@
+ip_ban_manager:
+  ip_addresses: {{ ALLOWLIST }}
+
+http:
+  ip_ban_enabled: {{ IP_BAN_ENABLED }}
+  login_attempts_threshold: 1
+
+logger:
+  default: info
+  logs:
+    custom_components.ip_ban_manager: debug
+    homeassistant.components.http: debug
+
+api:
+
+homeassistant:
+  debug: true

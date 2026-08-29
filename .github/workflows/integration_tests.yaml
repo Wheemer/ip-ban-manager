@@ -1,0 +1,68 @@
+---
+name: Integration tests
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+  schedule:
+  - cron: 0 0 * * *
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate_versions:
+    runs-on: ubuntu-24.04
+    outputs:
+      versions: ${{ steps.generate-versions.outputs.versions }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: '3.13'
+    - name: Install uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+    - name: Install dependencies
+      run: uv pip sync --system --strict requirements.test
+    - name: Generate versions
+      id: generate-versions
+      run: |
+        python .github/get_versions.py >> $GITHUB_OUTPUT
+
+  test:
+    runs-on: ubuntu-24.04
+    needs: [generate_versions]
+    strategy:
+      matrix:
+        ha_version: ${{ fromJSON(needs.generate_versions.outputs.versions) }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: '3.13'
+    - uses: docker/setup-compose-action@4eb059ff7f16592f9c84d5ca339c53cb7c5064e2 # v2.3.0
+      with:
+        version: latest
+    - name: Install uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+    - name: Install dependencies
+      run: uv pip sync --system --strict requirements.test
+    - name: Integration tests (${{ matrix.ha_version}})
+      run: cd integration_tests && python test_banning_works.py
+      env:
+        HA_VERSION: ${{ matrix.ha_version}}
+
+  # No real steps, just a meta-step to wait for all test steps
+  finish:
+    needs: [test]
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

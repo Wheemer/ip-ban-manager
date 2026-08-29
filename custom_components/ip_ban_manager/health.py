@@ -12,18 +12,11 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_HEALTH_ISSUES,
-    DOMAIN,
-    LEGACY_DOMAIN,
-)
+from .const import ATTR_HEALTH_ISSUES, DOMAIN, LEGACY_DOMAIN
 from .entry_helpers import entry_geoip_enabled, native_ip_banning_enabled
 from .file_store import geoip_database_path, path_is_file
 from .geoip import geoip_reader
-from .i18n import (
-    async_load_health_issue_strings,
-    format_health_issue_message,
-)
+from .i18n import async_load_health_issue_strings, format_health_issue_message
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_HEALTH,

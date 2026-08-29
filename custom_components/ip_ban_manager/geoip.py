@@ -43,7 +43,12 @@ from .const import (
     ATTR_GEOIP_DATABASE_UPDATED,
     ATTR_GEOIP_ENABLED,
 )
-from .entry_helpers import entry_geoip_enabled
+from .entry_helpers import (
+    entry_auto_ban_enabled,
+    entry_geoip_enabled,
+    entry_login_threshold,
+    entry_regional_login_thresholds,
+)
 from .file_store import file_updated, geoip_database_path, path_is_file
 from .metrics import metric_increment
 from .storage_keys import (
@@ -756,6 +761,42 @@ def geoip_location_for_ip(hass: HomeAssistant, remote_addr: IPAddress) -> str | 
     """Return a human-readable local GeoIP location for a public IP address."""
     details = geoip_location_details_for_ip(hass, remote_addr)
     return details.display if details else None
+
+
+def regional_login_threshold_for_ip(
+    hass: HomeAssistant, remote_addr: IPAddress
+) -> int | None:
+    """Return the most-specific configured threshold for a public IP."""
+    normalized_addr = _normalize_remote_addr(remote_addr)
+    if normalized_addr.is_private or normalized_addr.is_loopback:
+        return None
+
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None or not entry_auto_ban_enabled(entry):
+        return None
+    thresholds = entry_regional_login_thresholds(entry)
+    if not thresholds:
+        return None
+
+    details = geoip_location_details_for_ip(hass, normalized_addr)
+    if details is None:
+        return None
+    if details.subdivision_code in thresholds:
+        return thresholds[details.subdivision_code]
+    if details.country_code in thresholds:
+        return thresholds[details.country_code]
+    return None
+
+
+def effective_login_threshold_for_ip(
+    hass: HomeAssistant, remote_addr: IPAddress
+) -> int:
+    """Return the regional override or the configured global threshold."""
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None or not entry_auto_ban_enabled(entry):
+        return 0
+    override = regional_login_threshold_for_ip(hass, remote_addr)
+    return entry_login_threshold(entry, hass) if override is None else override
 
 
 def geoip_region_allows_ip(

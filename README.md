@@ -94,6 +94,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 - Allowlisted-login notification settings
 - Local GeoIP database download/update
 - Optional GeoIP allowed-region access control
+- Optional country and province/state failed-login thresholds
 - Manual on-disk backup, browser download, and browser upload restore
 
 Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
@@ -173,6 +174,10 @@ The live panel can also lock public access to one GeoIP region:
 - **Province/state**: allow only public IPs from one ISO 3166-2 subdivision code, such as `CA-NL`.
 
 Allowed IPs, local/private traffic, Home Assistant's own internal access paths, and protected callback routes are checked before the GeoIP rule. When a country or province/state is selected, public IPs outside that region, or public IPs that cannot be resolved to that region, are blocked.
+
+### Regional Login Thresholds
+
+The normal login-attempt threshold remains the default everywhere. The live panel can add optional overrides using ISO country codes such as `CA` or subdivision codes such as `CA-NL`. A matching subdivision override wins over its country override. Use `0` to disable automatic bans for a region. Private and local addresses always use the normal threshold, and public addresses that cannot be located safely fall back to it.
 
 ## Emergency Disable
 

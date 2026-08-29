@@ -42,6 +42,7 @@ from .const import (
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_REGIONAL_LOGIN_THRESHOLDS,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
     DOMAIN,
@@ -61,8 +62,10 @@ from .entry_helpers import (
     entry_geoip_enabled,
     entry_ip_addresses,
     entry_login_threshold,
+    entry_regional_login_thresholds,
     entry_sidebar_panel_enabled,
     normalize_login_attempts_threshold,
+    normalize_regional_login_thresholds,
     parse_allowlist,
     update_entry_options,
 )
@@ -122,6 +125,7 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
             CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
             CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
             CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
+            CONF_REGIONAL_LOGIN_THRESHOLDS: entry_regional_login_thresholds(entry),
             CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: (
                 entry_silenced_allowlisted_login_ip_strings(entry)
@@ -409,6 +413,14 @@ async def async_apply_config_backup_payload(
         raise HomeAssistantError(
             "Backup file login attempts threshold must be a number."
         ) from err
+    regional_login_thresholds = normalize_regional_login_thresholds(
+        settings.get(
+            CONF_REGIONAL_LOGIN_THRESHOLDS,
+            entry_regional_login_thresholds(entry),
+        )
+    )
+    if regional_login_thresholds:
+        geoip_enabled = True
 
     imported_bans = (
         _imported_bans_from_payload(payload[ATTR_BANNED_IPS])
@@ -474,6 +486,7 @@ async def async_apply_config_backup_payload(
             **allowed_region_options,
             CONF_GEOIP_ENABLED: geoip_enabled,
             CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
+            CONF_REGIONAL_LOGIN_THRESHOLDS: regional_login_thresholds,
             CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
         },

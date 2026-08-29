@@ -114,6 +114,40 @@
     "downloading": "Downloading GeoIP database...",
     "update": "Aktualizuj"
   },
+  "regional_thresholds": {
+    "title": "Regional login bans",
+    "hint": "Use a different retry limit for the selected public region.",
+    "ban_after": "Ban after",
+    "attempts": "failed login attempts"
+  },
+  "npm": {
+    "title": "Nginx Proxy Manager",
+    "hint": "Apply IP Ban Manager's explicit IP and network rules at the proxy before requests reach Home Assistant.",
+    "not_connected": "Not connected",
+    "connected_short": "Connected",
+    "active": "Edge protection active",
+    "compact_hint": "Apply blocking rules at your reverse proxy.",
+    "url": "NPM URL, for example http://192.168.1.60:81",
+    "identity": "NPM email",
+    "secret": "NPM password",
+    "connect": "Connect",
+    "connected": "Connected to {url}",
+    "external_hostname": "Home Assistant external hostname: {hostname}",
+    "exact_match": "Exact proxy-host match: {host}",
+    "selected_host": "Selected proxy host: {host}",
+    "no_exact_match": "No single exact proxy-host match was found. Select the Home Assistant host manually.",
+    "select_host": "Select proxy host",
+    "select": "Select",
+    "edge_protection": "Edge protection",
+    "edge_protection_hint": "Apply IP Ban Manager rules at Nginx Proxy Manager.",
+    "default_deny_active": "Block everything outside Allowed IPs is active and will also be enforced at NPM.",
+    "mirror_default_deny_warning": "High impact: NPM applies this before Home Assistant, so external integration callbacks outside Allowed IPs cannot use Home Assistant's protected-callback exception.",
+    "enabled": "Edge protection is active.",
+    "last_sync": "Last synchronized: {date}",
+    "sync": "Sync now",
+    "disconnect": "Disconnect",
+    "disconnect_confirm": "Disconnect Nginx Proxy Manager? IP Ban Manager's rules will be removed from the selected proxy host."
+  },
   "health": {
     "title": "Kontrola stanu wymaga uwagi",
     "issues": {
@@ -133,6 +167,10 @@
     "export_config": "Kopia zapasowa zapisana w {path}",
     "import_config": "Kopia zapasowa przywrócona z {path}",
     "download_config": "Kopia zapasowa pobrana.",
-    "upload_config": "Kopia zapasowa przesłana i zastosowana."
+    "upload_config": "Kopia zapasowa przesłana i zastosowana.",
+    "npm_connect": "Connected to Nginx Proxy Manager.",
+    "npm_select_host": "Proxy host selected.",
+    "npm_sync": "Nginx Proxy Manager rules synchronized.",
+    "npm_disconnect": "Nginx Proxy Manager disconnected."
   }
 }

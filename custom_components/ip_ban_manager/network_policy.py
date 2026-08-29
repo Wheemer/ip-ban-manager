@@ -75,9 +75,8 @@ def _config_entry(hass: HomeAssistant) -> ConfigEntry:
         return entry
 
     for key, value in hass.http.app.items():
-        if (
-            "ip_ban_manager_config_entry" in repr(key)
-            and isinstance(value, ConfigEntry)
+        if "ip_ban_manager_config_entry" in repr(key) and isinstance(
+            value, ConfigEntry
         ):
             hass.http.app[KEY_CONFIG_ENTRY] = value
             return value

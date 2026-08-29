@@ -54,7 +54,9 @@ CONF_ALLOWED_REGION_SUBDIVISION = "allowed_region_subdivision"
 CONF_IP_ADDRESSES = "ip_addresses"
 CONF_LEGACY_ENTRY_ID = "legacy_entry_id"
 CONF_LOGIN_ATTEMPTS_THRESHOLD = "login_attempts_threshold"
+CONF_REGIONAL_LOGIN_THRESHOLDS = "regional_login_thresholds"
 CONF_NOTIFICATION_ACTION_TOKEN = "notification_action_token"
+CONF_NPM = "nginx_proxy_manager"
 CONF_SILENCED_ALLOWLISTED_LOGIN_IPS = "silenced_allowlisted_login_ips"
 CONF_SIDEBAR_PANEL_ENABLED = "sidebar_panel_enabled"
 DOMAIN = "ip_ban_manager"
@@ -62,6 +64,7 @@ LEGACY_DOMAIN = "ban_allowlist"
 
 DEFAULT_LOGIN_ATTEMPTS_THRESHOLD = 5
 MAX_LOGIN_ATTEMPTS_THRESHOLD = 100
+MAX_REGIONAL_LOGIN_THRESHOLDS = 64
 
 ALLOWED_REGION_ANYWHERE = "anywhere"
 ALLOWED_REGION_COUNTRY = "country"

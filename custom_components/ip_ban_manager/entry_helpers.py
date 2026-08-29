@@ -28,12 +28,14 @@ from .const import (
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_REGIONAL_LOGIN_THRESHOLDS,
     CONF_SIDEBAR_PANEL_ENABLED,
     DEFAULT_ALLOWED_REGION_COUNTRY,
     DEFAULT_ALLOWED_REGION_MODE,
     DEFAULT_ALLOWED_REGION_SUBDIVISION,
     DEFAULT_LOGIN_ATTEMPTS_THRESHOLD,
     MAX_LOGIN_ATTEMPTS_THRESHOLD,
+    MAX_REGIONAL_LOGIN_THRESHOLDS,
 )
 from .ip_utils import parse_allowlist_network
 from .metrics import mark_config_write
@@ -266,6 +268,52 @@ def current_login_threshold(hass: HomeAssistant) -> int:
 def normalize_login_attempts_threshold(value: Any) -> int:
     """Return a login-attempt threshold inside the supported backend range."""
     return min(MAX_LOGIN_ATTEMPTS_THRESHOLD, max(0, int(value)))
+
+
+def normalize_regional_login_thresholds(value: object) -> dict[str, int]:
+    """Return validated ISO country/subdivision threshold overrides."""
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise HomeAssistantError("Regional login thresholds must be a JSON object.")
+    if len(value) > MAX_REGIONAL_LOGIN_THRESHOLDS:
+        raise HomeAssistantError(
+            f"No more than {MAX_REGIONAL_LOGIN_THRESHOLDS} regional thresholds are allowed."
+        )
+
+    normalized: dict[str, int] = {}
+    for raw_region, raw_threshold in value.items():
+        region = normalize_allowed_region_code(raw_region)
+        parts = region.split("-", 1)
+        valid_country = len(parts[0]) == 2 and parts[0].isalpha()
+        valid_subdivision = (
+            len(parts) == 2
+            and bool(parts[1])
+            and len(parts[1]) <= 6
+            and parts[1].isalnum()
+        )
+        if not valid_country or (len(parts) == 2 and not valid_subdivision):
+            raise HomeAssistantError(
+                "Regional threshold codes must look like CA or CA-NL."
+            )
+        try:
+            normalized[region] = normalize_login_attempts_threshold(raw_threshold)
+        except (TypeError, ValueError) as err:
+            raise HomeAssistantError(
+                f"Regional threshold for {region} must be a number."
+            ) from err
+
+    return dict(sorted(normalized.items()))
+
+
+def entry_regional_login_thresholds(entry: ConfigEntry) -> dict[str, int]:
+    """Return configured per-country and per-subdivision thresholds."""
+    return normalize_regional_login_thresholds(
+        entry.options.get(
+            CONF_REGIONAL_LOGIN_THRESHOLDS,
+            entry.data.get(CONF_REGIONAL_LOGIN_THRESHOLDS, {}),
+        )
+    )
 
 
 def entry_login_threshold(entry: ConfigEntry, hass: HomeAssistant) -> int:

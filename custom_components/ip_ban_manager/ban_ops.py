@@ -26,11 +26,7 @@ from .audit import record_ip_unbanned
 from .ban_lookup import _is_allowed, _is_blocked, _supervisor_internal_networks
 from .const import ATTR_IP_ADDRESS, DOMAIN, SOURCE_PANEL, SOURCE_SERVICE, SOURCE_SETUP
 from .entry_helpers import allowlisted_logins_can_ban
-from .file_store import (
-    atomic_write_text,
-    snapshot_dir,
-    snapshot_existing_file,
-)
+from .file_store import atomic_write_text, snapshot_dir, snapshot_existing_file
 from .metrics import mark_config_write, metric_increment
 from .storage_keys import (
     KEY_ALLOWLIST,

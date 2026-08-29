@@ -248,6 +248,10 @@ class IPBanManagerPanel extends HTMLElement {
       import_config: `Restored backup from ${path}`,
       download_config: "Backup downloaded.",
       upload_config: "Backup uploaded and applied.",
+      npm_connect: "Connected to Nginx Proxy Manager.",
+      npm_select_host: "Proxy host selected.",
+      npm_sync: "Nginx Proxy Manager rules synchronized.",
+      npm_disconnect: "Nginx Proxy Manager disconnected.",
     };
     const key = `success.${action}`;
     if (this._data?.translations?.[key]) {
@@ -441,9 +445,64 @@ class IPBanManagerPanel extends HTMLElement {
           margin-bottom: 14px;
         }
         form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-        .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        select {
+          width: 100%;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+          color: inherit;
+          padding: 10px 12px;
+          font: inherit;
+        }
+        .npm-details small {
+          color: var(--secondary-text-color);
+          font-size: 13px;
+          line-height: 1.35;
+        }
+        .npm-connect-form {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .npm-connect-form #npm-url,
+        .npm-connect-form .button-row { grid-column: 1 / -1; }
+        .npm-connect-form .button-row { justify-content: flex-end; }
+        .npm-details { display: grid; gap: 6px; }
+        .npm-controls { display: grid; gap: 12px; margin-top: 12px; }
+        .npm-settings {
+          margin-top: 14px;
+          padding: 10px 12px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+        }
+        .npm-settings h3 {
+          margin: 0 0 6px;
+          font-size: 15px;
+        }
+        .npm-configured-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(260px, .85fr);
+          align-items: start;
+          gap: 16px;
+        }
+        .npm-configured-layout .npm-controls { margin-top: 0; }
+        .npm-action-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .npm-settings > .npm-action-row { margin-top: 10px; }
+        .npm-action-row .button-row { justify-content: flex-end; }
+        .npm-select-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 8px;
+        }
+        .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
         .advanced-title {
-          margin: 16px 0 8px;
+          margin: 12px 0 6px;
           color: var(--secondary-text-color);
           font-weight: 600;
         }
@@ -452,19 +511,42 @@ class IPBanManagerPanel extends HTMLElement {
         label.check span { display: grid; gap: 2px; }
         label.check small {
           color: var(--secondary-text-color);
-          font-size: 13px;
-          line-height: 1.35;
+          font-size: 12px;
+          line-height: 1.25;
         }
         label.check.risky {
-          padding: 8px;
+          padding: 7px;
           border: 1px solid var(--warning-color, #ffa600);
           border-radius: 6px;
           background: rgba(255, 152, 0, 0.10);
         }
         .threshold {
-          margin-top: 14px;
-          max-width: 180px;
+          margin-top: 10px;
+          max-width: 310px;
         }
+        .threshold label {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 88px;
+          align-items: center;
+          gap: 12px;
+        }
+        .threshold .hint { margin: 0; }
+        .regional-login-bans {
+          margin-top: 12px;
+          padding: 10px 12px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+        .regional-login-bans[hidden] { display: none; }
+        .regional-login-bans strong { display: block; }
+        .regional-login-bans .hint { margin: 2px 0 0; }
+        .regional-login-bans label { display: flex; align-items: center; gap: 8px; }
+        .regional-login-bans input { width: 76px; }
         .policy-choices {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -552,8 +634,9 @@ class IPBanManagerPanel extends HTMLElement {
         .geoip-status a:hover { text-decoration: underline; }
         .backup-stack {
           display: grid;
-          gap: 14px;
-          margin-top: 14px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 10px;
         }
         .backup-stack .geoip-status { margin-top: 0; }
         .button-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -571,8 +654,8 @@ class IPBanManagerPanel extends HTMLElement {
         .actions {
           display: flex;
           justify-content: flex-end;
-          margin-top: 16px;
-          margin-bottom: 20px;
+          margin-top: 12px;
+          margin-bottom: 12px;
         }
         .error {
           margin-bottom: 16px;
@@ -665,8 +748,12 @@ class IPBanManagerPanel extends HTMLElement {
           }
           .options, .policy-choices { grid-template-columns: 1fr; }
           form { grid-template-columns: 1fr; }
+          .npm-connect-form, .npm-select-row { grid-template-columns: 1fr; }
+          .npm-configured-layout { grid-template-columns: 1fr; }
+          .backup-stack { grid-template-columns: 1fr; }
           .custom-region-fields { grid-template-columns: 1fr; }
           .threshold { max-width: none; }
+          .regional-login-bans { align-items: flex-start; flex-direction: column; }
           .geoip-status { align-items: flex-start; flex-direction: column; }
           .toast {
             right: 12px;
@@ -902,6 +989,80 @@ class IPBanManagerPanel extends HTMLElement {
     );
   }
 
+  _npmOptions(npm) {
+    if (!npm.configured) {
+      const currentHost = window.location.hostname;
+      const npmHost = currentHost.includes(":") && !currentHost.startsWith("[")
+        ? `[${currentHost}]`
+        : currentHost;
+      const suggestedUrl = npmHost ? `http://${npmHost}:81` : "";
+      return `
+        <div class="npm-settings">
+          <h3>${this._t("npm.title")}</h3>
+          <p class="hint">${this._t("npm.hint")}</p>
+          <form id="npm-connect-form" class="npm-connect-form">
+            <input id="npm-url" type="url" value="${this._escape(suggestedUrl)}" placeholder="${this._t("npm.url")}" autocomplete="url">
+            <input id="npm-identity" type="email" placeholder="${this._t("npm.identity")}" autocomplete="username">
+            <input id="npm-secret" type="password" placeholder="${this._t("npm.secret")}" autocomplete="current-password">
+            <div class="button-row">
+              <button class="primary" ${this._busy ? "disabled" : ""}>${this._t("npm.connect")}</button>
+            </div>
+          </form>
+        </div>
+      `;
+    }
+
+    const hosts = npm.hosts || [];
+    const selected = hosts.find((host) => Number(host.id) === Number(npm.proxy_host_id));
+    const selectedLabel = selected ? (selected.domain_names || []).join(", ") : "";
+    const lastSync = npm.last_sync ? this._formatDate(npm.last_sync) : "";
+    const connectionDetails = [
+      npm.base_url || "",
+      lastSync ? this._t("npm.last_sync", { date: lastSync }) : "",
+    ].filter(Boolean).join(" · ");
+    const hostOptions = hosts.map((host) => {
+      const label = (host.domain_names || []).join(", ");
+      return `<option value="${Number(host.id)}" ${Number(host.id) === Number(npm.proxy_host_id) ? "selected" : ""}>${this._escape(label)}</option>`;
+    }).join("");
+    return `
+      <div class="npm-settings">
+        <h3>${this._t("npm.title")}</h3>
+        <div class="npm-configured-layout">
+          <div class="npm-details">
+            <strong>${selectedLabel ? this._escape(selectedLabel) : this._t("npm.connected_short")}</strong>
+            ${connectionDetails ? `<small>${this._escape(connectionDetails)}</small>` : ""}
+            ${selectedLabel ? "" : `<span>${this._t("npm.no_exact_match")}</span>`}
+            ${npm.last_error ? `<div class="error">${this._escape(npm.last_error)}</div>` : ""}
+          </div>
+          <div class="npm-controls">
+            ${!selectedLabel ? `
+              <div class="npm-select-row">
+                <select id="npm-host"><option value="">${this._t("npm.select_host")}</option>${hostOptions}</select>
+                <button id="npm-select" ${this._busy ? "disabled" : ""}>${this._t("npm.select")}</button>
+              </div>
+            ` : ""}
+            ${selectedLabel ? `
+              <label class="check">
+                <input id="npm-edge-protection" type="checkbox" ${npm.enabled ? "checked" : ""}>
+                <span>
+                  <strong>${this._t("npm.edge_protection")}</strong>
+                  <small>${this._t("npm.edge_protection_hint")}</small>
+                </span>
+              </label>
+              ${this._data?.settings?.default_deny_enabled ? `
+                <div class="allowed-region-warning">${this._t("npm.default_deny_active")}</div>
+              ` : ""}
+            ` : ""}
+          </div>
+        </div>
+        <div class="npm-action-row">
+          <button class="danger" id="npm-disconnect" data-confirm="${this._escape(this._t("npm.disconnect_confirm"))}" ${this._busy ? "disabled" : ""}>${this._t("npm.disconnect")}</button>
+          ${selectedLabel ? `<button class="primary" id="npm-apply" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
   _allowedRegionSection(settings) {
     return `
       <section class="allowed-regions-section">
@@ -945,6 +1106,7 @@ class IPBanManagerPanel extends HTMLElement {
           <div class="actions">
             <button class="primary" id="save-options" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>
           </div>
+          ${this._npmOptions(this._data?.nginx_proxy_manager || {})}
           ${this._geoipStatus(geoip)}
           ${this._backupStatus(backup)}
         </div>
@@ -983,6 +1145,15 @@ class IPBanManagerPanel extends HTMLElement {
       localSubdivisionLabel,
       localSubdivision
     );
+    const selectedRegion =
+      mode === "subdivision" ? subdivision : mode === "country" ? country : "";
+    const regionalThresholds = settings.regional_login_thresholds || {};
+    const regionalThreshold = Object.prototype.hasOwnProperty.call(
+      regionalThresholds,
+      selectedRegion
+    )
+      ? Number(regionalThresholds[selectedRegion])
+      : Number(settings.login_attempts_threshold || 0);
     return `
       <div class="policy-choices">
         ${this._regionPolicyCard("anywhere", selectedPolicy, "anywhere", "", "", this._t("allowed_regions.anywhere"), this._t("allowed_regions.anywhere_hint"))}
@@ -998,6 +1169,17 @@ class IPBanManagerPanel extends HTMLElement {
               <input id="allowed-region-subdivision" maxlength="8" value="${this._escape(subdivision)}" placeholder="${this._t("allowed_regions.subdivision_placeholder")}">
             </div>
           </span>
+        </label>
+      </div>
+      <div class="regional-login-bans" id="regional-login-bans" ${selectedRegion ? "" : "hidden"}>
+        <div>
+          <strong>${this._t("regional_thresholds.title")}</strong>
+          <p class="hint">${this._t("regional_thresholds.hint")}</p>
+        </div>
+        <label>
+          <span>${this._t("regional_thresholds.ban_after")}</span>
+          <input id="regional-threshold" type="number" min="0" max="100" value="${regionalThreshold}">
+          <span>${this._t("regional_thresholds.attempts")}</span>
         </label>
       </div>
       <div class="actions">
@@ -1201,6 +1383,17 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _wireEvents() {
+    const npmConnect = this.shadowRoot.getElementById("npm-connect-form");
+    if (npmConnect) {
+      npmConnect.addEventListener("submit", (event) => {
+        event.preventDefault();
+        this._post("npm_connect", {
+          base_url: this.shadowRoot.getElementById("npm-url")?.value || "",
+          identity: this.shadowRoot.getElementById("npm-identity")?.value || "",
+          secret: this.shadowRoot.getElementById("npm-secret")?.value || "",
+        });
+      });
+    }
     this.shadowRoot.querySelectorAll("form[data-action]").forEach((form) => {
       form.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -1263,6 +1456,44 @@ class IPBanManagerPanel extends HTMLElement {
         }
       });
     });
+    const npmSelect = this.shadowRoot.getElementById("npm-select");
+    if (npmSelect) {
+      npmSelect.addEventListener("click", () => {
+        const hostId = this.shadowRoot.getElementById("npm-host")?.value || "";
+        if (hostId) {
+          this._post("npm_select_host", { host_id: hostId });
+        }
+      });
+    }
+    const npmApply = this.shadowRoot.getElementById("npm-apply");
+    if (npmApply) {
+      npmApply.addEventListener("click", () => {
+        const enabled = Boolean(
+          this.shadowRoot.getElementById("npm-edge-protection")?.checked
+        );
+        if (
+          enabled &&
+          this._data?.settings?.default_deny_enabled &&
+          !window.confirm(this._t("npm.mirror_default_deny_warning"))
+        ) {
+          return;
+        }
+        this._post("set_options", {
+          options: { npm_edge_protection_enabled: enabled },
+        });
+      });
+    }
+    const npmDisconnect = this.shadowRoot.getElementById("npm-disconnect");
+    if (npmDisconnect) {
+      npmDisconnect.addEventListener("click", () => {
+        if (
+          !npmDisconnect.dataset.confirm ||
+          window.confirm(npmDisconnect.dataset.confirm)
+        ) {
+          this._post("npm_disconnect");
+        }
+      });
+    }
     ["save-options", "save-region-options"].forEach((id) => {
       const button = this.shadowRoot.getElementById(id);
       if (button) {
@@ -1271,6 +1502,53 @@ class IPBanManagerPanel extends HTMLElement {
         });
       }
     });
+    const updateRegionalLoginBans = () => {
+      const { code } = this._selectedRegionPolicy();
+      const container = this.shadowRoot.getElementById("regional-login-bans");
+      const input = this.shadowRoot.getElementById("regional-threshold");
+      if (!container || !input) {
+        return;
+      }
+      container.hidden = !code;
+      if (code) {
+        const thresholds = this._data?.settings?.regional_login_thresholds || {};
+        input.value = Object.prototype.hasOwnProperty.call(thresholds, code)
+          ? Number(thresholds[code])
+          : Number(this._data?.settings?.login_attempts_threshold || 0);
+      }
+    };
+    this.shadowRoot
+      .querySelectorAll('input[name="allowed-region-policy"]')
+      .forEach((input) => input.addEventListener("change", updateRegionalLoginBans));
+    ["allowed-region-country", "allowed-region-subdivision"].forEach((id) => {
+      this.shadowRoot
+        .getElementById(id)
+        ?.addEventListener("input", updateRegionalLoginBans);
+    });
+  }
+
+  _selectedRegionPolicy() {
+    const regionPolicy = this.shadowRoot.querySelector(
+      'input[name="allowed-region-policy"]:checked'
+    );
+    let mode = "anywhere";
+    let country = "";
+    let subdivision = "";
+    if (regionPolicy?.value === "custom") {
+      country = String(
+        this.shadowRoot.getElementById("allowed-region-country")?.value || ""
+      ).trim().toUpperCase();
+      subdivision = String(
+        this.shadowRoot.getElementById("allowed-region-subdivision")?.value || ""
+      ).trim().toUpperCase();
+      mode = subdivision ? "subdivision" : country ? "country" : "anywhere";
+    } else if (regionPolicy) {
+      mode = regionPolicy.dataset.regionMode || "anywhere";
+      country = regionPolicy.dataset.regionCountry || "";
+      subdivision = regionPolicy.dataset.regionSubdivision || "";
+    }
+    const code = mode === "subdivision" ? subdivision : mode === "country" ? country : "";
+    return { mode, country, subdivision, code };
   }
 
   _optionValues() {
@@ -1281,26 +1559,14 @@ class IPBanManagerPanel extends HTMLElement {
     options.login_attempts_threshold = Number(
       this.shadowRoot.getElementById("threshold").value || 0
     );
-    const regionPolicy = this.shadowRoot.querySelector(
-      'input[name="allowed-region-policy"]:checked'
-    );
-    if (regionPolicy?.value === "custom") {
-      const country =
-        this.shadowRoot.getElementById("allowed-region-country")?.value || "";
-      const subdivision =
-        this.shadowRoot.getElementById("allowed-region-subdivision")?.value || "";
-      options.allowed_region_country = country;
-      options.allowed_region_subdivision = subdivision;
-      options.allowed_region_mode = subdivision ? "subdivision" : country ? "country" : "anywhere";
-    } else if (regionPolicy) {
-      options.allowed_region_mode = regionPolicy.dataset.regionMode || "anywhere";
-      options.allowed_region_country = regionPolicy.dataset.regionCountry || "";
-      options.allowed_region_subdivision = regionPolicy.dataset.regionSubdivision || "";
-    } else {
-      options.allowed_region_mode = "anywhere";
-      options.allowed_region_country = "";
-      options.allowed_region_subdivision = "";
-    }
+    const region = this._selectedRegionPolicy();
+    options.allowed_region_mode = region.mode;
+    options.allowed_region_country = region.country;
+    options.allowed_region_subdivision = region.subdivision;
+    const regionalThreshold = this.shadowRoot.getElementById("regional-threshold");
+    options.regional_login_thresholds = region.code && regionalThreshold
+      ? { [region.code]: Number(regionalThreshold.value || 0) }
+      : {};
     return options;
   }
 
@@ -1362,7 +1628,7 @@ class IPBanManagerPanel extends HTMLElement {
 
   _isEditing() {
     const active = this.shadowRoot?.activeElement;
-    return active?.tagName === "INPUT";
+    return active?.tagName === "INPUT" || active?.tagName === "SELECT";
   }
 
   _stateSignature(hass) {

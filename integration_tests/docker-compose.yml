@@ -1,0 +1,8 @@
+---
+services:
+  homeassistant:
+    # https://github.com/home-assistant/core/pkgs/container/home-assistant
+    image: ghcr.io/home-assistant/home-assistant:${HA_VERSION}
+    volumes:
+    - ./config:/config
+    network_mode: host
