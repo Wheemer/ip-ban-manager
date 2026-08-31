@@ -10,6 +10,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.ip_ban_manager import nginx_proxy_manager as npm
+from custom_components.ip_ban_manager.const import CONF_NPM, DOMAIN
+
+from .test_setup import setup_ip_ban_manager
 
 
 @pytest.mark.parametrize(
@@ -147,3 +150,91 @@ async def test_client_surfaces_npm_api_error(monkeypatch: pytest.MonkeyPatch) ->
 
     with pytest.raises(HomeAssistantError, match="Invalid credentials"):
         await client.authenticate("admin@example.test", "wrong")
+
+
+@pytest.mark.asyncio
+async def test_legacy_access_list_ignores_malformed_ids() -> None:
+    """Malformed unrelated NPM rows do not break legacy-list cleanup."""
+
+    class FakeClient:
+        async def access_lists(self) -> list[object]:
+            return [
+                {"id": "not-an-id", "name": "Unrelated"},
+                {"id": 7, "name": npm.NPM_ACCESS_LIST_NAME},
+            ]
+
+    managed = await npm._legacy_access_list(cast(Any, FakeClient()), 7)
+
+    assert managed == {"id": 7, "name": npm.NPM_ACCESS_LIST_NAME}
+
+
+@pytest.mark.asyncio
+async def test_disconnect_refreshes_token_before_removing_managed_rules(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Disconnect can clean up NPM after the originally stored token expires."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_NPM: {
+                "base_url": "http://192.168.1.40:81",
+                "token": "old-token",
+                "proxy_host_id": 4,
+                "access_list_id": 0,
+                "enabled": True,
+            },
+        },
+    )
+    calls: list[object] = []
+
+    class FakeClient:
+        def __init__(
+            self, mock_hass: HomeAssistant, base_url: str, token: str = ""
+        ) -> None:
+            assert mock_hass is hass
+            assert base_url == "http://192.168.1.40:81"
+            assert token == "old-token"
+
+        async def refresh_token(self) -> dict[str, str]:
+            calls.append("refresh")
+            return {"token": "new-token", "token_expires": "tomorrow"}
+
+        async def proxy_hosts(self) -> list[object]:
+            calls.append("hosts")
+            return [
+                {
+                    "id": 4,
+                    "domain_names": ["ha.example.test"],
+                    "access_list_id": 0,
+                    "enabled": True,
+                    "advanced_config": (
+                        "keep-this;\n"
+                        f"{npm.NPM_CONFIG_BEGIN}\n"
+                        "deny all;\n"
+                        f"{npm.NPM_CONFIG_END}\n"
+                    ),
+                }
+            ]
+
+        async def update_proxy_host_policy(
+            self,
+            host_id: int,
+            advanced_config: str,
+            *,
+            access_list_id: int | None = None,
+        ) -> None:
+            calls.append((host_id, advanced_config, access_list_id))
+
+        async def delete_access_list(self, access_list_id: int) -> None:
+            calls.append(("delete", access_list_id))
+
+    monkeypatch.setattr(npm, "NpmClient", FakeClient)
+
+    await npm.async_disconnect_npm(hass)
+
+    assert calls == ["refresh", "hosts", (4, "keep-this;", None)]
+    assert npm.entry_npm_config(entry) == {}

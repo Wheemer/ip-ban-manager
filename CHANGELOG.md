@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.8.4.1
+
+IP Ban Manager 1.8.4.1 fixes translated backup controls and tightens NGINX Proxy Manager cleanup.
+
+### Fixed
+
+- Backup controls now switch to a single-column layout when translated labels need more room, preventing text and buttons from overlapping.
+- NGINX Proxy Manager disconnect now refreshes an expired API token before removing managed rules.
+- Applying NGINX Proxy Manager edge protection no longer schedules an immediate redundant synchronization.
+- Malformed unrelated NGINX Proxy Manager access-list records no longer interrupt legacy managed-list cleanup.
+
 ## v1.8.4
 
 IP Ban Manager 1.8.4 adds optional NGINX Proxy Manager edge enforcement and region-specific failed-login thresholds.
@@ -8,7 +19,7 @@ IP Ban Manager 1.8.4 adds optional NGINX Proxy Manager edge enforcement and regi
 
 - Connect an NGINX Proxy Manager instance and select the exact proxy host serving Home Assistant.
 - Mirror Allowed IPs, exact IP bans, blocked networks, and default-deny rules to a managed NPM advanced-config block.
-- Synchronize NPM automatically when managed rules change, with manual sync and clean disconnect controls in the live panel.
+- Synchronize NPM automatically when managed rules change, with a clean disconnect control in the live panel.
 - Set a different failed-login threshold for the country or province/state selected by Public Region Lock.
 
 ### Improved

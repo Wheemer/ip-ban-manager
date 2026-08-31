@@ -148,6 +148,16 @@ async def test_panel_script_url_serves_current_bundle(hass: HomeAssistant) -> No
         response.text
     )
     assert "ip-ban-manager-panel-v27" not in response.text
+    assert (
+        "grid-template-columns: repeat(auto-fit, minmax(min(100%, 390px), 1fr));"
+        in response.text
+    )
+    assert (
+        ".backup-stack {\n"
+        "          display: grid;\n"
+        "          grid-template-columns: repeat(2, minmax(0, 1fr));"
+        not in response.text
+    )
 
 
 @pytest.mark.asyncio

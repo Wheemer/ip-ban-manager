@@ -462,7 +462,7 @@ async def _legacy_access_list(
         (
             item
             for item in await client.access_lists()
-            if isinstance(item, Mapping) and int(item.get("id") or 0) == managed_id
+            if isinstance(item, Mapping) and _stored_int(item.get("id")) == managed_id
         ),
         None,
     )
@@ -624,6 +624,7 @@ async def async_disconnect_npm(hass: HomeAssistant) -> None:
             str(config["base_url"]),
             str(config["token"]),
         )
+        await client.refresh_token()
         hosts = [
             host
             for item in await client.proxy_hosts()

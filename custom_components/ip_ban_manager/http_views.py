@@ -410,7 +410,7 @@ async def async_handle_manage_post(
         metric_increment(hass, "panel_api_errors")
         return view.json({"ok": False, "error": str(err)}, status_code=400)
 
-    if action in {"set_options", "import_config", "upload_config"}:
+    if action in {"import_config", "upload_config"}:
         schedule_npm_sync(hass)
     await async_update_health_issue(hass)
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)

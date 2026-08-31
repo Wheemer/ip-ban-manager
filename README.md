@@ -147,7 +147,7 @@ Home Assistant's own exact interface addresses and IPv6 link-local access paths 
 
 IP Ban Manager can optionally enforce its managed rules at NGINX Proxy Manager before unwanted requests reach Home Assistant. Connect with the NPM URL, account email, and password. The password is exchanged for an API token and is not stored by IP Ban Manager.
 
-IP Ban Manager matches Home Assistant's configured external hostname against NPM proxy hosts. A single exact hostname match is selected automatically; if there is no unique exact match, the panel asks you to select the correct proxy host. Enabling edge protection then mirrors Allowed IPs, exact IP bans, blocked networks, and **Block everything outside Allowed IPs**. Changes synchronize automatically, and **Sync now** is available for an immediate refresh.
+IP Ban Manager matches Home Assistant's configured external hostname against NPM proxy hosts. A single exact hostname match is selected automatically; if there is no unique exact match, the panel asks you to select the correct proxy host. Enabling edge protection then mirrors Allowed IPs, exact IP bans, blocked networks, and **Block everything outside Allowed IPs**. Changes synchronize automatically whenever the managed policy changes.
 
 Only the clearly marked IP Ban Manager block in that proxy host's advanced configuration is changed. Existing NPM settings and unrelated advanced configuration are preserved. Disconnecting removes the managed block and the stored token.
 

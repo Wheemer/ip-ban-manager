@@ -634,11 +634,23 @@ class IPBanManagerPanel extends HTMLElement {
         .geoip-status a:hover { text-decoration: underline; }
         .backup-stack {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 390px), 1fr));
           gap: 10px;
           margin-top: 10px;
         }
-        .backup-stack .geoip-status { margin-top: 0; }
+        .backup-stack .geoip-status {
+          margin-top: 0;
+          min-width: 0;
+        }
+        .backup-stack .geoip-status > div:first-child { min-width: 0; }
+        .backup-stack .geoip-status small { overflow-wrap: anywhere; }
+        .backup-stack .geoip-status > .button-row {
+          display: flex;
+          flex: 0 0 auto;
+          flex-direction: column;
+          flex-wrap: nowrap;
+          align-items: stretch;
+        }
         .button-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .subsection {
           margin-top: 18px;
@@ -755,6 +767,7 @@ class IPBanManagerPanel extends HTMLElement {
           .threshold { max-width: none; }
           .regional-login-bans { align-items: flex-start; flex-direction: column; }
           .geoip-status { align-items: flex-start; flex-direction: column; }
+          .backup-stack .geoip-status > .button-row { width: 100%; }
           .toast {
             right: 12px;
             bottom: 12px;
