@@ -21,10 +21,6 @@
       matchUpdateTypes: ["minor", "patch"],
       automerge: true,
     },
-    {
-      matchUpdateTypes: ["major"],
-      dependencyDashboardApproval: true,
-    },
   ],
   prConcurrentLimit: 2,
 }
