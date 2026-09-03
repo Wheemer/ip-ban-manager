@@ -141,7 +141,7 @@
     "edge_protection": "Protezione dei bordi",
     "edge_protection_hint": "Applica le regole IP Ban Manager su Nginx Proxy Manager.",
     "default_deny_active": "Blocca tutto al di fuori degli IP consentiti è attivo e verrà applicato anche a NPM.",
-    "mirror_default_deny_warning": "Impatto elevato: NPM lo applica prima di Home Assistant, quindi i callback di integrazione esterna al di fuori degli IP consentiti non possono utilizzare l'eccezione di callback protetto di Home Assistant.",
+    "mirror_default_deny_warning": "Impatto elevato: NPM lo applica prima di Home Assistant.",
     "enabled": "La protezione dei bordi è attiva.",
     "last_sync": "Ultima sincronizzazione: {date}",
     "sync": "Sincronizza ora",

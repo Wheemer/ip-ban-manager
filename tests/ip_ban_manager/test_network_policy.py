@@ -5,7 +5,119 @@
 # flake8: noqa
 # ruff: noqa: F403,F405
 
+from types import SimpleNamespace
+
+from homeassistant.helpers.http import current_request
+
+from custom_components.ip_ban_manager.ban_lookup import protected_callback_path
+
 from .test_setup import *
+
+
+@pytest.mark.parametrize(
+    ("path", "component_domain"),
+    [
+        ("/api/webhook/google-callback", None),
+        ("/api/fitbit/callback", "fitbit"),
+        ("/api/google_assistant", "google_assistant"),
+        ("/api/alexa/smart_home", "alexa"),
+        ("/api/loqed/webhook", "loqed"),
+        ("/api/notify.html5/callback", "html5"),
+        ("/api/telegram_webhooks", "telegram_bot"),
+        ("/auth/token", None),
+    ],
+)
+def test_protected_callback_routes_bypass_managed_network_policy(
+    path: str, component_domain: str | None
+) -> None:
+    """Protected callbacks bypass region, network, and default-deny rules."""
+    remote_addr = IPv4Address("108.177.68.100")
+    lookup = ipbm.NetworkAwareBanLookup(
+        {},
+        (IPv4Network("0.0.0.0/0"),),
+        (),
+        True,
+        internal_bypass_networks=(),
+        geoip_access_allowed=lambda _remote_addr: False,
+        callback_path_is_protected=lambda candidate: protected_callback_path(
+            candidate,
+            (
+                frozenset({component_domain})
+                if component_domain is not None
+                else frozenset()
+            ),
+        ),
+    )
+    token = current_request.set(cast(Any, SimpleNamespace(path=path)))
+    try:
+        assert remote_addr not in lookup
+    finally:
+        current_request.reset(token)
+
+
+def test_protected_callback_route_does_not_override_exact_ban() -> None:
+    """An explicit exact ban remains authoritative on callback routes."""
+    remote_addr = IPv4Address("108.177.68.100")
+    lookup = ipbm.NetworkAwareBanLookup(
+        {remote_addr: IpBan(remote_addr)},
+        (),
+        (),
+        False,
+        internal_bypass_networks=(),
+        callback_path_is_protected=protected_callback_path,
+    )
+    token = current_request.set(cast(Any, SimpleNamespace(path="/auth/token")))
+    try:
+        assert remote_addr in lookup
+    finally:
+        current_request.reset(token)
+
+
+def test_unconfigured_integration_callback_route_remains_managed() -> None:
+    """Named routes are not exempt when their integration is not loaded."""
+    remote_addr = IPv4Address("108.177.68.100")
+    lookup = ipbm.NetworkAwareBanLookup(
+        {},
+        (),
+        (),
+        True,
+        internal_bypass_networks=(),
+        callback_path_is_protected=lambda path: protected_callback_path(
+            path, frozenset({"google_assistant"})
+        ),
+    )
+    token = current_request.set(cast(Any, SimpleNamespace(path="/api/alexa")))
+    try:
+        assert remote_addr in lookup
+    finally:
+        current_request.reset(token)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/auth/authorize",
+        "/auth/token/extra",
+        "/api/callback-looking-but-not-a-callback",
+        "/api/google_assistant/extra",
+        "/api/not-a-webhook",
+    ],
+)
+def test_unrelated_routes_remain_managed(path: str) -> None:
+    """Similar-looking routes do not gain a policy bypass."""
+    remote_addr = IPv4Address("108.177.68.100")
+    lookup = ipbm.NetworkAwareBanLookup(
+        {},
+        (),
+        (),
+        True,
+        internal_bypass_networks=(),
+    )
+    token = current_request.set(cast(Any, SimpleNamespace(path=path)))
+    try:
+        assert remote_addr in lookup
+    finally:
+        current_request.reset(token)
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.4.2
+
+IP Ban Manager 1.8.4.2 keeps required Home Assistant callback routes reachable without weakening ordinary access restrictions.
+
+### Fixed
+
+- Protected Home Assistant OAuth exchanges and registered webhook callbacks from managed network, default-deny, and GeoIP region rules when **Protect integration callbacks** is enabled.
+- Protected named callback routes only when their integration is loaded, so unused Alexa, Google Assistant, Fitbit, Telegram, Loqed, and HTML5 routes are not opened unnecessarily.
+- Mirrored the same callback protection into NGINX Proxy Manager edge rules while preserving explicit exact IP bans.
+
 ## v1.8.4.1
 
 IP Ban Manager 1.8.4.1 fixes translated backup controls and tightens NGINX Proxy Manager cleanup.

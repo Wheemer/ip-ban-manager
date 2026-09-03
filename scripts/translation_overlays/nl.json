@@ -310,7 +310,7 @@
       "edge_protection": "Randbescherming",
       "edge_protection_hint": "Pas de IP Ban Manager-regels toe op Nginx Proxy Manager.",
       "default_deny_active": "Alles blokkeren buiten Toegestane IP's is actief en wordt ook afgedwongen bij NPM.",
-      "mirror_default_deny_warning": "Grote impact: NPM past dit toe vóór Home Assistant, dus externe integratie-callbacks buiten toegestane IP's kunnen de beschermde callback-uitzondering van Home Assistant niet gebruiken.",
+      "mirror_default_deny_warning": "Grote impact: NPM past dit toe vóór Home Assistant.",
       "enabled": "Randbeveiliging is actief.",
       "last_sync": "Laatst gesynchroniseerd: {date}",
       "sync": "Synchroniseer nu",

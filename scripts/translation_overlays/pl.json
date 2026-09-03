@@ -309,7 +309,7 @@
       "edge_protection": "Ochrona krawędzi",
       "edge_protection_hint": "Zastosuj reguły IP Ban Manager w Nginx Proxy Manager.",
       "default_deny_active": "Blokuj wszystko poza Dozwolonymi adresami IP jest aktywne i będzie również egzekwowane w NPM.",
-      "mirror_default_deny_warning": "Duży wpływ: NPM stosuje to przed Home Assistant, więc wywołania zwrotne integracji zewnętrznej poza dozwolonymi adresami IP nie mogą korzystać z wyjątku chronionego wywołania zwrotnego Home Assistant.",
+      "mirror_default_deny_warning": "Duży wpływ: NPM stosuje to przed Home Assistant.",
       "enabled": "Ochrona krawędzi jest aktywna.",
       "last_sync": "Ostatnia synchronizacja: {date}",
       "sync": "Zsynchronizuj teraz",

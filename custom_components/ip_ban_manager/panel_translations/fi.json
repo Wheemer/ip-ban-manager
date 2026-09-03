@@ -141,7 +141,7 @@
     "edge_protection": "Reunasuojaus",
     "edge_protection_hint": "Käytä IP Ban Manager-sääntöjä osoitteessa Nginx Proxy Manager.",
     "default_deny_active": "Estä kaikki sallittujen IP-osoitteiden ulkopuolella on aktiivinen, ja se pakotetaan myös NPM:ssä.",
-    "mirror_default_deny_warning": "Suuri vaikutus: NPM käyttää tätä ennen Home Assistant:tä, joten ulkoiset integroinnin takaisinkutsut sallittujen IP-osoitteiden ulkopuolella eivät voi käyttää Home Assistant:n suojattua takaisinsoittopoikkeusta.",
+    "mirror_default_deny_warning": "Suuri vaikutus: NPM käyttää tätä ennen Home Assistant:tä.",
     "enabled": "Reunasuojaus on aktiivinen.",
     "last_sync": "Viimeksi synkronoitu: {date}",
     "sync": "Synkronoi nyt",

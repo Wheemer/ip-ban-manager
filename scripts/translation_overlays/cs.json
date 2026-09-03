@@ -309,7 +309,7 @@
       "edge_protection": "Ochrana hran",
       "edge_protection_hint": "Použijte pravidla IP Ban Manager na Nginx Proxy Manager.",
       "default_deny_active": "Blokovat vše mimo povolené adresy IP je aktivní a bude také vynuceno na NPM.",
-      "mirror_default_deny_warning": "Velký dopad: NPM to použije před Home Assistant, takže externí integrační zpětná volání mimo povolené IP nemohou používat výjimku chráněného zpětného volání Home Assistant.",
+      "mirror_default_deny_warning": "Velký dopad: NPM to použije před Home Assistant.",
       "enabled": "Ochrana hran je aktivní.",
       "last_sync": "Poslední synchronizace: {date}",
       "sync": "Synchronizovat nyní",

@@ -141,7 +141,7 @@
     "edge_protection": "Защита кромок",
     "edge_protection_hint": "Примените правила IP Ban Manager в Nginx Proxy Manager.",
     "default_deny_active": "Блокировать все, что находится за пределами разрешенных IP-адресов, активно и также будет применяться в NPM.",
-    "mirror_default_deny_warning": "Большое влияние: NPM применяет это перед Home Assistant, поэтому обратные вызовы внешней интеграции за пределами разрешенных IP-адресов не могут использовать исключение защищенного обратного вызова Home Assistant.",
+    "mirror_default_deny_warning": "Большое влияние: NPM применяет это перед Home Assistant.",
     "enabled": "Защита кромок активна.",
     "last_sync": "Последняя синхронизация: {date}",
     "sync": "Синхронизировать сейчас",

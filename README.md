@@ -141,7 +141,7 @@ IP Ban Manager validates changes before writing them. It rejects malformed entri
 
 Home Assistant's own exact interface addresses and IPv6 link-local access paths are protected internally. Detected container/Supervisor access paths can also be added to **Allowed IPs** by the safe-default option so users can see and manage them directly.
 
-**Protect integration callbacks** is on by default. It keeps Home Assistant webhook callback routes reachable through IP Ban Manager's managed rules, including blocked networks, default-deny mode, and GeoIP region limits. Exact IP bans still apply.
+**Protect integration callbacks** is on by default. It keeps Home Assistant's shared OAuth and registered webhook routes reachable through IP Ban Manager's managed rules, including blocked networks, default-deny mode, and GeoIP region limits. Named callback routes are protected only when their integration is loaded. Exact IP bans still apply.
 
 ### NGINX Proxy Manager Edge Protection
 
@@ -152,7 +152,7 @@ IP Ban Manager matches Home Assistant's configured external hostname against NPM
 Only the clearly marked IP Ban Manager block in that proxy host's advanced configuration is changed. Existing NPM settings and unrelated advanced configuration are preserved. Disconnecting removes the managed block and the stored token.
 
 > [!WARNING]
-> NPM evaluates edge rules before a request reaches Home Assistant. When **Block everything outside Allowed IPs** is mirrored to NPM, external webhook callbacks outside Allowed IPs cannot use Home Assistant's **Protect integration callbacks** exception.
+> NPM evaluates edge rules before a request reaches Home Assistant. When **Protect integration callbacks** is enabled, IP Ban Manager mirrors the same protected callback routes to NPM. Exact IP bans still apply to those routes.
 
 ## Backup And Restore
 

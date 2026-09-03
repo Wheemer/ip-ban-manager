@@ -18,7 +18,17 @@ SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
 SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (
     SUPERVISOR_DOCKER_PARENT_NETWORK,
 )
+CALLBACK_ROUTE_EXACT_PATHS = frozenset({"/auth/token"})
 CALLBACK_ROUTE_PREFIXES = ("/api/webhook/",)
+INTEGRATION_CALLBACK_EXACT_PATHS = {
+    "alexa": frozenset({"/api/alexa"}),
+    "fitbit": frozenset({"/api/fitbit/callback"}),
+    "google_assistant": frozenset({"/api/google_assistant"}),
+    "html5": frozenset({"/api/notify.html5/callback"}),
+    "loqed": frozenset({"/api/loqed/webhook"}),
+    "telegram_bot": frozenset({"/api/telegram_webhooks"}),
+}
+INTEGRATION_CALLBACK_PREFIXES = {"alexa": ("/api/alexa/",)}
 
 
 class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
@@ -33,6 +43,7 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         internal_bypass_networks: tuple[IPNetwork, ...] | None = None,
         geoip_access_allowed: Callable[[IPAddress], bool] | None = None,
         callback_route_protection_enabled: bool = True,
+        callback_path_is_protected: Callable[[str], bool] | None = None,
     ) -> None:
         """Initialize the lookup from Home Assistant's exact IP bans."""
         super().__init__(values)
@@ -44,6 +55,7 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         )
         self.geoip_access_allowed = geoip_access_allowed
         self.callback_route_protection_enabled = callback_route_protection_enabled
+        self.callback_path_is_protected = callback_path_is_protected
 
     def __contains__(self, key: object) -> bool:
         """Return whether an IP is exactly banned or blocked by network."""
@@ -60,7 +72,9 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         if remote_addr != key and dict.__contains__(self, remote_addr):
             return True
 
-        if self.callback_route_protection_enabled and _current_request_is_callback():
+        if self.callback_route_protection_enabled and _current_request_is_callback(
+            self.callback_path_is_protected
+        ):
             return False
 
         if _is_allowed(remote_addr, self.allowlist):
@@ -126,13 +140,34 @@ def _normalize_remote_addr(remote_addr: IPAddress) -> IPAddress:
     return remote_addr
 
 
-def _current_request_is_callback() -> bool:
+def _current_request_is_callback(
+    callback_path_is_protected: Callable[[str], bool] | None = None,
+) -> bool:
     """Return whether the active HA request is a known callback route."""
     request = current_request.get()
     if request is None:
         return False
 
-    return any(request.path.startswith(prefix) for prefix in CALLBACK_ROUTE_PREFIXES)
+    return (callback_path_is_protected or protected_callback_path)(request.path)
+
+
+def protected_callback_path(
+    path: str, component_domains: frozenset[str] = frozenset()
+) -> bool:
+    """Return whether a path must remain reachable for integration callbacks."""
+    if path in CALLBACK_ROUTE_EXACT_PATHS or any(
+        path.startswith(prefix) for prefix in CALLBACK_ROUTE_PREFIXES
+    ):
+        return True
+
+    return any(
+        path in INTEGRATION_CALLBACK_EXACT_PATHS.get(domain, ())
+        or any(
+            path.startswith(prefix)
+            for prefix in INTEGRATION_CALLBACK_PREFIXES.get(domain, ())
+        )
+        for domain in component_domains
+    )
 
 
 def _is_allowed(remote_addr: IPAddress, allowlist: tuple[IPNetwork, ...]) -> bool:

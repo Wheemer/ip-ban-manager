@@ -309,7 +309,7 @@
       "edge_protection": "Élvédelem",
       "edge_protection_hint": "Alkalmazza a IP Ban Manager szabályokat a Nginx Proxy Manager webhelyen.",
       "default_deny_active": "Az Engedélyezett IP-címeken kívül minden letiltása aktív, és a NPM-nél is kényszerítve lesz.",
-      "mirror_default_deny_warning": "Nagy hatás: A NPM ezt a Home Assistant előtt alkalmazza, így az engedélyezett IP-címeken kívüli külső integrációs visszahívások nem használhatják a Home Assistant védett visszahívási kivételét.",
+      "mirror_default_deny_warning": "Nagy hatás: A NPM ezt a Home Assistant előtt alkalmazza.",
       "enabled": "Az élvédelem aktív.",
       "last_sync": "Utolsó szinkronizálás: {date}",
       "sync": "Szinkronizálás most",

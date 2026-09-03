@@ -18,7 +18,11 @@ from .audit import (
     record_blocked_network_added,
     record_blocked_network_removed,
 )
-from .ban_lookup import NetworkAwareBanLookup, _supervisor_internal_networks
+from .ban_lookup import (
+    NetworkAwareBanLookup,
+    _supervisor_internal_networks,
+    protected_callback_path,
+)
 from .ban_ops import ban_manager
 from .const import (
     ALLOWED_REGION_ANYWHERE,
@@ -169,6 +173,10 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
     )
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
+
+    def callback_path_is_protected(path: str) -> bool:
+        return protected_callback_path(path, frozenset(hass.config.components))
+
     hass.http.app[KEY_BLOCKED_NETWORKS] = blocked_networks
     hass.http.app[KEY_DEFAULT_DENY] = default_deny_enabled
 
@@ -188,6 +196,7 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         lookup.callback_route_protection_enabled = (
             entry_callback_route_protection_enabled(entry)
         )
+        lookup.callback_path_is_protected = callback_path_is_protected
         return
 
     ban_manager_.ip_bans_lookup = NetworkAwareBanLookup(
@@ -200,6 +209,7 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         ),
         geoip_access_allowed,
         entry_callback_route_protection_enabled(entry),
+        callback_path_is_protected,
     )
 
 

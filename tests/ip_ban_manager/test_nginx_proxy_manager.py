@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
+from homeassistant.const import EVENT_COMPONENT_LOADED
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
@@ -81,6 +82,70 @@ def test_managed_config_replacement_preserves_user_configuration() -> None:
     assert "deny 203.0.113.10;" in updated
     assert updated.count(npm.NPM_CONFIG_BEGIN) == 1
     assert updated.count(npm.NPM_CONFIG_END) == 1
+
+
+def test_callback_locations_bypass_non_exact_edge_restrictions() -> None:
+    """NPM callback locations override inherited network/default-deny rules."""
+    rules = npm._callback_location_rules(
+        ["deny 203.0.113.10;"], frozenset({"alexa", "google_assistant"})
+    )
+    rendered = "\n".join(rules)
+
+    assert "location = /auth/token {" in rendered
+    assert "location = /api/google_assistant {" in rendered
+    assert "location ^~ /api/webhook/ {" in rendered
+    assert "location = /api/alexa {" in rendered
+    assert "location ^~ /api/alexa/ {" in rendered
+    location_count = rendered.count("location ")
+    assert rendered.count("deny 203.0.113.10;") == location_count
+    assert rendered.count("allow all;") == location_count
+    assert rendered.count("include conf.d/include/proxy.conf;") == location_count
+
+
+def test_unconfigured_named_callback_is_not_added_to_edge_policy() -> None:
+    """NPM receives named routes only for loaded HA integrations."""
+    rendered = "\n".join(
+        npm._callback_location_rules([], frozenset({"google_assistant"}))
+    )
+
+    assert "location = /api/google_assistant {" in rendered
+    assert "/api/alexa" not in rendered
+
+
+@pytest.mark.asyncio
+async def test_callback_locations_are_not_generated_when_protection_is_disabled(
+    hass: HomeAssistant,
+) -> None:
+    """Disabling callback protection leaves NPM's ordinary policy unchanged."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            "callback_route_protection_enabled": False,
+        },
+    )
+    assert all("location " not in rule for rule in npm._policy_rules(hass, entry, True))
+
+
+@pytest.mark.asyncio
+async def test_loaded_component_schedules_edge_policy_sync(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Loading an integration refreshes its named callback route in NPM."""
+    await setup_ip_ban_manager(hass)
+    events: list[str] = []
+    monkeypatch.setattr(
+        npm,
+        "schedule_npm_sync",
+        lambda _hass, event=None: events.append(event.event_type),
+    )
+
+    hass.bus.async_fire(EVENT_COMPONENT_LOADED, {"component": "google_assistant"})
+    await hass.async_block_till_done()
+
+    assert events == [EVENT_COMPONENT_LOADED]
 
 
 def test_incomplete_managed_config_is_rejected() -> None:

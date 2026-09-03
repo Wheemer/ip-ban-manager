@@ -309,7 +309,7 @@
       "edge_protection": "Kantbeskyttelse",
       "edge_protection_hint": "Anvend IP Ban Manager regler på Nginx Proxy Manager.",
       "default_deny_active": "Bloker alt uden for Tilladte IP'er er aktiv og vil også blive håndhævet på NPM.",
-      "mirror_default_deny_warning": "Stor effekt: NPM anvender dette før Home Assistant, så eksterne integrationscallbacks uden for Tilladte IP'er kan ikke bruge Home Assistant's beskyttede tilbagekald-undtagelse.",
+      "mirror_default_deny_warning": "Stor effekt: NPM anvender dette før Home Assistant.",
       "enabled": "Kantbeskyttelse er aktiv.",
       "last_sync": "Sidst synkroniseret: {date}",
       "sync": "Synkroniser nu",

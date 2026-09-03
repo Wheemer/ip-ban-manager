@@ -141,7 +141,7 @@
     "edge_protection": "Ochrana hrán",
     "edge_protection_hint": "Použite pravidlá IP Ban Manager na Nginx Proxy Manager.",
     "default_deny_active": "Blokovanie všetkého mimo povolených adries IP je aktívne a bude vynútené aj na NPM.",
-    "mirror_default_deny_warning": "Veľký vplyv: NPM to aplikuje pred Home Assistant, takže externé integračné spätné volania mimo povolených IP nemôžu použiť Home Assistant výnimku pre chránené spätné volanie.",
+    "mirror_default_deny_warning": "Veľký vplyv: NPM to aplikuje pred Home Assistant.",
     "enabled": "Ochrana hrán je aktívna.",
     "last_sync": "Posledná synchronizácia: {date}",
     "sync": "Synchronizovať teraz",

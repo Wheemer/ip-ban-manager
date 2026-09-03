@@ -11,11 +11,18 @@ from urllib.parse import urlsplit, urlunsplit
 from aiohttp import ClientError, ClientResponse, ClientTimeout
 from homeassistant.components.http.ban import KEY_BAN_MANAGER
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_COMPONENT_LOADED
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.util import dt as dt_util
 
+from .ban_lookup import (
+    CALLBACK_ROUTE_EXACT_PATHS,
+    CALLBACK_ROUTE_PREFIXES,
+    INTEGRATION_CALLBACK_EXACT_PATHS,
+    INTEGRATION_CALLBACK_PREFIXES,
+)
 from .ban_ops import chronological_ip_bans
 from .const import (
     CONF_NPM,
@@ -34,6 +41,7 @@ from .entry_helpers import (
     update_entry_options,
 )
 from .ip_utils import parse_allowlist_network
+from .runtime_options import entry_callback_route_protection_enabled
 from .storage_keys import KEY_CONFIG_ENTRY
 
 NPM_ACCESS_LIST_NAME = "IP Ban Manager"
@@ -427,6 +435,39 @@ def _policy_rules(
     )
     if default_deny:
         rules.append("deny all;")
+    if entry_callback_route_protection_enabled(entry):
+        rules.extend(
+            _callback_location_rules(exact_bans, frozenset(hass.config.components))
+        )
+    return rules
+
+
+def _callback_location_rules(
+    exact_bans: list[str], component_domains: frozenset[str] = frozenset()
+) -> list[str]:
+    """Build callback locations that bypass non-exact managed restrictions."""
+    access_rules = [*exact_bans, "allow all;"]
+    locations = [("=", path) for path in sorted(CALLBACK_ROUTE_EXACT_PATHS)] + [
+        ("^~", prefix) for prefix in CALLBACK_ROUTE_PREFIXES
+    ]
+    for domain in sorted(component_domains):
+        locations.extend(
+            ("=", path)
+            for path in sorted(INTEGRATION_CALLBACK_EXACT_PATHS.get(domain, ()))
+        )
+        locations.extend(
+            ("^~", prefix) for prefix in INTEGRATION_CALLBACK_PREFIXES.get(domain, ())
+        )
+    rules: list[str] = []
+    for modifier, path in locations:
+        rules.extend(
+            [
+                f"location {modifier} {path} {{",
+                *(f"    {rule}" for rule in access_rules),
+                "    include conf.d/include/proxy.conf;",
+                "}",
+            ]
+        )
     return rules
 
 
@@ -665,6 +706,7 @@ def setup_npm_sync(hass: HomeAssistant) -> None:
     if hass.data.get(KEY_NPM_UNSUBSCRIBERS):
         return
     events = (
+        EVENT_COMPONENT_LOADED,
         EVENT_IP_BANNED,
         EVENT_IP_UNBANNED,
         EVENT_ALLOWLIST_NETWORK_ADDED,

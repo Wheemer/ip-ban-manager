@@ -311,7 +311,7 @@
       "edge_protection": "边缘保护",
       "edge_protection_hint": "在 Nginx Proxy Manager 应用 IP Ban Manager 规则。",
       "default_deny_active": "阻止允许的 IP 之外的所有内容均处于活动状态，并且也将在 NPM 上强制执行。",
-      "mirror_default_deny_warning": "高影响：NPM 在 Home Assistant 之前应用此功能，因此允许的 IP 之外的外部集成回调无法使用 Home Assistant 的受保护回调异常。",
+      "mirror_default_deny_warning": "高影响：NPM 在 Home Assistant 之前应用此功能。",
       "enabled": "边缘保护已激活。",
       "last_sync": "上次同步：{date}",
       "sync": "立即同步",

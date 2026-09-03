@@ -309,7 +309,7 @@
       "edge_protection": "Προστασία άκρων",
       "edge_protection_hint": "Εφαρμόστε κανόνες IP Ban Manager στο Nginx Proxy Manager.",
       "default_deny_active": "Ο αποκλεισμός όλων των επιτρεπόμενων IP είναι ενεργός και θα επιβληθεί επίσης στο NPM.",
-      "mirror_default_deny_warning": "Υψηλό αντίκτυπο: Το NPM το εφαρμόζει πριν από το Home Assistant, επομένως οι επανάκληση εξωτερικών ενσωμάτωσης εκτός Επιτρεπόμενων IP δεν μπορούν να χρησιμοποιήσουν την προστατευμένη εξαίρεση επανάκλησης του Home Assistant.",
+      "mirror_default_deny_warning": "Υψηλό αντίκτυπο: Το NPM το εφαρμόζει πριν από το Home Assistant.",
       "enabled": "Η προστασία άκρων είναι ενεργή.",
       "last_sync": "Τελευταίος συγχρονισμός: {date}",
       "sync": "Συγχρονισμός τώρα",

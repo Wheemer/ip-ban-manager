@@ -309,7 +309,7 @@
       "edge_protection": "Kenar koruması",
       "edge_protection_hint": "Nginx Proxy Manager'de IP Ban Manager kurallarını uygulayın.",
       "default_deny_active": "İzin Verilen IP'ler dışındaki her şeyi engelle seçeneği etkindir ve ayrıca NPM'de de uygulanacaktır.",
-      "mirror_default_deny_warning": "Yüksek etki: NPM bunu Home Assistant'den önce uygular, böylece İzin Verilen IP'ler dışındaki harici entegrasyon geri aramaları Home Assistant'nin korumalı geri arama istisnasını kullanamaz.",
+      "mirror_default_deny_warning": "Yüksek etki: NPM bunu Home Assistant'den önce uygular.",
       "enabled": "Kenar koruması etkin.",
       "last_sync": "Son senkronizasyon: {date}",
       "sync": "Şimdi senkronize et",

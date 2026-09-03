@@ -141,7 +141,7 @@
     "edge_protection": "エッジ保護",
     "edge_protection_hint": "Nginx Proxy Manager で IP Ban Manager ルールを適用します。",
     "default_deny_active": "[許可された IP 以外のすべてをブロックする] がアクティブであり、NPM でも強制されます。",
-    "mirror_default_deny_warning": "大きな影響: NPM は、Home Assistant よりも前にこれを適用するため、許可された IP 以外の外部統合コールバックは、Home Assistant の保護されたコールバック例外を使用できません。",
+    "mirror_default_deny_warning": "大きな影響: NPM は Home Assistant よりも前にこれを適用します。",
     "enabled": "エッジ保護が有効になっています。",
     "last_sync": "最終同期: {date}",
     "sync": "今すぐ同期する",

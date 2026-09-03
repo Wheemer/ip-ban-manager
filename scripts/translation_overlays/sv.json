@@ -309,7 +309,7 @@
       "edge_protection": "Kantskydd",
       "edge_protection_hint": "Tillämpa IP Ban Manager-regler på Nginx Proxy Manager.",
       "default_deny_active": "Blockera allt utanför tillåtna IP-adresser är aktivt och kommer även att tillämpas på NPM.",
-      "mirror_default_deny_warning": "Hög effekt: NPM tillämpar detta före Home Assistant, så externa integrationsåteruppringningar utanför tillåtna IP-adresser kan inte använda Home Assistant:s undantag för skyddad återuppringning.",
+      "mirror_default_deny_warning": "Hög effekt: NPM tillämpar detta före Home Assistant.",
       "enabled": "Kantskydd är aktivt.",
       "last_sync": "Senast synkroniserad: {date}",
       "sync": "Synkronisera nu",

@@ -309,7 +309,7 @@
       "edge_protection": "Kantenschutz",
       "edge_protection_hint": "Wenden Sie die IP Ban Manager-Regeln bei Nginx Proxy Manager an.",
       "default_deny_active": "„Alles außerhalb der zulässigen IPs blockieren“ ist aktiv und wird auch bei NPM erzwungen.",
-      "mirror_default_deny_warning": "Hohe Auswirkung: NPM wendet dies vor Home Assistant an, sodass externe Integrationsrückrufe außerhalb zulässiger IPs die geschützte Rückrufausnahme von Home Assistant nicht verwenden können.",
+      "mirror_default_deny_warning": "Hohe Auswirkung: NPM wendet dies vor Home Assistant an.",
       "enabled": "Kantenschutz ist aktiv.",
       "last_sync": "Zuletzt synchronisiert: {date}",
       "sync": "Jetzt synchronisieren",

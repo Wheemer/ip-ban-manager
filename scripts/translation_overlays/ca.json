@@ -309,7 +309,7 @@
       "edge_protection": "Protecció de vora",
       "edge_protection_hint": "Apliqueu les regles IP Ban Manager a Nginx Proxy Manager.",
       "default_deny_active": "Bloquejar tot el que estigui fora de les IP permeses està actiu i també s'aplicarà a NPM.",
-      "mirror_default_deny_warning": "Alt impacte: NPM ho aplica abans de Home Assistant, de manera que les devolució de trucada d'integració externa fora de les IP permeses no poden utilitzar l'excepció de devolució de trucada protegida de Home Assistant.",
+      "mirror_default_deny_warning": "Alt impacte: NPM ho aplica abans de Home Assistant.",
       "enabled": "La protecció de vora està activa.",
       "last_sync": "Última sincronització: {date}",
       "sync": "Sincronitza ara",
