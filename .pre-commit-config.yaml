@@ -17,7 +17,7 @@ repos:
     - pydocstyle==5.0.2
     - Flake8-pyproject==1.2.3
 - repo: https://github.com/PyCQA/isort
-  rev: 8.0.1
+  rev: 9.0.1
   hooks:
   - id: isort
     args: [--profile, black]
