@@ -54,9 +54,7 @@ from .metrics import metrics
 from .runtime_options import (
     CONF_CALLBACK_ROUTE_PROTECTION_ENABLED as ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED,
 )
-from .runtime_options import (
-    entry_callback_route_protection_enabled,
-)
+from .runtime_options import entry_callback_route_protection_enabled
 from .storage_keys import (
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
