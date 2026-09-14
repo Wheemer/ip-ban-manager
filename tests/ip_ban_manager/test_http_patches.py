@@ -9,6 +9,34 @@ from .test_setup import *
 
 
 @pytest.mark.asyncio
+async def test_module_reload_preserves_original_wrong_login(
+    hass: HomeAssistant,
+) -> None:
+    """Reloading while patched must not turn the original hook into our wrapper."""
+    import importlib
+
+    await setup_ip_ban_manager(hass)
+    hass.http.app[KEY_LOGIN_THRESHOLD] = 5
+    original = ipbm_http_patches._ORIGINAL_PROCESS_WRONG_LOGIN
+    for _ in range(2):
+        await hass.async_add_executor_job(importlib.reload, ipbm_http_patches)
+        assert ipbm_http_patches._ORIGINAL_PROCESS_WRONG_LOGIN is original
+    ipbm_http_patches.install_wrong_login_patch()
+
+    class MockRequest:
+        remote = "10.0.0.25"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][ip_address("10.0.0.25")] == 1
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert http_ban.process_wrong_login is original
+
+
+@pytest.mark.asyncio
 async def test_hit_allowlist(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
