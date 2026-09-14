@@ -18,7 +18,7 @@ $(VENV_PYTHON):
 	uv venv --clear --python 3.13 $(VENV)
 
 requirements.test: $(VENV_PYTHON) requirements.test.in requirements.constraints
-	uv pip compile requirements.test.in -c requirements.constraints -o requirements.test
+	uv pip compile requirements.test.in --constraint=requirements.constraints --output-file=requirements.test
 
 sync: $(VENV_PYTHON) requirements.test
 	uv pip sync --python $(VENV_PYTHON) --strict requirements.test

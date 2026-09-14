@@ -8,6 +8,12 @@
     "workarounds:all",
   ],
   dependencyDashboard: false,
+  "pip-compile": {
+    managerFilePatterns: ["/^requirements\\.test$/"],
+  },
+  pip_requirements: { enabled: false },
+  "pre-commit": { enabled: true },
+  constraints: { python: "==3.13.*" },
   labels: ["dependencies"],
   packageRules: [
     {
