@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.8.4.3
+
+### Fixed
+
+- Fixed a recursive failed-login handler that could interrupt login processing after reloading the integration's Python modules.
+
+### Maintenance
+
+- Updated dependency tooling, formatting tools, and GitHub Actions.
+- Added missing automatic dependency monitoring for Python test requirements and formatting tools.
+
 ## v1.8.4.2
 
 IP Ban Manager 1.8.4.2 keeps required Home Assistant callback routes reachable without weakening ordinary access restrictions.
