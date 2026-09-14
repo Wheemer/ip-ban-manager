@@ -6,10 +6,15 @@
 
 - Fixed a recursive failed-login handler that could interrupt login processing after reloading the integration's Python modules.
 
-### Maintenance
+### Dependency updates
 
-- Updated dependency tooling, formatting tools, and GitHub Actions.
-- Added missing automatic dependency monitoring for Python test requirements and formatting tools.
+- **uv:** 0.12.9 to 0.12.13.
+- **isort:** 8.0.1 to 9.0.1, with the required import-formatting adjustment.
+- **setup-uv action:** 10.0.1 to 10.1.0.
+- **CodeQL action:** 4.37.9 to 4.38.0.
+- **Renovate action:** 46.2.5 to 46.3.1.
+- Updated the **Home Assistant Hassfest action** to its newer pinned revision.
+- Expanded **Renovate monitoring** to include Python test requirements and pre-commit hooks that were previously missed.
 
 ## v1.8.4.2
 
