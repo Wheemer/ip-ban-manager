@@ -43,7 +43,10 @@ from .storage_keys import (
 
 _LOGGER = logging.getLogger(__name__)
 
-_ORIGINAL_PROCESS_WRONG_LOGIN = http_ban.process_wrong_login
+# importlib.reload retains module globals; never capture our installed wrapper.
+_ORIGINAL_PROCESS_WRONG_LOGIN = globals().get(
+    "_ORIGINAL_PROCESS_WRONG_LOGIN", http_ban.process_wrong_login
+)
 _ACTIVE_LOGIN_THRESHOLD: ContextVar[int | None] = ContextVar(
     "ip_ban_manager_active_login_threshold", default=None
 )
