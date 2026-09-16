@@ -4,7 +4,8 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
-| [v1.8.4.4](CHANGELOG.md#v1844) | Editable Public Region Lock rules, NGINX Proxy Manager backup/restore, Custom Location conflict recovery, and proactive authentication renewal. |
+| [v1.8.5](CHANGELOG.md#v185) | Editable Public Region Lock rules, NGINX Proxy Manager backup/restore, Custom Location conflict recovery, and proactive authentication renewal. |
+| [v1.8.4.4](CHANGELOG.md#v1844) | Pre-release: NGINX Proxy Manager backup/restore, recovery controls, clearer API errors, and reduced unnecessary updates. |
 | [v1.8.4.3](CHANGELOG.md#v1843) | Hotfix: prevents failed-login processing errors after module reloads and updates dependency tooling and monitoring. |
 | [v1.8.4.2](CHANGELOG.md#v1842) | Hotfix: keeps required OAuth, webhook, and loaded-integration callback routes reachable through Home Assistant and NGINX Proxy Manager policies. |
 | [v1.8.4.1](CHANGELOG.md#v1841) | Hotfix: prevents translated backup controls from overlapping and makes NGINX Proxy Manager disconnect cleanup more reliable. |
