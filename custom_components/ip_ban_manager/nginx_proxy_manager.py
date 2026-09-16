@@ -253,8 +253,14 @@ class NpmClient:
             ) from err
         if response.status >= 400:
             message = body.get("message") if isinstance(body, Mapping) else None
+            error = body.get("error") if isinstance(body, Mapping) else None
+            if isinstance(error, Mapping):
+                message = error.get("message") or message
+            if not isinstance(message, str):
+                message = None
             raise HomeAssistantError(
-                str(message or f"Nginx Proxy Manager returned HTTP {response.status}.")
+                f"Nginx Proxy Manager returned HTTP {response.status}."
+                + (f" {message}" if message else "")
             )
         return body
 
@@ -528,11 +534,13 @@ async def _apply_proxy_policy(
         else _without_managed_config(host.advanced_config)
     )
     detach_legacy = bool(managed_id and host.access_list_id == managed_id)
-    await client.update_proxy_host_policy(
-        host.host_id,
-        advanced_config,
-        access_list_id=0 if detach_legacy else None,
-    )
+    # Do not rewrite a host merely to disconnect after manual rule removal.
+    if advanced_config.rstrip() != host.advanced_config.rstrip() or detach_legacy:
+        await client.update_proxy_host_policy(
+            host.host_id,
+            advanced_config,
+            access_list_id=0 if detach_legacy else None,
+        )
     if managed is not None:
         await client.delete_access_list(managed_id)
 

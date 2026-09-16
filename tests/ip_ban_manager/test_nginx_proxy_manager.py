@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.const import EVENT_COMPONENT_LOADED
@@ -196,14 +197,28 @@ async def test_client_authenticate_uses_token_endpoint(
 
 
 @pytest.mark.asyncio
-async def test_client_surfaces_npm_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        ({"message": "Invalid credentials"}, "Invalid credentials"),
+        (
+            {"error": {"code": 400, "message": "Invalid proxy configuration"}},
+            "Invalid proxy configuration",
+        ),
+        ({"error": {"message": {"unexpected": "object"}}}, "HTTP 400"),
+        ({"error": None}, "HTTP 400"),
+    ],
+)
+async def test_client_surfaces_npm_api_error(
+    monkeypatch: pytest.MonkeyPatch, body: object, expected: str
+) -> None:
     """NPM API messages are returned as useful Home Assistant errors."""
 
     class FakeResponse:
-        status = 401
+        status = 400
 
         async def json(self, *, content_type: object = None) -> object:
-            return {"message": "Invalid credentials"}
+            return body
 
     class FakeSession:
         async def request(self, *args: object, **kwargs: object) -> FakeResponse:
@@ -213,8 +228,100 @@ async def test_client_surfaces_npm_api_error(monkeypatch: pytest.MonkeyPatch) ->
     hass = cast(HomeAssistant, SimpleNamespace())
     client = npm.NpmClient(hass, "http://192.168.1.40:81")
 
-    with pytest.raises(HomeAssistantError, match="Invalid credentials"):
+    with pytest.raises(HomeAssistantError, match=expected):
         await client.authenticate("admin@example.test", "wrong")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["async_disable_npm", "async_disconnect_npm"])
+@pytest.mark.parametrize("has_managed_rules", [False, True])
+async def test_cleanup_after_npm_update_failure(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+    operation: str,
+    has_managed_rules: bool,
+) -> None:
+    """Already removed rules need no PUT; failed real cleanup retains credentials."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    config = {
+        "base_url": "http://npm.example.test:81",
+        "token": "stored-token",
+        "proxy_host_id": 4,
+        "enabled": True,
+    }
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, CONF_NPM: config}
+    )
+    custom = "proxy_set_header X-Test keep-me;\n\n"
+    host = {
+        "id": 4,
+        "domain_names": ["ha.example.test"],
+        "access_list_id": 9,
+        "advanced_config": (
+            npm._with_managed_config(custom, ["deny all;"])
+            if has_managed_rules
+            else custom
+        ),
+        "locations": [
+            {
+                "path": "/other",
+                "forward_scheme": "http",
+                "forward_host": "192.168.1.25",
+                "forward_port": 8080,
+            }
+        ],
+    }
+    client = AsyncMock()
+    client.refresh_token.return_value = {"token": "new-token"}
+    client.proxy_hosts.return_value = [host]
+    client.update_proxy_host_policy.side_effect = HomeAssistantError("HTTP 400")
+    monkeypatch.setattr(npm, "NpmClient", lambda *args: client)
+
+    if has_managed_rules:
+        with pytest.raises(HomeAssistantError, match="HTTP 400"):
+            await getattr(npm, operation)(hass)
+        assert npm.entry_npm_config(entry) == config
+        client.update_proxy_host_policy.assert_awaited_once_with(
+            4, custom.rstrip(), access_list_id=None
+        )
+    else:
+        await getattr(npm, operation)(hass)
+        client.update_proxy_host_policy.assert_not_awaited()
+        assert not npm.entry_npm_config(entry).get("enabled")
+        if operation == "async_disconnect_npm":
+            assert npm.entry_npm_config(entry) == {}
+        else:
+            assert npm.entry_npm_config(entry)["token"] == "new-token"
+        assert host["advanced_config"] == custom
+    client.delete_access_list.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_unchanged_policy_still_detaches_legacy_access_list() -> None:
+    """No-op advanced config does not skip required legacy-list cleanup."""
+    client = AsyncMock()
+    client.access_lists.return_value = [{"id": 7, "name": npm.NPM_ACCESS_LIST_NAME}]
+    host = npm.NpmProxyHost(4, ("ha.example.test",), 7, True, "")
+
+    await npm._apply_proxy_policy(client, host, 7, None)
+
+    client.update_proxy_host_policy.assert_awaited_once_with(4, "", access_list_id=0)
+    client.delete_access_list.assert_awaited_once_with(7)
+
+
+@pytest.mark.asyncio
+async def test_unchanged_policy_does_not_rewrite_host() -> None:
+    """Repeated sync leaves an identical managed block untouched."""
+    client = AsyncMock()
+    rules = ["deny 203.0.113.10;"]
+    host = npm.NpmProxyHost(
+        4, ("ha.example.test",), 0, True, npm._with_managed_config("", rules)
+    )
+
+    await npm._apply_proxy_policy(client, host, 0, rules)
+
+    client.update_proxy_host_policy.assert_not_awaited()
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.8.4.4b1
+
+### Fixed
+
+- NGINX Proxy Manager can now be disabled or disconnected after its managed rules have already been removed, without attempting an unnecessary proxy-host update.
+- NPM errors now include the API's error message instead of only a generic HTTP status.
+- Automatic synchronization skips proxy-host updates when the managed rules have not changed.
+
+### Known issue
+
+- The original HTTP 400 reported after adding an NPM Custom Location is still under investigation. This pre-release improves recovery and exposes the error details needed to diagnose it; it does not claim to resolve every cause of HTTP 400.
+
 ## v1.8.4.3
 
 ### Fixed
