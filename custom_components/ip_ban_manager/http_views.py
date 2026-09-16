@@ -65,6 +65,7 @@ from .panel import (
     panel_unsilence_allowlisted_login_notification,
 )
 from .panel_assets import PANEL_JS_PATH, async_panel_js_response
+from .region_rules import entry_public_region_settings
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_HTTP_VIEW_HANDLERS,
@@ -85,6 +86,7 @@ RUNTIME_MODULE_NAMES = (
     "custom_components.ip_ban_manager.audit",
     "custom_components.ip_ban_manager.ban_lookup",
     "custom_components.ip_ban_manager.runtime_options",
+    "custom_components.ip_ban_manager.region_rules",
     "custom_components.ip_ban_manager.backup",
     "custom_components.ip_ban_manager.ban_ops",
     "custom_components.ip_ban_manager.geoip",
@@ -97,6 +99,10 @@ RUNTIME_MODULE_NAMES = (
     "custom_components.ip_ban_manager.panel",
 )
 RUNTIME_BINDINGS: dict[str, tuple[str, str]] = {
+    "entry_public_region_settings": (
+        "custom_components.ip_ban_manager.region_rules",
+        "entry_public_region_settings",
+    ),
     "async_export_config": (
         "custom_components.ip_ban_manager.backup",
         "async_export_config",
@@ -255,7 +261,7 @@ async def async_handle_silence_post(
         return Response(text="IP Ban Manager is not loaded.", status=404)
 
     user = request.get("hass_user")
-    if user is None or not user.is_admin:
+    if user is None or not user.is_admin or not user.is_active:
         return view.json_message("Administrator access is required.", 403)
 
     try:
@@ -296,7 +302,7 @@ async def async_handle_status_get(
     hass = request.app[KEY_HASS]
     metric_increment(hass, "panel_api_calls")
     user = request.get("hass_user")
-    if user is None or not user.is_admin:
+    if user is None or not user.is_admin or not user.is_active:
         metric_increment(hass, "panel_api_errors")
         return view.json(
             {"ok": False, "error": "Administrator access is required."},
@@ -312,7 +318,8 @@ async def async_handle_status_get(
         )
 
     language = request.query.get("language")
-    return view.json(await async_panel_payload(hass, entry, language=language))
+    payload = await async_panel_payload(hass, entry, language=language)
+    return view.json(payload)
 
 
 async def async_handle_manage_post(
@@ -322,7 +329,7 @@ async def async_handle_manage_post(
     hass = request.app[KEY_HASS]
     metric_increment(hass, "panel_api_calls")
     user = request.get("hass_user")
-    if user is None or not user.is_admin:
+    if user is None or not user.is_admin or not user.is_active:
         metric_increment(hass, "panel_api_errors")
         return view.json(
             {"ok": False, "error": "Administrator access is required."},
@@ -338,6 +345,14 @@ async def async_handle_manage_post(
             status_code=400,
         )
 
+    if not isinstance(data, dict):
+        return view.json(
+            {"ok": False, "error": "Expected a JSON object."}, status_code=400
+        )
+    if hass.http.app.get(KEY_CONFIG_ENTRY) is None:
+        return view.json(
+            {"ok": False, "error": "IP Ban Manager is not loaded."}, status_code=404
+        )
     action = data.get("action")
     value = str(data.get("value", "")).strip()
     download: dict[str, str] | None = None
@@ -358,6 +373,45 @@ async def async_handle_manage_post(
             await async_remove_blocked_network(hass, value, SOURCE_PANEL)
         elif action == "set_options":
             await async_panel_set_options(hass, data.get("options", {}))
+        elif action in {"set_public_region", "remove_public_region"}:
+            region_options = entry_public_region_settings(
+                hass, hass.http.app[KEY_CONFIG_ENTRY]
+            )
+            thresholds = region_options["public_region_rules"]
+            region = value.upper()
+            if action == "remove_public_region":
+                if (
+                    region_options["public_region_enabled"]
+                    and region in thresholds
+                    and len(thresholds) == 1
+                ):
+                    raise HomeAssistantError(
+                        "Turn off Public Region Lock and apply before removing the last region."
+                    )
+                thresholds.pop(region, None)
+            else:
+                threshold = data.get("threshold")
+                if type(threshold) is not int or not 0 <= threshold <= 100:
+                    raise HomeAssistantError("Enter a whole number from 0 to 100.")
+                original = data.get("original_region")
+                if original is not None:
+                    if (
+                        not isinstance(original, str)
+                        or original.upper() not in thresholds
+                    ):
+                        raise HomeAssistantError(
+                            "This region changed. Reload the panel and try again."
+                        )
+                    original = original.upper()
+                    if original != region and region in thresholds:
+                        raise HomeAssistantError(
+                            "That region already exists. Edit its row instead."
+                        )
+                    thresholds.pop(original)
+                thresholds[region] = threshold
+            await async_panel_set_options(
+                hass, {**region_options, "confirmed": data.get("confirmed")}
+            )
         elif action == "update_geoip":
             await async_download_geoip_database(hass)
             record_geoip_updated(hass, SOURCE_PANEL)

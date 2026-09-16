@@ -55,13 +55,14 @@ from .entry_meta import (
     entry_blocked_network_meta,
     sync_network_list_meta,
 )
-from .geoip import geoip_region_allows_ip
+from .geoip import geoip_region_allows_ip, geoip_regions_allow_ip
 from .internal_networks import (
     async_home_assistant_allowlist_safe_defaults,
     async_home_assistant_internal_allowlist_networks,
     async_home_assistant_self_networks,
 )
 from .ip_utils import parse_allowlist_network
+from .region_rules import entry_public_region_settings, has_public_region_settings
 from .runtime_options import entry_callback_route_protection_enabled
 from .storage_keys import (
     KEY_ALLOWLIST,
@@ -172,6 +173,14 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
             allowed_region_subdivision,
         )
     )
+    if has_public_region_settings(entry):
+        region_settings = entry_public_region_settings(hass, entry)
+        regions = frozenset(region_settings["public_region_rules"])
+        geoip_access_allowed = (
+            (lambda remote_addr: geoip_regions_allow_ip(hass, remote_addr, regions))
+            if region_settings["public_region_enabled"]
+            else None
+        )
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
 
     def callback_path_is_protected(path: str) -> bool:

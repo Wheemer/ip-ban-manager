@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Activează blocarea regională publică",
+    "add_country": "Adaugă țara curentă",
+    "add_subdivision": "Adaugă provincia/statul curent",
+    "hint": "Regulile rămân salvate când este dezactivată. Pragul provinciei are prioritate față de țară. Zero dezactivează blocările automate. Adăugați un cod existent pentru actualizare.",
+    "warning": "Atenție: IP-urile publice din afara listei sau cu locație necunoscută sunt blocate. IP-urile permise, traficul intern și protecția callbackurilor sunt respectate."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Praguri regionale de autentificare",
+    "region": "Țară sau provincie/stat",
+    "hint": "Provincia are prioritate față de țară; în alte locuri se folosesc {count} încercări. Independent de blocarea regională. Zero dezactivează blocările automate în regiune. Un cod existent se actualizează."
+  },
   "loading": "Se încarcă...",
   "request_failed": "Cererea a eșuat.",
   "none": "Niciuna",

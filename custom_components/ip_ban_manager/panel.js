@@ -38,6 +38,7 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   disconnectedCallback() {
+    this._updateGeneration = (this._updateGeneration || 0) + 1;
     window.clearInterval(this._autoRefresh);
     window.clearTimeout(this._loadTimer);
     window.clearTimeout(this._toastTimer);
@@ -73,16 +74,21 @@ class IPBanManagerPanel extends HTMLElement {
     return this._data?.translations?.request_failed || "Request failed.";
   }
 
-  _withTimeout(promise, timeoutMs = 30000) {
-    return Promise.race([
+  async _withTimeout(promise, timeoutMs = 30000) {
+    let timer;
+    try {
+      return await Promise.race([
       promise,
       new Promise((_, reject) => {
-        window.setTimeout(
+        timer = window.setTimeout(
           () => reject(new Error(this._requestFailedMessage())),
           timeoutMs
         );
       }),
-    ]);
+      ]);
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
 
   async _readApiResponse(response) {
@@ -129,10 +135,11 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   async _load({ silent = false } = {}) {
-    if (this._busy || this._loading || this._isEditing()) {
+    if (this._busy || this._loading || (!silent && this._isEditing())) {
       return;
     }
     const canStayQuiet = silent && this._data;
+    const generation = this._updateGeneration || 0;
     let loaded = false;
     this._loading = true;
     if (!canStayQuiet) {
@@ -141,7 +148,9 @@ class IPBanManagerPanel extends HTMLElement {
       this._renderSafely();
     }
     try {
-      this._data = await this._withTimeout(this._api("GET", this._statusPath()));
+      const result = await this._withTimeout(this._api("GET", this._statusPath()));
+      if (generation !== (this._updateGeneration || 0)) return;
+      this._data = result;
       this._error = "";
       loaded = true;
     } catch (err) {
@@ -150,15 +159,18 @@ class IPBanManagerPanel extends HTMLElement {
       }
     } finally {
       this._loading = false;
-      this._busy = false;
-      if (!canStayQuiet || loaded) {
-        this._renderSafely();
+      if (generation === (this._updateGeneration || 0)) {
+        this._busy = false;
+      }
+      if (generation === (this._updateGeneration || 0) && (!canStayQuiet || loaded)) {
+        if (canStayQuiet) this._renderIncremental();
+        else this._renderSafely();
       }
     }
   }
 
   _scheduleLoad() {
-    if (!this._loaded || this._busy || this._isEditing()) {
+    if (!this._loaded || this._busy) {
       return;
     }
     window.clearTimeout(this._loadTimer);
@@ -166,6 +178,7 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   async _post(action, extra = {}) {
+    this._updateGeneration = (this._updateGeneration || 0) + 1;
     this._busy = true;
     this._error = "";
     this._toast = "";
@@ -436,6 +449,26 @@ class IPBanManagerPanel extends HTMLElement {
           background: var(--secondary-background-color);
         }
         .row code { overflow-wrap: anywhere; white-space: normal; }
+        .region-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+        .region-toggle-row label { display: flex; align-items: center; gap: 8px; }
+        .region-toggle-row input { width: 18px; min-width: 18px; flex: 0 0 18px; margin: 0; }
+        .region-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .region-shortcuts button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--primary-color); border-radius: 6px; background: var(--secondary-background-color); color: var(--primary-text-color); font-weight: 600; white-space: normal; text-align: left; cursor: pointer; }
+        .region-shortcuts button:hover:not(:disabled) { background: var(--divider-color); }
+        .region-shortcuts button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+        .region-shortcuts ha-icon { --mdc-icon-size: 20px; flex: 0 0 20px; }
+        .region-entry { grid-template-columns: minmax(0, 1fr) 90px auto auto; align-items: end; }
+        .region-entry label { min-width: 0; }
+        .region-entry input { width: 100%; box-sizing: border-box; }
+        .region-apply-unchanged { visibility: hidden; pointer-events: none; }
+        #regional-threshold-form { grid-template-columns: minmax(0, 1fr) 90px auto; align-items: end; }
+        #regional-threshold-form label { min-width: 0; }
+        #regional-threshold-form input { width: 100%; box-sizing: border-box; }
+        @media (max-width: 480px) {
+          #regional-threshold-form { grid-template-columns: minmax(0, 1fr) 90px; }
+          #regional-threshold-form button { grid-column: 1 / -1; justify-self: end; }
+          .region-entry { grid-template-columns: minmax(0, 1fr) 90px; }
+        }
         .meta { color: var(--secondary-text-color); font-size: 13px; margin-top: 2px; }
         .empty {
           color: var(--secondary-text-color);
@@ -531,56 +564,6 @@ class IPBanManagerPanel extends HTMLElement {
           gap: 12px;
         }
         .threshold .hint { margin: 0; }
-        .regional-login-bans {
-          margin-top: 12px;
-          padding: 10px 12px;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          background: var(--secondary-background-color);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-        }
-        .regional-login-bans[hidden] { display: none; }
-        .regional-login-bans strong { display: block; }
-        .regional-login-bans .hint { margin: 2px 0 0; }
-        .regional-login-bans label { display: flex; align-items: center; gap: 8px; }
-        .regional-login-bans input { width: 76px; }
-        .policy-choices {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 8px;
-          margin-top: 12px;
-        }
-        .policy-card {
-          display: grid;
-          grid-template-columns: auto minmax(0, 1fr);
-          gap: 8px;
-          align-items: center;
-          min-height: 58px;
-          padding: 8px 10px;
-          border: 1px solid var(--divider-color);
-          border-radius: 6px;
-          background: var(--secondary-background-color);
-        }
-        .policy-card.custom { grid-column: 1 / -1; }
-        .policy-card input[type="radio"] {
-          width: auto;
-          margin: 0;
-          transform: scale(1.05);
-        }
-        .policy-card strong { display: block; margin-bottom: 2px; }
-        .policy-card small {
-          display: block;
-          color: var(--secondary-text-color);
-          font-size: 12px;
-          line-height: 1.25;
-        }
-        .policy-card:has(input:checked) {
-          border-color: var(--primary-color);
-          background: color-mix(in srgb, var(--primary-color) 12%, var(--secondary-background-color));
-        }
         .allowed-regions-section {
           border-color: var(--warning-color, #ffa600);
         }
@@ -593,22 +576,6 @@ class IPBanManagerPanel extends HTMLElement {
           color: var(--primary-text-color);
           font-size: 13px;
           line-height: 1.35;
-        }
-        .policy-card.restrictive {
-          border-color: color-mix(in srgb, var(--warning-color, #ffa600) 70%, var(--divider-color));
-        }
-        .policy-card.restrictive:has(input:checked) {
-          border-color: var(--warning-color, #ffa600);
-          background: color-mix(in srgb, var(--warning-color, #ffa600) 18%, var(--secondary-background-color));
-        }
-        .custom-region-fields {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
-          margin-top: 10px;
-        }
-        .policy-card.custom:not(:has(input:checked)) .custom-region-fields {
-          display: none;
         }
         .geoip-status {
           display: flex;
@@ -758,14 +725,12 @@ class IPBanManagerPanel extends HTMLElement {
               "blocked"
               "networks";
           }
-          .options, .policy-choices { grid-template-columns: 1fr; }
+          .options { grid-template-columns: 1fr; }
           form { grid-template-columns: 1fr; }
           .npm-connect-form, .npm-select-row { grid-template-columns: 1fr; }
           .npm-configured-layout { grid-template-columns: 1fr; }
           .backup-stack { grid-template-columns: 1fr; }
-          .custom-region-fields { grid-template-columns: 1fr; }
           .threshold { max-width: none; }
-          .regional-login-bans { align-items: flex-start; flex-direction: column; }
           .geoip-status { align-items: flex-start; flex-direction: column; }
           .backup-stack .geoip-status > .button-row { width: 100%; }
           .toast {
@@ -832,21 +797,60 @@ class IPBanManagerPanel extends HTMLElement {
       return;
     }
 
+    this._updateChromeLabels();
+    this._sectionMarkup = this._sections();
+    content.innerHTML = `<div class="grid">${[...this._sectionMarkup.values()].join("")}</div>`;
+    this._renderToast();
+    this._wireEvents();
+  }
+
+  _sections() {
     const status = this._data.status || {};
     const settings = this._data.settings || {};
     const geoip = this._data.geoip || {};
-    this._updateChromeLabels();
-    content.innerHTML = `
-      <div class="grid">
-        ${this._optionsSection(settings)}
-        ${this._listSection(this._t("allowed_ips.title"), this._t("allowed_ips.hint"), this._allowlistRows(settings), "remove_allowlist", "add_allowlist", this._t("allowed_ips.placeholder"), this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings), "allowed-ips-section")}
-        ${this._banSection(status.banned_ips || [])}
-        ${geoip.geoip_database_present ? this._allowedRegionSection(settings) : ""}
-        ${this._blockedNetworksSection(settings)}
-      </div>
-    `;
-    this._renderToast();
-    this._wireEvents();
+    return new Map([
+      ["options-section", this._optionsSection(settings)],
+      ["allowed-ips-section", this._listSection(this._t("allowed_ips.title"), this._t("allowed_ips.hint"), this._allowlistRows(settings), "remove_allowlist", "add_allowlist", this._t("allowed_ips.placeholder"), this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings), "allowed-ips-section")],
+      ["blocked-ips-section", this._banSection(status.banned_ips || [])],
+      ["allowed-regions-section", geoip.geoip_database_present || settings.public_region_enabled || Object.keys(settings.public_region_rules || {}).length ? this._allowedRegionSection(settings) : ""],
+      ["blocked-networks-section", this._blockedNetworksSection(settings)],
+    ]);
+  }
+
+  _sectionHasDraft(section) {
+    return [...section.querySelectorAll("input, select")].some((input) => {
+      if (input.tagName === "SELECT") return [...input.options].some(option => option.selected !== option.defaultSelected);
+      return ["checkbox", "radio"].includes(input.type) ? input.checked !== input.defaultChecked : input.value !== input.defaultValue;
+    });
+  }
+
+  _renderIncremental() {
+    const grid = this.shadowRoot?.querySelector("#content > .grid");
+    if (!grid || !this._sectionMarkup) return;
+    try {
+      for (const [key, html] of this._sections()) {
+        if (html === this._sectionMarkup.get(key)) continue;
+        const previous = grid.querySelector(`:scope > .${key}`);
+        // Preserve a focused action and unsaved inputs; other sections still update.
+        if (previous && (previous.contains(this.shadowRoot.activeElement) || this._sectionHasDraft(previous))) continue;
+        if (!html) previous?.remove();
+        else {
+          const template = document.createElement("template");
+          template.innerHTML = html;
+          const next = template.content.firstElementChild;
+          if (previous) previous.replaceWith(next);
+          else grid.append(next);
+          this._wireEvents({
+            getElementById: id => next.querySelector(`#${id}`),
+            querySelectorAll: selector => next.querySelectorAll(selector),
+          });
+        }
+        this._sectionMarkup.set(key, html);
+      }
+      this._updateChromeLabels();
+    } catch (err) {
+      console.error("IP Ban Manager background update failed", err);
+    }
   }
 
   _renderToast() {
@@ -1081,8 +1085,8 @@ class IPBanManagerPanel extends HTMLElement {
       <section class="allowed-regions-section">
         <h2>${this._t("allowed_regions.title")}</h2>
         <div class="body">
-          <p class="hint">${this._t("allowed_regions.hint")}</p>
-          <div class="allowed-region-warning">${this._t("allowed_regions.warning")}</div>
+          <p class="hint">${this._t("region_list.hint")}</p>
+          <div class="allowed-region-warning">${this._t("region_list.warning")}</div>
           ${this._allowedRegionControls(settings)}
         </div>
       </section>
@@ -1128,102 +1132,52 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _allowedRegionControls(settings) {
-    const geoip = this._data?.geoip || {};
-    const local = geoip.local_region || {};
-    const mode = settings.allowed_region_mode || "anywhere";
-    const localDetail = local.location || local.ip_address || "";
-    const localCountry = local.country_code || this._countryCodeFromLocation(localDetail);
-    const localSubdivision =
-      local.subdivision_code || this._subdivisionCodeFromLocation(localDetail, localCountry);
-    const localCountryName = local.country_name || "";
-    const localSubdivisionLabel = local.subdivision_label || "";
-    const country = settings.allowed_region_country || "";
-    const subdivision = settings.allowed_region_subdivision || "";
-    const isLocalCountry = mode === "country" && country && country === localCountry;
-    const isLocalSubdivision =
-      mode === "subdivision" && subdivision && subdivision === localSubdivision;
-    const selectedPolicy =
-      mode === "anywhere"
-        ? "anywhere"
-        : isLocalCountry
-          ? "local_country"
-          : isLocalSubdivision
-            ? "local_subdivision"
-            : "custom";
-    const localCountryValue = this._regionDisplay(
-      localCountryName || this._countryName(localCountry),
-      localCountry
-    );
-    const localSubdivisionValue = this._subdivisionDisplay(
-      localSubdivisionLabel,
-      localSubdivision
-    );
-    const selectedRegion =
-      mode === "subdivision" ? subdivision : mode === "country" ? country : "";
-    const regionalThresholds = settings.regional_login_thresholds || {};
-    const regionalThreshold = Object.prototype.hasOwnProperty.call(
-      regionalThresholds,
-      selectedRegion
-    )
-      ? Number(regionalThresholds[selectedRegion])
-      : Number(settings.login_attempts_threshold || 0);
+    const local = this._data?.geoip?.local_region || {};
+    const rules = settings.public_region_rules || {};
+    const enabled = Boolean(settings.public_region_enabled);
+    const country = local.country_code || "";
+    const subdivision = local.subdivision_code || "";
+    const rows = Object.entries(rules).map(([code, count]) => `
+      <form class="region-entry" data-original-region="${this._escape(code)}">
+        <label>${this._t("regional_rules.region")}<input name="region" required maxlength="9" pattern="[A-Za-z]{2}(-[A-Za-z0-9]{1,6})?" value="${this._escape(code)}"></label>
+        <label>${this._t("regional_thresholds.attempts")}<input name="threshold" type="number" min="0" max="100" step="1" required value="${Number(count)}"></label>
+        <button class="primary region-apply-unchanged" disabled>${this._t("apply")}</button>
+        <button type="button" class="danger" data-action="remove_public_region" data-value="${this._escape(code)}" ${this._busy ? "disabled" : ""}>${this._t("remove")}</button>
+      </form>
+    `).join("");
     return `
-      <div class="policy-choices">
-        ${this._regionPolicyCard("anywhere", selectedPolicy, "anywhere", "", "", this._t("allowed_regions.anywhere"), this._t("allowed_regions.anywhere_hint"))}
-        ${this._regionPolicyCard("local_country", selectedPolicy, "country", localCountry, "", localCountryValue || this._t("allowed_regions.local_country"), this._t("allowed_regions.local_country_hint"), !localCountry, true)}
-        ${this._regionPolicyCard("local_subdivision", selectedPolicy, "subdivision", localCountry, localSubdivision, localSubdivisionValue || this._t("allowed_regions.local_subdivision"), this._t("allowed_regions.local_subdivision_hint"), !localSubdivision, true)}
-        <label class="policy-card custom restrictive">
-          <input type="radio" name="allowed-region-policy" value="custom" data-region-mode="${mode === "subdivision" ? "subdivision" : "country"}" data-region-country="${this._escape(country)}" data-region-subdivision="${this._escape(subdivision)}" ${selectedPolicy === "custom" ? "checked" : ""}>
-          <span>
-            <strong>${this._t("allowed_regions.custom")}</strong>
-            <small>${this._t("allowed_regions.custom_hint")}</small>
-            <div class="custom-region-fields">
-              <input id="allowed-region-country" maxlength="2" value="${this._escape(country)}" placeholder="${this._t("allowed_regions.country_placeholder")}">
-              <input id="allowed-region-subdivision" maxlength="8" value="${this._escape(subdivision)}" placeholder="${this._t("allowed_regions.subdivision_placeholder")}">
-            </div>
-          </span>
-        </label>
+      <div class="region-toggle-row">
+        <label><input id="public-region-enabled" type="checkbox" ${enabled ? "checked" : ""} ${this._busy ? "disabled" : ""}> ${this._t("region_list.enabled")}</label>
+        <button class="primary region-apply-unchanged" id="save-region-options" disabled>${this._t("apply")}</button>
       </div>
-      <div class="regional-login-bans" id="regional-login-bans" ${selectedRegion ? "" : "hidden"}>
-        <div>
-          <strong>${this._t("regional_thresholds.title")}</strong>
-          <p class="hint">${this._t("regional_thresholds.hint")}</p>
-        </div>
-        <label>
-          <span>${this._t("regional_thresholds.ban_after")}</span>
-          <input id="regional-threshold" type="number" min="0" max="100" value="${regionalThreshold}">
-          <span>${this._t("regional_thresholds.attempts")}</span>
-        </label>
+      <div class="region-shortcuts">
+        ${country && !(country in rules) ? `<button data-region-code="${this._escape(country)}" ${this._busy ? "disabled" : ""}><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${this._t("region_list.add_country")} · ${this._escape(this._regionDisplay(local.country_name || this._countryName(country), country))}</button>` : ""}
+        ${subdivision && !(subdivision in rules) ? `<button data-region-code="${this._escape(subdivision)}" ${this._busy ? "disabled" : ""}><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${this._t("region_list.add_subdivision")} · ${this._escape(this._subdivisionDisplay(local.subdivision_label, subdivision))}</button>` : ""}
       </div>
-      <div class="actions">
-        <button class="primary" id="save-region-options" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>
-      </div>
-    `;
-  }
-
-  _regionPolicyCard(policy, selectedPolicy, mode, country, subdivision, label, hint, disabled = false, restrictive = false) {
-    return `
-      <label class="policy-card ${restrictive ? "restrictive" : ""}">
-        <input
-          type="radio"
-          name="allowed-region-policy"
-          value="${policy}"
-          data-region-mode="${mode}"
-          data-region-country="${this._escape(country)}"
-          data-region-subdivision="${this._escape(subdivision)}"
-          ${selectedPolicy === policy ? "checked" : ""}
-          ${disabled ? "disabled" : ""}
-        >
-        <span>
-          <strong>${label}</strong>
-          <small>${hint}</small>
-        </span>
-      </label>
+      ${rows}
+      <form id="regional-threshold-form">
+        <label>${this._t("regional_rules.region")}<input name="region" required maxlength="9" pattern="[A-Za-z]{2}(-[A-Za-z0-9]{1,6})?" placeholder="CA / CA-NL" aria-label="${this._t("regional_rules.region")}"></label>
+        <label>${this._t("regional_thresholds.attempts")}<input name="threshold" type="number" min="0" max="100" step="1" required value="${Number(settings.login_attempts_threshold || 0)}"></label>
+        <button class="primary" ${this._busy ? "disabled" : ""}>${this._t("add")}</button>
+      </form>
     `;
   }
 
   _shortSubdivisionCode(code) {
     return code && code.includes("-") ? code.split("-").pop() : code;
+  }
+
+  _regionConfirmation(rules, enabled) {
+    const local = this._data?.geoip?.local_region || {};
+    const rows = Object.entries(rules).map(([code, count]) => {
+      const name = code.includes("-")
+        ? code === local.subdivision_code
+          ? this._subdivisionDisplay(local.subdivision_label, code)
+          : code
+        : this._regionDisplay(this._countryName(code), code);
+      return `${name}: ${count} ${this._t("regional_thresholds.attempts")}`;
+    });
+    return `${this._t("apply")}?\n\n${this._t("allowed_regions.title")}\n${enabled ? rows.join("\n") : this._t("allowed_regions.anywhere")}\n\n${this._t(enabled ? "region_list.warning" : "allowed_regions.anywhere_hint")}`;
   }
 
   _subdivisionDisplay(name, code) {
@@ -1232,27 +1186,6 @@ class IPBanManagerPanel extends HTMLElement {
       return `${name} (${shortCode})`;
     }
     return name || shortCode || code || "";
-  }
-
-  _countryCodeFromLocation(location) {
-    if (!location) {
-      return "";
-    }
-    const parts = location.split(",").map((part) => part.trim()).filter(Boolean);
-    const country = parts[parts.length - 1] || "";
-    return /^[A-Z]{2}$/.test(country) ? country : "";
-  }
-
-  _subdivisionCodeFromLocation(location, country) {
-    if (!location || !country) {
-      return "";
-    }
-    const parts = location.split(",").map((part) => part.trim()).filter(Boolean);
-    const subdivision = parts.length >= 2 ? parts[parts.length - 2] : "";
-    if (!/^[A-Z0-9]{1,3}$/.test(subdivision)) {
-      return "";
-    }
-    return `${country}-${subdivision}`;
   }
 
   _countryName(code) {
@@ -1395,19 +1328,19 @@ class IPBanManagerPanel extends HTMLElement {
     `;
   }
 
-  _wireEvents() {
-    const npmConnect = this.shadowRoot.getElementById("npm-connect-form");
+  _wireEvents(root = this.shadowRoot) {
+    const npmConnect = root.getElementById("npm-connect-form");
     if (npmConnect) {
       npmConnect.addEventListener("submit", (event) => {
         event.preventDefault();
         this._post("npm_connect", {
-          base_url: this.shadowRoot.getElementById("npm-url")?.value || "",
-          identity: this.shadowRoot.getElementById("npm-identity")?.value || "",
-          secret: this.shadowRoot.getElementById("npm-secret")?.value || "",
+          base_url: root.getElementById("npm-url")?.value || "",
+          identity: root.getElementById("npm-identity")?.value || "",
+          secret: root.getElementById("npm-secret")?.value || "",
         });
       });
     }
-    this.shadowRoot.querySelectorAll("form[data-action]").forEach((form) => {
+    root.querySelectorAll("form[data-action]").forEach((form) => {
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         const value = new FormData(form).get("value");
@@ -1420,10 +1353,22 @@ class IPBanManagerPanel extends HTMLElement {
         }
       });
     });
-    this.shadowRoot.querySelectorAll("button[data-action]").forEach((button) => {
+    root.querySelectorAll("button[data-action]").forEach((button) => {
       button.addEventListener("click", () => {
+        if (button.dataset.action === "remove_public_region") {
+          const rules = { ...this._data.settings.public_region_rules };
+          delete rules[button.dataset.value];
+          const enabled = this._data.settings.public_region_enabled;
+          if (enabled && Object.keys(rules).length === 0) {
+            this._post("remove_public_region", { value: button.dataset.value, confirmed: true });
+            return;
+          }
+          if (this._data.settings.public_region_enabled && !window.confirm(this._regionConfirmation(rules, enabled))) return;
+          this._post("remove_public_region", { value: button.dataset.value, confirmed: true });
+          return;
+        }
         if (button.dataset.action === "upload_config") {
-          const upload = this.shadowRoot.getElementById("backup-upload");
+          const upload = root.getElementById("backup-upload");
           if (upload) {
             upload.click();
           }
@@ -1432,10 +1377,10 @@ class IPBanManagerPanel extends HTMLElement {
         if (button.dataset.confirm && !window.confirm(button.dataset.confirm)) {
           return;
         }
-        this._post(button.dataset.action, { value: button.dataset.value });
+        this._post(button.dataset.action, { value: button.dataset.value, confirmed: Boolean(button.dataset.confirm) });
       });
     });
-    const uploadInput = this.shadowRoot.getElementById("backup-upload");
+    const uploadInput = root.getElementById("backup-upload");
     if (uploadInput) {
       uploadInput.addEventListener("change", async () => {
         const file = uploadInput.files && uploadInput.files[0];
@@ -1459,30 +1404,20 @@ class IPBanManagerPanel extends HTMLElement {
         }
       });
     }
-    this.shadowRoot.querySelectorAll(".custom-region-fields input").forEach((input) => {
-      input.addEventListener("input", () => {
-        const custom = this.shadowRoot.querySelector(
-          'input[name="allowed-region-policy"][value="custom"]'
-        );
-        if (custom) {
-          custom.checked = true;
-        }
-      });
-    });
-    const npmSelect = this.shadowRoot.getElementById("npm-select");
+    const npmSelect = root.getElementById("npm-select");
     if (npmSelect) {
       npmSelect.addEventListener("click", () => {
-        const hostId = this.shadowRoot.getElementById("npm-host")?.value || "";
+        const hostId = root.getElementById("npm-host")?.value || "";
         if (hostId) {
           this._post("npm_select_host", { host_id: hostId });
         }
       });
     }
-    const npmApply = this.shadowRoot.getElementById("npm-apply");
+    const npmApply = root.getElementById("npm-apply");
     if (npmApply) {
       npmApply.addEventListener("click", () => {
         const enabled = Boolean(
-          this.shadowRoot.getElementById("npm-edge-protection")?.checked
+          root.getElementById("npm-edge-protection")?.checked
         );
         if (
           enabled &&
@@ -1496,7 +1431,7 @@ class IPBanManagerPanel extends HTMLElement {
         });
       });
     }
-    const npmDisconnect = this.shadowRoot.getElementById("npm-disconnect");
+    const npmDisconnect = root.getElementById("npm-disconnect");
     if (npmDisconnect) {
       npmDisconnect.addEventListener("click", () => {
         if (
@@ -1507,61 +1442,62 @@ class IPBanManagerPanel extends HTMLElement {
         }
       });
     }
-    ["save-options", "save-region-options"].forEach((id) => {
-      const button = this.shadowRoot.getElementById(id);
-      if (button) {
-        button.addEventListener("click", () => {
-          this._post("set_options", { options: this._optionValues() });
+    root.getElementById("save-options")?.addEventListener("click", () => {
+      this._post("set_options", { options: this._optionValues() });
+    });
+    const regionToggle = root.getElementById("public-region-enabled");
+    const regionApply = root.getElementById("save-region-options");
+    regionToggle?.addEventListener("change", () => {
+      const changed = regionToggle.checked !== Boolean(this._data.settings.public_region_enabled);
+      regionApply.classList.toggle("region-apply-unchanged", !changed);
+      regionApply.disabled = this._busy || !changed;
+    });
+    regionApply?.addEventListener("click", () => {
+      const enabled = root.getElementById("public-region-enabled").checked;
+      if (enabled && !this._data.settings.public_region_enabled && !window.confirm(this._regionConfirmation(this._data.settings.public_region_rules, true))) return;
+      this._post("set_options", { options: { public_region_enabled: enabled, confirmed: true } });
+    });
+    const regionForm = root.getElementById("regional-threshold-form");
+    root.querySelectorAll("form.region-entry").forEach((form) => {
+      const apply = form.querySelector("button.primary");
+      const changed = () => form.elements.region.value.trim().toUpperCase() !== form.dataset.originalRegion
+        || form.elements.threshold.value === ""
+        || Number(form.elements.threshold.value) !== Number(this._data.settings.public_region_rules[form.dataset.originalRegion]);
+      form.addEventListener("input", () => {
+        const dirty = changed();
+        apply.classList.toggle("region-apply-unchanged", !dirty);
+        apply.disabled = this._busy || !dirty;
+      });
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!changed() || this._busy) return;
+        if (!form.reportValidity()) return;
+        const rules = { ...this._data.settings.public_region_rules };
+        delete rules[form.dataset.originalRegion];
+        rules[form.elements.region.value.trim().toUpperCase()] = Number(form.elements.threshold.value);
+        if (this._data.settings.public_region_enabled && !window.confirm(this._regionConfirmation(rules, true))) return;
+        this._post("set_public_region", {
+          value: form.elements.region.value,
+          original_region: form.dataset.originalRegion,
+          threshold: Number(form.elements.threshold.value),
+          confirmed: true,
         });
-      }
+      });
     });
-    const updateRegionalLoginBans = () => {
-      const { code } = this._selectedRegionPolicy();
-      const container = this.shadowRoot.getElementById("regional-login-bans");
-      const input = this.shadowRoot.getElementById("regional-threshold");
-      if (!container || !input) {
-        return;
-      }
-      container.hidden = !code;
-      if (code) {
-        const thresholds = this._data?.settings?.regional_login_thresholds || {};
-        input.value = Object.prototype.hasOwnProperty.call(thresholds, code)
-          ? Number(thresholds[code])
-          : Number(this._data?.settings?.login_attempts_threshold || 0);
-      }
+    const addRegion = (code) => {
+      const input = regionForm.elements.threshold;
+      if (!input.reportValidity()) return;
+      const rules = { ...this._data.settings.public_region_rules, [code.trim().toUpperCase()]: Number(input.value) };
+      if (this._data.settings.public_region_enabled && !window.confirm(this._regionConfirmation(rules, true))) return;
+      this._post("set_public_region", { value: code, threshold: Number(input.value), confirmed: true });
     };
-    this.shadowRoot
-      .querySelectorAll('input[name="allowed-region-policy"]')
-      .forEach((input) => input.addEventListener("change", updateRegionalLoginBans));
-    ["allowed-region-country", "allowed-region-subdivision"].forEach((id) => {
-      this.shadowRoot
-        .getElementById(id)
-        ?.addEventListener("input", updateRegionalLoginBans);
+    regionForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      addRegion(regionForm.elements.region.value);
     });
-  }
-
-  _selectedRegionPolicy() {
-    const regionPolicy = this.shadowRoot.querySelector(
-      'input[name="allowed-region-policy"]:checked'
-    );
-    let mode = "anywhere";
-    let country = "";
-    let subdivision = "";
-    if (regionPolicy?.value === "custom") {
-      country = String(
-        this.shadowRoot.getElementById("allowed-region-country")?.value || ""
-      ).trim().toUpperCase();
-      subdivision = String(
-        this.shadowRoot.getElementById("allowed-region-subdivision")?.value || ""
-      ).trim().toUpperCase();
-      mode = subdivision ? "subdivision" : country ? "country" : "anywhere";
-    } else if (regionPolicy) {
-      mode = regionPolicy.dataset.regionMode || "anywhere";
-      country = regionPolicy.dataset.regionCountry || "";
-      subdivision = regionPolicy.dataset.regionSubdivision || "";
-    }
-    const code = mode === "subdivision" ? subdivision : mode === "country" ? country : "";
-    return { mode, country, subdivision, code };
+    root.querySelectorAll("button[data-region-code]").forEach((button) => {
+      button.addEventListener("click", () => addRegion(button.dataset.regionCode));
+    });
   }
 
   _optionValues() {
@@ -1572,14 +1508,6 @@ class IPBanManagerPanel extends HTMLElement {
     options.login_attempts_threshold = Number(
       this.shadowRoot.getElementById("threshold").value || 0
     );
-    const region = this._selectedRegionPolicy();
-    options.allowed_region_mode = region.mode;
-    options.allowed_region_country = region.country;
-    options.allowed_region_subdivision = region.subdivision;
-    const regionalThreshold = this.shadowRoot.getElementById("regional-threshold");
-    options.regional_login_thresholds = region.code && regionalThreshold
-      ? { [region.code]: Number(regionalThreshold.value || 0) }
-      : {};
     return options;
   }
 

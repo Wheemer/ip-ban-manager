@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Aktivér offentlig regionslås",
+      "add_country": "Tilføj aktuelt land",
+      "add_subdivision": "Tilføj aktuel provins/delstat",
+      "hint": "Regler bevares, når låsen er slået fra. Provinstærskler går foran landetærskler. Nul deaktiverer automatiske blokeringer. Tilføj en eksisterende kode for at opdatere den.",
+      "warning": "Advarsel: offentlige IP-adresser uden for listen eller med ukendt placering blokeres. Tilladte IP-adresser, intern trafik og callbackbeskyttelse respekteres."
+    },
+    "regional_rules": {
+      "title": "Regionale login-grænser",
+      "region": "Land eller provins/delstat",
+      "hint": "Provins går foran land; ellers bruges {count} forsøg. Uafhængigt af regionslåsen. Nul deaktiverer automatiske blokeringer i regionen. Eksisterende koder opdateres."
+    },
     "loading": "Indlæser...",
     "request_failed": "Anmodningen mislykkedes.",
     "none": "Ingen",

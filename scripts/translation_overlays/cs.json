@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Zapnout veřejný regionální zámek",
+      "add_country": "Přidat aktuální zemi",
+      "add_subdivision": "Přidat aktuální provincii/stát",
+      "hint": "Pravidla zůstanou uložená i po vypnutí. Práh provincie má přednost před zemí. Nula vypne automatické blokování. Přidáním existujícího kódu jej aktualizujete.",
+      "warning": "Pozor: veřejné IP mimo seznam nebo s neznámou polohou jsou blokovány. Povolené IP, interní provoz a ochrana callbacků jsou respektovány."
+    },
+    "regional_rules": {
+      "title": "Regionální prahy přihlášení",
+      "region": "Země nebo provincie/stát",
+      "hint": "Provincie má přednost před zemí; jinde platí {count} pokusů. Nezávislé na regionálním zámku. Nula vypne automatické blokování v regionu. Existující kód se aktualizuje."
+    },
     "loading": "Načítání...",
     "request_failed": "Požadavek selhal.",
     "none": "Žádné",

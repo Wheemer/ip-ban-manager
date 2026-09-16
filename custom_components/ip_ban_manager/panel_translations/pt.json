@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Ativar bloqueio regional público",
+    "add_country": "Adicionar país atual",
+    "add_subdivision": "Adicionar província/estado atual",
+    "hint": "As regras ficam guardadas quando desativado. A província tem prioridade sobre o país. Zero desativa bloqueios automáticos. Adicione um código existente para o atualizar.",
+    "warning": "Atenção: IPs públicos fora da lista ou sem localização conhecida são bloqueados. IPs permitidos, tráfego interno e proteção de callbacks são respeitados."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Limites de início de sessão regionais",
+    "region": "País ou província/estado",
+    "hint": "A província tem prioridade sobre o país; nas restantes regiões usam-se {count} tentativas. Independente do bloqueio regional. Zero desativa bloqueios automáticos nessa região. Um código existente é atualizado."
+  },
   "loading": "A carregar...",
   "request_failed": "Pedido falhou.",
   "none": "Nenhum",

@@ -774,7 +774,17 @@ def regional_login_threshold_for_ip(
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     if entry is None or not entry_auto_ban_enabled(entry):
         return None
-    thresholds = entry_regional_login_thresholds(entry)
+    from .region_rules import entry_public_region_settings, has_public_region_settings
+
+    if has_public_region_settings(entry):
+        region_settings = entry_public_region_settings(hass, entry)
+        thresholds = (
+            region_settings["public_region_rules"]
+            if region_settings["public_region_enabled"]
+            else {}
+        )
+    else:
+        thresholds = entry_regional_login_thresholds(entry)
     if not thresholds:
         return None
 
@@ -797,6 +807,19 @@ def effective_login_threshold_for_ip(
         return 0
     override = regional_login_threshold_for_ip(hass, remote_addr)
     return entry_login_threshold(entry, hass) if override is None else override
+
+
+def geoip_regions_allow_ip(
+    hass: HomeAssistant, remote_addr: IPAddress, regions: frozenset[str]
+) -> bool:
+    """Match a public address against any saved country or subdivision."""
+    normalized = _normalize_remote_addr(remote_addr)
+    if normalized.is_private or normalized.is_loopback:
+        return True
+    details = geoip_location_details_for_ip(hass, normalized)
+    return details is not None and (
+        details.subdivision_code in regions or details.country_code in regions
+    )
 
 
 def geoip_region_allows_ip(

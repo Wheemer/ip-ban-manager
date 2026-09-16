@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Activa el bloqueig regional públic",
+      "add_country": "Afegeix el país actual",
+      "add_subdivision": "Afegeix la província/l’estat actual",
+      "hint": "Les regles es conserven quan es desactiva. La província preval sobre el país. Zero desactiva els bloqueigs automàtics. Afegiu un codi existent per actualitzar-lo.",
+      "warning": "Atenció: es bloquegen les IP públiques fora de la llista o sense ubicació coneguda. Es respecten les IP permeses, el trànsit intern i la protecció de callbacks."
+    },
+    "regional_rules": {
+      "title": "Llindars d’accés regionals",
+      "region": "País o província/estat",
+      "hint": "La província preval sobre el país; a la resta s’usen {count} intents. Independent del bloqueig regional. Zero desactiva els bloqueigs automàtics de la regió. Un codi existent s’actualitza."
+    },
     "loading": "S'està carregant...",
     "request_failed": "La sol·licitud ha fallat.",
     "none": "Cap",

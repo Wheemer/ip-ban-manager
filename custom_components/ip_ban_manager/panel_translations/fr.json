@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Activer le verrou régional",
+    "add_country": "Ajouter le pays actuel",
+    "add_subdivision": "Ajouter la province/l’État actuel",
+    "hint": "Les règles restent enregistrées à l’arrêt. La province prime sur le pays. Zéro désactive les bannissements automatiques. Ajoutez un code existant pour le modifier.",
+    "warning": "Attention : les IP publiques hors liste ou sans localisation sont bloquées. Les IP autorisées, le trafic interne et l’option de protection des rappels sont respectés."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Seuils de connexion régionaux",
+    "region": "Pays ou province/État",
+    "hint": "La province prime sur le pays ; ailleurs, {count} tentatives. Indépendant du verrou régional. Zéro désactive les bannissements automatiques de la région. Un code existant est mis à jour."
+  },
   "loading": "Chargement...",
   "request_failed": "Échec de la requête.",
   "none": "Aucun",

@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "啟用公開區域鎖定",
+    "add_country": "新增目前國家",
+    "add_subdivision": "新增目前省/州",
+    "hint": "關閉時保留規則。省/州門檻優先於國家。零停用自動登入封鎖。新增現有代碼可更新規則。",
+    "warning": "高風險：啟用後，清單外或位置未知的公開 IP 將被封鎖。允許的 IP、內部流量及整合回呼保護選項仍受尊重。"
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "區域登入門檻",
+    "region": "國家或省/州",
+    "hint": "省/州優先於國家；其他地區使用 {count} 次嘗試。獨立於公開區域鎖定。零表示停用該地區的自動封鎖。套用現有代碼會更新規則。"
+  },
   "loading": "載入中...",
   "request_failed": "請求失敗。",
   "none": "無",

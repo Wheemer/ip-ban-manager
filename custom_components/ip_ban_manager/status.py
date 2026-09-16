@@ -51,6 +51,7 @@ from .file_store import geoip_database_path, path_is_file
 from .geoip import geoip_location_for_ip
 from .health import async_health_status, health_status
 from .metrics import metrics
+from .region_rules import entry_public_region_settings
 from .runtime_options import (
     CONF_CALLBACK_ROUTE_PROTECTION_ENABLED as ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED,
 )
@@ -123,6 +124,7 @@ def current_status(
         ATTR_ALLOWED_REGION_MODE: (
             entry_allowed_region_mode(entry) if entry else ALLOWED_REGION_ANYWHERE
         ),
+        **(entry_public_region_settings(hass, entry) if entry else {}),
         ATTR_ALLOWED_REGION_COUNTRY: (
             entry_allowed_region_country(entry) if entry else ""
         ),

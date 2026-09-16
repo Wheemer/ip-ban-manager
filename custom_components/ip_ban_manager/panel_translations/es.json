@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Activar bloqueo regional público",
+    "add_country": "Añadir país actual",
+    "add_subdivision": "Añadir provincia/estado actual",
+    "hint": "Las reglas se conservan al desactivar. La provincia tiene prioridad sobre el país. Cero desactiva bloqueos automáticos. Añada un código existente para actualizarlo.",
+    "warning": "Atención: se bloquean IP públicas fuera de la lista o sin ubicación conocida. Se respetan las IP permitidas, el tráfico interno y la protección de callbacks."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Umbrales de acceso regionales",
+    "region": "País o provincia/estado",
+    "hint": "La provincia tiene prioridad sobre el país; en otras regiones se usan {count} intentos. Independiente del bloqueo regional. Cero desactiva los bloqueos automáticos de esa región. Un código existente se actualiza."
+  },
   "loading": "Cargando...",
   "request_failed": "La solicitud falló.",
   "none": "Ninguno",

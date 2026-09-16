@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Genel bölge kilidini etkinleştir",
+      "add_country": "Geçerli ülkeyi ekle",
+      "add_subdivision": "Geçerli ili/eyaleti ekle",
+      "hint": "Kapalıyken kurallar saklanır. İl eşiği ülke eşiğinden önceliklidir. Sıfır otomatik engellemeyi kapatır. Güncellemek için mevcut kodu ekleyin.",
+      "warning": "Dikkat: liste dışındaki veya konumu bilinmeyen genel IP’ler engellenir. İzin verilen IP’ler, iç trafik ve geri çağrı koruması dikkate alınır."
+    },
+    "regional_rules": {
+      "title": "Bölgesel oturum açma eşikleri",
+      "region": "Ülke veya il/eyalet",
+      "hint": "İl, ülkeye göre önceliklidir; diğer yerlerde {count} deneme kullanılır. Bölge kilidinden bağımsızdır. Sıfır, bölgede otomatik engellemeyi kapatır. Mevcut kod güncellenir."
+    },
     "loading": "Yükleniyor...",
     "request_failed": "İstek başarısız.",
     "none": "Yok",

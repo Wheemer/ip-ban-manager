@@ -284,7 +284,7 @@ async def test_auto_ban_fires_threshold_event_after_successful_ban(
     hass.http.app[KEY_LOGIN_THRESHOLD] = 3
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 2
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "10.0.0.99"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -340,7 +340,7 @@ async def test_auto_ban_write_failure_does_not_fire_events(
     )
     remove_banned = hass.bus.async_listen(EVENT_IP_BANNED, capture_event)
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "10.0.0.99"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -374,7 +374,7 @@ async def test_allowlisted_auto_ban_refusal_does_not_fire_threshold_event(
     hass.http.app[KEY_LOGIN_THRESHOLD] = 2
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 1
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -415,7 +415,7 @@ async def test_already_banned_source_does_not_fire_threshold_event(
     )
     remove_banned = hass.bus.async_listen(EVENT_IP_BANNED, capture_event)
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "10.0.0.99"
         app = hass.http.app
         headers: dict[str, str] = {}

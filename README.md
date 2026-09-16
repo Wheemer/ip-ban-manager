@@ -186,17 +186,15 @@ Lookups are local only. No live online IP lookup is made while handling logins o
 
 ### Public Region Lock
 
-The live panel can also lock public access to one GeoIP region:
+Public Region Lock has an on/off checkbox and a saved list of countries or provinces/states. Enter an ISO country code such as `CA`, or a subdivision code such as `CA-NL`, set its failed-login threshold, then select **Add**. Adding an existing code updates its threshold. Quick-add buttons use Home Assistant's detected current country or province/state. Each row has **Remove**.
 
-- **Anywhere**: no GeoIP access limit.
-- **Country**: allow only public IPs from one ISO 3166-1 alpha-2 country code, such as `CA`.
-- **Province/state**: allow only public IPs from one ISO 3166-2 subdivision code, such as `CA-NL`.
+Select **Enable Public Region Lock** and **Apply** to activate the list. This is a restrictive policy: public IPs outside every listed region, including unknown locations, are blocked. Allowed IPs, local/private traffic, Home Assistant's internal access paths, and the **Protect integration callbacks** option are still respected.
 
-Allowed IPs, local/private traffic, Home Assistant's own internal access paths, and protected callback routes are checked before the GeoIP rule. When a country or province/state is selected, public IPs outside that region, or public IPs that cannot be resolved to that region, are blocked.
+Turning the lock off retains the list but disables both its access restriction and regional retry overrides. Other IP bans and the global failed-login threshold are unchanged. Only the checkbox turns the lock off: turn it off and apply before removing the last region. An empty list cannot be enabled. Enabling or changing an active restriction requires confirmation and a working GeoIP database.
 
-### Regional Login Thresholds
+While enabled, province/state thresholds override country thresholds. Zero disables automatic login bans for that matching region, not its access restriction. Listing a country permits the whole country even when a province in it has a different retry threshold. GeoIP locations are approximate, so a legitimate user's ISP may be located in a different region.
 
-The normal login-attempt threshold remains the default everywhere. When Public Region Lock has a country or province/state selected, the live panel can apply a different retry limit to that region. A province/state threshold is more specific than a country threshold, and all other addresses fall back to the normal threshold. Use `0` to disable automatic bans for the selected region. Private and local addresses always use the normal threshold, and public addresses that cannot be located safely fall back to it.
+Existing single-region settings retain their original access boundary when converted to a list. Manual backups include the list and enabled state. New backups use format 3 to prevent older integration versions from silently ignoring these rules; format 1 and 2 backups remain importable.
 
 ## Emergency Disable
 

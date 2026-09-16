@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Nyilvános régiózár bekapcsolása",
+      "add_country": "Jelenlegi ország hozzáadása",
+      "add_subdivision": "Jelenlegi tartomány/állam hozzáadása",
+      "hint": "A szabályok kikapcsolva is megmaradnak. A tartomány küszöbe megelőzi az országét. A nulla kikapcsolja az automatikus tiltást. Frissítéshez adja hozzá a meglévő kódot.",
+      "warning": "Figyelem: a listán kívüli vagy ismeretlen helyű nyilvános IP-k tiltva lesznek. Az engedélyezett IP-k, a belső forgalom és a visszahívások védelme továbbra is érvényes."
+    },
+    "regional_rules": {
+      "title": "Regionális bejelentkezési küszöbök",
+      "region": "Ország vagy tartomány/állam",
+      "hint": "A tartomány megelőzi az országot; máshol {count} kísérlet érvényes. Független a régiózártól. A nulla kikapcsolja a régió automatikus tiltásait. A meglévő kód frissül."
+    },
     "loading": "Betöltés...",
     "request_failed": "A kérés sikertelen.",
     "none": "Nincs",

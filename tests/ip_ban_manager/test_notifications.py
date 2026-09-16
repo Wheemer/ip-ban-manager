@@ -27,7 +27,7 @@ async def test_allowlisted_wrong_login_does_not_add_ban_notification(
     )
     assert NOTIFICATION_ID_BAN not in existing_notifications
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -91,7 +91,7 @@ async def test_allowlisted_wrong_login_does_not_duplicate_numeric_reverse_name(
     hass.http.app[KEY_LOGIN_THRESHOLD] = 3
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 1
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -118,7 +118,7 @@ async def test_allowlisted_wrong_login_keeps_real_reverse_name(
         lambda remote: ("server.lan", [], [remote]),
     )
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -145,7 +145,7 @@ async def test_allowlisted_wrong_login_suppresses_ip_encoded_reverse_name(
         lambda remote: ("238.12.235.8.bc.googleusercontent.com", [], [remote]),
     )
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "8.235.12.238"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -175,7 +175,7 @@ async def test_allowlisted_wrong_login_caches_reverse_dns_name(
 
     monkeypatch.setattr(reverse_dns, "gethostbyaddr", fake_gethostbyaddr)
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -288,7 +288,7 @@ async def test_allowlisted_wrong_login_skips_generic_notification_rewrite(
 
     monkeypatch.setattr(ipbm, "_handle_http_notifications", fail_rewrite)
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -322,7 +322,7 @@ async def test_imported_auth_wrong_login_gets_branded_notification(
         is ipbm_http_patches._allowlist_process_wrong_login
     )
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "10.0.0.50"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -356,7 +356,7 @@ async def test_allowlisted_wrong_login_can_become_exact_ban(
     remote_addr = ip_address("192.168.1.1")
     hass.http.app[KEY_LOGIN_THRESHOLD] = 1
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -396,7 +396,7 @@ async def test_quiet_allowlisted_wrong_logins_escalate_after_repeated_failures(
         ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD - 2
     )
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -519,7 +519,7 @@ async def test_silence_allowlisted_login_notifications_view_dismisses_generated_
     remote_addr = ip_address("192.168.1.1")
     hass.http.app[KEY_LOGIN_THRESHOLD] = 5
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -945,7 +945,7 @@ async def test_standard_wrong_login_rewrites_same_turn_notification(
         delayed_original_process_wrong_login,
     )
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "8.8.8.8"
         app = hass.http.app
         headers: dict[str, str] = {}

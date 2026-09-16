@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Regionssperre aktivieren",
+      "add_country": "Aktuelles Land hinzufügen",
+      "add_subdivision": "Aktuelle Provinz/Bundesland hinzufügen",
+      "hint": "Regeln bleiben ausgeschaltet gespeichert. Provinzschwellen gehen vor Landesschwellen. Null deaktiviert automatische Sperren. Bestehenden Code zum Aktualisieren hinzufügen.",
+      "warning": "Achtung: Öffentliche IPs außerhalb der Liste oder ohne Standort werden gesperrt. Erlaubte IPs, interner Verkehr und der Rückrufschutz bleiben berücksichtigt."
+    },
+    "regional_rules": {
+      "title": "Regionale Anmeldeschwellen",
+      "region": "Land oder Bundesland/Provinz",
+      "hint": "Die Provinz hat Vorrang vor dem Land; sonst gelten {count} Versuche. Unabhängig von der Regionssperre. Null deaktiviert automatische Sperren in dieser Region. Vorhandene Codes werden aktualisiert."
+    },
     "loading": "Laden...",
     "request_failed": "Anfrage fehlgeschlagen.",
     "none": "Keine",

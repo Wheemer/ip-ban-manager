@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Włącz publiczną blokadę regionów",
+    "add_country": "Dodaj bieżący kraj",
+    "add_subdivision": "Dodaj bieżącą prowincję/stan",
+    "hint": "Reguły pozostają zapisane po wyłączeniu. Próg prowincji ma pierwszeństwo przed krajem. Zero wyłącza automatyczne blokady. Dodaj istniejący kod, aby go zmienić.",
+    "warning": "Uwaga: publiczne IP spoza listy lub o nieznanej lokalizacji są blokowane. Dozwolone IP, ruch wewnętrzny i ochrona callbacków są respektowane."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Regionalne progi logowania",
+    "region": "Kraj lub prowincja/stan",
+    "hint": "Prowincja ma pierwszeństwo przed krajem; gdzie indziej obowiązuje {count} prób. Niezależne od blokady regionu. Zero wyłącza automatyczne blokady regionu. Istniejący kod zostanie zaktualizowany."
+  },
   "loading": "Ładowanie...",
   "request_failed": "Żądanie nie powiodło się.",
   "none": "Brak",

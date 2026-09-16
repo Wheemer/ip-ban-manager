@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Zapnúť verejný regionálny zámok",
+    "add_country": "Pridať aktuálnu krajinu",
+    "add_subdivision": "Pridať aktuálnu provinciu/štát",
+    "hint": "Pravidlá zostanú uložené aj po vypnutí. Prah provincie má prednosť pred krajinou. Nula vypne automatické blokovanie. Pridaním existujúceho kódu ho aktualizujete.",
+    "warning": "Pozor: verejné IP mimo zoznamu alebo s neznámou polohou sú blokované. Povolené IP, interná prevádzka a ochrana callbackov sú rešpektované."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Regionálne prahy prihlásenia",
+    "region": "Krajina alebo provincia/štát",
+    "hint": "Provincia má prednosť pred krajinou; inde platí {count} pokusov. Nezávislé od regionálneho zámku. Nula vypne automatické blokovanie regiónu. Existujúci kód sa aktualizuje."
+  },
   "loading": "Načítava sa...",
   "request_failed": "Požiadavka zlyhala.",
   "none": "Žiadne",

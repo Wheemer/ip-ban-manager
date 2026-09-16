@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Ativar bloqueio regional público",
+      "add_country": "Adicionar país atual",
+      "add_subdivision": "Adicionar província/estado atual",
+      "hint": "As regras permanecem salvas quando desativado. A província tem prioridade sobre o país. Zero desativa bloqueios automáticos. Adicione um código existente para atualizá-lo.",
+      "warning": "Atenção: IPs públicos fora da lista ou sem localização conhecida são bloqueados. IPs permitidos, tráfego interno e proteção de callbacks são respeitados."
+    },
+    "regional_rules": {
+      "title": "Limites de login regionais",
+      "region": "País ou província/estado",
+      "hint": "A província tem prioridade sobre o país; nos outros locais são usadas {count} tentativas. Independente do bloqueio regional. Zero desativa bloqueios automáticos nessa região. Códigos existentes são atualizados."
+    },
     "loading": "Carregando...",
     "request_failed": "Falha na solicitação.",
     "none": "Nenhum",

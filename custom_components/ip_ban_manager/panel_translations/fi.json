@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Ota julkinen aluelukko käyttöön",
+    "add_country": "Lisää nykyinen maa",
+    "add_subdivision": "Lisää nykyinen maakunta/osavaltio",
+    "hint": "Säännöt säilyvät lukon ollessa pois. Maakunnan raja ohittaa maan rajan. Nolla poistaa automaattiset estot. Päivitä lisäämällä olemassa oleva koodi.",
+    "warning": "Varoitus: listan ulkopuoliset ja sijainniltaan tuntemattomat julkiset IP:t estetään. Sallitut IP:t, sisäinen liikenne ja takaisinsoittojen suojaus huomioidaan."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Alueelliset kirjautumisrajat",
+    "region": "Maa tai maakunta/osavaltio",
+    "hint": "Maakunta ohittaa maan; muualla käytetään {count} yritystä. Riippumaton aluelukosta. Nolla poistaa alueen automaattiset estot. Olemassa oleva koodi päivitetään."
+  },
   "loading": "Ladataan...",
   "request_failed": "Pyyntö epäonnistui.",
   "none": "Ei mitään",

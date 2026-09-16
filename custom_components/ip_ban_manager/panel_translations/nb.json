@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Aktiver offentlig regionlås",
+    "add_country": "Legg til gjeldende land",
+    "add_subdivision": "Legg til gjeldende provins/delstat",
+    "hint": "Regler beholdes når låsen er av. Provinsterskler går foran landsterskler. Null deaktiverer automatiske blokkeringer. Legg til eksisterende kode for å oppdatere den.",
+    "warning": "Advarsel: offentlige IP-er utenfor listen eller med ukjent plassering blokkeres. Tillatte IP-er, intern trafikk og callbackbeskyttelse respekteres."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Regionale innloggingsterskler",
+    "region": "Land eller provins/delstat",
+    "hint": "Provins går foran land; ellers brukes {count} forsøk. Uavhengig av regionlåsen. Null deaktiverer automatiske blokkeringer i regionen. Eksisterende koder oppdateres."
+  },
   "loading": "Laster...",
   "request_failed": "Forespørselen mislyktes.",
   "none": "Ingen",

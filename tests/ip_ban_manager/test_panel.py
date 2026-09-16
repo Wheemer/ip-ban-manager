@@ -9,6 +9,19 @@ from .test_setup import *
 
 
 @pytest.mark.asyncio
+async def test_region_lock_changes_preserve_independent_thresholds(hass):
+    await setup_ip_ban_manager(hass)
+    thresholds = {"CA": 10, "CA-NL": 8, "US": 3}
+    await ban_panel.async_panel_set_options(
+        hass, {"regional_login_thresholds": thresholds}
+    )
+    await ban_panel.async_panel_set_options(hass, {"allowed_region_mode": "anywhere"})
+    await ban_panel.async_panel_set_options(hass, {"login_attempts_threshold": 5})
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.options["regional_login_thresholds"] == thresholds
+
+
+@pytest.mark.asyncio
 async def test_setup_entry_can_skip_sidebar_panel(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,

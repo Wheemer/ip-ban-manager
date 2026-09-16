@@ -84,7 +84,7 @@ from .file_store import (
     geoip_database_path,
     path_is_file,
 )
-from .geoip import async_prepare_geoip_reader, close_geoip_reader
+from .geoip import async_prepare_geoip_reader, close_geoip_reader, geoip_reader
 from .network_policy import (
     apply_ban_settings,
     apply_blocked_networks,
@@ -100,13 +100,18 @@ from .nginx_proxy_manager import (
 )
 from .notifications import entry_silenced_allowlisted_login_ip_strings
 from .panel import async_register_panel
+from .region_rules import (
+    entry_public_region_settings,
+    legacy_public_region_settings,
+    normalize_public_region_settings,
+)
 from .runtime_options import (
     CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
     entry_callback_route_protection_enabled,
 )
 from .storage_keys import KEY_ALLOWLIST, KEY_CONFIG_ENTRY
 
-CONFIG_EXPORT_FORMAT_VERSION = 2
+CONFIG_EXPORT_FORMAT_VERSION = 3
 _NPM_STRING_FIELDS = ("base_url", "identity", "token", "token_expires")
 _NPM_ID_FIELDS = ("proxy_host_id", "exact_match_host_id", "access_list_id")
 _NPM_BOOL_FIELDS = ("enabled", "mirror_default_deny")
@@ -176,6 +181,7 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
         "format_version": CONFIG_EXPORT_FORMAT_VERSION,
         "exported_at": dt_util.utcnow().isoformat(),
         "settings": {
+            **entry_public_region_settings(hass, entry),
             CONF_IP_ADDRESSES: entry_ip_addresses(entry),
             CONF_BLOCKED_NETWORKS: entry_blocked_networks(entry),
             CONF_ALLOWLIST_ENTRY_META: entry_allowlist_meta(entry),
@@ -353,7 +359,7 @@ async def async_apply_config_backup_payload(
     if payload.get("domain") not in (None, DOMAIN):
         raise HomeAssistantError("Backup file is not for IP Ban Manager.")
     version = payload.get("format_version", 1)
-    if type(version) is not int or version not in (1, CONFIG_EXPORT_FORMAT_VERSION):
+    if type(version) is not int or version not in (1, 2, CONFIG_EXPORT_FORMAT_VERSION):
         raise HomeAssistantError("Unsupported IP Ban Manager backup format.")
 
     settings = payload.get("settings", {})
@@ -493,6 +499,39 @@ async def async_apply_config_backup_payload(
     if regional_login_thresholds:
         geoip_enabled = True
 
+    if (
+        version == CONFIG_EXPORT_FORMAT_VERSION
+        or "public_region_rules" in settings
+        or "public_region_enabled" in settings
+    ):
+        if (
+            "public_region_rules" not in settings
+            or "public_region_enabled" not in settings
+        ):
+            raise HomeAssistantError(
+                "Backup must include both public region rules and their enabled state."
+            )
+        region_settings = normalize_public_region_settings(
+            settings["public_region_enabled"], settings["public_region_rules"]
+        )
+    elif any(key in settings for key in allowed_region_options):
+        region_settings = legacy_public_region_settings(
+            allowed_region_options[CONF_ALLOWED_REGION_MODE],
+            allowed_region_options[CONF_ALLOWED_REGION_COUNTRY],
+            allowed_region_options[CONF_ALLOWED_REGION_SUBDIVISION],
+            regional_login_thresholds,
+            login_attempts_threshold,
+        )
+    else:
+        region_settings = entry_public_region_settings(hass, entry)
+    if region_settings["public_region_enabled"]:
+        geoip_enabled = True
+        await async_prepare_geoip_reader(hass)
+        if geoip_reader(hass) is None:
+            raise HomeAssistantError(
+                "Download a working GeoIP database before restoring an enabled Public Region Lock."
+            )
+
     imported_bans = (
         _imported_bans_from_payload(payload[ATTR_BANNED_IPS])
         if ATTR_BANNED_IPS in payload
@@ -596,6 +635,7 @@ async def async_apply_config_backup_payload(
             CONF_ALLOWLISTED_LOGINS_CAN_BAN: allowlisted_logins_can_ban,
             CONF_DEFAULT_DENY_ENABLED: default_deny_enabled,
             **allowed_region_options,
+            **region_settings,
             CONF_GEOIP_ENABLED: geoip_enabled,
             CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
             CONF_REGIONAL_LOGIN_THRESHOLDS: regional_login_thresholds,

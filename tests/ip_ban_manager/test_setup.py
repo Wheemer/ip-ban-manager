@@ -162,12 +162,20 @@ class MockAdminUser:
     """Minimal admin user for direct HomeAssistantView tests."""
 
     is_admin = True
+    is_active = True
 
 
 class MockNonAdminUser:
     """Minimal non-admin user for direct HomeAssistantView tests."""
 
     is_admin = False
+
+
+class MockRequestMetadata(dict):
+    """Supply real request mapping semantics and unauthenticated metadata."""
+
+    method = "POST"
+    path = "/auth/login_flow/test"
 
 
 class MockViewRequest:
@@ -184,6 +192,7 @@ class MockViewRequest:
     ) -> None:
         """Initialize the mock view request."""
         self.app = app
+        self.remote = "198.51.100.1"
         self.query = query or {}
         self._data = data or {}
         self._has_user = has_user
@@ -661,7 +670,7 @@ async def test_ipv4_mapped_allowlisted_wrong_login_does_not_become_ban(
     remote_addr = ip_address("192.168.1.1")
     hass.http.app[KEY_LOGIN_THRESHOLD] = 1
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "::ffff:192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}
@@ -691,7 +700,7 @@ async def test_silenced_allowlisted_login_address_stays_silenced_after_repeated_
         ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD - 2
     )
 
-    class MockRequest:
+    class MockRequest(MockRequestMetadata):
         remote = "192.168.1.1"
         app = hass.http.app
         headers: dict[str, str] = {}

@@ -42,7 +42,7 @@ async def test_npm_download_round_trip_and_repeat(
     update_entry_options(hass, **{CONF_NPM: {**config, "hosts": [{"id": 999}]}})
     downloaded = backup.config_download_payload(hass)["content"]
     payload = yaml.safe_load(downloaded)
-    assert payload["format_version"] == 2
+    assert payload["format_version"] == 3
     assert payload["settings"][CONF_NPM] == config
     assert downloaded.startswith("# Private backup:")
     assert "hosts:" not in downloaded

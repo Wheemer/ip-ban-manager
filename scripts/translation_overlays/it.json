@@ -151,6 +151,18 @@
     }
   },
   "panel": {
+    "region_list": {
+      "enabled": "Attiva blocco delle regioni pubbliche",
+      "add_country": "Aggiungi paese attuale",
+      "add_subdivision": "Aggiungi provincia/stato attuale",
+      "hint": "Le regole restano salvate quando disattivato. La provincia prevale sul paese. Zero disattiva i blocchi automatici. Aggiungi un codice esistente per aggiornarlo.",
+      "warning": "Attenzione: IP pubblici fuori dall’elenco o con posizione sconosciuta sono bloccati. IP consentiti, traffico interno e protezione dei callback sono rispettati."
+    },
+    "regional_rules": {
+      "title": "Soglie di accesso regionali",
+      "region": "Paese o provincia/stato",
+      "hint": "La provincia prevale sul paese; altrove si usano {count} tentativi. Indipendente dal blocco regionale. Zero disattiva i blocchi automatici nella regione. Un codice esistente viene aggiornato."
+    },
     "loading": "Caricamento...",
     "request_failed": "Richiesta non riuscita.",
     "none": "Nessuno",

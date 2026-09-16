@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Enable Public Region Lock",
+    "add_country": "Add Current Country",
+    "add_subdivision": "Add Current Province/State",
+    "hint": "Saved rules remain when off. Province/state thresholds override country thresholds. Zero disables automatic login bans. Add an existing code to update it.",
+    "warning": "High impact: when enabled, public IPs outside this list or with unknown locations are blocked. Allowed IPs, internal traffic, and the Protect integration callbacks option are respected."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Regional Login Thresholds",
+    "region": "Country or province/state",
+    "hint": "Province/state overrides country; other locations use {count} attempts. Independent of Public Region Lock. Zero disables automatic login bans for that region. Applying an existing code updates it."
+  },
   "loading": "Loading...",
   "request_failed": "Request failed.",
   "none": "None",

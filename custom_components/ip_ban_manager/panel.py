@@ -68,6 +68,7 @@ from .geoip import (
     async_local_geoip_region,
     async_prepare_geoip_reader,
     close_geoip_reader,
+    geoip_reader,
     geoip_status,
 )
 from .i18n import async_load_panel_translations, async_normalize_language
@@ -91,6 +92,7 @@ from .panel_assets import (
     async_integration_version,
     async_panel_js_url,
 )
+from .region_rules import entry_public_region_settings, normalize_public_region_settings
 from .runtime_options import (
     CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
     entry_callback_route_protection_enabled,
@@ -122,6 +124,7 @@ async def async_panel_payload(
         "translations": translations,
         "status": await async_current_status(hass),
         "settings": {
+            **entry_public_region_settings(hass, entry),
             CONF_IP_ADDRESSES: entry_ip_addresses(entry),
             CONF_BLOCKED_NETWORKS: entry_blocked_networks(entry),
             "allowlist_entries": format_network_entries(
@@ -195,6 +198,24 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
 
     npm_enabled = options.get("npm_edge_protection_enabled")
     entry = _config_entry(hass)
+    region_settings = entry_public_region_settings(hass, entry)
+    region_changed = (
+        "public_region_enabled" in options or "public_region_rules" in options
+    )
+    if region_changed:
+        previous_regions = region_settings
+        region_settings = normalize_public_region_settings(
+            options.get(
+                "public_region_enabled", region_settings["public_region_enabled"]
+            ),
+            options.get("public_region_rules", region_settings["public_region_rules"]),
+        )
+        if (
+            region_settings["public_region_enabled"]
+            and region_settings != previous_regions
+            and options.get("confirmed") is not True
+        ):
+            raise HomeAssistantError("Confirm the Public Region Lock change first.")
     current_options = {
         CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
         CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
@@ -260,6 +281,7 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     if (
         current_options[CONF_ALLOWED_REGION_MODE] != ALLOWED_REGION_ANYWHERE
         or current_options[CONF_REGIONAL_LOGIN_THRESHOLDS]
+        or region_settings["public_region_enabled"]
     ):
         current_options[CONF_GEOIP_ENABLED] = True
 
@@ -273,8 +295,25 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
         geoip_path = geoip_database_path(hass)
         if await hass.async_add_executor_job(path_is_file, geoip_path):
             await async_prepare_geoip_reader(hass)
+        elif region_changed and region_settings["public_region_enabled"]:
+            raise HomeAssistantError(
+                "Download the GeoIP database before enabling Public Region Lock."
+            )
+        if (
+            region_changed
+            and region_settings["public_region_enabled"]
+            and geoip_reader(hass) is None
+        ):
+            raise HomeAssistantError(
+                "The GeoIP database could not be loaded. Public Region Lock was not changed."
+            )
     else:
         close_geoip_reader(hass)
+    if region_changed:
+        current_options.update(region_settings)
+        # The saved list replaces the old single-region selector and overrides.
+        current_options[CONF_ALLOWED_REGION_MODE] = ALLOWED_REGION_ANYWHERE
+        current_options[CONF_REGIONAL_LOGIN_THRESHOLDS] = {}
     entry = update_entry_options(hass, **current_options)
     apply_ban_settings(hass, entry)
     apply_blocked_networks(hass, entry)

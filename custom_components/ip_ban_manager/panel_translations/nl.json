@@ -1,5 +1,17 @@
 {
+  "region_list": {
+    "enabled": "Publieke regioblokkering inschakelen",
+    "add_country": "Huidig land toevoegen",
+    "add_subdivision": "Huidige provincie/deelstaat toevoegen",
+    "hint": "Regels blijven opgeslagen als dit uitstaat. Provinciedrempels gaan boven landdrempels. Nul schakelt automatische blokkering uit. Voeg een bestaande code toe om die bij te werken.",
+    "warning": "Let op: openbare IP’s buiten de lijst of zonder bekende locatie worden geblokkeerd. Toegestane IP’s, intern verkeer en callbackbescherming blijven gerespecteerd."
+  },
   "title": "IP Ban Manager",
+  "regional_rules": {
+    "title": "Regionale inlogdrempels",
+    "region": "Land of provincie/deelstaat",
+    "hint": "Provincie gaat boven land; elders gelden {count} pogingen. Onafhankelijk van de regioblokkering. Nul schakelt automatische blokkering voor die regio uit. Bestaande codes worden bijgewerkt."
+  },
   "loading": "Laden...",
   "request_failed": "Verzoek mislukt.",
   "none": "Geen",
