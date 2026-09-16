@@ -46,7 +46,6 @@ from .nginx_proxy_manager import (
     async_enable_npm,
     async_select_npm_host,
     async_sync_npm,
-    schedule_npm_sync,
     setup_npm_sync,
     unload_npm_sync,
 )
@@ -165,10 +164,6 @@ RUNTIME_BINDINGS: dict[str, tuple[str, str]] = {
     "async_sync_npm": (
         "custom_components.ip_ban_manager.nginx_proxy_manager",
         "async_sync_npm",
-    ),
-    "schedule_npm_sync": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "schedule_npm_sync",
     ),
     "setup_npm_sync": (
         "custom_components.ip_ban_manager.nginx_proxy_manager",
@@ -410,8 +405,6 @@ async def async_handle_manage_post(
         metric_increment(hass, "panel_api_errors")
         return view.json({"ok": False, "error": str(err)}, status_code=400)
 
-    if action in {"import_config", "upload_config"}:
-        schedule_npm_sync(hass)
     await async_update_health_issue(hass)
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     if entry is None:

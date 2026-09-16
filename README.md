@@ -168,6 +168,12 @@ The live panel can **Save**, **Restore**, **Download**, and **Upload** a YAML ba
 
 The backup includes IP Ban Manager settings plus a timestamp-preserving copy of Home Assistant's exact IP bans. If validation fails, nothing is changed.
 
+Backups also include NGINX Proxy Manager connection settings, the selected proxy host, edge-protection state, and API token. **Treat the backup as a private credential file; do not attach it to public issues.** The account password is not stored or exported. Cached host lists and runtime status are not included.
+
+Restoring the same NPM server and account retains its current token rather than replacing a renewed token with an older backup copy. A new connection uses the backed-up token.
+
+Older backups without NPM settings leave the current NPM connection unchanged. To disable edge protection through a backup, set `settings.nginx_proxy_manager.enabled` to `false` and restore it. Restoring a disabled or different connection first removes our rules from the currently enabled proxy host. If NPM rejects that cleanup, restore stops and reports the error; it does not pretend that remote rules were removed. Restored enabled connections synchronize automatically, including imports through the service. Expired or revoked tokens may require reconnecting through the panel.
+
 ## GeoIP Labels
 
 GeoIP labels are optional. When enabled, IP Ban Manager downloads the free DB-IP City Lite MMDB database to:

@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Backup save/download and restore/upload now include NGINX Proxy Manager connection settings, selected host, edge-protection state, and API token. Older backups preserve the existing NPM connection.
+- Restoring a disabled or different NPM connection cleans up the previous enabled host before replacing its settings. Service-based restores now synchronize NPM too.
 - NGINX Proxy Manager can now be disabled or disconnected after its managed rules have already been removed, without attempting an unnecessary proxy-host update.
 - NPM errors now include the API's error message instead of only a generic HTTP status.
 - Automatic synchronization skips proxy-host updates when the managed rules have not changed.

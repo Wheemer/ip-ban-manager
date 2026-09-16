@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from ipaddress import ip_address
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import yaml
 from homeassistant.components.http.ban import (
@@ -42,6 +44,7 @@ from .const import (
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
+    CONF_NPM,
     CONF_REGIONAL_LOGIN_THRESHOLDS,
     CONF_SIDEBAR_PANEL_ENABLED,
     CONF_SILENCED_ALLOWLISTED_LOGIN_IPS,
@@ -87,6 +90,14 @@ from .network_policy import (
     apply_blocked_networks,
     async_validate_panel_network_safety,
 )
+from .nginx_proxy_manager import (
+    KEY_NPM_RUNTIME,
+    KEY_NPM_SYNC_TASK,
+    async_disable_npm,
+    entry_npm_config,
+    normalize_npm_url,
+    schedule_npm_sync,
+)
 from .notifications import entry_silenced_allowlisted_login_ip_strings
 from .panel import async_register_panel
 from .runtime_options import (
@@ -95,7 +106,66 @@ from .runtime_options import (
 )
 from .storage_keys import KEY_ALLOWLIST, KEY_CONFIG_ENTRY
 
-CONFIG_EXPORT_FORMAT_VERSION = 1
+CONFIG_EXPORT_FORMAT_VERSION = 2
+_NPM_STRING_FIELDS = ("base_url", "identity", "token", "token_expires")
+_NPM_ID_FIELDS = ("proxy_host_id", "exact_match_host_id", "access_list_id")
+_NPM_BOOL_FIELDS = ("enabled", "mirror_default_deny")
+_NPM_BACKUP_FIELDS = (*_NPM_STRING_FIELDS, *_NPM_ID_FIELDS, *_NPM_BOOL_FIELDS)
+
+
+def _npm_backup_config(entry: ConfigEntry) -> dict[str, object]:
+    """Export persistent NPM settings, not cached hosts or runtime status."""
+    config = entry_npm_config(entry)
+    return {key: config[key] for key in _NPM_BACKUP_FIELDS if key in config}
+
+
+def _npm_from_import(settings: dict[str, object]) -> dict[str, object] | None:
+    """Validate NPM settings before any local or remote changes."""
+    if CONF_NPM not in settings:
+        return None
+    raw = settings[CONF_NPM]
+    if not isinstance(raw, dict) or set(raw) - set(_NPM_BACKUP_FIELDS):
+        raise HomeAssistantError("Invalid NGINX Proxy Manager settings in backup.")
+    if not raw:
+        return {}
+    config: dict[str, object] = {}
+    for key in _NPM_STRING_FIELDS:
+        value = raw.get(key, "")
+        if not isinstance(value, str) or any(ord(char) < 32 for char in value):
+            raise HomeAssistantError(f"Invalid NGINX Proxy Manager {key} in backup.")
+        config[key] = value
+    if config["base_url"]:
+        try:
+            config["base_url"] = normalize_npm_url(config["base_url"])
+            if urlsplit(str(config["base_url"])).port == 0:
+                raise ValueError("Invalid port")
+        except (HomeAssistantError, ValueError) as err:
+            raise HomeAssistantError(
+                "Invalid NGINX Proxy Manager URL in backup."
+            ) from err
+    for key in _NPM_ID_FIELDS:
+        value = raw.get(key, 0)
+        if type(value) is not int or value < 0:
+            raise HomeAssistantError(f"Invalid NGINX Proxy Manager {key} in backup.")
+        config[key] = value
+    for key in _NPM_BOOL_FIELDS:
+        config[key] = _bool_from_import(raw, key, False)
+    if bool(config["base_url"]) != bool(config["token"]):
+        raise HomeAssistantError("NPM backups require both a URL and an API token.")
+    if config["enabled"] and (not config["base_url"] or not config["proxy_host_id"]):
+        raise HomeAssistantError(
+            "Enabled NPM backups require a connection and proxy host."
+        )
+    return config
+
+
+def _backup_yaml(payload: dict[str, object]) -> str:
+    """Make credential handling explicit in both saved and downloaded files."""
+    return (
+        "# Private backup: may contain an NGINX Proxy Manager API token.\n"
+        "# Store securely. Do not post this file in issues or public messages.\n"
+        + yaml.safe_dump(payload, sort_keys=False)
+    )
 
 
 def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
@@ -130,6 +200,7 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: (
                 entry_silenced_allowlisted_login_ip_strings(entry)
             ),
+            CONF_NPM: _npm_backup_config(entry),
         },
         ATTR_BANNED_IPS: ip_ban_file_payload(manager) if manager else {},
     }
@@ -140,7 +211,7 @@ async def async_export_config(hass: HomeAssistant) -> Path:
     entry = hass.http.app[KEY_CONFIG_ENTRY]
     payload = config_export_payload(hass, entry)
     export_path = config_export_path(hass)
-    content = yaml.safe_dump(payload, sort_keys=False)
+    content = _backup_yaml(payload)
     await hass.async_add_executor_job(atomic_write_text, str(export_path), content)
     return export_path
 
@@ -164,7 +235,7 @@ def config_download_payload(hass: HomeAssistant) -> dict[str, str]:
     entry = hass.http.app[KEY_CONFIG_ENTRY]
     return {
         "filename": CONFIG_EXPORT_FILENAME,
-        "content": yaml.safe_dump(config_export_payload(hass, entry), sort_keys=False),
+        "content": _backup_yaml(config_export_payload(hass, entry)),
     }
 
 
@@ -281,9 +352,8 @@ async def async_apply_config_backup_payload(
     """Validate and apply an IP Ban Manager backup payload."""
     if payload.get("domain") not in (None, DOMAIN):
         raise HomeAssistantError("Backup file is not for IP Ban Manager.")
-    if payload.get("format_version", CONFIG_EXPORT_FORMAT_VERSION) != (
-        CONFIG_EXPORT_FORMAT_VERSION
-    ):
+    version = payload.get("format_version", 1)
+    if type(version) is not int or version not in (1, CONFIG_EXPORT_FORMAT_VERSION):
         raise HomeAssistantError("Unsupported IP Ban Manager backup format.")
 
     settings = payload.get("settings", {})
@@ -291,6 +361,7 @@ async def async_apply_config_backup_payload(
         raise HomeAssistantError("Backup file settings must be a YAML mapping.")
 
     entry = hass.http.app[KEY_CONFIG_ENTRY]
+    imported_npm = _npm_from_import(settings)
     from .config_flow import (
         BannedAllowlistedIPError,
         UnsafeAllowlistError,
@@ -468,6 +539,47 @@ async def async_apply_config_backup_payload(
             if network in entry_blocked_network_meta(entry)
         }
 
+    # Stop queued writes before changing the connection or removing remote rules.
+    task = hass.data.pop(KEY_NPM_SYNC_TASK, None)
+    if task is not None and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+    npm_updates: dict[str, object] = {}
+    if imported_npm is not None:
+        current_npm = entry_npm_config(entry)
+        same_host = all(
+            imported_npm.get(key) == current_npm.get(key)
+            for key in ("base_url", "proxy_host_id")
+        )
+        same_connection = all(
+            imported_npm.get(key) == current_npm.get(key)
+            for key in ("base_url", "identity")
+        )
+        # Re-importing an old backup must not replace a renewed live token.
+        if same_connection and current_npm.get("token"):
+            for key in ("token", "token_expires"):
+                if key in current_npm:
+                    imported_npm[key] = current_npm[key]
+        if current_npm.get("enabled") and (
+            not imported_npm.get("enabled") or not same_host
+        ):
+            await async_disable_npm(hass)
+            # Cleanup may renew the token; keep it when restoring the same one.
+            if same_connection:
+                refreshed = entry_npm_config(entry)
+                for key in ("token", "token_expires"):
+                    if key in refreshed:
+                        imported_npm[key] = refreshed[key]
+            if same_host:
+                imported_npm["access_list_id"] = 0
+        if same_host and current_npm.get("hosts"):
+            imported_npm["hosts"] = current_npm["hosts"]
+        npm_updates[CONF_NPM] = imported_npm
+        hass.data.pop(KEY_NPM_RUNTIME, None)
+
     updated_entry = update_entry_options(
         hass,
         **{
@@ -489,6 +601,7 @@ async def async_apply_config_backup_payload(
             CONF_REGIONAL_LOGIN_THRESHOLDS: regional_login_thresholds,
             CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: silenced_ips,
+            **npm_updates,
         },
     )
     hass.http.app[KEY_ALLOWLIST] = parse_allowlist(allowlist)
@@ -504,3 +617,4 @@ async def async_apply_config_backup_payload(
     await async_register_panel(hass, sidebar_enabled=sidebar_panel_enabled)
     if imported_bans is not None:
         await async_restore_exact_bans(hass, imported_bans)
+    schedule_npm_sync(hass)

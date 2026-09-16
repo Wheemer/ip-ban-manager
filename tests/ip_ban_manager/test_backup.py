@@ -40,7 +40,7 @@ async def test_export_config_service_writes_manual_backup(
     payload = yaml.safe_load(export_path.read_text(encoding="utf8"))
 
     assert payload["domain"] == DOMAIN
-    assert payload["format_version"] == 1
+    assert payload["format_version"] == 2
     assert payload["settings"][CONF_IP_ADDRESSES] == ["192.168.1.1", "172.17.0.0/24"]
     assert payload["settings"][CONF_BLOCKED_NETWORKS] == ["203.0.113.0/24"]
     assert payload["settings"][CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["10.0.0.25"]
