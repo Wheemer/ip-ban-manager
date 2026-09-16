@@ -2,17 +2,23 @@
 
 ## v1.8.4.4
 
+IP Ban Manager 1.8.4.4 adds editable Public Region Lock rules and hardens NGINX Proxy Manager synchronization and recovery.
+
+### Added
+
+- Public Region Lock now uses an editable list of countries and provinces/states, with an on/off control, per-region failed-login thresholds, and quick-add controls for Home Assistant's detected current location.
+- Existing single-region settings migrate without widening their original access boundary, and backup format 3 preserves the new region list and enabled state.
+
 ### Fixed
 
 - Backup save/download and restore/upload now include NGINX Proxy Manager connection settings, selected host, edge-protection state, and API token. Older backups preserve the existing NPM connection.
 - Restoring a disabled or different NPM connection cleans up the previous enabled host before replacing its settings. Service-based restores now synchronize NPM too.
 - NGINX Proxy Manager can now be disabled or disconnected after its managed rules have already been removed, without attempting an unnecessary proxy-host update.
-- NPM errors now include the API's error message instead of only a generic HTTP status.
+- NPM Custom Location conflicts are detected before synchronization changes the proxy host. Failed NGINX activation is recognized even when NPM returns HTTP 200, and IP Ban Manager restores the previous working policy without overwriting concurrent owner changes.
+- Disabling edge protection after a Custom Location conflict removes only IP Ban Manager's managed block, preserves the user's Custom Locations and other proxy-host settings, and allows NGINX to bring the host online again.
+- NPM authentication is renewed before expiry. If sign-in is required, reconnecting preserves the selected host and policy instead of trying to disable the old connection first.
+- NPM errors now include the API's error message instead of only a generic HTTP status, and the panel immediately exposes the recovery sign-in form when authentication fails.
 - Automatic synchronization skips proxy-host updates when the managed rules have not changed.
-
-### Known issue
-
-- The original HTTP 400 reported after adding an NPM Custom Location is still under investigation. This pre-release improves recovery and exposes the error details needed to diagnose it; it does not claim to resolve every cause of HTTP 400.
 
 ## v1.8.4.3
 

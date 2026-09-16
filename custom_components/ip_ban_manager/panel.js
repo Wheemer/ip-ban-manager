@@ -211,6 +211,13 @@ class IPBanManagerPanel extends HTMLElement {
     } catch (err) {
       this._error = this._errorMessage(err);
       this._showToast(this._error, "error");
+      if (action.startsWith("npm_") || Object.hasOwn(extra.options || {}, "npm_edge_protection_enabled")) {
+        try {
+          this._data = await this._withTimeout(this._api("GET", this._statusPath()));
+        } catch (_) {
+          // Keep the original action error if status is also unavailable.
+        }
+      }
     } finally {
       this._busy = false;
       this._renderSafely();
@@ -1007,19 +1014,19 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _npmOptions(npm) {
-    if (!npm.configured) {
+    if (!npm.configured || npm.reauth_required) {
       const currentHost = window.location.hostname;
       const npmHost = currentHost.includes(":") && !currentHost.startsWith("[")
         ? `[${currentHost}]`
         : currentHost;
-      const suggestedUrl = npmHost ? `http://${npmHost}:81` : "";
+      const suggestedUrl = npm.base_url || (npmHost ? `http://${npmHost}:81` : "");
       return `
         <div class="npm-settings">
           <h3>${this._t("npm.title")}</h3>
           <p class="hint">${this._t("npm.hint")}</p>
           <form id="npm-connect-form" class="npm-connect-form">
             <input id="npm-url" type="url" value="${this._escape(suggestedUrl)}" placeholder="${this._t("npm.url")}" autocomplete="url">
-            <input id="npm-identity" type="email" placeholder="${this._t("npm.identity")}" autocomplete="username">
+            <input id="npm-identity" type="email" value="${this._escape(npm.identity || "")}" placeholder="${this._t("npm.identity")}" autocomplete="username">
             <input id="npm-secret" type="password" placeholder="${this._t("npm.secret")}" autocomplete="current-password">
             <div class="button-row">
               <button class="primary" ${this._busy ? "disabled" : ""}>${this._t("npm.connect")}</button>
