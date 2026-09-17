@@ -22,20 +22,36 @@ def test_lookup_reports_each_enforcement_reason() -> None:
     )
     try:
         assert remote_addr in ipbm.NetworkAwareBanLookup(
-            {remote_addr: IpBan(remote_addr)}, (), (), False,
-            internal_bypass_networks=(), blocked_request_observer=observer,
+            {remote_addr: IpBan(remote_addr)},
+            (),
+            (),
+            False,
+            internal_bypass_networks=(),
+            blocked_request_observer=observer,
         )
         assert remote_addr in ipbm.NetworkAwareBanLookup(
-            {}, (IPv4Network("203.0.113.0/24"),), (), False,
-            internal_bypass_networks=(), blocked_request_observer=observer,
+            {},
+            (IPv4Network("203.0.113.0/24"),),
+            (),
+            False,
+            internal_bypass_networks=(),
+            blocked_request_observer=observer,
         )
         assert remote_addr in ipbm.NetworkAwareBanLookup(
-            {}, (), (), False, internal_bypass_networks=(),
+            {},
+            (),
+            (),
+            False,
+            internal_bypass_networks=(),
             geoip_access_allowed=lambda _address: False,
             blocked_request_observer=observer,
         )
         assert remote_addr in ipbm.NetworkAwareBanLookup(
-            {}, (), (), True, internal_bypass_networks=(),
+            {},
+            (),
+            (),
+            True,
+            internal_bypass_networks=(),
             blocked_request_observer=observer,
         )
     finally:
