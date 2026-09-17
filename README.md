@@ -60,23 +60,23 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
       <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed-ips.png" alt="IP Ban Manager allowed IPs" width="100%">
     </td>
     <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-public-region-lock.png" alt="IP Ban Manager public region lock" width="100%">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-nginx-proxy-manager.png" alt="IP Ban Manager NGINX Proxy Manager settings" width="100%">
     </td>
   </tr>
   <tr>
+    <td width="50%">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-geoip-backup.png" alt="IP Ban Manager GeoIP and backup tools" width="100%">
+    </td>
     <td width="50%">
       <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocked-ips.png" alt="IP Ban Manager blocked IPs" width="100%">
     </td>
-    <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocked-networks.png" alt="IP Ban Manager blocked networks" width="100%">
-    </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-nginx-proxy-manager.png" alt="IP Ban Manager NGINX Proxy Manager settings" width="100%">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-public-region-lock.png" alt="IP Ban Manager public region lock" width="100%">
     </td>
     <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-geoip-backup.png" alt="IP Ban Manager GeoIP and backup tools" width="100%">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocked-networks.png" alt="IP Ban Manager blocked networks" width="100%">
     </td>
   </tr>
 </table>
