@@ -48,8 +48,19 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 
 <table>
   <tr>
-    <td>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel-v1.4.png" alt="IP Ban Manager live panel" width="100%">
+    <td width="34%" valign="top">
+      <strong>Safe first-time setup</strong><br><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow-v1.8.png" alt="IP Ban Manager setup flow with safe starting defaults" width="100%">
+    </td>
+    <td width="66%" valign="top">
+      <strong>Options and allowed IPs</strong><br><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel-options-v1.8.png" alt="IP Ban Manager options and allowed IPs" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <strong>Blocked addresses and public region rules</strong><br><br>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel-rules-v1.8.png" alt="IP Ban Manager blocked IPs, blocked networks, and public region rules" width="100%">
     </td>
   </tr>
 </table>
@@ -72,14 +83,18 @@ After install or a HACS update, a **Core restart** is required for new Python co
 
 Normal setup is done from the UI. The integration name is **IP Ban Manager** and service calls use `ip_ban_manager.*`.
 
-Home Assistant's built-in HTTP IP banning must still be enabled:
+Home Assistant's built-in HTTP IP banning must still be enabled.
+
+On Home Assistant `2026.8` and newer, open **Settings > System > Network**, find **HTTP server**, turn on **Enable IP banning**, set **Login attempts before ban** to a positive value, and save. Home Assistant restarts and asks an administrator to confirm the new HTTP settings.
+
+On Home Assistant `2026.7` and older, add this to `configuration.yaml` and restart:
 
 ```yaml
 http:
   ip_ban_enabled: true
 ```
 
-The login-attempt threshold is managed by IP Ban Manager after setup. If IP banning is not enabled, IP Ban Manager creates a Home Assistant Repair with the required YAML and a link to Home Assistant's HTTP documentation. It does not edit `configuration.yaml` automatically, which keeps existing comments, includes, proxy settings, and packages safe.
+The login-attempt threshold is managed by IP Ban Manager after setup. If IP banning is not enabled, IP Ban Manager creates a Home Assistant Repair with a link to Home Assistant's HTTP documentation. It does not edit Home Assistant's HTTP settings or `configuration.yaml` automatically.
 
 Existing `ban_allowlist:` YAML is treated as a one-time migration path. IP Ban Manager absorbs that old allowlist when it first loads; after that, remove the old YAML key and restart Home Assistant. If the old key is left behind, IP Ban Manager ignores it once the UI config entry exists.
 
@@ -102,7 +117,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 
 Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
 
-Blocked network and blocked IP rows show when each entry was added and how it was created (setup default, panel, service, backup restore, and similar sources). Legacy rows added before tracking show **Added before tracking**. Allowed IP rows show the address only.
+Blocked-network rows show when each entry was added and how it was created (panel, service, backup restore, and similar sources). Legacy managed-network rows added before tracking show **Added before tracking**. Exact blocked-IP rows show Home Assistant's native ban time and, when GeoIP labels are enabled, an approximate location. Allowed IP rows show the address only.
 
 ### Allowed IPs
 
@@ -130,7 +145,7 @@ Assistant to write Python packages into the container at startup.
 
 Blocked IPs are exact Home Assistant bans. They stay in Home Assistant's native live ban manager and `ip_bans.yaml`.
 
-Existing rows show `IP - local ban time`. Leave the timestamp in place to preserve the original ban date. New rows can be entered as just the IP address. When `ip_bans.yaml` is rewritten, entries stay oldest-first so new bans appear at the bottom, matching Home Assistant's normal file behavior.
+Existing rows show the IP address and local ban time, plus an approximate location when GeoIP labels and the local database are available. New rows can be entered as just the IP address. When `ip_bans.yaml` is rewritten, the original ban timestamps are preserved and entries stay oldest-first so new bans appear at the bottom, matching Home Assistant's normal file behavior.
 
 ### Blocked Networks
 
@@ -183,7 +198,9 @@ GeoIP labels are optional. When enabled, IP Ban Manager downloads the free DB-IP
 /config/ip_ban_manager/geoip/dbip-city-lite.mmdb
 ```
 
-Lookups are local only. No live online IP lookup is made while handling logins or bans. Private, loopback, and local-network addresses are not looked up. Location data is approximate and provided by DB-IP.com.
+GeoIP location lookups use the downloaded database locally; no live online geolocation request is made while handling logins or bans. Private, loopback, and local-network addresses are not geolocated. Location data is approximate and provided by DB-IP.com.
+
+Reverse-DNS names shown in notifications are separate from GeoIP. Public-address PTR records are resolved through Cloudflare DNS-over-HTTPS, while private and local addresses use Home Assistant's local resolver. Results are cached for 10 minutes.
 
 ### Public Region Lock
 
