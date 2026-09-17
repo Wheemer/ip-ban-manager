@@ -48,19 +48,8 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 
 <table>
   <tr>
-    <td width="34%" valign="top">
-      <strong>Safe first-time setup</strong><br><br>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow-v1.8.png" alt="IP Ban Manager setup flow with safe starting defaults" width="100%">
-    </td>
-    <td width="66%" valign="top">
-      <strong>Options and allowed IPs</strong><br><br>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel-options-v1.8.png" alt="IP Ban Manager options and allowed IPs" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2">
-      <strong>Blocked addresses and public region rules</strong><br><br>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel-rules-v1.8.png" alt="IP Ban Manager blocked IPs, blocked networks, and public region rules" width="100%">
+    <td>
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/live-panel-v1.4.png" alt="IP Ban Manager live panel" width="100%">
     </td>
   </tr>
 </table>
