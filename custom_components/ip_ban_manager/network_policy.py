@@ -19,11 +19,13 @@ from .audit import (
     record_blocked_network_removed,
 )
 from .ban_lookup import (
+    BlockedRequestObserver,
     NetworkAwareBanLookup,
     _supervisor_internal_networks,
     protected_callback_path,
 )
 from .ban_ops import ban_manager
+from .blocked_request_log import clear_blocked_request_log_state, log_blocked_request
 from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_NETWORK,
@@ -43,6 +45,7 @@ from .entry_helpers import (
     entry_allowed_region_subdivision,
     entry_ban_notifications_enabled,
     entry_blocked_networks,
+    entry_blocked_request_logging_enabled,
     entry_default_deny_enabled,
     entry_ip_addresses,
     native_ip_banning_enabled,
@@ -70,6 +73,7 @@ from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_DEFAULT_DENY,
     KEY_INTERNAL_BYPASS_NETWORKS,
+    IPAddress,
 )
 
 
@@ -182,6 +186,16 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
             else None
         )
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
+    logging_enabled = entry_blocked_request_logging_enabled(entry)
+    blocked_request_observer: BlockedRequestObserver | None = None
+    if logging_enabled:
+
+        def observe_blocked_request(remote_addr: IPAddress, reason: str) -> None:
+            log_blocked_request(hass, remote_addr, reason)
+
+        blocked_request_observer = observe_blocked_request
+    else:
+        clear_blocked_request_log_state(hass)
 
     def callback_path_is_protected(path: str) -> bool:
         return protected_callback_path(path, frozenset(hass.config.components))
@@ -206,6 +220,7 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
             entry_callback_route_protection_enabled(entry)
         )
         lookup.callback_path_is_protected = callback_path_is_protected
+        lookup.blocked_request_observer = blocked_request_observer
         return
 
     ban_manager_.ip_bans_lookup = NetworkAwareBanLookup(
@@ -219,6 +234,7 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         geoip_access_allowed,
         entry_callback_route_protection_enabled(entry),
         callback_path_is_protected,
+        blocked_request_observer,
     )
 
 

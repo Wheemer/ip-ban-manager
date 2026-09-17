@@ -20,6 +20,7 @@
   "block": "차단",
   "apply": "적용",
   "advanced": "고급",
+  "troubleshooting": "문제 해결",
   "options": "옵션",
   "added_before_tracking": "추적 전에 추가됨",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "로그인 실패 소스를 차단합니다.",
     "ban_notifications_enabled": "자동 차단 알림",
     "ban_notifications_enabled_hint": "IP가 차단될 때 알림을 표시합니다.",
+    "blocked_request_logging_enabled": "차단된 요청 기록",
+    "blocked_request_logging_enabled_hint": "진단: 클라이언트 IP, 차단 이유, 메서드 및 경로를 Home Assistant 로그에 기록합니다. 반복 항목은 제한됩니다.",
     "allowlisted_login_notifications_enabled": "허용 목록 로그인 알림",
     "allowlisted_login_notifications_enabled_hint": "신뢰 로그인 실패 시 경고합니다.",
     "callback_route_protection_enabled": "통합 콜백 보호",

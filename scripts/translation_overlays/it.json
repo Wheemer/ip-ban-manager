@@ -171,6 +171,7 @@
     "block": "Blocca",
     "apply": "Applica",
     "advanced": "Avanzate",
+    "troubleshooting": "Risoluzione dei problemi",
     "options": "Opzioni",
     "added_before_tracking": "Aggiunto prima del tracciamento",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Ovunque",
         "country": "Paese locale o personalizzato",
         "subdivision": "Provincia/stato locale o personalizzato"
-      }
+      },
+      "blocked_request_logging_enabled": "Registra le richieste bloccate",
+      "blocked_request_logging_enabled_hint": "Diagnostica: registra IP client, motivo del blocco, metodo e percorso nel registro di Home Assistant. Le voci ripetute sono limitate."
     },
     "backup": {
       "save_title": "Salva in configurazione",

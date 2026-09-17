@@ -171,6 +171,7 @@
     "block": "Bloqueja",
     "apply": "Aplica",
     "advanced": "Avançat",
+    "troubleshooting": "Resolució de problemes",
     "options": "Opcions",
     "added_before_tracking": "Afegit abans del seguiment",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "A qualsevol lloc",
         "country": "País local o personalitzat",
         "subdivision": "Província/estat local o personalitzat"
-      }
+      },
+      "blocked_request_logging_enabled": "Registra les sol·licituds bloquejades",
+      "blocked_request_logging_enabled_hint": "Diagnòstic: registra la IP del client, el motiu del bloqueig, el mètode i la ruta al registre de Home Assistant. Les entrades repetides es limiten."
     },
     "backup": {
       "save_title": "Desa a la configuració",

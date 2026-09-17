@@ -171,6 +171,7 @@
     "block": "Blokovat",
     "apply": "Použít",
     "advanced": "Pokročilé",
+    "troubleshooting": "Řešení problémů",
     "options": "Možnosti",
     "added_before_tracking": "Přidáno před sledováním",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Kdekoli",
         "country": "Místní nebo vlastní země",
         "subdivision": "Místní nebo vlastní provincie/stát"
-      }
+      },
+      "blocked_request_logging_enabled": "Protokolovat blokované požadavky",
+      "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, důvod blokování, metodu a cestu do protokolu Home Assistant. Opakované záznamy jsou omezeny."
     },
     "backup": {
       "save_title": "Uložit do config",

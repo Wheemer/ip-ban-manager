@@ -171,6 +171,7 @@
     "block": "Blokovať",
     "apply": "Použiť",
     "advanced": "Pokročilé",
+    "troubleshooting": "Riešenie problémov",
     "options": "Možnosti",
     "added_before_tracking": "Pridané pred sledovaním",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Kdekoľvek",
         "country": "Miestna alebo colná krajina",
         "subdivision": "Miestna alebo vlastná provincia/štát"
-      }
+      },
+      "blocked_request_logging_enabled": "Zaznamenávať blokované požiadavky",
+      "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, dôvod blokovania, metódu a cestu do denníka Home Assistant. Opakované záznamy sú obmedzené."
     },
     "backup": {
       "save_title": "Uložiť do konfigurácie",

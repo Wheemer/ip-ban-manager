@@ -171,6 +171,7 @@
     "block": "차단",
     "apply": "적용",
     "advanced": "고급",
+    "troubleshooting": "문제 해결",
     "options": "옵션",
     "added_before_tracking": "추적 전에 추가됨",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "어디서나",
         "country": "지역 또는 맞춤 국가",
         "subdivision": "지역 또는 맞춤형 주/주"
-      }
+      },
+      "blocked_request_logging_enabled": "차단된 요청 기록",
+      "blocked_request_logging_enabled_hint": "진단: 클라이언트 IP, 차단 이유, 메서드 및 경로를 Home Assistant 로그에 기록합니다. 반복 항목은 제한됩니다."
     },
     "backup": {
       "save_title": "구성에 저장",

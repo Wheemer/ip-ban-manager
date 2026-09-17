@@ -169,6 +169,7 @@
     "block": "Bloquer",
     "apply": "Appliquer",
     "advanced": "Avancé",
+    "troubleshooting": "Dépannage",
     "added_before_tracking": "Ajouté avant le suivi",
     "sources": {
       "auto": "Automatique",
@@ -231,7 +232,9 @@
         "anywhere": "N'importe où",
         "country": "Pays local ou personnalisé",
         "subdivision": "Province/état local ou personnalisé"
-      }
+      },
+      "blocked_request_logging_enabled": "Journaliser les requêtes bloquées",
+      "blocked_request_logging_enabled_hint": "Diagnostic : enregistre l’IP du client, le motif du blocage, la méthode et le chemin dans le journal Home Assistant. Les entrées répétées sont limitées."
     },
     "backup": {
       "save_title": "Enregistrer dans la config",

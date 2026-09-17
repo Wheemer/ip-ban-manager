@@ -20,6 +20,7 @@
   "block": "Αποκλεισμός",
   "apply": "Εφαρμογή",
   "advanced": "Προχωρημένα",
+  "troubleshooting": "Αντιμετώπιση προβλημάτων",
   "options": "Επιλογές",
   "added_before_tracking": "Προστέθηκε πριν από την παρακολούθηση",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Αποκλεισμός πηγών αποτυχημένης σύνδεσης.",
     "ban_notifications_enabled": "Αυτόματες ειδοποιήσεις αποκλεισμού",
     "ban_notifications_enabled_hint": "Εμφάνιση ειδοποιήσεων όταν αποκλείονται IP.",
+    "blocked_request_logging_enabled": "Καταγραφή αποκλεισμένων αιτημάτων",
+    "blocked_request_logging_enabled_hint": "Διαγνωστικά: καταγραφή IP πελάτη, αιτίας αποκλεισμού, μεθόδου και διαδρομής στο αρχείο καταγραφής του Home Assistant. Οι επαναλαμβανόμενες εγγραφές περιορίζονται.",
     "allowlisted_login_notifications_enabled": "Ειδοποιήσεις σύνδεσης από επιτρεπόμενες IP",
     "allowlisted_login_notifications_enabled_hint": "Ειδοποίηση για αποτυχημένες αξιόπιστες συνδέσεις.",
     "callback_route_protection_enabled": "Προστατέψτε τις επανακλήσεις ενοποίησης",

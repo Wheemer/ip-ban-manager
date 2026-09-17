@@ -36,6 +36,7 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 import custom_components.ip_ban_manager as ipbm
+import custom_components.ip_ban_manager.blocked_request_log as blocked_request_log
 import custom_components.ip_ban_manager.config_flow as ban_config_flow
 import custom_components.ip_ban_manager.geoip as ban_geoip
 import custom_components.ip_ban_manager.geoip_lifecycle as ban_geoip_lifecycle
@@ -58,6 +59,7 @@ from custom_components.ip_ban_manager import (
     IP_BAN_DISABLED_ISSUE_ID,
     KEY_ALLOWLIST,
     KEY_BLOCKED_NETWORKS,
+    KEY_BLOCKED_REQUEST_LOG_STATE,
     KEY_CONFIG_ENTRY,
     KEY_DEFAULT_DENY,
     KEY_HEALTH,
@@ -99,6 +101,7 @@ from custom_components.ip_ban_manager.const import (
     ATTR_ATTEMPTS,
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
+    ATTR_BLOCKED_REQUEST_LOGGING_ENABLED,
     ATTR_CONFIRM,
     ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
@@ -121,6 +124,7 @@ from custom_components.ip_ban_manager.const import (
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BANNED_IPS,
     CONF_BLOCKED_NETWORKS,
+    CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_DISABLE_BAN_MANAGER,
     CONF_DISABLED,

@@ -20,6 +20,7 @@
   "block": "Blochează",
   "apply": "Aplică",
   "advanced": "Avansat",
+  "troubleshooting": "Depanare",
   "options": "Opțiuni",
   "added_before_tracking": "Adăugat înainte de urmărire",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Blochează sursele de autentificare eșuate.",
     "ban_notifications_enabled": "Notificări automate de interdicție",
     "ban_notifications_enabled_hint": "Afișează alerte când IP-urile sunt blocate.",
+    "blocked_request_logging_enabled": "Înregistrează cererile blocate",
+    "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate.",
     "allowlisted_login_notifications_enabled": "Notificări de autentificare pe lista permisă",
     "allowlisted_login_notifications_enabled_hint": "Alerte la autentificări de încredere eșuate.",
     "callback_route_protection_enabled": "Protejați apelurile de integrare",

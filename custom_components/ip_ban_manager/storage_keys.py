@@ -47,6 +47,7 @@ KEY_REVERSE_DNS_CACHE = AppKey[dict[IPAddress, Any]]("ip_ban_manager_reverse_dns
 KEY_HEALTH = AppKey[dict[str, object]]("ip_ban_manager_health")
 KEY_METRICS = AppKey[dict[str, object]]("ip_ban_manager_metrics")
 KEY_BAN_FILE_WRITE_LOCK = AppKey[Lock]("ip_ban_manager_ban_file_write_lock")
+KEY_BLOCKED_REQUEST_LOG_STATE = "ip_ban_manager_blocked_request_log_state"
 KEY_HTTP_VIEWS = AppKey[tuple[HomeAssistantView, ...]]("ip_ban_manager_http_views")
 KEY_HTTP_VIEW_HANDLERS = "ip_ban_manager_http_view_handlers"
 KEY_NPM_RUNTIME = "ip_ban_manager_npm_runtime"

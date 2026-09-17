@@ -20,6 +20,7 @@
   "block": "ブロック",
   "apply": "適用",
   "advanced": "詳細",
+  "troubleshooting": "トラブルシューティング",
   "options": "オプション",
   "added_before_tracking": "追跡前に追加",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "ログイン失敗の発信元をブロックします。",
     "ban_notifications_enabled": "自動 BAN 通知",
     "ban_notifications_enabled_hint": "IP がブロックされたときにアラートを表示します。",
+    "blocked_request_logging_enabled": "ブロックされたリクエストを記録",
+    "blocked_request_logging_enabled_hint": "診断用: クライアント IP、ブロック理由、メソッド、パスを Home Assistant ログに記録します。繰り返しの記録は制限されます。",
     "allowlisted_login_notifications_enabled": "許可リストのログイン通知",
     "allowlisted_login_notifications_enabled_hint": "信頼済みログイン失敗時に警告します。",
     "callback_route_protection_enabled": "統合コールバックの保護",

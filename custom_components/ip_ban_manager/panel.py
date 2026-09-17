@@ -23,6 +23,7 @@ from .const import (
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BLOCKED_NETWORKS,
+    CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
@@ -42,6 +43,7 @@ from .entry_helpers import (
     entry_auto_ban_enabled,
     entry_ban_notifications_enabled,
     entry_blocked_networks,
+    entry_blocked_request_logging_enabled,
     entry_default_deny_enabled,
     entry_geoip_enabled,
     entry_ip_addresses,
@@ -135,6 +137,9 @@ async def async_panel_payload(
             ),
             CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
+            CONF_BLOCKED_REQUEST_LOGGING_ENABLED: (
+                entry_blocked_request_logging_enabled(entry)
+            ),
             CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
                 entry_callback_route_protection_enabled(entry)
             ),
@@ -219,6 +224,9 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     current_options = {
         CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
         CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
+        CONF_BLOCKED_REQUEST_LOGGING_ENABLED: (
+            entry_blocked_request_logging_enabled(entry)
+        ),
         CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
             entry_callback_route_protection_enabled(entry)
         ),
@@ -238,6 +246,7 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     for key in (
         CONF_AUTO_BAN_ENABLED,
         CONF_BAN_NOTIFICATIONS_ENABLED,
+        CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
         CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
         CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
         CONF_ALLOWLISTED_LOGINS_CAN_BAN,

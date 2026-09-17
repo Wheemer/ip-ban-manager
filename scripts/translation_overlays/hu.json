@@ -171,6 +171,7 @@
     "block": "Blokkolás",
     "apply": "Alkalmazás",
     "advanced": "Speciális",
+    "troubleshooting": "Hibaelhárítás",
     "options": "Beállítások",
     "added_before_tracking": "Követés előtt hozzáadva",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Bárhol",
         "country": "Helyi vagy egyéni ország",
         "subdivision": "Helyi vagy egyéni tartomány/állam"
-      }
+      },
+      "blocked_request_logging_enabled": "Blokkolt kérések naplózása",
+      "blocked_request_logging_enabled_hint": "Diagnosztika: rögzíti a kliens IP-címét, a blokkolás okát, a metódust és az útvonalat a Home Assistant naplójában. Az ismétlődő bejegyzések korlátozottak."
     },
     "backup": {
       "save_title": "Mentés a konfigurációba",

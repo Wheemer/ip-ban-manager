@@ -171,6 +171,7 @@
     "block": "Blokker",
     "apply": "Bruk",
     "advanced": "Avansert",
+    "troubleshooting": "Feilsøking",
     "options": "Alternativer",
     "added_before_tracking": "Lagt til før sporing",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Hvor som helst",
         "country": "Lokalt eller tilpasset land",
         "subdivision": "Lokal eller tilpasset provins/stat"
-      }
+      },
+      "blocked_request_logging_enabled": "Logg blokkerte forespørsler",
+      "blocked_request_logging_enabled_hint": "Diagnostikk: registrer klient-IP, blokkeringsårsak, metode og sti i Home Assistant-loggen. Gjentatte oppføringer begrenses."
     },
     "backup": {
       "save_title": "Lagre til config",

@@ -171,6 +171,7 @@
     "block": "ブロック",
     "apply": "適用",
     "advanced": "詳細",
+    "troubleshooting": "トラブルシューティング",
     "options": "オプション",
     "added_before_tracking": "追跡前に追加",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "どこでも",
         "country": "現地またはカスタムの国",
         "subdivision": "ローカルまたはカスタムの州/州"
-      }
+      },
+      "blocked_request_logging_enabled": "ブロックされたリクエストを記録",
+      "blocked_request_logging_enabled_hint": "診断用: クライアント IP、ブロック理由、メソッド、パスを Home Assistant ログに記録します。繰り返しの記録は制限されます。"
     },
     "backup": {
       "save_title": "設定に保存",

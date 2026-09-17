@@ -20,6 +20,7 @@
   "block": "Blokkeren",
   "apply": "Toepassen",
   "advanced": "Geavanceerd",
+  "troubleshooting": "Probleemoplossing",
   "options": "Opties",
   "added_before_tracking": "Toegevoegd vóór bijhouden",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Mislukte loginbronnen blokkeren.",
     "ban_notifications_enabled": "Automatische banmeldingen",
     "ban_notifications_enabled_hint": "Waarschuwingen tonen wanneer IP's worden geblokkeerd.",
+    "blocked_request_logging_enabled": "Geblokkeerde verzoeken loggen",
+    "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt.",
     "allowlisted_login_notifications_enabled": "Allowlist-loginmeldingen",
     "allowlisted_login_notifications_enabled_hint": "Waarschuwen bij mislukte vertrouwde logins.",
     "callback_route_protection_enabled": "Bescherm integratie-callbacks",

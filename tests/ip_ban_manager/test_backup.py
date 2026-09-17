@@ -22,6 +22,7 @@ async def test_export_config_service_writes_manual_backup(
         options={
             **entry.options,
             CONF_BLOCKED_NETWORKS: ["203.0.113.0/24"],
+            CONF_BLOCKED_REQUEST_LOGGING_ENABLED: True,
             CONF_DEFAULT_DENY_ENABLED: False,
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["10.0.0.25"],
         },
@@ -43,6 +44,7 @@ async def test_export_config_service_writes_manual_backup(
     assert payload["format_version"] == 3
     assert payload["settings"][CONF_IP_ADDRESSES] == ["192.168.1.1", "172.17.0.0/24"]
     assert payload["settings"][CONF_BLOCKED_NETWORKS] == ["203.0.113.0/24"]
+    assert payload["settings"][CONF_BLOCKED_REQUEST_LOGGING_ENABLED] is True
     assert payload["settings"][CONF_SILENCED_ALLOWLISTED_LOGIN_IPS] == ["10.0.0.25"]
     assert "198.51.100.7" in payload[ATTR_BANNED_IPS]
 
@@ -96,6 +98,7 @@ async def test_upload_config_restores_backup_yaml(
                 CONF_BLOCKED_NETWORKS: ["203.0.113.0/24"],
                 CONF_AUTO_BAN_ENABLED: True,
                 CONF_BAN_NOTIFICATIONS_ENABLED: False,
+                CONF_BLOCKED_REQUEST_LOGGING_ENABLED: True,
                 CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False,
                 CONF_ALLOWLISTED_LOGINS_CAN_BAN: True,
                 CONF_DEFAULT_DENY_ENABLED: False,
@@ -118,6 +121,7 @@ async def test_upload_config_restores_backup_yaml(
     assert entry.options[CONF_IP_ADDRESSES] == ["10.10.0.0/16", "127.0.0.1"]
     assert entry.options[CONF_BLOCKED_NETWORKS] == ["203.0.113.0/24"]
     assert entry.options[CONF_BAN_NOTIFICATIONS_ENABLED] is False
+    assert entry.options[CONF_BLOCKED_REQUEST_LOGGING_ENABLED] is True
     assert entry.options[CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED] is False
     assert entry.options[CONF_ALLOWLISTED_LOGINS_CAN_BAN] is True
     assert entry.options[CONF_LOGIN_ATTEMPTS_THRESHOLD] == 7
@@ -216,6 +220,34 @@ async def test_upload_config_preserves_exact_bans_when_section_is_missing(
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     assert entry.options[CONF_IP_ADDRESSES] == ["10.10.0.0/16"]
     assert ban_manager.ip_bans_lookup == {existing_ban.ip_address: existing_ban}
+
+
+@pytest.mark.asyncio
+async def test_older_backup_preserves_blocked_request_logging_setting(
+    hass: HomeAssistant,
+) -> None:
+    """Backups predating diagnostics do not silently turn the option off."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_BLOCKED_REQUEST_LOGGING_ENABLED: True,
+        },
+    )
+    content = yaml.safe_dump(
+        {
+            "domain": DOMAIN,
+            "format_version": 1,
+            "settings": {CONF_IP_ADDRESSES: ["192.168.1.1"]},
+        },
+        sort_keys=False,
+    )
+
+    await ipbm._async_import_config_from_yaml(hass, content)  # noqa: SLF001
+
+    assert entry.options[CONF_BLOCKED_REQUEST_LOGGING_ENABLED] is True
 
 
 @pytest.mark.asyncio

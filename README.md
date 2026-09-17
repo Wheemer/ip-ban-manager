@@ -93,6 +93,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 - Automatic-ban settings
 - Default-deny mode
 - Allowlisted-login notification settings
+- Optional rate-limited blocked-request logging for troubleshooting effective client addresses and enforcement reasons
 - Local GeoIP database download/update
 - Optional GeoIP allowed-region access control
 - Optional country and province/state failed-login thresholds
@@ -263,6 +264,8 @@ action:
 On startup, IP Ban Manager also reconciles Home Assistant's exact ban list against Allowed IPs. If Home Assistant bans a trusted address before IP Ban Manager finishes loading, the ban is removed automatically after setup unless **Bans inside Allowed IPs** is enabled.
 
 ## Diagnostic Sensors
+
+Enable **Log blocked requests** temporarily when troubleshooting an unexpected rejection. Home Assistant's log will record the effective client IP it received, the enforcement reason, HTTP method, and path without query parameters or headers. Repeated requests from the same IP for the same reason are rate-limited, and the in-memory tracker is bounded. Requests rejected by NGINX Proxy Manager cannot appear because they never reach Home Assistant.
 
 IP Ban Manager adds numeric diagnostic sensors with detailed attributes:
 

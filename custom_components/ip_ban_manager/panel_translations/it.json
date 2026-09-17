@@ -20,6 +20,7 @@
   "block": "Blocca",
   "apply": "Applica",
   "advanced": "Avanzate",
+  "troubleshooting": "Risoluzione dei problemi",
   "options": "Opzioni",
   "added_before_tracking": "Aggiunto prima del tracciamento",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Blocca le fonti di accesso fallite.",
     "ban_notifications_enabled": "Notifiche di blocco automatico",
     "ban_notifications_enabled_hint": "Mostra avvisi quando le IP vengono bloccate.",
+    "blocked_request_logging_enabled": "Registra le richieste bloccate",
+    "blocked_request_logging_enabled_hint": "Diagnostica: registra IP client, motivo del blocco, metodo e percorso nel registro di Home Assistant. Le voci ripetute sono limitate.",
     "allowlisted_login_notifications_enabled": "Notifiche accesso Allowlist",
     "allowlisted_login_notifications_enabled_hint": "Avvisa su accessi attendibili falliti.",
     "callback_route_protection_enabled": "Proteggi i callback di integrazione",

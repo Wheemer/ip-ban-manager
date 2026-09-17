@@ -20,6 +20,7 @@
   "block": "Blockieren",
   "apply": "Anwenden",
   "advanced": "Erweitert",
+  "troubleshooting": "Fehlerbehebung",
   "options": "Optionen",
   "added_before_tracking": "Vor der Nachverfolgung hinzugefügt",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Fehlgeschlagene Login-Quellen blockieren.",
     "ban_notifications_enabled": "Automatische Sperr-Benachrichtigungen",
     "ban_notifications_enabled_hint": "Warnungen anzeigen, wenn IPs blockiert werden.",
+    "blocked_request_logging_enabled": "Blockierte Anfragen protokollieren",
+    "blocked_request_logging_enabled_hint": "Diagnose: Client-IP, Blockierungsgrund, Methode und Pfad im Home-Assistant-Protokoll erfassen. Wiederholte Einträge werden begrenzt.",
     "allowlisted_login_notifications_enabled": "Allowlist-Login-Benachrichtigungen",
     "allowlisted_login_notifications_enabled_hint": "Bei fehlgeschlagenen vertrauenswürdigen Logins warnen.",
     "callback_route_protection_enabled": "Schützen Sie Integrationsrückrufe",

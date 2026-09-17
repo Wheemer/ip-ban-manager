@@ -20,6 +20,7 @@
   "block": "Blokovať",
   "apply": "Použiť",
   "advanced": "Pokročilé",
+  "troubleshooting": "Riešenie problémov",
   "options": "Možnosti",
   "added_before_tracking": "Pridané pred sledovaním",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Blokovať zdroje neúspešného prihlásenia.",
     "ban_notifications_enabled": "Automatické upozornenia na zákaz",
     "ban_notifications_enabled_hint": "Zobraziť upozornenia pri blokovaní IP.",
+    "blocked_request_logging_enabled": "Zaznamenávať blokované požiadavky",
+    "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, dôvod blokovania, metódu a cestu do denníka Home Assistant. Opakované záznamy sú obmedzené.",
     "allowlisted_login_notifications_enabled": "Upozornenia na prihlásenia zo zoznamu povolených",
     "allowlisted_login_notifications_enabled_hint": "Upozorniť pri neúspešných dôveryhodných prihláseniach.",
     "callback_route_protection_enabled": "Chráňte integračné spätné volania",

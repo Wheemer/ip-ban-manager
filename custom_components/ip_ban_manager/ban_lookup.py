@@ -11,8 +11,16 @@ from urllib.parse import urlsplit
 from homeassistant.components.http.ban import IpBan
 from homeassistant.helpers.http import current_request
 
+from .blocked_request_log import (
+    BLOCK_REASON_DEFAULT_DENY,
+    BLOCK_REASON_EXACT_BAN,
+    BLOCK_REASON_NETWORK,
+    BLOCK_REASON_REGION,
+)
+
 IPAddress = IPv4Address | IPv6Address
 IPNetwork = IPv4Network | IPv6Network
+BlockedRequestObserver = Callable[[IPAddress, str], None]
 
 SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
 SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (
@@ -44,6 +52,7 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         geoip_access_allowed: Callable[[IPAddress], bool] | None = None,
         callback_route_protection_enabled: bool = True,
         callback_path_is_protected: Callable[[str], bool] | None = None,
+        blocked_request_observer: BlockedRequestObserver | None = None,
     ) -> None:
         """Initialize the lookup from Home Assistant's exact IP bans."""
         super().__init__(values)
@@ -56,6 +65,16 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         self.geoip_access_allowed = geoip_access_allowed
         self.callback_route_protection_enabled = callback_route_protection_enabled
         self.callback_path_is_protected = callback_path_is_protected
+        self.blocked_request_observer = blocked_request_observer
+
+    def _blocked(self, remote_addr: IPAddress, reason: str) -> bool:
+        """Report a managed rejection and return the lookup result."""
+        if (
+            self.blocked_request_observer is not None
+            and current_request.get() is not None
+        ):
+            self.blocked_request_observer(remote_addr, reason)
+        return True
 
     def __contains__(self, key: object) -> bool:
         """Return whether an IP is exactly banned or blocked by network."""
@@ -67,10 +86,10 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
             return False
 
         if dict.__contains__(self, key):
-            return True
+            return self._blocked(remote_addr, BLOCK_REASON_EXACT_BAN)
 
         if remote_addr != key and dict.__contains__(self, remote_addr):
-            return True
+            return self._blocked(remote_addr, BLOCK_REASON_EXACT_BAN)
 
         if self.callback_route_protection_enabled and _current_request_is_callback(
             self.callback_path_is_protected
@@ -83,12 +102,16 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         if self.geoip_access_allowed is not None and not self.geoip_access_allowed(
             remote_addr
         ):
-            return True
+            return self._blocked(remote_addr, BLOCK_REASON_REGION)
 
         if _is_blocked(remote_addr, self.blocked_networks):
-            return True
+            return self._blocked(remote_addr, BLOCK_REASON_NETWORK)
 
-        return self.default_deny_enabled
+        return (
+            self._blocked(remote_addr, BLOCK_REASON_DEFAULT_DENY)
+            if self.default_deny_enabled
+            else False
+        )
 
     def __bool__(self) -> bool:
         """Keep Home Assistant's ban middleware active for network-only blocks."""

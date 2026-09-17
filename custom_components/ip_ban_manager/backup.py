@@ -40,6 +40,7 @@ from .const import (
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BLOCKED_NETWORK_ENTRY_META,
     CONF_BLOCKED_NETWORKS,
+    CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
@@ -61,6 +62,7 @@ from .entry_helpers import (
     entry_auto_ban_enabled,
     entry_ban_notifications_enabled,
     entry_blocked_networks,
+    entry_blocked_request_logging_enabled,
     entry_default_deny_enabled,
     entry_geoip_enabled,
     entry_ip_addresses,
@@ -188,6 +190,9 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
             CONF_BLOCKED_NETWORK_ENTRY_META: entry_blocked_network_meta(entry),
             CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
+            CONF_BLOCKED_REQUEST_LOGGING_ENABLED: (
+                entry_blocked_request_logging_enabled(entry)
+            ),
             CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: (
                 entry_callback_route_protection_enabled(entry)
             ),
@@ -439,6 +444,11 @@ async def async_apply_config_backup_payload(
         CONF_BAN_NOTIFICATIONS_ENABLED,
         entry_ban_notifications_enabled(entry),
     )
+    blocked_request_logging_enabled = _bool_from_import(
+        settings,
+        CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
+        entry_blocked_request_logging_enabled(entry),
+    )
     callback_route_protection_enabled = _bool_from_import(
         settings,
         CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
@@ -628,6 +638,7 @@ async def async_apply_config_backup_payload(
             CONF_BLOCKED_NETWORK_ENTRY_META: blocked_meta,
             CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
             CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
+            CONF_BLOCKED_REQUEST_LOGGING_ENABLED: blocked_request_logging_enabled,
             CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: callback_route_protection_enabled,
             CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: (
                 allowlisted_login_notifications_enabled

@@ -20,6 +20,7 @@
   "block": "Заблокувати",
   "apply": "Застосувати",
   "advanced": "Додатково",
+  "troubleshooting": "Усунення несправностей",
   "options": "Параметри",
   "added_before_tracking": "Додано до відстеження",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Блокувати джерела невдалих входів.",
     "ban_notifications_enabled": "Автоматичні сповіщення про блокування",
     "ban_notifications_enabled_hint": "Показувати попередження при блокуванні IP.",
+    "blocked_request_logging_enabled": "Записувати заблоковані запити",
+    "blocked_request_logging_enabled_hint": "Діагностика: записує IP клієнта, причину блокування, метод і шлях у журнал Home Assistant. Повторювані записи обмежуються.",
     "allowlisted_login_notifications_enabled": "Сповіщення про вхід з allowlist",
     "allowlisted_login_notifications_enabled_hint": "Попереджати про невдалі довірені входи.",
     "callback_route_protection_enabled": "Захист зворотних викликів інтеграції",

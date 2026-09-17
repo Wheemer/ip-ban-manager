@@ -20,6 +20,7 @@
   "block": "Blockera",
   "apply": "Tillämpa",
   "advanced": "Avancerat",
+  "troubleshooting": "Felsökning",
   "options": "Alternativ",
   "added_before_tracking": "Tillagd före spårning",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Blockera misslyckade inloggningskällor.",
     "ban_notifications_enabled": "Automatiska spärraviseringar",
     "ban_notifications_enabled_hint": "Visa varningar när IP blockeras.",
+    "blocked_request_logging_enabled": "Logga blockerade förfrågningar",
+    "blocked_request_logging_enabled_hint": "Diagnostik: registrera klient-IP, blockeringsorsak, metod och sökväg i Home Assistant-loggen. Upprepade poster begränsas.",
     "allowlisted_login_notifications_enabled": "Allowlist-inloggningsaviseringar",
     "allowlisted_login_notifications_enabled_hint": "Varna vid misslyckade betrodda inloggningar.",
     "callback_route_protection_enabled": "Skydda integrationsuppringningar",

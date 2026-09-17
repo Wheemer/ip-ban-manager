@@ -23,6 +23,7 @@ from .const import (
     CONF_AUTO_BAN_ENABLED,
     CONF_BAN_NOTIFICATIONS_ENABLED,
     CONF_BLOCKED_NETWORKS,
+    CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
     CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
     CONF_DEFAULT_DENY_ENABLED,
     CONF_GEOIP_ENABLED,
@@ -101,6 +102,16 @@ def entry_ban_notifications_enabled(entry: ConfigEntry) -> bool:
         entry.options.get(
             CONF_BAN_NOTIFICATIONS_ENABLED,
             entry.data.get(CONF_BAN_NOTIFICATIONS_ENABLED, True),
+        )
+    )
+
+
+def entry_blocked_request_logging_enabled(entry: ConfigEntry) -> bool:
+    """Return whether blocked HTTP requests should be logged for diagnostics."""
+    return bool(
+        entry.options.get(
+            CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
+            entry.data.get(CONF_BLOCKED_REQUEST_LOGGING_ENABLED, False),
         )
     )
 

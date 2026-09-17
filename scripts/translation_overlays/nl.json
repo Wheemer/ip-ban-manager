@@ -171,6 +171,7 @@
     "block": "Blokkeren",
     "apply": "Toepassen",
     "advanced": "Geavanceerd",
+    "troubleshooting": "Probleemoplossing",
     "options": "Opties",
     "added_before_tracking": "Toegevoegd vóór bijhouden",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Overal",
         "country": "Lokaal of aangepast land",
         "subdivision": "Lokale of aangepaste provincie/staat"
-      }
+      },
+      "blocked_request_logging_enabled": "Geblokkeerde verzoeken loggen",
+      "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt."
     },
     "backup": {
       "save_title": "Opslaan in config",

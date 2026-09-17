@@ -20,6 +20,7 @@
   "block": "Zablokuj",
   "apply": "Zastosuj",
   "advanced": "Zaawansowane",
+  "troubleshooting": "Rozwiązywanie problemów",
   "options": "Opcje",
   "added_before_tracking": "Dodano przed śledzeniem",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Blokuj nieudane źródła logowania.",
     "ban_notifications_enabled": "Powiadomienia o automatycznych blokadach",
     "ban_notifications_enabled_hint": "Pokazuj alerty, gdy IP są blokowane.",
+    "blocked_request_logging_enabled": "Rejestruj zablokowane żądania",
+    "blocked_request_logging_enabled_hint": "Diagnostyka: zapisuje IP klienta, powód blokady, metodę i ścieżkę w dzienniku Home Assistant. Powtarzające się wpisy są ograniczane.",
     "allowlisted_login_notifications_enabled": "Powiadomienia o logowaniu z Allowlist",
     "allowlisted_login_notifications_enabled_hint": "Alertuj o nieudanych zaufanych logowaniach.",
     "callback_route_protection_enabled": "Chroń wywołania zwrotne integracji",

@@ -171,6 +171,7 @@
     "block": "Zablokuj",
     "apply": "Zastosuj",
     "advanced": "Zaawansowane",
+    "troubleshooting": "Rozwiązywanie problemów",
     "options": "Opcje",
     "added_before_tracking": "Dodano przed śledzeniem",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Gdziekolwiek",
         "country": "Kraj lokalny lub niestandardowy",
         "subdivision": "Lokalna lub niestandardowa prowincja/stan"
-      }
+      },
+      "blocked_request_logging_enabled": "Rejestruj zablokowane żądania",
+      "blocked_request_logging_enabled_hint": "Diagnostyka: zapisuje IP klienta, powód blokady, metodę i ścieżkę w dzienniku Home Assistant. Powtarzające się wpisy są ograniczane."
     },
     "backup": {
       "save_title": "Zapisz w konfiguracji",

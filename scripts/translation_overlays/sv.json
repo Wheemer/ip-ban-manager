@@ -171,6 +171,7 @@
     "block": "Blockera",
     "apply": "Tillämpa",
     "advanced": "Avancerat",
+    "troubleshooting": "Felsökning",
     "options": "Alternativ",
     "added_before_tracking": "Tillagd före spårning",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Var som helst",
         "country": "Lokalt eller anpassat land",
         "subdivision": "Lokal eller anpassad provins/stat"
-      }
+      },
+      "blocked_request_logging_enabled": "Logga blockerade förfrågningar",
+      "blocked_request_logging_enabled_hint": "Diagnostik: registrera klient-IP, blockeringsorsak, metod och sökväg i Home Assistant-loggen. Upprepade poster begränsas."
     },
     "backup": {
       "save_title": "Spara till config",

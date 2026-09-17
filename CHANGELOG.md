@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.8.6
+
+IP Ban Manager 1.8.6 adds focused blocked-request diagnostics and refines the live panel.
+
+### Added
+
+- Added an optional **Log blocked requests** troubleshooting control that records the effective client IP, enforcement reason, HTTP method, and query-free path when Home Assistant rejects managed traffic.
+- Repeated diagnostic entries are rate-limited per address and reason, and the in-memory throttle state is bounded to prevent untrusted traffic from growing it indefinitely.
+- Configuration backups preserve the diagnostics setting while older backups leave the current setting unchanged.
+
+### Improved
+
+- Moved blocked-request logging into its own neutral **Troubleshooting** area so it is clearly separate from normal operating controls.
+- Aligned Public Region Lock with the panel's standard card and row layout while keeping its enable control clearly emphasized.
+
+### Fixed
+
+- Runtime reloads now preserve Home Assistant storage-key identity while loading blocked-request diagnostics before dependent enforcement code.
+
 ## v1.8.5
 
 IP Ban Manager 1.8.5 adds editable Public Region Lock rules and hardens NGINX Proxy Manager synchronization and recovery.

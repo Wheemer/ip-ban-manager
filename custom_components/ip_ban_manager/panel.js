@@ -456,20 +456,50 @@ class IPBanManagerPanel extends HTMLElement {
           background: var(--secondary-background-color);
         }
         .row code { overflow-wrap: anywhere; white-space: normal; }
-        .region-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-        .region-toggle-row label { display: flex; align-items: center; gap: 8px; }
+        .region-toggle-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          min-height: 42px;
+          margin-bottom: 12px;
+          padding: 8px 10px;
+          border: 1px solid var(--warning-color, #ffa600);
+          border-radius: 6px;
+          background: color-mix(in srgb, var(--warning-color, #ffa600) 10%, var(--secondary-background-color));
+        }
+        .region-toggle-row label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 700;
+        }
         .region-toggle-row input { width: 18px; min-width: 18px; flex: 0 0 18px; margin: 0; }
-        .region-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-        .region-shortcuts button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--primary-color); border-radius: 6px; background: var(--secondary-background-color); color: var(--primary-text-color); font-weight: 600; white-space: normal; text-align: left; cursor: pointer; }
+        .region-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .region-shortcuts button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--primary-color); border-radius: 6px; background: var(--secondary-background-color); color: var(--primary-text-color); font-weight: 400; white-space: normal; text-align: left; cursor: pointer; }
         .region-shortcuts button:hover:not(:disabled) { background: var(--divider-color); }
         .region-shortcuts button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
         .region-shortcuts ha-icon { --mdc-icon-size: 20px; flex: 0 0 20px; }
-        .region-entry { grid-template-columns: minmax(0, 1fr) 90px auto auto; align-items: end; }
-        .region-entry label { min-width: 0; }
+        .region-rows { display: grid; gap: 8px; margin-bottom: 14px; }
+        .region-entry {
+          grid-template-columns: minmax(0, 1fr) 90px auto auto;
+          align-items: end;
+          padding: 10px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+        }
+        .region-entry label,
+        #regional-threshold-form label {
+          display: grid;
+          gap: 5px;
+          min-width: 0;
+          color: var(--secondary-text-color);
+          font-size: 12px;
+        }
         .region-entry input { width: 100%; box-sizing: border-box; }
         .region-apply-unchanged { visibility: hidden; pointer-events: none; }
         #regional-threshold-form { grid-template-columns: minmax(0, 1fr) 90px auto; align-items: end; }
-        #regional-threshold-form label { min-width: 0; }
         #regional-threshold-form input { width: 100%; box-sizing: border-box; }
         @media (max-width: 480px) {
           #regional-threshold-form { grid-template-columns: minmax(0, 1fr) 90px; }
@@ -571,9 +601,6 @@ class IPBanManagerPanel extends HTMLElement {
           gap: 12px;
         }
         .threshold .hint { margin: 0; }
-        .allowed-regions-section {
-          border-color: var(--warning-color, #ffa600);
-        }
         .allowed-region-warning {
           margin: 0 0 12px;
           padding: 10px 12px;
@@ -1127,6 +1154,10 @@ class IPBanManagerPanel extends HTMLElement {
             ${this._checkbox("allowlisted_logins_can_ban", this._t("settings.allowlisted_logins_can_ban"), this._t("settings.allowlisted_logins_can_ban_hint"), settings.allowlisted_logins_can_ban, true)}
             ${this._checkbox("default_deny_enabled", this._t("settings.default_deny_enabled"), this._t("settings.default_deny_enabled_hint"), settings.default_deny_enabled, true)}
           </div>
+          <div class="subsection">
+            <h3>${this._t("troubleshooting")}</h3>
+            ${this._checkbox("blocked_request_logging_enabled", this._t("settings.blocked_request_logging_enabled"), this._t("settings.blocked_request_logging_enabled_hint"), settings.blocked_request_logging_enabled)}
+          </div>
           <div class="actions">
             <button class="primary" id="save-options" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>
           </div>
@@ -1161,7 +1192,7 @@ class IPBanManagerPanel extends HTMLElement {
         ${country && !(country in rules) ? `<button data-region-code="${this._escape(country)}" ${this._busy ? "disabled" : ""}><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${this._t("region_list.add_country")} · ${this._escape(this._regionDisplay(local.country_name || this._countryName(country), country))}</button>` : ""}
         ${subdivision && !(subdivision in rules) ? `<button data-region-code="${this._escape(subdivision)}" ${this._busy ? "disabled" : ""}><ha-icon icon="mdi:plus" aria-hidden="true"></ha-icon>${this._t("region_list.add_subdivision")} · ${this._escape(this._subdivisionDisplay(local.subdivision_label, subdivision))}</button>` : ""}
       </div>
-      ${rows}
+      ${rows ? `<div class="region-rows">${rows}</div>` : ""}
       <form id="regional-threshold-form">
         <label>${this._t("regional_rules.region")}<input name="region" required maxlength="9" pattern="[A-Za-z]{2}(-[A-Za-z0-9]{1,6})?" placeholder="CA / CA-NL" aria-label="${this._t("regional_rules.region")}"></label>
         <label>${this._t("regional_thresholds.attempts")}<input name="threshold" type="number" min="0" max="100" step="1" required value="${Number(settings.login_attempts_threshold || 0)}"></label>

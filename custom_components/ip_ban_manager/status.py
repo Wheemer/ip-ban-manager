@@ -22,6 +22,7 @@ from .const import (
     ATTR_BAN_NOTIFICATIONS_ENABLED,
     ATTR_BANNED_IPS,
     ATTR_BLOCKED_NETWORKS,
+    ATTR_BLOCKED_REQUEST_LOGGING_ENABLED,
     ATTR_DEFAULT_DENY_ENABLED,
     ATTR_FAILED_LOGIN_ATTEMPTS,
     ATTR_GEOIP_DATABASE_PRESENT,
@@ -42,6 +43,7 @@ from .entry_helpers import (
     entry_allowlisted_logins_can_ban,
     entry_auto_ban_enabled,
     entry_ban_notifications_enabled,
+    entry_blocked_request_logging_enabled,
     entry_default_deny_enabled,
     entry_geoip_enabled,
     entry_login_threshold,
@@ -97,6 +99,9 @@ def current_status(
         ATTR_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry) if entry else False,
         ATTR_BAN_NOTIFICATIONS_ENABLED: (
             entry_ban_notifications_enabled(entry) if entry else True
+        ),
+        ATTR_BLOCKED_REQUEST_LOGGING_ENABLED: (
+            entry_blocked_request_logging_enabled(entry) if entry else False
         ),
         ATTR_CALLBACK_ROUTE_PROTECTION_ENABLED: (
             entry_callback_route_protection_enabled(entry) if entry else True

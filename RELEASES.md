@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.6](CHANGELOG.md#v186) | Optional rate-limited blocked-request diagnostics, a dedicated troubleshooting control, Public Region Lock panel polish, and safer runtime module reload ordering. |
 | [v1.8.5](CHANGELOG.md#v185) | Editable Public Region Lock rules, NGINX Proxy Manager backup/restore, Custom Location conflict recovery, and proactive authentication renewal. |
 | [v1.8.4.4](CHANGELOG.md#v1844) | Pre-release: NGINX Proxy Manager backup/restore, recovery controls, clearer API errors, and reduced unnecessary updates. |
 | [v1.8.4.3](CHANGELOG.md#v1843) | Hotfix: prevents failed-login processing errors after module reloads and updates dependency tooling and monitoring. |

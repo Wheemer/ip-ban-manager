@@ -171,6 +171,7 @@
     "block": "Blochează",
     "apply": "Aplică",
     "advanced": "Avansat",
+    "troubleshooting": "Depanare",
     "options": "Opțiuni",
     "added_before_tracking": "Adăugat înainte de urmărire",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Oriunde",
         "country": "Țară locală sau personalizată",
         "subdivision": "Provincie/stat local sau personalizat"
-      }
+      },
+      "blocked_request_logging_enabled": "Înregistrează cererile blocate",
+      "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate."
     },
     "backup": {
       "save_title": "Salvează în configurație",

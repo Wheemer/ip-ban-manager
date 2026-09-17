@@ -82,6 +82,30 @@ async def test_panel_options_can_disable_sidebar_panel(
 
 
 @pytest.mark.asyncio
+async def test_panel_options_toggle_blocked_request_logging(
+    hass: HomeAssistant,
+) -> None:
+    """The panel applies diagnostics immediately and clears stale throttle state."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+
+    await _async_panel_set_options(hass, {CONF_BLOCKED_REQUEST_LOGGING_ENABLED: True})
+
+    lookup = hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup
+    assert entry.options[CONF_BLOCKED_REQUEST_LOGGING_ENABLED] is True
+    assert lookup.blocked_request_observer is not None
+    payload = await ban_panel.async_panel_payload(hass, entry)
+    assert payload["settings"][CONF_BLOCKED_REQUEST_LOGGING_ENABLED] is True
+
+    hass.data[KEY_BLOCKED_REQUEST_LOG_STATE] = {("203.0.113.25", "test"): (1.0, 2)}
+    await _async_panel_set_options(hass, {CONF_BLOCKED_REQUEST_LOGGING_ENABLED: False})
+
+    assert entry.options[CONF_BLOCKED_REQUEST_LOGGING_ENABLED] is False
+    assert lookup.blocked_request_observer is None
+    assert KEY_BLOCKED_REQUEST_LOG_STATE not in hass.data
+
+
+@pytest.mark.asyncio
 async def test_panel_options_can_enable_default_deny_with_supervisor_network(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:

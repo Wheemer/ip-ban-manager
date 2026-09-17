@@ -20,6 +20,7 @@
   "block": "阻止",
   "apply": "应用",
   "advanced": "高级",
+  "troubleshooting": "故障排除",
   "options": "选项",
   "added_before_tracking": "跟踪前添加",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "阻止登录失败的来源。",
     "ban_notifications_enabled": "自动封禁通知",
     "ban_notifications_enabled_hint": "IP 被阻止时显示警报。",
+    "blocked_request_logging_enabled": "记录被阻止的请求",
+    "blocked_request_logging_enabled_hint": "诊断：在 Home Assistant 日志中记录客户端 IP、阻止原因、方法和路径。重复记录会受到速率限制。",
     "allowlisted_login_notifications_enabled": "白名单登录通知",
     "allowlisted_login_notifications_enabled_hint": "受信任登录失败时提醒。",
     "callback_route_protection_enabled": "保护集成回调",

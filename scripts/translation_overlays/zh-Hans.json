@@ -171,6 +171,7 @@
     "block": "阻止",
     "apply": "应用",
     "advanced": "高级",
+    "troubleshooting": "故障排除",
     "options": "选项",
     "added_before_tracking": "跟踪前添加",
     "sources": {
@@ -235,7 +236,9 @@
         "anywhere": "任何地方",
         "country": "当地或自定义国家",
         "subdivision": "当地或自定义省/州"
-      }
+      },
+      "blocked_request_logging_enabled": "记录被阻止的请求",
+      "blocked_request_logging_enabled_hint": "诊断：在 Home Assistant 日志中记录客户端 IP、阻止原因、方法和路径。重复记录会受到速率限制。"
     },
     "backup": {
       "save_title": "保存到配置",

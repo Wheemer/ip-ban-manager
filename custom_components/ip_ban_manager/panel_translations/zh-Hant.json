@@ -20,6 +20,7 @@
   "block": "封鎖",
   "apply": "套用",
   "advanced": "高级",
+  "troubleshooting": "疑難排解",
   "options": "選項",
   "added_before_tracking": "追蹤前新增",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "封鎖登入失敗的來源。",
     "ban_notifications_enabled": "自動封鎖通知",
     "ban_notifications_enabled_hint": "IP 被封鎖時顯示警报。",
+    "blocked_request_logging_enabled": "記錄被封鎖的請求",
+    "blocked_request_logging_enabled_hint": "診斷：在 Home Assistant 記錄中記錄用戶端 IP、封鎖原因、方法和路徑。重複記錄會受到速率限制。",
     "allowlisted_login_notifications_enabled": "白名單登入通知",
     "allowlisted_login_notifications_enabled_hint": "受信任登入失敗時提醒。",
     "callback_route_protection_enabled": "保護集成回呼",

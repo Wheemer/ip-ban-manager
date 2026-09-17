@@ -171,6 +171,7 @@
     "block": "Blockieren",
     "apply": "Anwenden",
     "advanced": "Erweitert",
+    "troubleshooting": "Fehlerbehebung",
     "options": "Optionen",
     "added_before_tracking": "Vor der Nachverfolgung hinzugefügt",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "Überall",
         "country": "Lokales oder benutzerdefiniertes Land",
         "subdivision": "Lokale oder benutzerdefinierte Provinz/Bundesstaat"
-      }
+      },
+      "blocked_request_logging_enabled": "Blockierte Anfragen protokollieren",
+      "blocked_request_logging_enabled_hint": "Diagnose: Client-IP, Blockierungsgrund, Methode und Pfad im Home-Assistant-Protokoll erfassen. Wiederholte Einträge werden begrenzt."
     },
     "backup": {
       "save_title": "In Konfiguration speichern",

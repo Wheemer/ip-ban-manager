@@ -169,6 +169,7 @@ from .storage_keys import (
     KEY_ALLOWLIST,
     KEY_BAN_FILE_WRITE_LOCK,
     KEY_BLOCKED_NETWORKS,
+    KEY_BLOCKED_REQUEST_LOG_STATE,
     KEY_CONFIG_ENTRY,
     KEY_DEFAULT_DENY,
     KEY_EMERGENCY_DISABLED,
@@ -200,6 +201,7 @@ _RELOADABLE_MODULES = (
     "custom_components.ip_ban_manager.const",
     "custom_components.ip_ban_manager.metrics",
     "custom_components.ip_ban_manager.entry_helpers",
+    "custom_components.ip_ban_manager.blocked_request_log",
     "custom_components.ip_ban_manager.ban_lookup",
     "custom_components.ip_ban_manager.ban_ops",
     "custom_components.ip_ban_manager.geoip",
@@ -421,16 +423,6 @@ def _reload_runtime_modules_sync() -> None:
             for binding, (module_name, attribute) in _RELOADABLE_BINDINGS.items()
         }
     )
-    storage_keys = importlib.import_module(
-        "custom_components.ip_ban_manager.storage_keys"
-    )
-    globals().update(
-        {
-            name: getattr(storage_keys, name)
-            for name in list(globals())
-            if name.startswith("KEY_") and hasattr(storage_keys, name)
-        }
-    )
 
 
 async def _async_reload_runtime_modules(hass: HomeAssistant) -> None:
@@ -547,6 +539,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.pop(KEY_HEALTH, None)
     hass.data.pop(KEY_METRICS, None)
     hass.data.pop(KEY_BAN_FILE_WRITE_LOCK, None)
+    hass.data.pop(KEY_BLOCKED_REQUEST_LOG_STATE, None)
     for service in REGISTERED_SERVICES:
         if hass.services.has_service(DOMAIN, service):
             hass.services.async_remove(DOMAIN, service)

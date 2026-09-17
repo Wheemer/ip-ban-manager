@@ -20,6 +20,7 @@
   "block": "Bloquear",
   "apply": "Aplicar",
   "advanced": "Avançado",
+  "troubleshooting": "Resolução de problemas",
   "options": "Opções",
   "added_before_tracking": "Adicionado antes do rastreamento",
   "sources": {
@@ -75,6 +76,8 @@
     "auto_ban_enabled_hint": "Bloquear origens de login falhadas.",
     "ban_notifications_enabled": "Notificações de bloqueio automático",
     "ban_notifications_enabled_hint": "Mostrar alertas quando IP são bloqueadas.",
+    "blocked_request_logging_enabled": "Registar pedidos bloqueados",
+    "blocked_request_logging_enabled_hint": "Diagnóstico: regista o IP do cliente, motivo do bloqueio, método e caminho no registo do Home Assistant. As entradas repetidas são limitadas.",
     "allowlisted_login_notifications_enabled": "Notificações de login Allowlist",
     "allowlisted_login_notifications_enabled_hint": "Alertar sobre logins de confiança falhados.",
     "callback_route_protection_enabled": "Proteja retornos de chamada de integração",

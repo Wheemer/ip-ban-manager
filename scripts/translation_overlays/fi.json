@@ -171,6 +171,7 @@
     "block": "Estä",
     "apply": "Käytä",
     "advanced": "Lisäasetukset",
+    "troubleshooting": "Vianmääritys",
     "options": "Asetukset",
     "added_before_tracking": "Lisätty ennen seurantaa",
     "sources": {
@@ -234,7 +235,9 @@
         "anywhere": "missä tahansa",
         "country": "Paikallinen tai mukautettu maa",
         "subdivision": "Paikallinen tai mukautettu provinssi/osavaltio"
-      }
+      },
+      "blocked_request_logging_enabled": "Kirjaa estetyt pyynnöt",
+      "blocked_request_logging_enabled_hint": "Diagnostiikka: kirjaa asiakkaan IP-osoite, eston syy, menetelmä ja polku Home Assistantin lokiin. Toistuvia merkintöjä rajoitetaan."
     },
     "backup": {
       "save_title": "Tallenna konfiguraatioon",
