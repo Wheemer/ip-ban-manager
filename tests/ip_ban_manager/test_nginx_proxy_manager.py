@@ -48,6 +48,29 @@ def test_normalize_npm_url_rejects_unsafe_values(value: str) -> None:
         npm.normalize_npm_url(value)
 
 
+@pytest.mark.parametrize(
+    ("local_ip", "expected"),
+    [
+        ("192.168.2.66", "http://192.168.2.66:81"),
+        ("fd00::21", "http://[fd00::21]:81"),
+        ("127.0.0.1", "http://127.0.0.1:81"),
+        ("0.0.0.0", ""),
+        ("homeassistant.local", ""),
+        (None, ""),
+    ],
+)
+def test_suggested_npm_url_uses_ha_local_api_ip(
+    local_ip: str | None, expected: str
+) -> None:
+    """The NPM suggestion never comes from the browser or external HA URL."""
+    hass = cast(
+        HomeAssistant,
+        SimpleNamespace(config=SimpleNamespace(api=SimpleNamespace(local_ip=local_ip))),
+    )
+
+    assert npm.suggested_npm_url(hass) == expected
+
+
 def test_exact_external_url_matches_only_exact_domain() -> None:
     """The integration never guesses a proxy host from a partial hostname."""
     hosts: list[object] = [
@@ -147,6 +170,141 @@ async def test_loaded_component_schedules_edge_policy_sync(
     await hass.async_block_till_done()
 
     assert events == [EVENT_COMPONENT_LOADED]
+
+
+@pytest.mark.asyncio
+async def test_protect_all_domains_updates_every_active_host_only(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """All-domain mode protects active hosts without HA callbacks on other apps."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_NPM: {
+                "base_url": "http://npm.example.test:81",
+                "token": "stored-token",
+                "proxy_host_id": 4,
+                "enabled": False,
+            },
+        },
+    )
+    client = AsyncMock()
+    client.proxy_hosts.return_value = [
+        {
+            "id": 4,
+            "domain_names": ["ha.example.test"],
+            "enabled": True,
+            "advanced_config": "# keep-ha",
+        },
+        {
+            "id": 5,
+            "domain_names": ["frigate.example.test"],
+            "enabled": True,
+            "advanced_config": "# keep-frigate",
+        },
+        {
+            "id": 6,
+            "domain_names": ["disabled.example.test"],
+            "enabled": False,
+            "advanced_config": "# keep-disabled",
+        },
+    ]
+    monkeypatch.setattr(npm, "NpmClient", lambda *args: client)
+
+    await npm.async_enable_npm(hass, protect_all_domains=True)
+
+    calls = client.update_proxy_host_policy.await_args_list
+    assert [call.args[0] for call in calls] == [5, 4]
+    by_host = {call.args[0]: call.args[1] for call in calls}
+    assert "# keep-ha" in by_host[4]
+    assert "location = /auth/token {" in by_host[4]
+    assert "# keep-frigate" in by_host[5]
+    assert "location " not in by_host[5]
+    saved = npm.entry_npm_config(entry)
+    assert saved["protect_all_domains"] is True
+    assert saved["managed_host_ids"] == [4, 5]
+
+
+@pytest.mark.asyncio
+async def test_switching_back_to_selected_host_removes_other_managed_blocks(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Turning all-domain mode off cleans every host no longer targeted."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    managed = npm._with_managed_config("# user", ["deny all;"])
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_NPM: {
+                "base_url": "http://npm.example.test:81",
+                "token": "stored-token",
+                "proxy_host_id": 4,
+                "enabled": True,
+                "protect_all_domains": True,
+                "managed_host_ids": [4, 5],
+            },
+        },
+    )
+    client = AsyncMock()
+    client.proxy_hosts.return_value = [
+        {
+            "id": 4,
+            "domain_names": ["ha.example.test"],
+            "enabled": True,
+            "advanced_config": managed,
+        },
+        {
+            "id": 5,
+            "domain_names": ["frigate.example.test"],
+            "enabled": True,
+            "advanced_config": managed,
+        },
+    ]
+    monkeypatch.setattr(npm, "NpmClient", lambda *args: client)
+
+    await npm.async_enable_npm(hass, protect_all_domains=False)
+
+    client.update_proxy_host_policy.assert_any_await(5, "# user", access_list_id=None)
+    saved = npm.entry_npm_config(entry)
+    assert saved["protect_all_domains"] is False
+    assert saved["managed_host_ids"] == [4]
+
+
+@pytest.mark.asyncio
+async def test_multi_host_failure_restores_hosts_changed_earlier() -> None:
+    """A later NPM rejection cannot leave an earlier host partially updated."""
+    client = AsyncMock()
+    client.update_proxy_host_policy.side_effect = [
+        None,
+        HomeAssistantError("HTTP 400"),
+        None,
+    ]
+    hosts = [
+        npm.NpmProxyHost(4, ("ha.example.test",), 0, True, "# ha"),
+        npm.NpmProxyHost(5, ("frigate.example.test",), 0, True, "# frigate"),
+    ]
+
+    with pytest.raises(
+        HomeAssistantError, match="Earlier proxy-host changes were restored"
+    ):
+        await npm._reconcile_proxy_policies(
+            client,
+            hosts,
+            selected_host_id=5,
+            managed_id=0,
+            previous_host_ids=set(),
+            desired_rules={4: ["deny all;"], 5: ["deny all;"]},
+        )
+
+    assert client.update_proxy_host_policy.await_args_list[-1].args == (4, "# ha")
+    assert client.update_proxy_host_policy.await_args_list[-1].kwargs == {
+        "access_list_id": 0
+    }
 
 
 def test_incomplete_managed_config_is_rejected() -> None:

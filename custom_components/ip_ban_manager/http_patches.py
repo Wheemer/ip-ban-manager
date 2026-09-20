@@ -25,6 +25,7 @@ from .audit import (
     record_login_threshold_reached,
 )
 from .ban_lookup import NetworkAwareBanLookup, _is_allowed, _normalize_remote_addr
+from .ban_ops import ban_file_lock
 from .const import SOURCE_AUTO
 from .entry_helpers import allowlisted_logins_can_ban
 from .geoip import effective_login_threshold_for_ip, regional_login_threshold_for_ip
@@ -224,45 +225,48 @@ def install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> Non
     app.setdefault(KEY_ORIGINAL_ADD_BAN, ban_manager.async_add_ban)
 
     async def allowlist_async_add_ban(remote_addr: IPAddress) -> None:
-        if _is_allowed(remote_addr, app.get(KEY_INTERNAL_BYPASS_NETWORKS, ())):
-            _LOGGER.info(
-                "Not adding %s to ban list, as it's a Home Assistant internal address",
-                remote_addr,
-            )
-            return
+        async with ban_file_lock(hass):
+            if _is_allowed(remote_addr, app.get(KEY_INTERNAL_BYPASS_NETWORKS, ())):
+                _LOGGER.info(
+                    "Not adding %s to ban list, as it's a Home Assistant internal address",
+                    remote_addr,
+                )
+                return
 
-        allowlist = app.get(KEY_ALLOWLIST, ())
-        if _is_allowed(remote_addr, allowlist) and not allowlisted_logins_can_ban(hass):
-            _LOGGER.info(
-                "Not adding %s to ban list, as it's in the allowlist",
-                remote_addr,
-            )
-            return
+            allowlist = app.get(KEY_ALLOWLIST, ())
+            if _is_allowed(remote_addr, allowlist) and not allowlisted_logins_can_ban(
+                hass
+            ):
+                _LOGGER.info(
+                    "Not adding %s to ban list, as it's in the allowlist",
+                    remote_addr,
+                )
+                return
 
-        active_ban_manager = app.get(KEY_BAN_MANAGER)
-        already_banned = (
-            active_ban_manager is not None
-            and remote_addr in active_ban_manager.ip_bans_lookup
-        )
-        if already_banned:
+            active_ban_manager = app.get(KEY_BAN_MANAGER)
+            already_banned = (
+                active_ban_manager is not None
+                and remote_addr in active_ban_manager.ip_bans_lookup
+            )
+            if already_banned:
+                await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
+                return
+
+            _LOGGER.info("Banning IP %s", remote_addr)
+            should_record_threshold = current_mutation_source() == SOURCE_AUTO
+            threshold = _ACTIVE_LOGIN_THRESHOLD.get()
+            if threshold is None:
+                threshold = effective_login_threshold_for_ip(hass, remote_addr)
+            attempts = int(app[KEY_FAILED_LOGIN_ATTEMPTS].get(remote_addr, 0))
             await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
-            return
-
-        _LOGGER.info("Banning IP %s", remote_addr)
-        should_record_threshold = current_mutation_source() == SOURCE_AUTO
-        threshold = _ACTIVE_LOGIN_THRESHOLD.get()
-        if threshold is None:
-            threshold = effective_login_threshold_for_ip(hass, remote_addr)
-        attempts = int(app[KEY_FAILED_LOGIN_ATTEMPTS].get(remote_addr, 0))
-        await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
-        if should_record_threshold and threshold >= 1 and attempts >= threshold:
-            record_login_threshold_reached(
-                hass,
-                str(remote_addr),
-                attempts=attempts,
-                threshold=threshold,
-            )
-        record_ip_banned(hass, str(remote_addr))
+            if should_record_threshold and threshold >= 1 and attempts >= threshold:
+                record_login_threshold_reached(
+                    hass,
+                    str(remote_addr),
+                    attempts=attempts,
+                    threshold=threshold,
+                )
+            record_ip_banned(hass, str(remote_addr))
 
     ban_manager.async_add_ban = allowlist_async_add_ban  # type: ignore[method-assign]
 
@@ -273,10 +277,11 @@ def install_load_bans_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> N
     app.setdefault(KEY_ORIGINAL_LOAD_BANS, ban_manager.async_load)
 
     async def network_aware_async_load() -> None:
-        await app[KEY_ORIGINAL_LOAD_BANS]()
-        entry = app.get(KEY_CONFIG_ENTRY)
-        if entry is not None:
-            apply_blocked_networks(hass, entry)
+        async with ban_file_lock(hass):
+            await app[KEY_ORIGINAL_LOAD_BANS]()
+            entry = app.get(KEY_CONFIG_ENTRY)
+            if entry is not None:
+                apply_blocked_networks(hass, entry)
 
     ban_manager.async_load = network_aware_async_load  # type: ignore[method-assign]
 

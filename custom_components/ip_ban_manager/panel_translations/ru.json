@@ -155,6 +155,9 @@
     "select": "Выбрать",
     "edge_protection": "Защита кромок",
     "edge_protection_hint": "Примените правила IP Ban Manager в Nginx Proxy Manager.",
+    "protect_all_domains": "Защитить все домены NPM",
+    "protect_all_domains_hint": "Применить эти правила ко всем активным прокси-хостам, включая добавленные позднее.",
+    "protect_all_domains_warning": "Применить правила IP Ban Manager ко всем активным хостам Nginx Proxy Manager? Существующие настройки хостов сохранятся, но эти правила доступа затронут все домены.",
     "default_deny_active": "Блокировать все, что находится за пределами разрешенных IP-адресов, активно и также будет применяться в NPM.",
     "mirror_default_deny_warning": "Большое влияние: NPM применяет это перед Home Assistant.",
     "enabled": "Защита кромок активна.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Изменения не требовались.",
     "set_options": "Опции применены.",
     "export_config": "Резервная копия сохранена в {path}",
     "import_config": "Резервная копия восстановлена из {path}",

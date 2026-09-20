@@ -281,7 +281,8 @@
       "npm_select_host": "已選擇代理主機。",
       "npm_sync": "Nginx Proxy Manager規則已同步。",
       "npm_disconnect": "Nginx Proxy Manager 已斷開連線。",
-      "set_options": "應用選項。"
+      "set_options": "應用選項。",
+      "no_changes": "不需要進行任何變更。"
     },
     "allowed_regions": {
       "title": "公共區域鎖",
@@ -331,7 +332,10 @@
       "last_sync": "上次同步：{date}",
       "sync": "立即同步",
       "disconnect": "斷開連接",
-      "disconnect_confirm": "斷開Nginx Proxy Manager？ IP Ban Manager 的規則將從所選代理主機中刪除。"
+      "disconnect_confirm": "斷開Nginx Proxy Manager？ IP Ban Manager 的規則將從所選代理主機中刪除。",
+      "protect_all_domains": "保護所有 NPM 網域",
+      "protect_all_domains_hint": "將這些規則套用至所有作用中的代理主機，包括日後新增的主機。",
+      "protect_all_domains_warning": "要將 IP Ban Manager 規則套用至所有作用中的 Nginx Proxy Manager 主機嗎？現有主機設定會保留，但這些存取規則將影響所有網域。"
     }
   },
   "entity": {

@@ -155,6 +155,9 @@
     "select": "Wybierz",
     "edge_protection": "Ochrona krawędzi",
     "edge_protection_hint": "Zastosuj reguły IP Ban Manager w Nginx Proxy Manager.",
+    "protect_all_domains": "Chroń wszystkie domeny NPM",
+    "protect_all_domains_hint": "Zastosuj te reguły do wszystkich aktywnych hostów proxy, także dodanych później.",
+    "protect_all_domains_warning": "Zastosować reguły IP Ban Manager do wszystkich aktywnych hostów Nginx Proxy Manager? Istniejące ustawienia hostów pozostaną bez zmian, ale te reguły dostępu wpłyną na wszystkie domeny.",
     "default_deny_active": "Blokuj wszystko poza Dozwolonymi adresami IP jest aktywne i będzie również egzekwowane w NPM.",
     "mirror_default_deny_warning": "Duży wpływ: NPM stosuje to przed Home Assistant.",
     "enabled": "Ochrona krawędzi jest aktywna.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Nie były potrzebne żadne zmiany.",
     "set_options": "Zastosowano opcje.",
     "export_config": "Kopia zapasowa zapisana w {path}",
     "import_config": "Kopia zapasowa przywrócona z {path}",

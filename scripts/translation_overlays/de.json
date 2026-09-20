@@ -279,7 +279,8 @@
       "npm_select_host": "Proxy-Host ausgewählt.",
       "npm_sync": "Nginx Proxy Manager Regeln synchronisiert.",
       "npm_disconnect": "Nginx Proxy Manager Verbindung getrennt.",
-      "set_options": "Angewendete Optionen."
+      "set_options": "Angewendete Optionen.",
+      "no_changes": "Es waren keine Änderungen erforderlich."
     },
     "allowed_regions": {
       "title": "Öffentliche Regionssperre",
@@ -329,7 +330,10 @@
       "last_sync": "Zuletzt synchronisiert: {date}",
       "sync": "Jetzt synchronisieren",
       "disconnect": "Trennen",
-      "disconnect_confirm": "Nginx Proxy Manager trennen? Die Regeln von IP Ban Manager werden vom ausgewählten Proxy-Host entfernt."
+      "disconnect_confirm": "Nginx Proxy Manager trennen? Die Regeln von IP Ban Manager werden vom ausgewählten Proxy-Host entfernt.",
+      "protect_all_domains": "Alle NPM-Domains schützen",
+      "protect_all_domains_hint": "Diese Regeln auf alle aktiven Proxy-Hosts anwenden, einschließlich später hinzugefügter Hosts.",
+      "protect_all_domains_warning": "IP Ban Manager-Regeln auf alle aktiven Nginx Proxy Manager-Hosts anwenden? Bestehende Host-Einstellungen bleiben erhalten, aber diese Zugriffsregeln wirken sich auf jede Domain aus."
     }
   },
   "entity": {

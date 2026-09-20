@@ -279,7 +279,8 @@
       "npm_select_host": "Välityspalvelimen isäntä valittu.",
       "npm_sync": "Nginx Proxy Manager säännöt synkronoitu.",
       "npm_disconnect": "Nginx Proxy Manager irrotettu.",
-      "set_options": "Vaihtoehdot käytössä."
+      "set_options": "Vaihtoehdot käytössä.",
+      "no_changes": "Muutoksia ei tarvittu."
     },
     "allowed_regions": {
       "title": "Julkinen aluelukko",
@@ -329,7 +330,10 @@
       "last_sync": "Viimeksi synkronoitu: {date}",
       "sync": "Synkronoi nyt",
       "disconnect": "Katkaise yhteys",
-      "disconnect_confirm": "Irrota Nginx Proxy Manager? IP Ban Manager:n säännöt poistetaan valitusta välityspalvelimesta."
+      "disconnect_confirm": "Irrota Nginx Proxy Manager? IP Ban Manager:n säännöt poistetaan valitusta välityspalvelimesta.",
+      "protect_all_domains": "Suojaa kaikki NPM-verkkotunnukset",
+      "protect_all_domains_hint": "Käytä näitä sääntöjä kaikkiin aktiivisiin välityspalvelimiin, myös myöhemmin lisättäviin.",
+      "protect_all_domains_warning": "Käytetäänkö IP Ban Managerin sääntöjä kaikkiin aktiivisiin Nginx Proxy Manager -palvelimiin? Nykyiset palvelinasetukset säilyvät, mutta nämä käyttösäännöt vaikuttavat kaikkiin verkkotunnuksiin."
     }
   },
   "entity": {

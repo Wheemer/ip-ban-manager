@@ -279,7 +279,8 @@
       "npm_select_host": "Прокси-хост выбран.",
       "npm_sync": "Правила Nginx Proxy Manager синхронизированы.",
       "npm_disconnect": "Nginx Proxy Manager отключен.",
-      "set_options": "Опции применены."
+      "set_options": "Опции применены.",
+      "no_changes": "Изменения не требовались."
     },
     "allowed_regions": {
       "title": "Блокировка общедоступного региона",
@@ -329,7 +330,10 @@
       "last_sync": "Последняя синхронизация: {date}",
       "sync": "Синхронизировать сейчас",
       "disconnect": "Отключить",
-      "disconnect_confirm": "Отключить Nginx Proxy Manager? Правила IP Ban Manager будут удалены с выбранного прокси-хоста."
+      "disconnect_confirm": "Отключить Nginx Proxy Manager? Правила IP Ban Manager будут удалены с выбранного прокси-хоста.",
+      "protect_all_domains": "Защитить все домены NPM",
+      "protect_all_domains_hint": "Применить эти правила ко всем активным прокси-хостам, включая добавленные позднее.",
+      "protect_all_domains_warning": "Применить правила IP Ban Manager ко всем активным хостам Nginx Proxy Manager? Существующие настройки хостов сохранятся, но эти правила доступа затронут все домены."
     }
   },
   "entity": {

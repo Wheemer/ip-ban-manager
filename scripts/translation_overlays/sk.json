@@ -279,7 +279,8 @@
       "npm_select_host": "Je vybratý server proxy.",
       "npm_sync": "Pravidlá Nginx Proxy Manager sú synchronizované.",
       "npm_disconnect": "Nginx Proxy Manager je odpojený.",
-      "set_options": "Možnosti boli použité."
+      "set_options": "Možnosti boli použité.",
+      "no_changes": "Neboli potrebné žiadne zmeny."
     },
     "allowed_regions": {
       "title": "Verejný zámok regiónu",
@@ -329,7 +330,10 @@
       "last_sync": "Posledná synchronizácia: {date}",
       "sync": "Synchronizovať teraz",
       "disconnect": "Odpojiť",
-      "disconnect_confirm": "Odpojiť Nginx Proxy Manager? Pravidlá IP Ban Manager budú odstránené z vybraného hostiteľa proxy."
+      "disconnect_confirm": "Odpojiť Nginx Proxy Manager? Pravidlá IP Ban Manager budú odstránené z vybraného hostiteľa proxy.",
+      "protect_all_domains": "Chrániť všetky domény NPM",
+      "protect_all_domains_hint": "Použiť tieto pravidlá na všetkých aktívnych proxy hostiteľov vrátane tých, ktorí budú pridaní neskôr.",
+      "protect_all_domains_warning": "Použiť pravidlá IP Ban Manager na všetkých aktívnych hostiteľov Nginx Proxy Manager? Existujúce nastavenia hostiteľov zostanú zachované, ale tieto pravidlá prístupu ovplyvnia všetky domény."
     }
   },
   "entity": {

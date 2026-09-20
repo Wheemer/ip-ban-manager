@@ -155,6 +155,9 @@
     "select": "選択",
     "edge_protection": "エッジ保護",
     "edge_protection_hint": "Nginx Proxy Manager で IP Ban Manager ルールを適用します。",
+    "protect_all_domains": "すべての NPM ドメインを保護",
+    "protect_all_domains_hint": "後から追加されるものを含む、すべての有効なプロキシホストにこれらのルールを適用します。",
+    "protect_all_domains_warning": "IP Ban Manager のルールを、すべての有効な Nginx Proxy Manager ホストに適用しますか？既存のホスト設定は維持されますが、これらのアクセスルールはすべてのドメインに影響します。",
     "default_deny_active": "[許可された IP 以外のすべてをブロックする] がアクティブであり、NPM でも強制されます。",
     "mirror_default_deny_warning": "大きな影響: NPM は Home Assistant よりも前にこれを適用します。",
     "enabled": "エッジ保護が有効になっています。",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "変更は必要ありませんでした。",
     "set_options": "オプションが適用されました。",
     "export_config": "バックアップを {path} に保存しました",
     "import_config": "{path} からバックアップを復元しました",

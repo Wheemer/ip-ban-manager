@@ -155,6 +155,9 @@
     "select": "选择",
     "edge_protection": "边缘保护",
     "edge_protection_hint": "在 Nginx Proxy Manager 应用 IP Ban Manager 规则。",
+    "protect_all_domains": "保护所有 NPM 域名",
+    "protect_all_domains_hint": "将这些规则应用于所有活动的代理主机，包括以后添加的主机。",
+    "protect_all_domains_warning": "要将 IP Ban Manager 规则应用于所有活动的 Nginx Proxy Manager 主机吗？现有主机设置会保留，但这些访问规则将影响所有域名。",
     "default_deny_active": "阻止允许的 IP 之外的所有内容均处于活动状态，并且也将在 NPM 上强制执行。",
     "mirror_default_deny_warning": "高影响：NPM 在 Home Assistant 之前应用此功能。",
     "enabled": "边缘保护已激活。",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "无需进行任何更改。",
     "set_options": "应用选项。",
     "export_config": "备份已保存到 {path}",
     "import_config": "已从 {path} 恢复备份",

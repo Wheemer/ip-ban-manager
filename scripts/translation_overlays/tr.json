@@ -279,7 +279,8 @@
       "npm_select_host": "Proxy ana bilgisayarı seçildi.",
       "npm_sync": "Nginx Proxy Manager kuralları senkronize edildi.",
       "npm_disconnect": "Nginx Proxy Manager bağlantısı kesildi.",
-      "set_options": "Seçenekler uygulandı."
+      "set_options": "Seçenekler uygulandı.",
+      "no_changes": "Herhangi bir değişiklik gerekmedi."
     },
     "allowed_regions": {
       "title": "Genel Bölge Kilidi",
@@ -329,7 +330,10 @@
       "last_sync": "Son senkronizasyon: {date}",
       "sync": "Şimdi senkronize et",
       "disconnect": "Bağlantıyı kes",
-      "disconnect_confirm": "Nginx Proxy Manager bağlantısı kesilsin mi? IP Ban Manager'nin kuralları seçilen proxy ana bilgisayarından kaldırılacak."
+      "disconnect_confirm": "Nginx Proxy Manager bağlantısı kesilsin mi? IP Ban Manager'nin kuralları seçilen proxy ana bilgisayarından kaldırılacak.",
+      "protect_all_domains": "Tüm NPM alan adlarını koru",
+      "protect_all_domains_hint": "Bu kuralları daha sonra eklenenler dahil tüm etkin proxy ana bilgisayarlarına uygulayın.",
+      "protect_all_domains_warning": "IP Ban Manager kuralları tüm etkin Nginx Proxy Manager ana bilgisayarlarına uygulansın mı? Mevcut ana bilgisayar ayarları korunur ancak bu erişim kuralları tüm alan adlarını etkiler."
     }
   },
   "entity": {

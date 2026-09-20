@@ -5,7 +5,79 @@
 # flake8: noqa
 # ruff: noqa: F403,F405
 
+import asyncio
+
+from homeassistant.core import Context
+from homeassistant.exceptions import Unauthorized
+
+from custom_components.ip_ban_manager import ban_ops
+
 from .test_setup import *
+
+
+@pytest.mark.asyncio
+async def test_mutating_services_require_admin_for_user_calls(
+    hass: HomeAssistant,
+) -> None:
+    """Signed-in non-admin users cannot mutate the security policy."""
+    await setup_ip_ban_manager(hass)
+    user = MockNonAdminUser()
+    hass.auth.async_get_user = AsyncMock(return_value=user)
+
+    with pytest.raises(Unauthorized):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_IP_BAN,
+            {ATTR_IP_ADDRESS: "10.0.0.1"},
+            blocking=True,
+            context=Context(user_id="non-admin-user"),
+        )
+
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    assert ip_address("10.0.0.1") not in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
+async def test_mutating_services_allow_admin_user_calls(
+    hass: HomeAssistant,
+    tmp_path: Path,
+) -> None:
+    """Signed-in administrators can mutate the security policy."""
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    hass.auth.async_get_user = AsyncMock(return_value=MockAdminUser())
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_IP_BAN,
+        {ATTR_IP_ADDRESS: "10.0.0.1"},
+        blocking=True,
+        context=Context(user_id="admin-user"),
+    )
+
+    assert ip_address("10.0.0.1") in ban_manager.ip_bans_lookup
+
+
+@pytest.mark.asyncio
+async def test_mutating_services_allow_internal_automation_calls(
+    hass: HomeAssistant,
+    tmp_path: Path,
+) -> None:
+    """Automations without a user context retain access to management services."""
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_IP_BAN,
+        {ATTR_IP_ADDRESS: "10.0.0.1"},
+        blocking=True,
+        context=Context(),
+    )
+
+    assert ip_address("10.0.0.1") in ban_manager.ip_bans_lookup
 
 
 @pytest.mark.asyncio
@@ -78,6 +150,73 @@ async def test_remove_all_ip_bans_service(
     assert ban_manager.ip_bans_lookup == {}
     assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS] == {}
     assert not Path(ban_manager.path).exists()
+
+
+@pytest.mark.asyncio
+async def test_failed_ban_file_write_restores_live_enforcement(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failed persistence write must not weaken the live exact-ban lookup."""
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    remote_addr = ip_address("10.0.0.1")
+    existing_ban = IpBan(remote_addr)
+    ban_manager.ip_bans_lookup[remote_addr] = existing_ban
+    hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] = 3
+
+    async def fail_write(*_args: object) -> None:
+        raise OSError("disk unavailable")
+
+    monkeypatch.setattr(ban_ops, "_async_rewrite_ip_bans_file_unlocked", fail_write)
+
+    with pytest.raises(OSError, match="disk unavailable"):
+        await ban_ops.async_remove_ip_ban(hass, str(remote_addr))
+
+    assert ban_manager.ip_bans_lookup[remote_addr] is existing_ban
+    assert hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] == 3
+
+
+@pytest.mark.asyncio
+async def test_concurrent_exact_ban_changes_are_serialized(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A native ban cannot interleave with a transactional ban-list rewrite."""
+    await setup_ip_ban_manager(hass)
+    ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
+    ban_manager.path = str(tmp_path / "ip_bans.yaml")
+    first_addr = ip_address("10.0.0.1")
+    second_addr = ip_address("10.0.0.2")
+    await ban_manager.async_add_ban(first_addr)
+
+    write_started = Event()
+    allow_write = Event()
+    original_rewrite = ban_ops._async_rewrite_ip_bans_file_unlocked
+
+    async def pause_rewrite(hass_: HomeAssistant, ban_manager_: IpBanManager) -> None:
+        write_started.set()
+        await allow_write.wait()
+        await original_rewrite(hass_, ban_manager_)
+
+    monkeypatch.setattr(ban_ops, "_async_rewrite_ip_bans_file_unlocked", pause_rewrite)
+
+    remove_task = hass.async_create_task(
+        ban_ops.async_remove_ip_ban(hass, str(first_addr))
+    )
+    await wait_for(write_started.wait(), timeout=1)
+    add_task = hass.async_create_task(ban_manager.async_add_ban(second_addr))
+    await asyncio.sleep(0)
+    assert not add_task.done()
+
+    allow_write.set()
+    await asyncio.gather(remove_task, add_task)
+
+    assert first_addr not in ban_manager.ip_bans_lookup
+    assert second_addr in ban_manager.ip_bans_lookup
+    persisted = yaml.safe_load(Path(ban_manager.path).read_text(encoding="utf8"))
+    assert set(persisted) == {str(second_addr)}
 
 
 @pytest.mark.asyncio

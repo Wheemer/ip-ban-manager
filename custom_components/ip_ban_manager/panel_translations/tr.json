@@ -155,6 +155,9 @@
     "select": "Seç",
     "edge_protection": "Kenar koruması",
     "edge_protection_hint": "Nginx Proxy Manager'de IP Ban Manager kurallarını uygulayın.",
+    "protect_all_domains": "Tüm NPM alan adlarını koru",
+    "protect_all_domains_hint": "Bu kuralları daha sonra eklenenler dahil tüm etkin proxy ana bilgisayarlarına uygulayın.",
+    "protect_all_domains_warning": "IP Ban Manager kuralları tüm etkin Nginx Proxy Manager ana bilgisayarlarına uygulansın mı? Mevcut ana bilgisayar ayarları korunur ancak bu erişim kuralları tüm alan adlarını etkiler.",
     "default_deny_active": "İzin Verilen IP'ler dışındaki her şeyi engelle seçeneği etkindir ve ayrıca NPM'de de uygulanacaktır.",
     "mirror_default_deny_warning": "Yüksek etki: NPM bunu Home Assistant'den önce uygular.",
     "enabled": "Kenar koruması etkin.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Herhangi bir değişiklik gerekmedi.",
     "set_options": "Seçenekler uygulandı.",
     "export_config": "Yedek {path} konumuna kaydedildi",
     "import_config": "Yedek {path} konumundan geri yüklendi",

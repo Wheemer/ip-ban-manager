@@ -155,6 +155,9 @@
     "select": "Seleccioneu",
     "edge_protection": "Protecció de vora",
     "edge_protection_hint": "Apliqueu les regles IP Ban Manager a Nginx Proxy Manager.",
+    "protect_all_domains": "Protegeix tots els dominis NPM",
+    "protect_all_domains_hint": "Aplica aquestes regles a tots els amfitrions intermediaris actius, inclosos els que s'afegeixin més endavant.",
+    "protect_all_domains_warning": "Voleu aplicar les regles d'IP Ban Manager a tots els amfitrions actius de Nginx Proxy Manager? La configuració existent dels amfitrions es conserva, però aquestes regles d'accés afectaran tots els dominis.",
     "default_deny_active": "Bloquejar tot el que estigui fora de les IP permeses està actiu i també s'aplicarà a NPM.",
     "mirror_default_deny_warning": "Alt impacte: NPM ho aplica abans de Home Assistant.",
     "enabled": "La protecció de vora està activa.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "No calia fer cap canvi.",
     "set_options": "Opcions aplicades.",
     "export_config": "Còpia de seguretat desada a {path}",
     "import_config": "Còpia de seguretat restaurada des de {path}",

@@ -53,10 +53,10 @@ def wait_for_http(port: int, host: str = "localhost", timeout: float = 60.0):
     print(f"Waiting for http://{host}:{port}")
     while True:
         try:
-            res = requests.get(f"http://{host}:{port}")
+            res = requests.get(f"http://{host}:{port}", timeout=5)
             res.raise_for_status()
             break
-        except requests.exceptions.ConnectionError as ex:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as ex:
             if not isinstance(ex.args[0], ProtocolError):
                 print("Waiting", ex.args)
             if time.time() - start_time >= timeout:
@@ -174,6 +174,7 @@ def check_res(expected_results: list[int]):
             res = requests.post(
                 "http://localhost:8123/auth/login_flow/b4b20b5004a6baa2a1d903de46886ed2",
                 json={"client_id": "http://localhost:8123/"},
+                timeout=5,
             )
             assert res.ok is False, (res, res.text)
             assert res.status_code == expected_results[index], (
@@ -190,7 +191,9 @@ def check_icon_route(timeout: float = 10.0) -> None:
     start_time = time.time()
     last_response: requests.Response | None = None
     while True:
-        res = requests.get("http://localhost:8123/api/ip_ban_manager/icon.png")
+        res = requests.get(
+            "http://localhost:8123/api/ip_ban_manager/icon.png", timeout=5
+        )
         last_response = res
         if (
             res.ok

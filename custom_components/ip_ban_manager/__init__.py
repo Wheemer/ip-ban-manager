@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import logging
 from collections.abc import Callable
@@ -518,14 +519,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
     _unregister_http_views(hass)
-    _unload_npm_sync(hass)
+    await _unload_npm_sync(hass)
     _async_remove_panel(hass)
+    tasks: list[asyncio.Task[object]] = []
     legacy_cleanup_task = hass.data.pop(KEY_LEGACY_FOLDER_CLEANUP_TASK, None)
     if legacy_cleanup_task is not None:
-        legacy_cleanup_task.cancel()
+        if not legacy_cleanup_task.done():
+            legacy_cleanup_task.cancel()
+        tasks.append(legacy_cleanup_task)
     geoip_prepare_task = hass.http.app.pop(KEY_GEOIP_READER_PREPARE_TASK, None)
     if geoip_prepare_task is not None:
-        geoip_prepare_task.cancel()
+        if not geoip_prepare_task.done():
+            geoip_prepare_task.cancel()
+        tasks.append(geoip_prepare_task)
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
     _close_geoip_reader(hass)
     _uninstall_patches(hass)
     hass.http.app.pop(KEY_ALLOWLIST, None)

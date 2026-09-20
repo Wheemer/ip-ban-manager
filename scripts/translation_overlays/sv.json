@@ -279,7 +279,8 @@
       "npm_select_host": "Proxyvärd vald.",
       "npm_sync": "Nginx Proxy Manager regler synkroniserade.",
       "npm_disconnect": "Nginx Proxy Manager frånkopplad.",
-      "set_options": "Tillämpade alternativ."
+      "set_options": "Tillämpade alternativ.",
+      "no_changes": "Inga ändringar behövdes."
     },
     "allowed_regions": {
       "title": "Offentlig regionlås",
@@ -329,7 +330,10 @@
       "last_sync": "Senast synkroniserad: {date}",
       "sync": "Synkronisera nu",
       "disconnect": "Koppla från",
-      "disconnect_confirm": "Koppla bort Nginx Proxy Manager? IP Ban Managers regler kommer att tas bort från den valda proxyvärden."
+      "disconnect_confirm": "Koppla bort Nginx Proxy Manager? IP Ban Managers regler kommer att tas bort från den valda proxyvärden.",
+      "protect_all_domains": "Skydda alla NPM-domäner",
+      "protect_all_domains_hint": "Tillämpa dessa regler på alla aktiva proxyvärdar, även värdar som läggs till senare.",
+      "protect_all_domains_warning": "Tillämpa IP Ban Manager-regler på alla aktiva Nginx Proxy Manager-värdar? Befintliga värdinställningar behålls, men dessa åtkomstregler påverkar alla domäner."
     }
   },
   "entity": {

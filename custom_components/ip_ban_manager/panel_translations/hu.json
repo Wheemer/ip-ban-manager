@@ -155,6 +155,9 @@
     "select": "Válassza ki",
     "edge_protection": "Élvédelem",
     "edge_protection_hint": "Alkalmazza a IP Ban Manager szabályokat a Nginx Proxy Manager webhelyen.",
+    "protect_all_domains": "Az összes NPM-tartomány védelme",
+    "protect_all_domains_hint": "A szabályok alkalmazása minden aktív proxyállomásra, beleértve a később hozzáadottakat is.",
+    "protect_all_domains_warning": "Alkalmazza az IP Ban Manager szabályait minden aktív Nginx Proxy Manager-állomásra? A meglévő beállítások megmaradnak, de ezek a hozzáférési szabályok minden tartományt érintenek.",
     "default_deny_active": "Az Engedélyezett IP-címeken kívül minden letiltása aktív, és a NPM-nél is kényszerítve lesz.",
     "mirror_default_deny_warning": "Nagy hatás: A NPM ezt a Home Assistant előtt alkalmazza.",
     "enabled": "Az élvédelem aktív.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Nem volt szükség módosításra.",
     "set_options": "Alkalmazott opciók.",
     "export_config": "Biztonsági mentés mentve ide: {path}",
     "import_config": "Biztonsági mentés visszaállítva innen: {path}",

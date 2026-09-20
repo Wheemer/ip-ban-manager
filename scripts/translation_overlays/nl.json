@@ -280,7 +280,8 @@
       "npm_select_host": "Proxyhost geselecteerd.",
       "npm_sync": "Nginx Proxy Manager-regels gesynchroniseerd.",
       "npm_disconnect": "Nginx Proxy Manager verbinding verbroken.",
-      "set_options": "Opties toegepast."
+      "set_options": "Opties toegepast.",
+      "no_changes": "Er waren geen wijzigingen nodig."
     },
     "allowed_regions": {
       "title": "Openbare regiovergrendeling",
@@ -330,7 +331,10 @@
       "last_sync": "Laatst gesynchroniseerd: {date}",
       "sync": "Synchroniseer nu",
       "disconnect": "Verbreek de verbinding",
-      "disconnect_confirm": "Nginx Proxy Manager ontkoppelen? De regels van IP Ban Manager worden verwijderd van de geselecteerde proxyhost."
+      "disconnect_confirm": "Nginx Proxy Manager ontkoppelen? De regels van IP Ban Manager worden verwijderd van de geselecteerde proxyhost.",
+      "protect_all_domains": "Alle NPM-domeinen beveiligen",
+      "protect_all_domains_hint": "Pas deze regels toe op alle actieve proxyhosts, ook op hosts die later worden toegevoegd.",
+      "protect_all_domains_warning": "IP Ban Manager-regels toepassen op alle actieve Nginx Proxy Manager-hosts? Bestaande hostinstellingen blijven behouden, maar deze toegangsregels zijn van invloed op elk domein."
     }
   },
   "entity": {

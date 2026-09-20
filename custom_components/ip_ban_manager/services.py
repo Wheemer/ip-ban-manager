@@ -6,6 +6,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.service import async_register_admin_service
 
 from .audit import mutation_source, record_geoip_updated
 from .backup import async_export_config, async_import_config
@@ -95,42 +96,47 @@ def register_services(hass: HomeAssistant) -> None:  # noqa: D202
         await async_download_geoip_database(hass)
         record_geoip_updated(hass, SOURCE_SERVICE)
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_ADD_IP_BAN, add_ip_ban, schema=IP_ADDRESS_SCHEMA
+    async_register_admin_service(
+        hass, DOMAIN, SERVICE_ADD_IP_BAN, add_ip_ban, schema=IP_ADDRESS_SCHEMA
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_REMOVE_IP_BAN, remove_ip_ban, schema=IP_ADDRESS_SCHEMA
+    async_register_admin_service(
+        hass, DOMAIN, SERVICE_REMOVE_IP_BAN, remove_ip_ban, schema=IP_ADDRESS_SCHEMA
     )
-    hass.services.async_register(
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_REMOVE_ALL_IP_BANS,
         remove_all_ip_bans,
         schema=REMOVE_ALL_IP_BANS_SCHEMA,
     )
-    hass.services.async_register(
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_ADD_ALLOWLIST_NETWORK,
         add_allowlist_network,
         schema=NETWORK_SCHEMA,
     )
-    hass.services.async_register(
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_REMOVE_ALLOWLIST_NETWORK,
         remove_allowlist_network,
         schema=NETWORK_SCHEMA,
     )
-    hass.services.async_register(
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_ADD_BLOCKED_NETWORK,
         add_blocked_network,
         schema=NETWORK_SCHEMA,
     )
-    hass.services.async_register(
+    async_register_admin_service(
+        hass,
         DOMAIN,
         SERVICE_REMOVE_BLOCKED_NETWORK,
         remove_blocked_network,
         schema=NETWORK_SCHEMA,
     )
-    hass.services.async_register(DOMAIN, SERVICE_EXPORT_CONFIG, export_config)
-    hass.services.async_register(DOMAIN, SERVICE_IMPORT_CONFIG, import_config)
-    hass.services.async_register(DOMAIN, SERVICE_UPDATE_GEOIP, update_geoip)
+    async_register_admin_service(hass, DOMAIN, SERVICE_EXPORT_CONFIG, export_config)
+    async_register_admin_service(hass, DOMAIN, SERVICE_IMPORT_CONFIG, import_config)
+    async_register_admin_service(hass, DOMAIN, SERVICE_UPDATE_GEOIP, update_geoip)

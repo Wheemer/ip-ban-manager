@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from asyncio import Lock
-from collections.abc import Iterable
+from asyncio import CancelledError, Lock
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 from ipaddress import ip_address
 from pathlib import Path
@@ -61,32 +61,62 @@ def ip_ban_file_payload(ban_manager_: IpBanManager) -> dict[str, dict[str, str]]
     }
 
 
+def ban_file_lock(hass: HomeAssistant) -> Lock:
+    """Return the lock serializing live and persisted exact-ban changes."""
+    return hass.data.setdefault(KEY_BAN_FILE_WRITE_LOCK, Lock())
+
+
+async def _async_rewrite_ip_bans_file_unlocked(
+    hass: HomeAssistant, ban_manager_: IpBanManager
+) -> None:
+    """Rewrite ip_bans.yaml while the caller holds the exact-ban lock."""
+    ban_path = ban_manager_.path
+    ip_bans = ip_ban_file_payload(ban_manager_)
+    snapshots = snapshot_dir(hass)
+
+    def _write_bans() -> bool:
+        path = Path(ban_path)
+        snapshot_created = snapshot_existing_file(path, snapshots)
+        if not ip_bans:
+            path.unlink(missing_ok=True)
+            return snapshot_created
+
+        atomic_write_text(
+            ban_path,
+            yaml.safe_dump(ip_bans, sort_keys=False),
+        )
+        return snapshot_created
+
+    if await hass.async_add_executor_job(_write_bans):
+        metric_increment(hass, "snapshots_created")
+    mark_config_write(hass)
+
+
 async def async_rewrite_ip_bans_file(
     hass: HomeAssistant, ban_manager_: IpBanManager
 ) -> None:
     """Rewrite ip_bans.yaml from a stable snapshot of the live ban manager."""
-    lock = hass.data.setdefault(KEY_BAN_FILE_WRITE_LOCK, Lock())
-    async with lock:
-        ban_path = ban_manager_.path
-        ip_bans = ip_ban_file_payload(ban_manager_)
-        snapshots = snapshot_dir(hass)
+    async with ban_file_lock(hass):
+        await _async_rewrite_ip_bans_file_unlocked(hass, ban_manager_)
 
-        def _write_bans() -> bool:
-            path = Path(ban_path)
-            snapshot_created = snapshot_existing_file(path, snapshots)
-            if not ip_bans:
-                path.unlink(missing_ok=True)
-                return snapshot_created
 
-            atomic_write_text(
-                ban_path,
-                yaml.safe_dump(ip_bans, sort_keys=False),
-            )
-            return snapshot_created
-
-        if await hass.async_add_executor_job(_write_bans):
-            metric_increment(hass, "snapshots_created")
-        mark_config_write(hass)
+async def async_commit_ip_bans(
+    hass: HomeAssistant,
+    ban_manager_: IpBanManager,
+    updated_bans: Mapping[IPAddress, IpBan],
+) -> None:
+    """Persist a replacement ban lookup and restore live state on write failure."""
+    async with ban_file_lock(hass):
+        live_bans = ban_manager_.ip_bans_lookup
+        previous_bans = dict(live_bans)
+        live_bans.clear()
+        live_bans.update(updated_bans)
+        try:
+            await _async_rewrite_ip_bans_file_unlocked(hass, ban_manager_)
+        except (CancelledError, Exception):
+            live_bans.clear()
+            live_bans.update(previous_bans)
+            raise
 
 
 def dismiss_ban_notification_for_ips(
@@ -170,7 +200,8 @@ async def async_remove_ip_ban(
         ) from err
 
     ban_manager_ = ban_manager(hass)
-    removed_ban = ban_manager_.ip_bans_lookup.pop(remote_addr, None)
+    updated_bans = dict(ban_manager_.ip_bans_lookup)
+    removed_ban = updated_bans.pop(remote_addr, None)
     if removed_ban is None:
         if source == SOURCE_PANEL:
             raise HomeAssistantError(f"{remote_addr} is not banned.")
@@ -180,8 +211,8 @@ async def async_remove_ip_ban(
             translation_placeholders={ATTR_IP_ADDRESS: str(remote_addr)},
         )
 
+    await async_commit_ip_bans(hass, ban_manager_, updated_bans)
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
-    await async_rewrite_ip_bans_file(hass, ban_manager_)
     dismiss_ban_notification_for_ips(hass, [remote_addr])
     record_ip_unbanned(hass, str(remote_addr), source)
 
@@ -206,11 +237,14 @@ async def async_remove_allowlisted_ip_bans(hass: HomeAssistant) -> list[IPAddres
     if not removed_addrs:
         return []
 
+    updated_bans = {
+        remote_addr: ip_ban
+        for remote_addr, ip_ban in ban_manager_.ip_bans_lookup.items()
+        if remote_addr not in removed_addrs
+    }
+    await async_commit_ip_bans(hass, ban_manager_, updated_bans)
     for remote_addr in removed_addrs:
-        ban_manager_.ip_bans_lookup.pop(remote_addr, None)
         hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
-
-    await async_rewrite_ip_bans_file(hass, ban_manager_)
     dismiss_ban_notification_for_ips(hass, removed_addrs)
     for remote_addr in removed_addrs:
         record_ip_unbanned(hass, str(remote_addr), SOURCE_SETUP)
@@ -222,9 +256,8 @@ async def async_remove_all_ip_bans(hass: HomeAssistant) -> None:
     """Remove every IP ban immediately."""
     ban_manager_ = ban_manager(hass)
     removed_addrs = list(ban_manager_.ip_bans_lookup)
-    ban_manager_.ip_bans_lookup.clear()
+    await async_commit_ip_bans(hass, ban_manager_, {})
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].clear()
-    await async_rewrite_ip_bans_file(hass, ban_manager_)
     dismiss_ban_notification_for_ips(hass, removed_addrs)
     for remote_addr in removed_addrs:
         record_ip_unbanned(hass, str(remote_addr), SOURCE_SERVICE)
@@ -247,22 +280,19 @@ async def async_replace_ip_bans(
         remote_addr: preserved_bans.get(remote_addr, IpBan(remote_addr))
         for remote_addr in remote_addrs
     }
-    existing_bans.clear()
-    existing_bans.update(
+    await async_commit_ip_bans(
+        hass,
+        ban_manager_,
         {
             ip_ban.ip_address: ip_ban
-            for ip_ban in sorted(
-                updated_bans.values(),
-                key=ip_ban_chronological_key,
-            )
-        }
+            for ip_ban in sorted(updated_bans.values(), key=ip_ban_chronological_key)
+        },
     )
 
     failed_attempts = hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS]
     for remote_addr in removed_addrs | remote_addr_set:
         failed_attempts.pop(remote_addr, None)
 
-    await async_rewrite_ip_bans_file(hass, ban_manager_)
     dismiss_ban_notification_for_ips(hass, removed_addrs)
 
 

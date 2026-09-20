@@ -281,7 +281,8 @@
       "npm_select_host": "已选择代理主机。",
       "npm_sync": "Nginx Proxy Manager规则已同步。",
       "npm_disconnect": "Nginx Proxy Manager 已断开连接。",
-      "set_options": "应用选项。"
+      "set_options": "应用选项。",
+      "no_changes": "无需进行任何更改。"
     },
     "allowed_regions": {
       "title": "公共区域锁",
@@ -331,7 +332,10 @@
       "last_sync": "上次同步：{date}",
       "sync": "立即同步",
       "disconnect": "断开连接",
-      "disconnect_confirm": "断开Nginx Proxy Manager？ IP Ban Manager 的规则将从所选代理主机中删除。"
+      "disconnect_confirm": "断开Nginx Proxy Manager？ IP Ban Manager 的规则将从所选代理主机中删除。",
+      "protect_all_domains": "保护所有 NPM 域名",
+      "protect_all_domains_hint": "将这些规则应用于所有活动的代理主机，包括以后添加的主机。",
+      "protect_all_domains_warning": "要将 IP Ban Manager 规则应用于所有活动的 Nginx Proxy Manager 主机吗？现有主机设置会保留，但这些访问规则将影响所有域名。"
     }
   },
   "entity": {

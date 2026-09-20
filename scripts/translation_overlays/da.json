@@ -279,7 +279,8 @@
       "npm_select_host": "Proxyvært valgt.",
       "npm_sync": "Nginx Proxy Manager regler synkroniseret.",
       "npm_disconnect": "Nginx Proxy Manager afbrudt.",
-      "set_options": "Valgmuligheder anvendt."
+      "set_options": "Valgmuligheder anvendt.",
+      "no_changes": "Ingen ændringer var nødvendige."
     },
     "allowed_regions": {
       "title": "Offentlig regionslås",
@@ -329,7 +330,10 @@
       "last_sync": "Sidst synkroniseret: {date}",
       "sync": "Synkroniser nu",
       "disconnect": "Afbryd forbindelsen",
-      "disconnect_confirm": "Afbryd Nginx Proxy Manager? IP Ban Manager's regler vil blive fjernet fra den valgte proxy-vært."
+      "disconnect_confirm": "Afbryd Nginx Proxy Manager? IP Ban Manager's regler vil blive fjernet fra den valgte proxy-vært.",
+      "protect_all_domains": "Beskyt alle NPM-domæner",
+      "protect_all_domains_hint": "Anvend disse regler på alle aktive proxyværter, også værter der tilføjes senere.",
+      "protect_all_domains_warning": "Anvend IP Ban Manager-regler på alle aktive Nginx Proxy Manager-værter? Eksisterende værtsindstillinger bevares, men disse adgangsregler vil påvirke alle domæner."
     }
   },
   "entity": {

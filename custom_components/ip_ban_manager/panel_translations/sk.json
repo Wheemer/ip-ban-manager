@@ -155,6 +155,9 @@
     "select": "Vyberte",
     "edge_protection": "Ochrana hrán",
     "edge_protection_hint": "Použite pravidlá IP Ban Manager na Nginx Proxy Manager.",
+    "protect_all_domains": "Chrániť všetky domény NPM",
+    "protect_all_domains_hint": "Použiť tieto pravidlá na všetkých aktívnych proxy hostiteľov vrátane tých, ktorí budú pridaní neskôr.",
+    "protect_all_domains_warning": "Použiť pravidlá IP Ban Manager na všetkých aktívnych hostiteľov Nginx Proxy Manager? Existujúce nastavenia hostiteľov zostanú zachované, ale tieto pravidlá prístupu ovplyvnia všetky domény.",
     "default_deny_active": "Blokovanie všetkého mimo povolených adries IP je aktívne a bude vynútené aj na NPM.",
     "mirror_default_deny_warning": "Veľký vplyv: NPM to aplikuje pred Home Assistant.",
     "enabled": "Ochrana hrán je aktívna.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Neboli potrebné žiadne zmeny.",
     "set_options": "Možnosti boli použité.",
     "export_config": "Záloha uložená do {path}",
     "import_config": "Záloha obnovená z {path}",

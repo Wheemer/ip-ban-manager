@@ -279,7 +279,8 @@
       "npm_select_host": "プロキシ ホストが選択されました。",
       "npm_sync": "Nginx Proxy Manager ルールが同期されました。",
       "npm_disconnect": "Nginx Proxy Manager が切断されました。",
-      "set_options": "オプションが適用されました。"
+      "set_options": "オプションが適用されました。",
+      "no_changes": "変更は必要ありませんでした。"
     },
     "allowed_regions": {
       "title": "パブリック領域ロック",
@@ -329,7 +330,10 @@
       "last_sync": "最終同期: {date}",
       "sync": "今すぐ同期する",
       "disconnect": "切断する",
-      "disconnect_confirm": "Nginx Proxy Manager を切断しますか? IP Ban Manager のルールは、選択したプロキシ ホストから削除されます。"
+      "disconnect_confirm": "Nginx Proxy Manager を切断しますか? IP Ban Manager のルールは、選択したプロキシ ホストから削除されます。",
+      "protect_all_domains": "すべての NPM ドメインを保護",
+      "protect_all_domains_hint": "後から追加されるものを含む、すべての有効なプロキシホストにこれらのルールを適用します。",
+      "protect_all_domains_warning": "IP Ban Manager のルールを、すべての有効な Nginx Proxy Manager ホストに適用しますか？既存のホスト設定は維持されますが、これらのアクセスルールはすべてのドメインに影響します。"
     }
   },
   "entity": {

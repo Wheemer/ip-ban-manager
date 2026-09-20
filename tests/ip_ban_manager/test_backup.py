@@ -5,6 +5,8 @@
 # flake8: noqa
 # ruff: noqa: F403,F405
 
+from custom_components.ip_ban_manager import backup as backup_helpers
+
 from .test_setup import *
 
 
@@ -375,3 +377,15 @@ async def test_upload_config_rejects_malformed_backup_values(
             sort_keys=False,
         )
     )
+
+
+@pytest.mark.asyncio
+async def test_upload_config_rejects_oversized_backup(hass: HomeAssistant) -> None:
+    """Test panel uploads have an explicit, bounded input size."""
+    await setup_ip_ban_manager(hass)
+
+    with pytest.raises(HomeAssistantError, match="1 MB or smaller"):
+        await ipbm._async_import_config_from_yaml(  # noqa: SLF001
+            hass,
+            "#" * (backup_helpers.MAX_BACKUP_UPLOAD_BYTES + 1),
+        )

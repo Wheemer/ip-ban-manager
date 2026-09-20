@@ -155,6 +155,9 @@
     "select": "Selecteer",
     "edge_protection": "Randbescherming",
     "edge_protection_hint": "Pas de IP Ban Manager-regels toe op Nginx Proxy Manager.",
+    "protect_all_domains": "Alle NPM-domeinen beveiligen",
+    "protect_all_domains_hint": "Pas deze regels toe op alle actieve proxyhosts, ook op hosts die later worden toegevoegd.",
+    "protect_all_domains_warning": "IP Ban Manager-regels toepassen op alle actieve Nginx Proxy Manager-hosts? Bestaande hostinstellingen blijven behouden, maar deze toegangsregels zijn van invloed op elk domein.",
     "default_deny_active": "Alles blokkeren buiten Toegestane IP's is actief en wordt ook afgedwongen bij NPM.",
     "mirror_default_deny_warning": "Grote impact: NPM past dit toe vóór Home Assistant.",
     "enabled": "Randbeveiliging is actief.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Er waren geen wijzigingen nodig.",
     "set_options": "Opties toegepast.",
     "export_config": "Back-up opgeslagen in {path}",
     "import_config": "Back-up hersteld van {path}",

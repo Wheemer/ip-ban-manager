@@ -35,6 +35,48 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../custom_components/ip
   assert.match(form, /npm-connect-form/);
   assert.match(form, /value="http:\/\/npm.test:81"/);
   assert.match(form, /value="owner@test.invalid"/);
+  const configured = panel._npmOptions({
+    configured: true,
+    proxy_host_id: 4,
+    protect_all_domains: true,
+    hosts: [{ id: 4, domain_names: ['ha.test'] }],
+  });
+  assert.match(configured, /id="npm-protect-all-domains"[^>]*checked/);
+  assert.match(configured, /npm\.protect_all_domains_hint/);
+  assert.match(configured, /class="npm-disconnect-row"[\s\S]*id="npm-disconnect"/);
+  assert.match(configured, /class="npm-action-row npm-action-row-apply"[\s\S]*id="npm-apply"/);
+  const suggested = panel._npmOptions({ configured: false, suggested_url: 'http://192.168.2.66:81' });
+  assert.match(suggested, /value="http:\/\/192.168.2.66:81"/);
+  assert.doesNotMatch(suggested, /ha\.test/);
+  assert.match(suggested, /form="npm-connect-form"/);
+  const unchanged = { settings: { auto_ban_enabled: true } };
+  assert.equal(
+    panel._successMessage(
+      'set_options',
+      unchanged,
+      unchanged,
+      { options: { auto_ban_enabled: true } }
+    ),
+    'success.no_changes'
+  );
+  assert.equal(
+    panel._successMessage(
+      'add_allowlist',
+      { settings: { ip_addresses: [] } },
+      { settings: { ip_addresses: ['192.0.2.1'] } },
+      { value: '192.0.2.1' }
+    ),
+    'add · allowed_ips.title · 192.0.2.1'
+  );
+  assert.equal(
+    panel._successMessage(
+      'set_options',
+      { settings: { auto_ban_enabled: false } },
+      { settings: { auto_ban_enabled: true } },
+      { options: { auto_ban_enabled: true } }
+    ),
+    'Options applied. settings.auto_ban_enabled'
+  );
   panel._api = async () => { throw new Error('Unavailable'); };
   assert.equal(await panel._post('npm_disconnect'), false);
   assert.match(panel._error, /Unavailable/);

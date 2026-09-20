@@ -277,7 +277,8 @@
       "npm_select_host": "Hôte proxy sélectionné.",
       "npm_sync": "Règles Nginx Proxy Manager synchronisées.",
       "npm_disconnect": "Nginx Proxy Manager déconnecté.",
-      "set_options": "Options appliquées."
+      "set_options": "Options appliquées.",
+      "no_changes": "Aucune modification n'était nécessaire."
     },
     "allowed_regions": {
       "title": "Verrouillage de région publique",
@@ -327,7 +328,10 @@
       "last_sync": "Dernière synchronisation : {date}",
       "sync": "Synchronisez maintenant",
       "disconnect": "Déconnecter",
-      "disconnect_confirm": "Déconnecter Nginx Proxy Manager ? Les règles de IP Ban Manager seront supprimées de l'hôte proxy sélectionné."
+      "disconnect_confirm": "Déconnecter Nginx Proxy Manager ? Les règles de IP Ban Manager seront supprimées de l'hôte proxy sélectionné.",
+      "protect_all_domains": "Proteger tous les domaines NPM",
+      "protect_all_domains_hint": "Appliquer ces règles à tous les hôtes proxy actifs, y compris ceux ajoutés ultérieurement.",
+      "protect_all_domains_warning": "Appliquer les règles IP Ban Manager à tous les hôtes Nginx Proxy Manager actifs ? Les paramètres existants sont conservés, mais ces règles d'accès affecteront tous les domaines."
     }
   },
   "entity": {

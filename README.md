@@ -178,12 +178,12 @@ Home Assistant's own exact interface addresses and IPv6 link-local access paths 
 
 IP Ban Manager can optionally enforce its managed rules at NGINX Proxy Manager before unwanted requests reach Home Assistant. Connect with the NPM URL, account email, and password. The password is exchanged for an API token and is not stored by IP Ban Manager.
 
-IP Ban Manager matches Home Assistant's configured external hostname against NPM proxy hosts. A single exact hostname match is selected automatically; if there is no unique exact match, the panel asks you to select the correct proxy host. Enabling edge protection then mirrors Allowed IPs, exact IP bans, blocked networks, and **Block everything outside Allowed IPs**. Changes synchronize automatically whenever the managed policy changes.
+IP Ban Manager matches Home Assistant's configured external hostname against NPM proxy hosts. A single exact hostname match is selected automatically; if there is no unique exact match, the panel asks you to select the correct proxy host. Enabling edge protection then mirrors Allowed IPs, exact IP bans, blocked networks, and **Block everything outside Allowed IPs**. Changes synchronize automatically whenever the managed policy changes. **Protect all NPM domains** extends the same access policy to every active Proxy Host, including hosts added later; Home Assistant callback exceptions remain limited to the selected Home Assistant host.
 
-Only the clearly marked IP Ban Manager block in that proxy host's advanced configuration is changed. Existing NPM settings and unrelated advanced configuration are preserved. Disconnecting removes the managed block and the stored token.
+Only the clearly marked IP Ban Manager block in each protected host's advanced configuration is changed. Existing NPM settings and unrelated advanced configuration are preserved. Disabling or disconnecting removes our marked blocks from every host IP Ban Manager managed; disconnecting also removes the stored token.
 
 > [!WARNING]
-> NPM evaluates edge rules before a request reaches Home Assistant. When **Protect integration callbacks** is enabled, IP Ban Manager mirrors the same protected callback routes to NPM. Exact IP bans still apply to those routes.
+> NPM evaluates edge rules before a request reaches Home Assistant. When **Protect integration callbacks** is enabled, IP Ban Manager mirrors the same protected callback routes to the selected Home Assistant Proxy Host. Exact IP bans still apply to those routes.
 
 ## Backup And Restore
 
@@ -251,7 +251,9 @@ This does not uninstall the integration and does not remove Home Assistant's nat
 
 ## Services
 
-IP Ban Manager adds services for scripts and automations:
+IP Ban Manager adds services for scripts and automations. Calls made by signed-in
+users require an administrator account; internal automation calls continue to work
+without a user context.
 
 - `ip_ban_manager.add_ip_ban`
 - `ip_ban_manager.remove_ip_ban`

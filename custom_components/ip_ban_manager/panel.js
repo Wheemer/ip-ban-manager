@@ -178,6 +178,7 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   async _post(action, extra = {}) {
+    const previousData = this._data;
     this._updateGeneration = (this._updateGeneration || 0) + 1;
     this._busy = true;
     this._error = "";
@@ -206,7 +207,10 @@ class IPBanManagerPanel extends HTMLElement {
       if (action === "download_config" && result?.download?.content) {
         this._triggerBrowserDownload(result.download);
       }
-      this._showToast(this._successMessage(action), "success");
+      this._showToast(
+        this._successMessage(action, previousData, this._data, extra),
+        "success"
+      );
       ok = true;
     } catch (err) {
       this._error = this._errorMessage(err);
@@ -259,7 +263,80 @@ class IPBanManagerPanel extends HTMLElement {
     URL.revokeObjectURL(url);
   }
 
-  _successMessage(action) {
+  _sameValue(left, right) {
+    return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+  }
+
+  _changedOptionKeys(before, after, options = {}) {
+    const npmKeys = {
+      npm_edge_protection_enabled: "enabled",
+      npm_protect_all_domains: "protect_all_domains",
+    };
+    return Object.keys(options).filter((key) => {
+      if (key === "confirmed") return false;
+      if (npmKeys[key]) {
+        return !this._sameValue(
+          before?.nginx_proxy_manager?.[npmKeys[key]],
+          after?.nginx_proxy_manager?.[npmKeys[key]]
+        );
+      }
+      return !this._sameValue(before?.settings?.[key], after?.settings?.[key]);
+    });
+  }
+
+  _actionChanged(action, before, after, extra) {
+    const paths = {
+      add_allowlist: ["settings", "ip_addresses"],
+      remove_allowlist: ["settings", "ip_addresses"],
+      add_blocked_network: ["settings", "blocked_networks"],
+      remove_blocked_network: ["settings", "blocked_networks"],
+      add_ban: ["status", "banned_ips"],
+      remove_ban: ["status", "banned_ips"],
+      set_public_region: ["settings", "public_region_rules"],
+      remove_public_region: ["settings", "public_region_rules"],
+      silence_allowlisted_login: ["settings", "silenced_allowlisted_login_ips"],
+      unsilence_allowlisted_login: ["settings", "silenced_allowlisted_login_ips"],
+    };
+    if (action === "set_options") {
+      return this._changedOptionKeys(before, after, extra.options).length > 0;
+    }
+    const path = paths[action];
+    if (!path || !before || !after) return true;
+    const read = (source) => path.reduce((value, key) => value?.[key], source);
+    return !this._sameValue(read(before), read(after));
+  }
+
+  _optionLabel(key) {
+    const keys = {
+      auto_ban_enabled: "settings.auto_ban_enabled",
+      ban_notifications_enabled: "settings.ban_notifications_enabled",
+      blocked_request_logging_enabled: "settings.blocked_request_logging_enabled",
+      callback_route_protection_enabled: "settings.callback_route_protection_enabled",
+      allowlisted_login_notifications_enabled: "settings.allowlisted_login_notifications_enabled",
+      allowlisted_logins_can_ban: "settings.allowlisted_logins_can_ban",
+      default_deny_enabled: "settings.default_deny_enabled",
+      geoip_enabled: "settings.geoip_enabled",
+      sidebar_panel_enabled: "settings.sidebar_panel_enabled",
+      login_attempts_threshold: "settings.login_attempts_threshold",
+      public_region_enabled: "region_list.enabled",
+      npm_edge_protection_enabled: "npm.edge_protection",
+      npm_protect_all_domains: "npm.protect_all_domains",
+    };
+    return this._t(keys[key] || key);
+  }
+
+  _localizedList(values) {
+    try {
+      return new Intl.ListFormat(this._language(), {
+        style: "short",
+        type: "conjunction",
+      }).format(values);
+    } catch (_) {
+      return values.join(", ");
+    }
+  }
+
+  _successMessage(action, before = null, after = this._data, extra = {}) {
     const path = this._data?.backup?.path || "/config/ip_ban_manager/ip-ban-manager-backup.yaml";
     const fallbacks = {
       set_options: "Options applied.",
@@ -273,11 +350,43 @@ class IPBanManagerPanel extends HTMLElement {
       npm_sync: "Nginx Proxy Manager rules synchronized.",
       npm_disconnect: "Nginx Proxy Manager disconnected.",
     };
+    if (!this._actionChanged(action, before, after, extra)) {
+      return this._t("success.no_changes");
+    }
     const key = `success.${action}`;
+    const translated = this._data?.translations?.[key]
+      ? this._t(key, { path })
+      : fallbacks[action] || "Done.";
+    if (action === "set_options") {
+      const labels = this._changedOptionKeys(before, after, extra.options)
+        .map((option) => this._optionLabel(option));
+      return labels.length
+        ? `${translated} ${this._localizedList(labels)}`
+        : translated;
+    }
+    const valueActions = {
+      add_allowlist: ["add", "allowed_ips.title"],
+      remove_allowlist: ["remove", "allowed_ips.title"],
+      add_ban: ["block", "blocked_ips.title"],
+      remove_ban: ["remove", "blocked_ips.title"],
+      add_blocked_network: ["add", "blocked_networks.title"],
+      remove_blocked_network: ["remove", "blocked_networks.title"],
+      set_public_region: ["apply", "allowed_regions.title"],
+      remove_public_region: ["remove", "allowed_regions.title"],
+      silence_allowlisted_login: ["add", "silenced_logins.title"],
+      unsilence_allowlisted_login: ["remove", "silenced_logins.title"],
+    };
+    if (valueActions[action] && extra.value) {
+      const [verb, section] = valueActions[action];
+      const threshold = action === "set_public_region"
+        ? ` · ${Number(extra.threshold)} ${this._t("regional_thresholds.attempts")}`
+        : "";
+      return `${this._t(verb)} · ${this._t(section)} · ${extra.value}${threshold}`;
+    }
     if (this._data?.translations?.[key]) {
       return this._t(key, { path });
     }
-    return fallbacks[action] || "Done.";
+    return translated;
   }
 
   _handleInitialAction() {
@@ -402,18 +511,15 @@ class IPBanManagerPanel extends HTMLElement {
         .grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          grid-template-areas:
-            "options allowed"
-            "blocked regions"
-            "networks regions";
           gap: 16px;
           align-items: start;
         }
-        .options-section { grid-area: options; }
-        .allowed-ips-section { grid-area: allowed; }
-        .allowed-regions-section { grid-area: regions; }
-        .blocked-ips-section { grid-area: blocked; }
-        .blocked-networks-section { grid-area: networks; }
+        .column {
+          display: flex;
+          min-width: 0;
+          flex-direction: column;
+          gap: 16px;
+        }
         section {
           background: var(--card-background-color);
           border: 1px solid var(--divider-color);
@@ -534,13 +640,11 @@ class IPBanManagerPanel extends HTMLElement {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 8px;
         }
-        .npm-connect-form #npm-url,
-        .npm-connect-form .button-row { grid-column: 1 / -1; }
-        .npm-connect-form .button-row { justify-content: flex-end; }
+        .npm-connect-form #npm-url { grid-column: 1 / -1; }
         .npm-details { display: grid; gap: 6px; }
         .npm-controls { display: grid; gap: 12px; margin-top: 12px; }
+        .npm-block { margin-top: 14px; }
         .npm-settings {
-          margin-top: 14px;
           padding: 10px 12px;
           border: 1px solid var(--divider-color);
           border-radius: 6px;
@@ -562,8 +666,15 @@ class IPBanManagerPanel extends HTMLElement {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
+          margin-top: 12px;
         }
-        .npm-settings > .npm-action-row { margin-top: 10px; }
+        .npm-action-row-connect { justify-content: flex-end; }
+        .npm-action-row-apply { justify-content: flex-end; }
+        .npm-disconnect-row {
+          display: flex;
+          justify-content: flex-start;
+          margin-top: 10px;
+        }
         .npm-action-row .button-row { justify-content: flex-end; }
         .npm-select-row {
           display: grid;
@@ -751,14 +862,15 @@ class IPBanManagerPanel extends HTMLElement {
           :host { padding: 12px; }
           h1 { font-size: 26px; }
           .grid {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-              "options"
-              "allowed"
-              "regions"
-              "blocked"
-              "networks";
+            display: flex;
+            flex-direction: column;
           }
+          .column { display: contents; }
+          .options-section { order: 1; }
+          .allowed-ips-section { order: 2; }
+          .allowed-regions-section { order: 3; }
+          .blocked-ips-section { order: 4; }
+          .blocked-networks-section { order: 5; }
           .options { grid-template-columns: 1fr; }
           form { grid-template-columns: 1fr; }
           .npm-connect-form, .npm-select-row { grid-template-columns: 1fr; }
@@ -833,9 +945,29 @@ class IPBanManagerPanel extends HTMLElement {
 
     this._updateChromeLabels();
     this._sectionMarkup = this._sections();
-    content.innerHTML = `<div class="grid">${[...this._sectionMarkup.values()].join("")}</div>`;
+    content.innerHTML = this._gridMarkup(this._sectionMarkup);
     this._renderToast();
     this._wireEvents();
+  }
+
+  _gridMarkup(sections) {
+    const column = (className, keys) => `
+      <div class="column ${className}">
+        ${keys.map((key) => sections.get(key) || "").join("")}
+      </div>
+    `;
+    return `
+      <div class="grid">
+        ${column("column-left", ["options-section", "blocked-ips-section", "blocked-networks-section"])}
+        ${column("column-right", ["allowed-ips-section", "allowed-regions-section"])}
+      </div>
+    `;
+  }
+
+  _sectionColumn(key) {
+    return ["allowed-ips-section", "allowed-regions-section"].includes(key)
+      ? ".column-right"
+      : ".column-left";
   }
 
   _sections() {
@@ -864,7 +996,7 @@ class IPBanManagerPanel extends HTMLElement {
     try {
       for (const [key, html] of this._sections()) {
         if (html === this._sectionMarkup.get(key)) continue;
-        const previous = grid.querySelector(`:scope > .${key}`);
+        const previous = grid.querySelector(`.${key}`);
         // Preserve a focused action and unsaved inputs; other sections still update.
         if (previous && (previous.contains(this.shadowRoot.activeElement) || this._sectionHasDraft(previous))) continue;
         if (!html) previous?.remove();
@@ -873,7 +1005,7 @@ class IPBanManagerPanel extends HTMLElement {
           template.innerHTML = html;
           const next = template.content.firstElementChild;
           if (previous) previous.replaceWith(next);
-          else grid.append(next);
+          else grid.querySelector(this._sectionColumn(key))?.append(next);
           this._wireEvents({
             getElementById: id => next.querySelector(`#${id}`),
             querySelectorAll: selector => next.querySelectorAll(selector),
@@ -1042,23 +1174,21 @@ class IPBanManagerPanel extends HTMLElement {
 
   _npmOptions(npm) {
     if (!npm.configured || npm.reauth_required) {
-      const currentHost = window.location.hostname;
-      const npmHost = currentHost.includes(":") && !currentHost.startsWith("[")
-        ? `[${currentHost}]`
-        : currentHost;
-      const suggestedUrl = npm.base_url || (npmHost ? `http://${npmHost}:81` : "");
+      const suggestedUrl = npm.base_url || npm.suggested_url || "";
       return `
-        <div class="npm-settings">
-          <h3>${this._t("npm.title")}</h3>
-          <p class="hint">${this._t("npm.hint")}</p>
-          <form id="npm-connect-form" class="npm-connect-form">
-            <input id="npm-url" type="url" value="${this._escape(suggestedUrl)}" placeholder="${this._t("npm.url")}" autocomplete="url">
-            <input id="npm-identity" type="email" value="${this._escape(npm.identity || "")}" placeholder="${this._t("npm.identity")}" autocomplete="username">
-            <input id="npm-secret" type="password" placeholder="${this._t("npm.secret")}" autocomplete="current-password">
-            <div class="button-row">
-              <button class="primary" ${this._busy ? "disabled" : ""}>${this._t("npm.connect")}</button>
-            </div>
-          </form>
+        <div class="npm-block">
+          <div class="npm-settings">
+            <h3>${this._t("npm.title")}</h3>
+            <p class="hint">${this._t("npm.hint")}</p>
+            <form id="npm-connect-form" class="npm-connect-form">
+              <input id="npm-url" type="url" value="${this._escape(suggestedUrl)}" placeholder="${this._t("npm.url")}" autocomplete="url">
+              <input id="npm-identity" type="email" value="${this._escape(npm.identity || "")}" placeholder="${this._t("npm.identity")}" autocomplete="username">
+              <input id="npm-secret" type="password" placeholder="${this._t("npm.secret")}" autocomplete="current-password">
+            </form>
+          </div>
+          <div class="npm-action-row npm-action-row-connect">
+            <button class="primary" type="submit" form="npm-connect-form" ${this._busy ? "disabled" : ""}>${this._t("npm.connect")}</button>
+          </div>
         </div>
       `;
     }
@@ -1076,9 +1206,10 @@ class IPBanManagerPanel extends HTMLElement {
       return `<option value="${Number(host.id)}" ${Number(host.id) === Number(npm.proxy_host_id) ? "selected" : ""}>${this._escape(label)}</option>`;
     }).join("");
     return `
-      <div class="npm-settings">
-        <h3>${this._t("npm.title")}</h3>
-        <div class="npm-configured-layout">
+      <div class="npm-block">
+        <div class="npm-settings">
+          <h3>${this._t("npm.title")}</h3>
+          <div class="npm-configured-layout">
           <div class="npm-details">
             <strong>${selectedLabel ? this._escape(selectedLabel) : this._t("npm.connected_short")}</strong>
             ${connectionDetails ? `<small>${this._escape(connectionDetails)}</small>` : ""}
@@ -1100,16 +1231,28 @@ class IPBanManagerPanel extends HTMLElement {
                   <small>${this._t("npm.edge_protection_hint")}</small>
                 </span>
               </label>
+              <label class="check">
+                <input id="npm-protect-all-domains" type="checkbox" ${npm.protect_all_domains ? "checked" : ""}>
+                <span>
+                  <strong>${this._t("npm.protect_all_domains")}</strong>
+                  <small>${this._t("npm.protect_all_domains_hint")}</small>
+                </span>
+              </label>
               ${this._data?.settings?.default_deny_enabled ? `
                 <div class="allowed-region-warning">${this._t("npm.default_deny_active")}</div>
               ` : ""}
             ` : ""}
           </div>
+          </div>
+          <div class="npm-disconnect-row">
+            <button class="danger" id="npm-disconnect" data-confirm="${this._escape(this._t("npm.disconnect_confirm"))}" ${this._busy ? "disabled" : ""}>${this._t("npm.disconnect")}</button>
+          </div>
         </div>
-        <div class="npm-action-row">
-          <button class="danger" id="npm-disconnect" data-confirm="${this._escape(this._t("npm.disconnect_confirm"))}" ${this._busy ? "disabled" : ""}>${this._t("npm.disconnect")}</button>
-          ${selectedLabel ? `<button class="primary" id="npm-apply" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>` : ""}
-        </div>
+        ${selectedLabel ? `
+          <div class="npm-action-row npm-action-row-apply">
+            <button class="primary" id="npm-apply" ${this._busy ? "disabled" : ""}>${this._t("apply")}</button>
+          </div>
+        ` : ""}
       </div>
     `;
   }
@@ -1457,6 +1600,16 @@ class IPBanManagerPanel extends HTMLElement {
         const enabled = Boolean(
           root.getElementById("npm-edge-protection")?.checked
         );
+        const protectAllDomains = Boolean(
+          root.getElementById("npm-protect-all-domains")?.checked
+        );
+        if (
+          protectAllDomains &&
+          !this._data?.nginx_proxy_manager?.protect_all_domains &&
+          !window.confirm(this._t("npm.protect_all_domains_warning"))
+        ) {
+          return;
+        }
         if (
           enabled &&
           this._data?.settings?.default_deny_enabled &&
@@ -1465,7 +1618,10 @@ class IPBanManagerPanel extends HTMLElement {
           return;
         }
         this._post("set_options", {
-          options: { npm_edge_protection_enabled: enabled },
+          options: {
+            npm_edge_protection_enabled: enabled,
+            npm_protect_all_domains: protectAllDomains,
+          },
         });
       });
     }

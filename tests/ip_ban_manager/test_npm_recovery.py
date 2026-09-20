@@ -1,5 +1,6 @@
 """Regression coverage for real NPM 2.15.1 failure responses."""
 
+from asyncio import Event
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -237,9 +238,34 @@ async def test_token_renewal_scheduled_before_expiry_and_removed_on_unload(
         },
     )
     assert timer.call_args.args[2] == expires - timedelta(hours=1)
-    npm.unload_npm_sync(hass)
+    await npm.unload_npm_sync(hass)
     remove.assert_called_once()
     assert npm.KEY_NPM_TOKEN_TIMER not in hass.data
+
+
+@pytest.mark.asyncio
+async def test_unload_waits_for_cancelled_npm_worker(hass):
+    """Unload must not leave a cancelled NPM worker running into reload."""
+    await setup_ip_ban_manager(hass)
+    worker_started = Event()
+    worker_stopped = Event()
+
+    async def worker() -> None:
+        worker_started.set()
+        try:
+            await Event().wait()
+        finally:
+            worker_stopped.set()
+
+    task = hass.async_create_task(worker())
+    hass.data[npm.KEY_NPM_SYNC_TASK] = task
+    await worker_started.wait()
+
+    await npm.unload_npm_sync(hass)
+
+    assert task.cancelled()
+    assert worker_stopped.is_set()
+    assert npm.KEY_NPM_SYNC_TASK not in hass.data
 
 
 @pytest.mark.asyncio
@@ -314,4 +340,4 @@ async def test_token_renewal_never_updates_proxy_configuration(hass, monkeypatch
     await npm._async_refresh_token(hass)
     assert npm.entry_npm_config(entry)["token"] == "fresh"
     client.update_proxy_host_policy.assert_not_awaited()
-    npm.unload_npm_sync(hass)
+    await npm.unload_npm_sync(hass)

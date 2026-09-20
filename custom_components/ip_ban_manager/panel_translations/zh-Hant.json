@@ -155,6 +155,9 @@
     "select": "選擇",
     "edge_protection": "邊緣保護",
     "edge_protection_hint": "在 Nginx Proxy Manager 應用 IP Ban Manager 規則。",
+    "protect_all_domains": "保護所有 NPM 網域",
+    "protect_all_domains_hint": "將這些規則套用至所有作用中的代理主機，包括日後新增的主機。",
+    "protect_all_domains_warning": "要將 IP Ban Manager 規則套用至所有作用中的 Nginx Proxy Manager 主機嗎？現有主機設定會保留，但這些存取規則將影響所有網域。",
     "default_deny_active": "阻止允許的 IP 以外的所有內容均處於活動狀態，並且也將在 NPM 上強制執行。",
     "mirror_default_deny_warning": "高影響：NPM 在 Home Assistant 之前應用此功能。",
     "enabled": "邊緣保護已啟動。",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "不需要進行任何變更。",
     "set_options": "應用選項。",
     "export_config": "備份已儲存到 {path}",
     "import_config": "已從 {path} 還原備份",

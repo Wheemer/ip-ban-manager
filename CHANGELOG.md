@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.8.7
+
+IP Ban Manager 1.8.7 expands NGINX Proxy Manager coverage and hardens state-changing operations across the integration.
+
+### Added
+
+- Added an optional **Protect all NPM domains** setting that applies managed rules to every active NGINX Proxy Manager host, including hosts added later.
+- Added fully localized, outcome-aware panel messages that identify changed settings and affected addresses, networks, and regions, while reporting when no change was needed.
+
+### Improved
+
+- NGINX Proxy Manager synchronization now reconciles managed blocks across multiple hosts, removes stale managed blocks, preserves unrelated advanced configuration, and rolls back every affected host if an update fails.
+- The panel now uses independent desktop columns to avoid large vertical gaps, keeps NPM actions aligned with the rest of the interface, and suggests a local Home Assistant address for NPM connections.
+- All 25 non-English panel locales include native strings for all-domain NPM protection and no-change feedback.
+
+### Fixed
+
+- Exact-ban changes are serialized and transactional, restoring live state if writing `ip_bans.yaml` fails or is cancelled.
+- Signed-in service calls now require a Home Assistant administrator while internal automations continue to work normally.
+- Browser backup uploads are limited to 1 MB before parsing.
+- Integration unload now cancels and awaits NPM, GeoIP, and cleanup work so reloads cannot leave stale background tasks behind.
+
 ## v1.8.6
 
 IP Ban Manager 1.8.6 adds focused blocked-request diagnostics and refines the live panel.

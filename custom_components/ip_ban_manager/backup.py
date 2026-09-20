@@ -21,7 +21,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from .ban_ops import (
-    async_rewrite_ip_bans_file,
+    async_commit_ip_bans,
     ban_manager,
     dismiss_ban_notification_for_ips,
     ip_ban_chronological_key,
@@ -114,10 +114,17 @@ from .runtime_options import (
 from .storage_keys import KEY_ALLOWLIST, KEY_CONFIG_ENTRY
 
 CONFIG_EXPORT_FORMAT_VERSION = 3
+MAX_BACKUP_UPLOAD_BYTES = 1024 * 1024
 _NPM_STRING_FIELDS = ("base_url", "identity", "token", "token_expires")
 _NPM_ID_FIELDS = ("proxy_host_id", "exact_match_host_id", "access_list_id")
-_NPM_BOOL_FIELDS = ("enabled", "mirror_default_deny")
-_NPM_BACKUP_FIELDS = (*_NPM_STRING_FIELDS, *_NPM_ID_FIELDS, *_NPM_BOOL_FIELDS)
+_NPM_BOOL_FIELDS = ("enabled", "mirror_default_deny", "protect_all_domains")
+_NPM_LIST_FIELDS = ("managed_host_ids",)
+_NPM_BACKUP_FIELDS = (
+    *_NPM_STRING_FIELDS,
+    *_NPM_ID_FIELDS,
+    *_NPM_BOOL_FIELDS,
+    *_NPM_LIST_FIELDS,
+)
 
 
 def _npm_backup_config(entry: ConfigEntry) -> dict[str, object]:
@@ -157,6 +164,16 @@ def _npm_from_import(settings: dict[str, object]) -> dict[str, object] | None:
         config[key] = value
     for key in _NPM_BOOL_FIELDS:
         config[key] = _bool_from_import(raw, key, False)
+    managed_host_ids = raw.get("managed_host_ids", [])
+    if (
+        not isinstance(managed_host_ids, list)
+        or any(type(value) is not int or value < 1 for value in managed_host_ids)
+        or len(set(managed_host_ids)) != len(managed_host_ids)
+    ):
+        raise HomeAssistantError(
+            "Invalid NGINX Proxy Manager managed_host_ids in backup."
+        )
+    config["managed_host_ids"] = managed_host_ids
     if bool(config["base_url"]) != bool(config["token"]):
         raise HomeAssistantError("NPM backups require both a URL and an API token.")
     if config["enabled"] and (not config["base_url"] or not config["proxy_host_id"]):
@@ -329,24 +346,26 @@ async def async_restore_exact_bans(hass: HomeAssistant, bans: list[IpBan]) -> No
     existing_bans = manager.ip_bans_lookup
     removed_addrs = set(existing_bans) - {ban.ip_address for ban in bans}
 
-    existing_bans.clear()
-    existing_bans.update(
+    await async_commit_ip_bans(
+        hass,
+        manager,
         {
             ip_ban.ip_address: ip_ban
             for ip_ban in sorted(bans, key=ip_ban_chronological_key)
-        }
+        },
     )
 
     failed_attempts = hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS]
     for remote_addr in removed_addrs | set(existing_bans):
         failed_attempts.pop(remote_addr, None)
 
-    await async_rewrite_ip_bans_file(hass, manager)
     dismiss_ban_notification_for_ips(hass, removed_addrs)
 
 
 async def async_import_config_from_yaml(hass: HomeAssistant, content: str) -> None:
     """Import IP Ban Manager settings from uploaded YAML backup content."""
+    if len(content.encode("utf-8")) > MAX_BACKUP_UPLOAD_BYTES:
+        raise HomeAssistantError("Backup file must be 1 MB or smaller.")
     try:
         payload = yaml.safe_load(content) or {}
     except yaml.YAMLError as err:

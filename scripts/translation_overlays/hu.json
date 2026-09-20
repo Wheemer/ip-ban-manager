@@ -279,7 +279,8 @@
       "npm_select_host": "Proxy gazdagép kiválasztva.",
       "npm_sync": "A Nginx Proxy Manager szabályok szinkronizálva.",
       "npm_disconnect": "Nginx Proxy Manager leválasztva.",
-      "set_options": "Alkalmazott opciók."
+      "set_options": "Alkalmazott opciók.",
+      "no_changes": "Nem volt szükség módosításra."
     },
     "allowed_regions": {
       "title": "Nyilvános régiózár",
@@ -329,7 +330,10 @@
       "last_sync": "Utolsó szinkronizálás: {date}",
       "sync": "Szinkronizálás most",
       "disconnect": "Leválasztás",
-      "disconnect_confirm": "A Nginx Proxy Manager leválasztása? A IP Ban Manager szabályai el lesznek távolítva a kiválasztott proxy gazdagépről."
+      "disconnect_confirm": "A Nginx Proxy Manager leválasztása? A IP Ban Manager szabályai el lesznek távolítva a kiválasztott proxy gazdagépről.",
+      "protect_all_domains": "Az összes NPM-tartomány védelme",
+      "protect_all_domains_hint": "A szabályok alkalmazása minden aktív proxyállomásra, beleértve a később hozzáadottakat is.",
+      "protect_all_domains_warning": "Alkalmazza az IP Ban Manager szabályait minden aktív Nginx Proxy Manager-állomásra? A meglévő beállítások megmaradnak, de ezek a hozzáférési szabályok minden tartományt érintenek."
     }
   },
   "entity": {

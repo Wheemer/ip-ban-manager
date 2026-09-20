@@ -279,7 +279,8 @@
       "npm_select_host": "Вибрано проксі-сервер.",
       "npm_sync": "Правила Nginx Proxy Manager синхронізовано.",
       "npm_disconnect": "Nginx Proxy Manager відключено.",
-      "set_options": "Застосовані параметри."
+      "set_options": "Застосовані параметри.",
+      "no_changes": "Зміни не були потрібні."
     },
     "allowed_regions": {
       "title": "Блокування публічного регіону",
@@ -329,7 +330,10 @@
       "last_sync": "Остання синхронізація: {date}",
       "sync": "Синхронізувати зараз",
       "disconnect": "Відключити",
-      "disconnect_confirm": "Відключити Nginx Proxy Manager? Правила IP Ban Manager буде видалено з вибраного проксі-сервера."
+      "disconnect_confirm": "Відключити Nginx Proxy Manager? Правила IP Ban Manager буде видалено з вибраного проксі-сервера.",
+      "protect_all_domains": "Захистити всі домени NPM",
+      "protect_all_domains_hint": "Застосувати ці правила до всіх активних проксі-вузлів, включно з доданими пізніше.",
+      "protect_all_domains_warning": "Застосувати правила IP Ban Manager до всіх активних вузлів Nginx Proxy Manager? Наявні налаштування буде збережено, але ці правила доступу вплинуть на всі домени."
     }
   },
   "entity": {

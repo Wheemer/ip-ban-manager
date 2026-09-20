@@ -202,6 +202,7 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
         raise HomeAssistantError("Options must be a JSON object.")
 
     npm_enabled = options.get("npm_edge_protection_enabled")
+    npm_protect_all = options.get("npm_protect_all_domains")
     entry = _config_entry(hass)
     region_settings = entry_public_region_settings(hass, entry)
     region_changed = (
@@ -326,16 +327,27 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     entry = update_entry_options(hass, **current_options)
     apply_ban_settings(hass, entry)
     apply_blocked_networks(hass, entry)
-    if npm_enabled is None:
+    if npm_enabled is None and npm_protect_all is None:
         schedule_npm_sync(hass)
     else:
         npm_manager = importlib.import_module(
             "custom_components.ip_ban_manager.nginx_proxy_manager"
         )
-        if coerce_panel_boolean(npm_enabled):
-            await npm_manager.async_enable_npm(hass)
+        npm_config = npm_manager.entry_npm_config(entry)
+        enabled = (
+            bool(npm_config.get("enabled"))
+            if npm_enabled is None
+            else coerce_panel_boolean(npm_enabled)
+        )
+        protect_all = (
+            bool(npm_config.get("protect_all_domains"))
+            if npm_protect_all is None
+            else coerce_panel_boolean(npm_protect_all)
+        )
+        if enabled:
+            await npm_manager.async_enable_npm(hass, protect_all_domains=protect_all)
         else:
-            await npm_manager.async_disable_npm(hass)
+            await npm_manager.async_disable_npm(hass, protect_all_domains=protect_all)
     await async_register_panel(
         hass, sidebar_enabled=bool(current_options[CONF_SIDEBAR_PANEL_ENABLED])
     )

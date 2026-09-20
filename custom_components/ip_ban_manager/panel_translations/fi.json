@@ -155,6 +155,9 @@
     "select": "Valitse",
     "edge_protection": "Reunasuojaus",
     "edge_protection_hint": "Käytä IP Ban Manager-sääntöjä osoitteessa Nginx Proxy Manager.",
+    "protect_all_domains": "Suojaa kaikki NPM-verkkotunnukset",
+    "protect_all_domains_hint": "Käytä näitä sääntöjä kaikkiin aktiivisiin välityspalvelimiin, myös myöhemmin lisättäviin.",
+    "protect_all_domains_warning": "Käytetäänkö IP Ban Managerin sääntöjä kaikkiin aktiivisiin Nginx Proxy Manager -palvelimiin? Nykyiset palvelinasetukset säilyvät, mutta nämä käyttösäännöt vaikuttavat kaikkiin verkkotunnuksiin.",
     "default_deny_active": "Estä kaikki sallittujen IP-osoitteiden ulkopuolella on aktiivinen, ja se pakotetaan myös NPM:ssä.",
     "mirror_default_deny_warning": "Suuri vaikutus: NPM käyttää tätä ennen Home Assistant:tä.",
     "enabled": "Reunasuojaus on aktiivinen.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Muutoksia ei tarvittu.",
     "set_options": "Vaihtoehdot käytössä.",
     "export_config": "Varmuuskopio tallennettu kohteeseen {path}",
     "import_config": "Varmuuskopio palautettu kohteesta {path}",

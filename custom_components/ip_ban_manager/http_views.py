@@ -46,8 +46,6 @@ from .nginx_proxy_manager import (
     async_enable_npm,
     async_select_npm_host,
     async_sync_npm,
-    setup_npm_sync,
-    unload_npm_sync,
 )
 from .notifications import (
     ALLOWLISTED_LOGIN_SILENCE_URL,
@@ -170,14 +168,6 @@ RUNTIME_BINDINGS: dict[str, tuple[str, str]] = {
     "async_sync_npm": (
         "custom_components.ip_ban_manager.nginx_proxy_manager",
         "async_sync_npm",
-    ),
-    "setup_npm_sync": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "setup_npm_sync",
-    ),
-    "unload_npm_sync": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "unload_npm_sync",
     ),
     "dismiss_allowlisted_login_notifications": (
         "custom_components.ip_ban_manager.notifications",
@@ -629,7 +619,6 @@ def runtime_module_mtimes(modules: dict[str, ModuleType]) -> dict[str, float]:
 def register_http_views(hass: HomeAssistant) -> None:
     """Register HTTP API views once and bind reloadable handlers on each setup."""
     install_http_view_handlers(hass)
-    setup_npm_sync(hass)
     if hass.data.get(KEY_HTTP_VIEWS):
         return
 
@@ -649,6 +638,5 @@ def register_http_views(hass: HomeAssistant) -> None:
 
 def unregister_http_views(hass: HomeAssistant) -> None:
     """Detach live handlers; sticky HA routes stay but refuse requests."""
-    unload_npm_sync(hass)
     hass.data.pop(KEY_HTTP_VIEW_HANDLERS, None)
     hass.data.pop(KEY_HTTP_VIEWS, None)

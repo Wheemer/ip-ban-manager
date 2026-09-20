@@ -279,7 +279,8 @@
       "npm_select_host": "Amfitrió intermediari seleccionat.",
       "npm_sync": "Regles Nginx Proxy Manager sincronitzades.",
       "npm_disconnect": "Nginx Proxy Manager desconnectat.",
-      "set_options": "Opcions aplicades."
+      "set_options": "Opcions aplicades.",
+      "no_changes": "No calia fer cap canvi."
     },
     "allowed_regions": {
       "title": "Bloqueig de la Regió Pública",
@@ -329,7 +330,10 @@
       "last_sync": "Última sincronització: {date}",
       "sync": "Sincronitza ara",
       "disconnect": "Desconnecta",
-      "disconnect_confirm": "Desconnecteu Nginx Proxy Manager? Les regles de IP Ban Manager s'eliminaran de l'amfitrió intermediari seleccionat."
+      "disconnect_confirm": "Desconnecteu Nginx Proxy Manager? Les regles de IP Ban Manager s'eliminaran de l'amfitrió intermediari seleccionat.",
+      "protect_all_domains": "Protegeix tots els dominis NPM",
+      "protect_all_domains_hint": "Aplica aquestes regles a tots els amfitrions intermediaris actius, inclosos els que s'afegeixin més endavant.",
+      "protect_all_domains_warning": "Voleu aplicar les regles d'IP Ban Manager a tots els amfitrions actius de Nginx Proxy Manager? La configuració existent dels amfitrions es conserva, però aquestes regles d'accés afectaran tots els dominis."
     }
   },
   "entity": {

@@ -279,7 +279,8 @@
       "npm_select_host": "Gazdă proxy selectată.",
       "npm_sync": "Regulile Nginx Proxy Manager au fost sincronizate.",
       "npm_disconnect": "Nginx Proxy Manager deconectat.",
-      "set_options": "Opțiuni aplicate."
+      "set_options": "Opțiuni aplicate.",
+      "no_changes": "Nu au fost necesare modificări."
     },
     "allowed_regions": {
       "title": "Blocarea regiunii publice",
@@ -329,7 +330,10 @@
       "last_sync": "Ultima sincronizare: {date}",
       "sync": "Sincronizează acum",
       "disconnect": "Deconectați-vă",
-      "disconnect_confirm": "Deconectați Nginx Proxy Manager? Regulile lui IP Ban Manager vor fi eliminate din gazda proxy selectată."
+      "disconnect_confirm": "Deconectați Nginx Proxy Manager? Regulile lui IP Ban Manager vor fi eliminate din gazda proxy selectată.",
+      "protect_all_domains": "Protejează toate domeniile NPM",
+      "protect_all_domains_hint": "Aplică aceste reguli tuturor gazdelor proxy active, inclusiv celor adăugate ulterior.",
+      "protect_all_domains_warning": "Aplicați regulile IP Ban Manager tuturor gazdelor active Nginx Proxy Manager? Setările existente vor fi păstrate, dar aceste reguli de acces vor afecta toate domeniile."
     }
   },
   "entity": {

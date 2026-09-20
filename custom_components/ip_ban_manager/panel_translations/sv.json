@@ -155,6 +155,9 @@
     "select": "Välj",
     "edge_protection": "Kantskydd",
     "edge_protection_hint": "Tillämpa IP Ban Manager-regler på Nginx Proxy Manager.",
+    "protect_all_domains": "Skydda alla NPM-domäner",
+    "protect_all_domains_hint": "Tillämpa dessa regler på alla aktiva proxyvärdar, även värdar som läggs till senare.",
+    "protect_all_domains_warning": "Tillämpa IP Ban Manager-regler på alla aktiva Nginx Proxy Manager-värdar? Befintliga värdinställningar behålls, men dessa åtkomstregler påverkar alla domäner.",
     "default_deny_active": "Blockera allt utanför tillåtna IP-adresser är aktivt och kommer även att tillämpas på NPM.",
     "mirror_default_deny_warning": "Hög effekt: NPM tillämpar detta före Home Assistant.",
     "enabled": "Kantskydd är aktivt.",
@@ -178,6 +181,7 @@
     }
   },
   "success": {
+    "no_changes": "Inga ändringar behövdes.",
     "set_options": "Tillämpade alternativ.",
     "export_config": "Backup sparad till {path}",
     "import_config": "Backup återställd från {path}",

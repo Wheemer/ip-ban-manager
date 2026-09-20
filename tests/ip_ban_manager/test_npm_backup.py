@@ -28,6 +28,8 @@ def npm_config(enabled: bool = True) -> dict[str, object]:
         "access_list_id": 0,
         "enabled": enabled,
         "mirror_default_deny": False,
+        "protect_all_domains": True,
+        "managed_host_ids": [4, 8],
     }
 
 
@@ -87,6 +89,11 @@ async def test_legacy_backup_leaves_npm_unchanged(
         [],
         {"enabledd": False},
         {"enabled": "not-a-bool"},
+        {"protect_all_domains": "not-a-bool"},
+        {"managed_host_ids": "4"},
+        {"managed_host_ids": [4, 4]},
+        {"managed_host_ids": [0]},
+        {"managed_host_ids": [True]},
         {"proxy_host_id": True},
         {"proxy_host_id": -1},
         {"proxy_host_id": 2.5},

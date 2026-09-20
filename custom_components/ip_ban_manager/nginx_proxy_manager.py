@@ -7,6 +7,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
+from ipaddress import IPv6Address, ip_address
 from urllib.parse import urlsplit, urlunsplit
 
 from aiohttp import ClientError, ClientResponse, ClientTimeout
@@ -128,6 +129,24 @@ def external_hostname(hass: HomeAssistant) -> str:
     return hostname.rstrip(".").lower() if hostname else ""
 
 
+def suggested_npm_url(hass: HomeAssistant) -> str:
+    """Return an NPM origin suggestion using Home Assistant's local API IP."""
+    api = getattr(hass.config, "api", None)
+    raw_address = str(getattr(api, "local_ip", "") or "").strip()
+    try:
+        address = ip_address(raw_address)
+    except ValueError:
+        return ""
+    if address.is_unspecified:
+        return ""
+    host = (
+        f"[{address.compressed}]"
+        if isinstance(address, IPv6Address)
+        else address.compressed
+    )
+    return f"http://{host}:81"
+
+
 def _normalized_domain(value: object) -> str:
     domain = str(value or "").strip().rstrip(".").lower()
     try:
@@ -201,6 +220,13 @@ def _stored_list(value: object) -> list[object]:
     return list(value) if isinstance(value, list) else []
 
 
+def _stored_host_ids(value: object) -> set[int]:
+    """Return valid unique proxy-host ids from persistent state."""
+    if not isinstance(value, list):
+        return set()
+    return {host_id for item in value if (host_id := _stored_int(item)) > 0}
+
+
 def npm_panel_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
     """Return non-sensitive NPM state for the panel."""
     config = entry_npm_config(entry)
@@ -209,12 +235,15 @@ def npm_panel_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, objec
         "configured": bool(config.get("base_url") and config.get("token")),
         "enabled": bool(config.get("enabled")),
         "base_url": str(config.get("base_url") or ""),
+        "suggested_url": suggested_npm_url(hass),
         "identity": str(config.get("identity") or ""),
         "external_hostname": external_hostname(hass),
         "proxy_host_id": _stored_int(config.get("proxy_host_id")),
         "exact_match_host_id": _stored_int(config.get("exact_match_host_id")),
         "access_list_id": _stored_int(config.get("access_list_id")),
         "mirror_default_deny": bool(config.get("mirror_default_deny")),
+        "protect_all_domains": bool(config.get("protect_all_domains")),
+        "managed_host_ids": sorted(_stored_host_ids(config.get("managed_host_ids"))),
         "token_expires": str(config.get("token_expires") or ""),
         "matches": _stored_list(runtime.get("matches")),
         "hosts": _stored_list(runtime.get("hosts", config.get("hosts"))),
@@ -503,6 +532,8 @@ async def async_connect_npm(
             "access_list_id": 0,
             "enabled": False,
             "mirror_default_deny": False,
+            "protect_all_domains": False,
+            "managed_host_ids": [],
         },
     )
     _runtime(hass).update(
@@ -545,7 +576,11 @@ async def async_select_npm_host(hass: HomeAssistant, host_id_value: object) -> N
 
 
 def _policy_rules(
-    hass: HomeAssistant, entry: ConfigEntry, default_deny: bool
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    default_deny: bool,
+    *,
+    include_callbacks: bool = True,
 ) -> list[str]:
     """Build ordered NGINX access rules without changing NGINX's default."""
     allows = [
@@ -570,7 +605,7 @@ def _policy_rules(
     )
     if default_deny:
         rules.append("deny all;")
-    if entry_callback_route_protection_enabled(entry):
+    if include_callbacks and entry_callback_route_protection_enabled(entry):
         rules.extend(
             _callback_location_rules(exact_bans, frozenset(hass.config.components))
         )
@@ -719,14 +754,127 @@ async def _apply_proxy_policy(
         await client.delete_access_list(managed_id)
 
 
+async def _reconcile_proxy_policies(
+    client: NpmClient,
+    hosts: list[NpmProxyHost],
+    *,
+    selected_host_id: int,
+    managed_id: int,
+    previous_host_ids: set[int],
+    desired_rules: Mapping[int, list[str]],
+) -> list[int]:
+    """Apply one desired policy set and roll back earlier hosts on failure."""
+    by_id = {host.host_id: host for host in hosts}
+    discovered = {
+        host.host_id
+        for host in hosts
+        if NPM_CONFIG_BEGIN in host.advanced_config
+        or NPM_CONFIG_END in host.advanced_config
+    }
+    operation_ids = (previous_host_ids | discovered | set(desired_rules)) & set(by_id)
+    # The selected host owns any legacy access list. Process it last so deleting
+    # that list cannot be followed by another host failure.
+    ordered_ids = sorted(
+        operation_ids, key=lambda host_id: (host_id == selected_host_id, host_id)
+    )
+    changed: list[NpmProxyHost] = []
+    try:
+        for host_id in ordered_ids:
+            host = by_id[host_id]
+            rules = desired_rules.get(host_id)
+            proposed = (
+                _with_managed_config(host.advanced_config, rules)
+                if rules is not None
+                else _without_managed_config(host.advanced_config)
+            )
+            legacy_id = managed_id if host_id == selected_host_id else 0
+            detach_legacy = bool(legacy_id and host.access_list_id == legacy_id)
+            if proposed.rstrip() != host.advanced_config.rstrip() or detach_legacy:
+                await _apply_proxy_policy(client, host, legacy_id, rules)
+                changed.append(host)
+    except (HomeAssistantError, ClientError, TimeoutError) as err:
+        rollback_errors: list[str] = []
+        for host in reversed(changed):
+            try:
+                await client.update_proxy_host_policy(
+                    host.host_id,
+                    host.advanced_config,
+                    access_list_id=host.access_list_id,
+                )
+            except (HomeAssistantError, ClientError, TimeoutError) as rollback_error:
+                rollback_errors.append(f"host {host.host_id}: {rollback_error}")
+        if rollback_errors:
+            raise HomeAssistantError(
+                f"{err} Restoring earlier proxy hosts also failed: "
+                + "; ".join(rollback_errors)
+            ) from err
+        if changed:
+            raise HomeAssistantError(
+                f"{err} Earlier proxy-host changes were restored."
+            ) from err
+        raise
+    return sorted(desired_rules)
+
+
+async def _reconcile_npm_policy(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    config: Mapping[str, object],
+    client: NpmClient,
+    hosts: list[NpmProxyHost],
+    *,
+    enabled: bool,
+    protect_all_domains: bool,
+) -> list[int]:
+    """Reconcile the selected host or every active proxy host."""
+    selected_host_id = _stored_int(config.get("proxy_host_id"))
+    if enabled and not any(host.host_id == selected_host_id for host in hosts):
+        raise HomeAssistantError(
+            "The selected Nginx Proxy Manager host no longer exists."
+        )
+    desired_rules: dict[int, list[str]] = {}
+    if enabled:
+        default_deny = entry_default_deny_enabled(entry)
+        targets = (
+            [host for host in hosts if host.enabled]
+            if protect_all_domains
+            else [host for host in hosts if host.host_id == selected_host_id]
+        )
+        if not targets:
+            raise HomeAssistantError(
+                "Nginx Proxy Manager has no active proxy hosts to protect."
+            )
+        for host in targets:
+            desired_rules[host.host_id] = _policy_rules(
+                hass,
+                entry,
+                default_deny,
+                include_callbacks=host.host_id == selected_host_id,
+            )
+    previous_host_ids = _stored_host_ids(config.get("managed_host_ids"))
+    if config.get("enabled") and selected_host_id:
+        previous_host_ids.add(selected_host_id)
+    return await _reconcile_proxy_policies(
+        client,
+        hosts,
+        selected_host_id=selected_host_id,
+        managed_id=_stored_int(config.get("access_list_id")),
+        previous_host_ids=previous_host_ids,
+        desired_rules=desired_rules,
+    )
+
+
 def _access_list_name(item: object) -> str:
     return str(item.get("name") or "") if isinstance(item, Mapping) else ""
 
 
 async def async_enable_npm(
-    hass: HomeAssistant, *, mirror_default_deny: bool | None = None
+    hass: HomeAssistant,
+    *,
+    mirror_default_deny: bool | None = None,
+    protect_all_domains: bool | None = None,
 ) -> None:
-    """Enable edge-policy synchronization on the selected proxy host."""
+    """Enable edge-policy synchronization on the configured proxy hosts."""
     entry = _config_entry(hass)
     config = entry_npm_config(entry)
     # The main default-deny option is authoritative; keep the keyword for live reloads.
@@ -738,18 +886,19 @@ async def async_enable_npm(
         hass, str(config.get("base_url") or ""), str(config.get("token") or "")
     )
     hosts = [host for item in await client.proxy_hosts() if (host := _proxy_host(item))]
-    host = next((item for item in hosts if item.host_id == host_id), None)
-    if host is None:
-        raise HomeAssistantError(
-            "The selected Nginx Proxy Manager host no longer exists."
-        )
-
-    managed_id = _stored_int(config.get("access_list_id"))
-    await _apply_proxy_policy(
+    protect_all_domains = (
+        bool(config.get("protect_all_domains"))
+        if protect_all_domains is None
+        else bool(protect_all_domains)
+    )
+    managed_host_ids = await _reconcile_npm_policy(
+        hass,
+        entry,
+        config,
         client,
-        host,
-        managed_id,
-        _policy_rules(hass, entry, mirror_default_deny),
+        hosts,
+        enabled=True,
+        protect_all_domains=protect_all_domains,
     )
     _persist_npm_config(
         hass,
@@ -758,6 +907,8 @@ async def async_enable_npm(
             "access_list_id": 0,
             "enabled": True,
             "mirror_default_deny": bool(mirror_default_deny),
+            "protect_all_domains": protect_all_domains,
+            "managed_host_ids": managed_host_ids,
         },
     )
     _runtime(hass).update(
@@ -771,44 +922,44 @@ async def async_sync_npm(hass: HomeAssistant) -> None:
     config = entry_npm_config(entry)
     if not config.get("enabled"):
         return
-    managed_id = _stored_int(config.get("access_list_id"))
     client = NpmClient(
         hass, str(config.get("base_url") or ""), str(config.get("token") or "")
     )
     refreshed = await client.refresh_token()
-    host_id = _stored_int(config.get("proxy_host_id"))
     hosts = [host for item in await client.proxy_hosts() if (host := _proxy_host(item))]
-    host = next((item for item in hosts if item.host_id == host_id), None)
-    if host is None:
-        raise HomeAssistantError(
-            "The selected Nginx Proxy Manager host no longer exists."
-        )
     mirror_default_deny = entry_default_deny_enabled(entry)
+    protect_all_domains = bool(config.get("protect_all_domains"))
     config = {
         **config,
         **refreshed,
         "access_list_id": 0,
         "mirror_default_deny": mirror_default_deny,
     }
-    await _apply_proxy_policy(
+    managed_host_ids = await _reconcile_npm_policy(
+        hass,
+        entry,
+        config,
         client,
-        host,
-        managed_id,
-        _policy_rules(hass, entry, mirror_default_deny),
+        hosts,
+        enabled=True,
+        protect_all_domains=protect_all_domains,
     )
+    config["managed_host_ids"] = managed_host_ids
     _persist_npm_config(hass, config)
     _runtime(hass).update(
         {"last_sync": dt_util.utcnow().isoformat(), "last_error": None}
     )
 
 
-async def async_disable_npm(hass: HomeAssistant) -> None:
+async def async_disable_npm(
+    hass: HomeAssistant, *, protect_all_domains: bool | None = None
+) -> None:
     """Detach edge protection while keeping the NPM connection available."""
     entry = _config_entry(hass)
     config = entry_npm_config(entry)
     host_id = _stored_int(config.get("proxy_host_id"))
-    managed_id = _stored_int(config.get("access_list_id"))
-    if host_id and config.get("base_url") and config.get("token"):
+    managed_host_ids = _stored_host_ids(config.get("managed_host_ids"))
+    if (host_id or managed_host_ids) and config.get("base_url") and config.get("token"):
         client = NpmClient(
             hass,
             str(config["base_url"]),
@@ -821,9 +972,16 @@ async def async_disable_npm(hass: HomeAssistant) -> None:
             for item in await client.proxy_hosts()
             if (host := _proxy_host(item)) is not None
         ]
-        host = next((item for item in hosts if item.host_id == host_id), None)
-        if host is not None:
-            await _apply_proxy_policy(client, host, managed_id, None)
+        if hosts:
+            await _reconcile_npm_policy(
+                hass,
+                entry,
+                config,
+                client,
+                hosts,
+                enabled=False,
+                protect_all_domains=False,
+            )
     _persist_npm_config(
         hass,
         {
@@ -831,6 +989,12 @@ async def async_disable_npm(hass: HomeAssistant) -> None:
             "access_list_id": 0,
             "enabled": False,
             "mirror_default_deny": False,
+            "protect_all_domains": (
+                bool(config.get("protect_all_domains"))
+                if protect_all_domains is None
+                else bool(protect_all_domains)
+            ),
+            "managed_host_ids": [],
         },
     )
     _runtime(hass).update({"last_sync": None, "last_error": None})
@@ -840,8 +1004,8 @@ async def async_disconnect_npm(hass: HomeAssistant) -> None:
     """Remove the managed proxy rules and forget NPM credentials."""
     config = entry_npm_config(_config_entry(hass))
     host_id = _stored_int(config.get("proxy_host_id"))
-    managed_id = _stored_int(config.get("access_list_id"))
-    if host_id and config.get("base_url") and config.get("token"):
+    managed_host_ids = _stored_host_ids(config.get("managed_host_ids"))
+    if (host_id or managed_host_ids) and config.get("base_url") and config.get("token"):
         client = NpmClient(
             hass,
             str(config["base_url"]),
@@ -853,9 +1017,16 @@ async def async_disconnect_npm(hass: HomeAssistant) -> None:
             for item in await client.proxy_hosts()
             if (host := _proxy_host(item)) is not None
         ]
-        host = next((item for item in hosts if item.host_id == host_id), None)
-        if host is not None:
-            await _apply_proxy_policy(client, host, managed_id, None)
+        if hosts:
+            await _reconcile_npm_policy(
+                hass,
+                _config_entry(hass),
+                config,
+                client,
+                hosts,
+                enabled=False,
+                protect_all_domains=False,
+            )
     _persist_npm_config(hass, {})
     _runtime(hass).clear()
 
@@ -910,15 +1081,22 @@ def setup_npm_sync(hass: HomeAssistant) -> None:
         schedule_npm_sync(hass)
 
 
-def unload_npm_sync(hass: HomeAssistant) -> None:
+async def unload_npm_sync(hass: HomeAssistant) -> None:
     """Remove NPM listeners and cancel a pending sync."""
     for unsubscribe in hass.data.pop(KEY_NPM_UNSUBSCRIBERS, []):
         unsubscribe()
     if remove := hass.data.pop(KEY_NPM_TOKEN_TIMER, None):
         remove()
+    tasks: list[asyncio.Task[object]] = []
     if refresh_task := hass.data.pop(KEY_NPM_TOKEN_TASK, None):
-        refresh_task.cancel()
+        if not refresh_task.done():
+            refresh_task.cancel()
+        tasks.append(refresh_task)
     task = hass.data.pop(KEY_NPM_SYNC_TASK, None)
-    if task is not None and not task.done():
-        task.cancel()
+    if task is not None:
+        if not task.done():
+            task.cancel()
+        tasks.append(task)
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
     hass.data.pop(KEY_NPM_RUNTIME, None)
