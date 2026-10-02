@@ -2,6 +2,7 @@ const PANEL_VERSION = "__VERSION__";
 const PANEL_VERSION_PLACEHOLDER = "__" + "VERSION__";
 const TOAST_SUCCESS_DURATION_MS = 3500;
 const TOAST_ERROR_DURATION_MS = 6500;
+const TOAST_STORAGE_KEY = "ip_ban_manager.pending_toast";
 class IPBanManagerPanel extends HTMLElement {
   set hass(hass) {
     const previousLocale = this._localeSignature(this._hass);
@@ -34,6 +35,7 @@ class IPBanManagerPanel extends HTMLElement {
 
   connectedCallback() {
     this._renderShell();
+    this._restoreToast();
     this._autoRefresh = window.setInterval(() => this._scheduleLoad(), 10000);
   }
 
@@ -234,23 +236,71 @@ class IPBanManagerPanel extends HTMLElement {
     this._toastType = type;
     this._renderToast();
     if (autoHide) {
-      this._scheduleToastClear();
+      const duration =
+        type === "error" ? TOAST_ERROR_DURATION_MS : TOAST_SUCCESS_DURATION_MS;
+      this._storeToast(duration);
+      this._scheduleToastClear(duration);
     } else {
+      this._clearStoredToast();
       window.clearTimeout(this._toastTimer);
     }
   }
 
-  _scheduleToastClear() {
+  _scheduleToastClear(duration) {
     window.clearTimeout(this._toastTimer);
     if (!this._toast) {
       return;
     }
-    const duration =
-      this._toastType === "error" ? TOAST_ERROR_DURATION_MS : TOAST_SUCCESS_DURATION_MS;
     this._toastTimer = window.setTimeout(() => {
       this._toast = "";
+      this._clearStoredToast();
       this._renderToast();
     }, duration);
+  }
+
+  _storeToast(duration) {
+    try {
+      window.sessionStorage?.setItem(
+        TOAST_STORAGE_KEY,
+        JSON.stringify({
+          message: this._toast,
+          type: this._toastType,
+          expiresAt: Date.now() + duration,
+        })
+      );
+    } catch (_) {
+      // Storage can be unavailable in restricted browser sessions.
+    }
+  }
+
+  _restoreToast() {
+    if (this._toast) {
+      return;
+    }
+    try {
+      const stored = JSON.parse(
+        window.sessionStorage?.getItem(TOAST_STORAGE_KEY) || "null"
+      );
+      const remaining = Number(stored?.expiresAt) - Date.now();
+      if (!stored?.message || remaining <= 0) {
+        this._clearStoredToast();
+        return;
+      }
+      this._toast = String(stored.message);
+      this._toastType = stored.type === "error" ? "error" : "success";
+      this._renderToast();
+      this._scheduleToastClear(remaining);
+    } catch (_) {
+      this._clearStoredToast();
+    }
+  }
+
+  _clearStoredToast() {
+    try {
+      window.sessionStorage?.removeItem(TOAST_STORAGE_KEY);
+    } catch (_) {
+      // Storage can be unavailable in restricted browser sessions.
+    }
   }
 
   _triggerBrowserDownload(download) {
@@ -1734,6 +1784,7 @@ class IPBanManagerPanel extends HTMLElement {
     }
     const locale = this._hass?.locale?.language;
     const timeZone = this._resolveTimeZone();
+    const dateFormat = this._hass?.locale?.date_format;
     const options = {
       year: "numeric",
       month: "2-digit",
@@ -1751,7 +1802,35 @@ class IPBanManagerPanel extends HTMLElement {
       options.hour12 = true;
     }
     try {
-      return new Intl.DateTimeFormat(locale, options).format(date);
+      const formatter = new Intl.DateTimeFormat(locale, options);
+      if (!dateFormat || !["DMY", "MDY", "YMD"].includes(dateFormat)) {
+        return formatter.format(date);
+      }
+
+      const parts = formatter.formatToParts(date);
+      const values = Object.fromEntries(
+        parts
+          .filter((part) => ["day", "month", "year"].includes(part.type))
+          .map((part) => [part.type, part.value])
+      );
+      const separator =
+        parts.find((part) => part.type === "literal" && /[^\s]/.test(part.value))
+          ?.value.trim() || "/";
+      const order = {
+        DMY: ["day", "month", "year"],
+        MDY: ["month", "day", "year"],
+        YMD: ["year", "month", "day"],
+      };
+      const datePart = order[dateFormat]
+        .map((part) => values[part])
+        .join(separator);
+      const timePart = new Intl.DateTimeFormat(locale, {
+        hour: "2-digit",
+        minute: "2-digit",
+        ...(timeZone ? { timeZone } : {}),
+        ...(options.hour12 === undefined ? {} : { hour12: options.hour12 }),
+      }).format(date);
+      return `${datePart}, ${timePart}`;
     } catch (err) {
       try {
         return date.toLocaleString(locale, timeZone ? { timeZone } : undefined);
