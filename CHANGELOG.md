@@ -9,6 +9,10 @@ IP Ban Manager 1.8.8 keeps panel feedback visible through Home Assistant panel r
 - **Persistent panel feedback:** success and error toasts now survive sidebar panel re-registration and remain visible for their intended duration.
 - **Localized dates:** panel dates now follow Home Assistant's configured `DMY`, `MDY`, or `YMD` order, server time zone, and 12/24-hour time preference.
 
+### Maintenance
+
+- Updated `uv` to 0.12.19 and refreshed the pinned GitHub Actions used for testing, security analysis, integration validation, and repository automation.
+
 ## v1.8.7
 
 IP Ban Manager 1.8.7 expands NGINX Proxy Manager coverage and hardens state-changing operations across the integration.
