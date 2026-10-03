@@ -32,10 +32,11 @@ def test_parse_npm_access_line() -> None:
         host="ha.example.test",
     )
     assert blocked is not None
+    assert isinstance(blocked["detail"], str)
     assert "possible IP Ban Manager edge-policy deny" in blocked["detail"]
 
     native = activity.parse_npm_access_line(
-        '[03/Oct/2026:12:34:57 -0230] - 200 403 - GET https ha.example.test '
+        "[03/Oct/2026:12:34:57 -0230] - 200 403 - GET https ha.example.test "
         '"/admin?next=/" [Client 203.0.113.9] [Length 12] [Gzip -] '
         '[Sent-to 192.168.1.40:8123] "Test client" "-"',
         host="ha.example.test",
@@ -104,9 +105,7 @@ def test_allowlisted_activity_is_hidden_from_panel_views() -> None:
 
 def test_old_activity_is_not_recent() -> None:
     """The Recent view excludes stale proxy-log tail entries."""
-    assert not activity.is_recent_activity(
-        {"timestamp": "2026-10-01T12:00:00+00:00"}
-    )
+    assert not activity.is_recent_activity({"timestamp": "2026-10-01T12:00:00+00:00"})
 
 
 def test_unparseable_npm_timestamp_is_rejected() -> None:
@@ -175,4 +174,3 @@ async def test_clear_history_keeps_recent_activity(hass, monkeypatch) -> None:
     saved = store.async_save.await_args.args[0]
     assert saved["events"] == []
     assert saved["cleared_at"]
-

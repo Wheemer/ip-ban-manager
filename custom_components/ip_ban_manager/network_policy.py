@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.http import current_request
 
+from .activity import record_activity
 from .audit import (
     record_allowlist_network_added,
     record_allowlist_network_removed,
@@ -27,7 +28,6 @@ from .ban_lookup import (
 )
 from .ban_ops import ban_manager
 from .blocked_request_log import clear_blocked_request_log_state, log_blocked_request
-from .activity import record_activity
 from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_NETWORK,
@@ -189,6 +189,7 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
     logging_enabled = entry_blocked_request_logging_enabled(entry)
+
     def observe_blocked_request(remote_addr: IPAddress, reason: str) -> None:
         request = current_request.get()
         if request is not None:

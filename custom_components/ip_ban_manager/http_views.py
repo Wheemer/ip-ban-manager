@@ -47,8 +47,8 @@ from .network_policy import (
     async_remove_blocked_network,
 )
 from .nginx_proxy_manager import (
-    NPM_REGION_AUTH_SECRET_KEY,
     NPM_REGION_AUTH_PATH,
+    NPM_REGION_AUTH_SECRET_KEY,
     async_connect_npm,
     async_disconnect_npm,
     async_enable_npm,

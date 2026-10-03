@@ -19,12 +19,12 @@ from homeassistant.components.http.ban import (
 from homeassistant.components.http.const import KEY_HASS
 from homeassistant.core import HomeAssistant
 
+from .activity import record_activity
 from .audit import (
     current_mutation_source,
     record_ip_banned,
     record_login_threshold_reached,
 )
-from .activity import record_activity
 from .ban_lookup import NetworkAwareBanLookup, _is_allowed, _normalize_remote_addr
 from .ban_ops import ban_file_lock
 from .const import SOURCE_AUTO

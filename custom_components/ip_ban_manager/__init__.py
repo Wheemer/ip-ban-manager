@@ -95,8 +95,8 @@ from .http_patches import install_load_bans_patch as _install_load_bans_patch
 from .http_patches import install_wrong_login_patch as _install_wrong_login_patch
 from .http_patches import uninstall_patches as _uninstall_patches
 from .http_views import (
-    IPBanManagerNpmRegionAuthorizeView,
     IPBanManagerManageView,
+    IPBanManagerNpmRegionAuthorizeView,
     IPBanManagerPanelView,
     IPBanManagerStatusView,
     SilenceAllowlistedLoginNotificationsView,

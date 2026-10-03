@@ -192,13 +192,10 @@ async def async_detect_npm_addon(hass: HomeAssistant) -> dict[str, object]:
     cached = hass.data.get(KEY_NPM_DISCOVERY_CACHE)
     if isinstance(cached, Mapping):
         try:
-            if (
-                dt_util.utcnow().timestamp() - float(cached.get("fetched_at", 0))
-                < 60
-            ):
-                result = cached.get("result")
-                if isinstance(result, Mapping):
-                    return dict(result)
+            if dt_util.utcnow().timestamp() - float(cached.get("fetched_at", 0)) < 60:
+                cached_result = cached.get("result")
+                if isinstance(cached_result, Mapping):
+                    return dict(cached_result)
         except (TypeError, ValueError):
             pass
 
@@ -552,7 +549,11 @@ async def async_npm_activity(
 ) -> list[dict[str, object]]:
     """Read and parse recent NPM access logs without blocking the panel."""
     config = entry_npm_config(entry)
-    if not config.get("enabled") or not config.get("base_url") or not config.get("token"):
+    if (
+        not config.get("enabled")
+        or not config.get("base_url")
+        or not config.get("token")
+    ):
         return []
 
     runtime = _runtime(hass)
@@ -568,9 +569,7 @@ async def async_npm_activity(
             return cached_events
 
         try:
-            client = NpmClient(
-                hass, str(config["base_url"]), str(config["token"])
-            )
+            client = NpmClient(hass, str(config["base_url"]), str(config["token"]))
             sources = await client.log_sources()
             host_labels: dict[int, str] = {}
             if isinstance(sources, Mapping):
@@ -815,9 +814,7 @@ def _ensure_region_auth_secret(config: Mapping[str, object]) -> dict[str, object
     return {**config, NPM_REGION_AUTH_SECRET_KEY: secrets.token_urlsafe(32)}
 
 
-def _region_auth_rules(
-    hass: HomeAssistant, config: Mapping[str, object]
-) -> list[str]:
+def _region_auth_rules(hass: HomeAssistant, config: Mapping[str, object]) -> list[str]:
     """Build the compact NPM gate used for public-region enforcement."""
     secret = str(config.get(NPM_REGION_AUTH_SECRET_KEY) or "").strip()
     if not secret:

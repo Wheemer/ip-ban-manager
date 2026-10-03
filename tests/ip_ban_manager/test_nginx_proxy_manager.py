@@ -127,7 +127,10 @@ def test_region_auth_rules_use_local_ha_and_compact_npm_gate() -> None:
     assert "auth_request /api/ip_ban_manager/npm-region-auth;" in rendered
     assert 'proxy_set_header X-IP-Ban-Manager-Secret "test-secret";' in rendered
     assert "proxy_set_header X-IP-Ban-Manager-Client-IP $remote_addr;" in rendered
-    assert "proxy_pass http://192.168.1.40:8123/api/ip_ban_manager/npm-region-auth;" in rendered
+    assert (
+        "proxy_pass http://192.168.1.40:8123/api/ip_ban_manager/npm-region-auth;"
+        in rendered
+    )
     assert len(rendered) < 2000
 
 
@@ -243,6 +246,7 @@ async def test_npm_activity_reads_selected_proxy_host_logs(
     assert events[0]["ip"] == "203.0.113.8"
     assert events[0]["host"] == "ha.example.test"
     assert events[1]["ip"] == "203.0.113.9"
+    assert isinstance(events[1]["detail"], str)
     assert "possible IP Ban Manager edge-policy deny" in events[1]["detail"]
     client.log_tail.assert_awaited_once_with(host_id=4)
     assert activity.history_activity(hass)[0]["ip"] == "203.0.113.9"
@@ -277,9 +281,7 @@ async def test_detect_supervisor_npm_addon_prefills_local_url(
             }
 
     class FakeSession:
-        def request(
-            self, method: str, url: str, **kwargs: object
-        ) -> FakeResponse:
+        def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
             responses.append((method, url, kwargs))
             return FakeResponse()
 
@@ -294,9 +296,7 @@ async def test_detect_supervisor_npm_addon_prefills_local_url(
     assert result["addon_name"] == "Nginx Proxy Manager"
     assert result["detected_url"] == "http://192.168.2.66:81"
     assert responses[0][0:2] == ("GET", "http://supervisor/addons")
-    assert responses[0][2]["headers"] == {
-        "Authorization": "Bearer supervisor-token"
-    }
+    assert responses[0][2]["headers"] == {"Authorization": "Bearer supervisor-token"}
 
 
 @pytest.mark.asyncio
@@ -328,9 +328,7 @@ async def test_detect_supervisor_ignores_uninstalled_npm_addon(
             }
 
     class FakeSession:
-        def request(
-            self, method: str, url: str, **kwargs: object
-        ) -> FakeResponse:
+        def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
             responses.append((method, url, kwargs))
             return FakeResponse()
 
@@ -505,9 +503,7 @@ async def test_client_authenticate_uses_token_endpoint(
             return {"token": "jwt-token", "expires": "tomorrow"}
 
     class FakeSession:
-        def request(
-            self, method: str, url: str, **kwargs: object
-        ) -> FakeResponse:
+        def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
             requests.append({"method": method, "url": url, **kwargs})
             return FakeResponse()
 

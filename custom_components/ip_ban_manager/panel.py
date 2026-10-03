@@ -78,8 +78,8 @@ from .geoip import (
     async_local_geoip_region,
     async_prepare_geoip_reader,
     close_geoip_reader,
-    geoip_reader,
     geoip_location_for_ip,
+    geoip_reader,
     geoip_status,
 )
 from .i18n import async_load_panel_translations, async_normalize_language
