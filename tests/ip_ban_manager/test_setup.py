@@ -77,6 +77,7 @@ from custom_components.ip_ban_manager import (
     LEGACY_FOLDER_CLEANUP_FAILED_ISSUE_ID,
     LEGACY_YAML_PRESENT_ISSUE_ID,
     NOTIFICATION_ICON_DATA_URL,
+    IPBanManagerNpmRegionAuthorizeView,
     IPBanManagerManageView,
     IPBanManagerPanelView,
     IPBanManagerStatusView,
@@ -730,6 +731,7 @@ async def test_setup_entry_reregisters_http_views_after_unload(
     view_urls = {
         SilenceAllowlistedLoginNotificationsView.url,
         IPBanManagerStatusView.url,
+        IPBanManagerNpmRegionAuthorizeView.url,
         IPBanManagerManageView.url,
     }
 
@@ -741,14 +743,14 @@ async def test_setup_entry_reregisters_http_views_after_unload(
                 resources.add(resource.canonical)
         return len(resources)
 
-    assert count_view_resources() == 3
+    assert count_view_resources() == 4
     assert KEY_HTTP_VIEW_HANDLERS in hass.data
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert KEY_HTTP_VIEWS not in hass.data
     assert KEY_HTTP_VIEW_HANDLERS not in hass.data
-    assert count_view_resources() == 3
+    assert count_view_resources() == 4
 
     response = await IPBanManagerStatusView().get(
         cast(Any, MockViewRequest(hass.http.app))
@@ -762,7 +764,7 @@ async def test_setup_entry_reregisters_http_views_after_unload(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     check_records(caplog.records)
-    assert count_view_resources() == 3
+    assert count_view_resources() == 4
     assert KEY_HTTP_VIEWS in hass.data
     assert KEY_HTTP_VIEW_HANDLERS in hass.data
 

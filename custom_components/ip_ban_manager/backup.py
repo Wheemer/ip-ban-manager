@@ -115,7 +115,13 @@ from .storage_keys import KEY_ALLOWLIST, KEY_CONFIG_ENTRY
 
 CONFIG_EXPORT_FORMAT_VERSION = 3
 MAX_BACKUP_UPLOAD_BYTES = 1024 * 1024
-_NPM_STRING_FIELDS = ("base_url", "identity", "token", "token_expires")
+_NPM_STRING_FIELDS = (
+    "base_url",
+    "identity",
+    "token",
+    "token_expires",
+    "region_auth_secret",
+)
 _NPM_ID_FIELDS = ("proxy_host_id", "exact_match_host_id", "access_list_id")
 _NPM_BOOL_FIELDS = ("enabled", "mirror_default_deny", "protect_all_domains")
 _NPM_LIST_FIELDS = ("managed_host_ids",)

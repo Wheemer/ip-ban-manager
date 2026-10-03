@@ -6,7 +6,7 @@ import asyncio
 import re
 from collections.abc import Mapping
 from datetime import datetime
-from ipaddress import ip_address
+from ipaddress import IPv4Network, IPv6Network, ip_address
 from time import monotonic
 from typing import Final
 from urllib.parse import urlsplit
@@ -20,6 +20,7 @@ KEY_ACTIVITY_HISTORY: Final = "ip_ban_manager_activity_history"
 KEY_ACTIVITY_HISTORY_LOADED: Final = "ip_ban_manager_activity_history_loaded"
 KEY_ACTIVITY_HISTORY_LOAD_TASK: Final = "ip_ban_manager_activity_history_load_task"
 KEY_ACTIVITY_HISTORY_SAVE_TASK: Final = "ip_ban_manager_activity_history_save_task"
+KEY_ACTIVITY_HISTORY_CLEARED_AT: Final = "ip_ban_manager_activity_history_cleared_at"
 KEY_ACTIVITY_NPM_CACHE: Final = "ip_ban_manager_activity_npm_cache"
 KEY_ACTIVITY_NPM_LOCK: Final = "ip_ban_manager_activity_npm_lock"
 MAX_ACTIVITY_EVENTS: Final = 200
@@ -127,11 +128,28 @@ def _history_store(hass: HomeAssistant) -> Store[dict[str, object]]:
     return Store(hass, _ACTIVITY_STORE_VERSION, _ACTIVITY_STORE_KEY)
 
 
+def _history_cutoff(hass: HomeAssistant) -> datetime | None:
+    value = hass.data.get(KEY_ACTIVITY_HISTORY_CLEARED_AT)
+    return value if isinstance(value, datetime) else None
+
+
+def _is_after_history_cutoff(hass: HomeAssistant, event: Mapping[str, object]) -> bool:
+    cutoff = _history_cutoff(hass)
+    if cutoff is None:
+        return True
+    timestamp = dt_util.parse_datetime(str(event.get("timestamp") or ""))
+    return timestamp is not None and timestamp > cutoff
+
+
 async def _async_load_history(hass: HomeAssistant) -> None:
     """Load history without delaying runtime hook installation."""
     existing = list(_history(hass))
     stored = await _history_store(hass).async_load()
     events = stored.get("events") if isinstance(stored, dict) else None
+    cleared_at = stored.get("cleared_at") if isinstance(stored, dict) else None
+    parsed_cleared_at = dt_util.parse_datetime(str(cleared_at or ""))
+    if parsed_cleared_at is not None:
+        hass.data[KEY_ACTIVITY_HISTORY_CLEARED_AT] = parsed_cleared_at
     history = _history(hass)
     combined = _sanitize_events(events) + existing
     unique: dict[tuple[object, ...], dict[str, object]] = {}
@@ -154,7 +172,10 @@ def async_start_history(hass: HomeAssistant) -> None:
 
 async def _async_save_history(hass: HomeAssistant) -> None:
     _prune_history(hass)
-    await _history_store(hass).async_save({"events": list(_history(hass))})
+    payload: dict[str, object] = {"events": list(_history(hass))}
+    if cutoff := _history_cutoff(hass):
+        payload["cleared_at"] = cutoff.isoformat()
+    await _history_store(hass).async_save(payload)
 
 
 async def _async_delayed_save_history(hass: HomeAssistant) -> None:
@@ -198,14 +219,19 @@ async def async_clear_history(hass: HomeAssistant) -> None:
         save_task.cancel()
         await asyncio.gather(save_task, return_exceptions=True)
     _history(hass).clear()
+    cleared_at = dt_util.utcnow()
+    hass.data[KEY_ACTIVITY_HISTORY_CLEARED_AT] = cleared_at
+    hass.data[KEY_ACTIVITY_NPM_CACHE] = None
     if hass.data.get(KEY_ACTIVITY_HISTORY_LOADED):
-        await _history_store(hass).async_save({"events": []})
+        await _history_store(hass).async_save(
+            {"events": [], "cleared_at": cleared_at.isoformat()}
+        )
 
 
 def history_activity(hass: HomeAssistant) -> list[dict[str, object]]:
     """Return persisted, sanitized activity from the last 24 hours."""
     _prune_history(hass)
-    return [dict(event) for event in _history(hass)[:MAX_ACTIVITY_HISTORY_DISPLAY_EVENTS]]
+    return group_activity(_history(hass))[:MAX_ACTIVITY_HISTORY_DISPLAY_EVENTS]
 
 
 def _events(hass: HomeAssistant) -> list[dict[str, object]]:
@@ -260,7 +286,7 @@ def record_activity(
     del events[:-MAX_ACTIVITY_EVENTS]
     if hass.data.get(KEY_ACTIVITY_HISTORY_LOADED):
         clean_event = _sanitize_event(event)
-        if clean_event is None:
+        if clean_event is None or not _is_after_history_cutoff(hass, clean_event):
             return
         history = _history(hass)
         if not any(_event_key(existing) == _event_key(clean_event) for existing in history):
@@ -272,10 +298,84 @@ def record_activity(
 def local_activity(hass: HomeAssistant) -> list[dict[str, object]]:
     """Return recent Home Assistant activity without internal bookkeeping."""
     _prune(hass)
-    return [
+    return group_activity([
         {key: value for key, value in event.items() if not key.startswith("_")}
         for event in reversed(_events(hass))
-    ]
+    ])
+
+
+def group_activity(events: list[Mapping[str, object]]) -> list[dict[str, object]]:
+    """Group activity into one current summary per source IP."""
+    grouped: dict[str, dict[str, object]] = {}
+    counts: dict[str, int] = {}
+    sources: dict[str, set[str]] = {}
+    for event in events:
+        ip_value = str(event.get("ip") or "")
+        if not ip_value:
+            continue
+        counts[ip_value] = counts.get(ip_value, 0) + int(event.get("request_count") or 1)
+        event_sources = event.get("sources")
+        if isinstance(event_sources, list):
+            sources.setdefault(ip_value, set()).update(
+                str(source) for source in event_sources if source
+            )
+        else:
+            sources.setdefault(ip_value, set()).add(str(event.get("source") or ""))
+        current = grouped.get(ip_value)
+        if current is None or str(event.get("timestamp") or "") > str(
+            current.get("timestamp") or ""
+        ):
+            grouped[ip_value] = dict(event)
+
+    summaries: list[dict[str, object]] = []
+    for ip_value, event in grouped.items():
+        event["request_count"] = counts[ip_value]
+        event["sources"] = sorted(source for source in sources[ip_value] if source)
+        summaries.append(event)
+    return sorted(
+        summaries,
+        key=lambda event: str(event.get("timestamp") or ""),
+        reverse=True,
+    )
+
+
+def without_allowlisted_activity(
+    events: list[Mapping[str, object]],
+    allowlist: tuple[IPv4Network | IPv6Network, ...],
+) -> list[dict[str, object]]:
+    """Remove trusted sources from the panel activity views."""
+    filtered: list[dict[str, object]] = []
+    for event in events:
+        try:
+            address = ip_address(str(event.get("ip") or ""))
+        except ValueError:
+            continue
+        if any(address in network for network in allowlist):
+            continue
+        filtered.append(dict(event))
+    return filtered
+
+
+def is_recent_activity(event: Mapping[str, object]) -> bool:
+    """Return whether an event belongs in the live Recent view."""
+    timestamp = dt_util.parse_datetime(str(event.get("timestamp") or ""))
+    if timestamp is None:
+        return False
+    age = dt_util.utcnow().timestamp() - dt_util.as_utc(timestamp).timestamp()
+    return 0 <= age <= ACTIVITY_MAX_AGE_SECONDS
+
+
+def _parse_log_timestamp(value: str) -> datetime | None:
+    """Parse the timestamp formats emitted by supported NPM log formats."""
+    parsed = dt_util.parse_datetime(value)
+    if parsed is not None:
+        return parsed
+    for timestamp_format in (_NGINX_TIMESTAMP, "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(value, timestamp_format)
+        except ValueError:
+            continue
+    return None
 
 
 def parse_npm_access_line(
@@ -305,11 +405,9 @@ def parse_npm_access_line(
         status = int(status_value)
     except ValueError:
         return None
-    parsed_timestamp = timestamp
-    try:
-        parsed_timestamp = datetime.strptime(log_timestamp, _NGINX_TIMESTAMP)
-    except ValueError:
-        pass
+    parsed_timestamp = timestamp or _parse_log_timestamp(log_timestamp)
+    if parsed_timestamp is None:
+        return None
     return {
         "source": "nginx_proxy_manager",
         "ip": normalized_ip,
@@ -332,21 +430,8 @@ def merge_activity(
     """Return local and NPM activity, newest first, with duplicate rows collapsed."""
     merged: list[dict[str, object]] = [*local_activity(hass)]
     if npm_events:
-        merged.extend(dict(event) for event in npm_events)
-    unique: dict[tuple[object, ...], dict[str, object]] = {}
-    for event in merged:
-        key = (
-            event.get("source"),
-            event.get("ip"),
-            event.get("path"),
-            event.get("method"),
-            event.get("status"),
-            event.get("timestamp"),
-        )
-        unique[key] = event
-    return sorted(
-        unique.values(), key=lambda event: str(event.get("timestamp") or ""), reverse=True
-    )[:MAX_ACTIVITY_EVENTS]
+        merged.extend(dict(event) for event in npm_events if is_recent_activity(event))
+    return group_activity(merged)[:MAX_ACTIVITY_EVENTS]
 
 
 def record_history_events(hass: HomeAssistant, events: list[Mapping[str, object]]) -> None:
@@ -358,7 +443,11 @@ def record_history_events(hass: HomeAssistant, events: list[Mapping[str, object]
     changed = False
     for event in events:
         clean_event = _sanitize_event(event)
-        if clean_event is None or _event_key(clean_event) in existing:
+        if (
+            clean_event is None
+            or not _is_after_history_cutoff(hass, clean_event)
+            or _event_key(clean_event) in existing
+        ):
             continue
         history.append(clean_event)
         existing.add(_event_key(clean_event))

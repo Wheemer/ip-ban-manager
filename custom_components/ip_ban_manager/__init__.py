@@ -95,6 +95,7 @@ from .http_patches import install_load_bans_patch as _install_load_bans_patch
 from .http_patches import install_wrong_login_patch as _install_wrong_login_patch
 from .http_patches import uninstall_patches as _uninstall_patches
 from .http_views import (
+    IPBanManagerNpmRegionAuthorizeView,
     IPBanManagerManageView,
     IPBanManagerPanelView,
     IPBanManagerStatusView,
@@ -318,6 +319,10 @@ _RELOADABLE_BINDINGS: dict[str, tuple[str, str]] = {
     "_install_wrong_login_patch": ("http_patches", "install_wrong_login_patch"),
     "_uninstall_patches": ("http_patches", "uninstall_patches"),
     "IPBanManagerManageView": ("http_views", "IPBanManagerManageView"),
+    "IPBanManagerNpmRegionAuthorizeView": (
+        "http_views",
+        "IPBanManagerNpmRegionAuthorizeView",
+    ),
     "IPBanManagerPanelView": ("http_views", "IPBanManagerPanelView"),
     "IPBanManagerStatusView": ("http_views", "IPBanManagerStatusView"),
     "SilenceAllowlistedLoginNotificationsView": (

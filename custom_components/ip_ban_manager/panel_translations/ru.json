@@ -195,10 +195,11 @@
     "clear_activity_history": "Activity history cleared."
   },
   "activity": {
-    "title": "Recent Incoming Activity",
-    "hint": "Recent requests observed by Home Assistant and Nginx Proxy Manager.",
+    "title": "Incoming Activity",
+    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
     "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
     "none": "No recent activity.",
+    "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
     "retention": "History is retained for 24 hours.",

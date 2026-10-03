@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.9.0
+
+IP Ban Manager 1.9.0 adds lightweight NGINX Proxy Manager edge authorization and a clearer, more reliable incoming-activity view.
+
+### Added
+
+- Added compact NGINX Proxy Manager authorization for public-region protection without uploading large country CIDR lists to each host.
+- Added bounded authorization caching and request-miss limiting for low-powered Home Assistant installations.
+- Added grouped Recent and History activity views with allowlisted sources excluded from the panel.
+
+### Fixed
+
+- Fixed **Clear history** so old NGINX Proxy Manager log entries are not immediately imported again after being cleared.
+- Fixed NGINX Proxy Manager authorization route registration during integration reloads.
+- Renamed the activity section to **Incoming Activity** so the heading describes both tabs.
+
 ## v1.8.9
 
 IP Ban Manager 1.8.9 adds bounded incoming activity history and improves NGINX Proxy Manager setup and connection handling.

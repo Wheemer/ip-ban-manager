@@ -109,6 +109,28 @@ def test_managed_config_replacement_preserves_user_configuration() -> None:
     assert updated.count(npm.NPM_CONFIG_END) == 1
 
 
+def test_region_auth_rules_use_local_ha_and_compact_npm_gate() -> None:
+    """NPM receives an auth subrequest instead of a large country CIDR list."""
+    hass = cast(
+        HomeAssistant,
+        SimpleNamespace(
+            config=SimpleNamespace(api=SimpleNamespace(local_ip="192.168.1.40")),
+            http=SimpleNamespace(server_port=8123),
+        ),
+    )
+
+    rules = npm._region_auth_rules(
+        hass, {npm.NPM_REGION_AUTH_SECRET_KEY: "test-secret"}
+    )
+    rendered = "\n".join(rules)
+
+    assert "auth_request /api/ip_ban_manager/npm-region-auth;" in rendered
+    assert 'proxy_set_header X-IP-Ban-Manager-Secret "test-secret";' in rendered
+    assert "proxy_set_header X-IP-Ban-Manager-Client-IP $remote_addr;" in rendered
+    assert "proxy_pass http://192.168.1.40:8123/api/ip_ban_manager/npm-region-auth;" in rendered
+    assert len(rendered) < 2000
+
+
 def test_callback_locations_bypass_non_exact_edge_restrictions() -> None:
     """NPM callback locations override inherited network/default-deny rules."""
     rules = npm._callback_location_rules(
@@ -125,6 +147,17 @@ def test_callback_locations_bypass_non_exact_edge_restrictions() -> None:
     assert rendered.count("deny 203.0.113.10;") == location_count
     assert rendered.count("allow all;") == location_count
     assert rendered.count("include conf.d/include/proxy.conf;") == location_count
+
+
+def test_region_auth_is_disabled_for_unprotected_callback_locations() -> None:
+    """Unprotected callback routes bypass the inherited NPM region gate."""
+    rendered = "\n".join(
+        npm._callback_location_rules(
+            [], frozenset({"google_assistant"}), region_auth_enabled=True
+        )
+    )
+
+    assert rendered.count("auth_request off;") == rendered.count("location ")
 
 
 def test_unconfigured_named_callback_is_not_added_to_edge_policy() -> None:

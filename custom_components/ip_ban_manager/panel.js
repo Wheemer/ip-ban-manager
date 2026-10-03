@@ -629,6 +629,9 @@ class IPBanManagerPanel extends HTMLElement {
         .activity-row small,
         .activity-row time { color: var(--secondary-text-color); font-size: 13px; }
         .activity-row time { flex: 0 0 auto; white-space: nowrap; }
+        .activity-row-actions { display: grid; justify-items: end; gap: 8px; flex: 0 0 auto; }
+        .activity-row-actions button { min-height: 32px; padding: 5px 10px; }
+        .activity-location { margin-top: 2px; }
         .activity-detail { margin-top: 4px; color: var(--secondary-text-color); font-size: 13px; overflow-wrap: anywhere; }
         .activity-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
         .activity-tabs button { min-height: 34px; padding: 6px 12px; border: 1px solid var(--divider-color); border-radius: 6px; background: transparent; color: var(--primary-text-color); cursor: pointer; }
@@ -1064,8 +1067,9 @@ class IPBanManagerPanel extends HTMLElement {
     const events = history ? historyEvents : recentEvents;
     const rows = (events || []).map((event) => {
       const request = [event.method, event.path].filter(Boolean).join(" ");
-      const source = this._t(`activity.sources.${event.source}`);
+      const requestCount = Number(event.request_count) || 1;
       const details = [
+        this._t("activity.request_count", { count: requestCount }),
         request,
         event.status ? `HTTP ${event.status}` : "",
         event.host || "",
@@ -1075,10 +1079,13 @@ class IPBanManagerPanel extends HTMLElement {
         <div class="activity-row">
           <div>
             <strong>${this._escape(event.ip || "")}</strong>
-            <small>${this._escape(source)}</small>
+            ${event.location ? `<small class="activity-location">${this._escape(event.location)}</small>` : ""}
             ${details ? `<div class="activity-detail">${this._escape(details)}</div>` : ""}
           </div>
-          <time>${this._escape(this._formatDate(event.timestamp))}</time>
+          <div class="activity-row-actions">
+            <time>${this._escape(this._formatDate(event.timestamp))}</time>
+            <button class="primary" data-action="add_ban" data-value="${this._escape(event.ip || "")}" ${this._busy ? "disabled" : ""}>${this._t("block")}</button>
+          </div>
         </div>
       `;
     }).join("");

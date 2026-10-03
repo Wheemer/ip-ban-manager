@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import hmac
 import importlib
 import logging
+from collections import deque
 from collections.abc import Callable
 from ipaddress import ip_address
 from pathlib import Path
+from time import monotonic
 from types import ModuleType
 from typing import Any
 
 from aiohttp.web import Request, Response
 from homeassistant.components.http import HomeAssistantView
+from homeassistant.components.http.ban import KEY_BAN_MANAGER
 from homeassistant.components.http.const import KEY_HASS
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -24,6 +28,7 @@ from .backup import (
     async_import_config_from_yaml,
     config_download_payload,
 )
+from .ban_lookup import NetworkAwareBanLookup
 from .ban_ops import async_add_ip_ban, async_remove_ip_ban
 from .const import (
     ATTR_IP_ADDRESS,
@@ -42,11 +47,14 @@ from .network_policy import (
     async_remove_blocked_network,
 )
 from .nginx_proxy_manager import (
+    NPM_REGION_AUTH_SECRET_KEY,
+    NPM_REGION_AUTH_PATH,
     async_connect_npm,
     async_disconnect_npm,
     async_enable_npm,
     async_select_npm_host,
     async_sync_npm,
+    entry_npm_config,
 )
 from .notifications import (
     ALLOWLISTED_LOGIN_SILENCE_URL,
@@ -73,6 +81,14 @@ from .storage_keys import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_NPM_REGION_AUTH_CACHE_KEY = "ip_ban_manager_npm_region_auth_cache"
+_NPM_REGION_AUTH_MISSES_KEY = "ip_ban_manager_npm_region_auth_misses"
+_NPM_REGION_AUTH_CACHE_TTL = 5.0
+_NPM_REGION_AUTH_CACHE_MAX_ENTRIES = 4096
+_NPM_REGION_AUTH_MISS_WINDOW = 1.0
+_NPM_REGION_AUTH_MAX_CACHE_MISSES = 20
+_NPM_REGION_AUTH_MISS_MAX_ENTRIES = 4096
 
 KEY_RUNTIME_MODULE_MTIMES = "ip_ban_manager_runtime_module_mtimes"
 RUNTIME_MODULE_NAMES = (
@@ -318,6 +334,78 @@ async def async_handle_status_get(
     return view.json(payload)
 
 
+async def async_handle_npm_region_authorize_get(
+    view: HomeAssistantView, request: Request
+) -> Response:
+    """Authorize an NPM auth subrequest against the live HA network policy."""
+    hass = request.app[KEY_HASS]
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None:
+        return Response(status=503)
+
+    expected = str(
+        entry_npm_config(entry).get(NPM_REGION_AUTH_SECRET_KEY) or ""
+    ).strip()
+    supplied = request.headers.get("X-IP-Ban-Manager-Secret", "")
+    if not expected or not hmac.compare_digest(supplied, expected):
+        return Response(status=403)
+
+    raw_client_ip = request.headers.get("X-IP-Ban-Manager-Client-IP", "")
+    try:
+        client_ip = ip_address(raw_client_ip)
+    except ValueError:
+        return Response(status=400)
+
+    ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
+    lookup = getattr(ban_manager, "ip_bans_lookup", None)
+    if not isinstance(lookup, NetworkAwareBanLookup):
+        return Response(status=503)
+
+    now = monotonic()
+    cache = hass.data.setdefault(_NPM_REGION_AUTH_CACHE_KEY, {})
+    cached = cache.get(client_ip)
+    if (
+        isinstance(cached, tuple)
+        and cached[0] is lookup
+        and now - cached[1] <= _NPM_REGION_AUTH_CACHE_TTL
+    ):
+        return Response(status=403 if cached[2] else 204)
+
+    misses = hass.data.setdefault(_NPM_REGION_AUTH_MISSES_KEY, {})
+    if len(misses) >= _NPM_REGION_AUTH_MISS_MAX_ENTRIES and client_ip not in misses:
+        stale = [
+            address
+            for address, values in misses.items()
+            if not values or now - values[-1] > _NPM_REGION_AUTH_MISS_WINDOW
+        ]
+        for address in stale[: max(1, len(stale) // 2)]:
+            misses.pop(address, None)
+        if len(misses) >= _NPM_REGION_AUTH_MISS_MAX_ENTRIES:
+            misses.pop(next(iter(misses)), None)
+    client_misses = misses.setdefault(client_ip, deque())
+    while client_misses and now - client_misses[0] > _NPM_REGION_AUTH_MISS_WINDOW:
+        client_misses.popleft()
+    if len(client_misses) >= _NPM_REGION_AUTH_MAX_CACHE_MISSES:
+        return Response(status=429, headers={"Retry-After": "1"})
+    client_misses.append(now)
+
+    blocked = client_ip in lookup
+    if len(cache) >= _NPM_REGION_AUTH_CACHE_MAX_ENTRIES:
+        expired = [
+            address
+            for address, value in cache.items()
+            if not isinstance(value, tuple)
+            or value[0] is not lookup
+            or now - value[1] > _NPM_REGION_AUTH_CACHE_TTL
+        ]
+        for address in expired[: max(1, len(expired) // 2)]:
+            cache.pop(address, None)
+        if len(cache) >= _NPM_REGION_AUTH_CACHE_MAX_ENTRIES:
+            cache.pop(next(iter(cache)), None)
+    cache[client_ip] = (lookup, now, blocked)
+    return Response(status=403 if blocked else 204)
+
+
 async def async_handle_manage_post(
     view: HomeAssistantView, request: Request
 ) -> Response:
@@ -513,6 +601,20 @@ class IPBanManagerStatusView(HomeAssistantView):
         return await async_dispatch_http_view(self, request, "status_get")
 
 
+class IPBanManagerNpmRegionAuthorizeView(HomeAssistantView):
+    """Authorize NPM's internal region-protection subrequests."""
+
+    name = "api:ip_ban_manager:npm_region_authorize"
+    url = NPM_REGION_AUTH_PATH
+    requires_auth = False
+
+    async def get(self, request: Request) -> Response:
+        """Dispatch the internal NPM authorization check."""
+        return await async_dispatch_http_view(
+            self, request, "async_handle_npm_region_authorize_get"
+        )
+
+
 class IPBanManagerManageView(HomeAssistantView):
     """Apply live IP Ban Manager changes from the bundled panel."""
 
@@ -532,6 +634,7 @@ def integration_view_urls() -> set[str]:
             SilenceAllowlistedLoginNotificationsView.url,
             IPBanManagerPanelView.url,
             IPBanManagerStatusView.url,
+            IPBanManagerNpmRegionAuthorizeView.url,
             IPBanManagerManageView.url,
         )
         if url
@@ -567,6 +670,9 @@ def install_http_view_handlers(hass: HomeAssistant) -> None:
         "silence_get": async_handle_silence_get,
         "silence_post": async_handle_silence_post,
         "status_get": async_handle_status_get,
+        "async_handle_npm_region_authorize_get": (
+            async_handle_npm_region_authorize_get
+        ),
         "manage_post": async_handle_manage_post,
     }
 
@@ -627,13 +733,11 @@ def runtime_module_mtimes(modules: dict[str, ModuleType]) -> dict[str, float]:
 def register_http_views(hass: HomeAssistant) -> None:
     """Register HTTP API views once and bind reloadable handlers on each setup."""
     install_http_view_handlers(hass)
-    if hass.data.get(KEY_HTTP_VIEWS):
-        return
-
     views = (
         SilenceAllowlistedLoginNotificationsView(),
         IPBanManagerPanelView(),
         IPBanManagerStatusView(),
+        IPBanManagerNpmRegionAuthorizeView(),
         IPBanManagerManageView(),
     )
     registered_urls = registered_integration_view_urls(hass)

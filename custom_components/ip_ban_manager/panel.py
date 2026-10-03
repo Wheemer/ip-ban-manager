@@ -6,13 +6,18 @@ import asyncio
 import importlib
 from ipaddress import ip_address
 from pathlib import Path
+from time import monotonic
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
-from .activity import history_activity, merge_activity
+from .activity import (
+    history_activity,
+    merge_activity,
+    without_allowlisted_activity,
+)
 from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_BACKUP,
@@ -54,6 +59,7 @@ from .entry_helpers import (
     entry_sidebar_panel_enabled,
     normalize_login_attempts_threshold,
     normalize_regional_login_thresholds,
+    parse_allowlist,
     update_entry_options,
 )
 from .entry_meta import (
@@ -73,6 +79,7 @@ from .geoip import (
     async_prepare_geoip_reader,
     close_geoip_reader,
     geoip_reader,
+    geoip_location_for_ip,
     geoip_status,
 )
 from .i18n import async_load_panel_translations, async_normalize_language
@@ -115,6 +122,49 @@ from .storage_keys import (
     KEY_STATIC_PATH_REGISTERED,
 )
 
+_ACTIVITY_LOCATION_CACHE_KEY = "ip_ban_manager_activity_location_cache"
+_ACTIVITY_LOCATION_CACHE_TTL = 3600.0
+
+
+def _activity_locations_sync(
+    hass: HomeAssistant, addresses: list[str]
+) -> dict[str, str | None]:
+    """Look up activity locations in the local GeoIP reader."""
+    locations: dict[str, str | None] = {}
+    for address in addresses:
+        try:
+            locations[address] = geoip_location_for_ip(hass, ip_address(address))
+        except ValueError:
+            continue
+    return locations
+
+
+async def _async_activity_locations(
+    hass: HomeAssistant, events: list[dict[str, object]]
+) -> dict[str, str | None]:
+    """Return cached activity locations without blocking the event loop."""
+    now = monotonic()
+    cache = hass.data.setdefault(_ACTIVITY_LOCATION_CACHE_KEY, {})
+    locations: dict[str, str | None] = {}
+    missing: list[str] = []
+    for event in events:
+        address = str(event.get("ip") or "")
+        if not address or address in locations:
+            continue
+        cached = cache.get(address)
+        if isinstance(cached, tuple) and now - cached[0] < _ACTIVITY_LOCATION_CACHE_TTL:
+            locations[address] = cached[1]
+        else:
+            missing.append(address)
+    if missing:
+        fresh = await hass.async_add_executor_job(
+            _activity_locations_sync, hass, missing
+        )
+        for address, location in fresh.items():
+            cache[address] = (now, location)
+            locations[address] = location
+    return locations
+
 
 async def async_panel_payload(
     hass: HomeAssistant, entry: ConfigEntry, *, language: str | None = None
@@ -134,6 +184,16 @@ async def async_panel_payload(
     except (HomeAssistantError, TimeoutError):
         npm_discovery = {"addon_detected": False}
     activity = merge_activity(hass, npm_activity)
+    activity_history = history_activity(hass)
+    allowlist_networks = parse_allowlist(entry_ip_addresses(entry))
+    activity = without_allowlisted_activity(activity, allowlist_networks)
+    activity_history = without_allowlisted_activity(
+        activity_history, allowlist_networks
+    )
+    locations = await _async_activity_locations(hass, [*activity, *activity_history])
+    for event in [*activity, *activity_history]:
+        if location := locations.get(str(event.get("ip") or "")):
+            event["location"] = location
     version = await async_integration_version(hass)
     return {
         "ok": True,
@@ -181,7 +241,7 @@ async def async_panel_payload(
             **npm_discovery,
         },
         "activity": activity,
-        "activity_history": history_activity(hass),
+        "activity_history": activity_history,
         ATTR_BACKUP: backup_status,
     }
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import secrets
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
@@ -52,6 +53,7 @@ from .entry_helpers import (
     update_entry_options,
 )
 from .ip_utils import parse_allowlist_network
+from .region_rules import entry_public_region_settings
 from .runtime_options import entry_callback_route_protection_enabled
 from .storage_keys import KEY_CONFIG_ENTRY
 
@@ -61,6 +63,8 @@ NPM_CONFIG_END = "# END IP BAN MANAGER"
 NPM_REQUEST_TIMEOUT = ClientTimeout(total=15)
 NPM_DISCOVERY_TIMEOUT = ClientTimeout(total=5)
 NPM_SYNC_DEBOUNCE_SECONDS = 1.0
+NPM_REGION_AUTH_PATH = "/api/ip_ban_manager/npm-region-auth"
+NPM_REGION_AUTH_SECRET_KEY = "region_auth_secret"
 _MANAGED_CONFIG_PATTERN = re.compile(
     rf"(?m)^[ \t]*{re.escape(NPM_CONFIG_BEGIN)}[ \t]*\r?\n"
     rf".*?^[ \t]*{re.escape(NPM_CONFIG_END)}[ \t]*(?:\r?\n)?",
@@ -780,12 +784,68 @@ async def async_select_npm_host(hass: HomeAssistant, host_id_value: object) -> N
     )
 
 
+def _ha_local_api_url(hass: HomeAssistant) -> str:
+    """Return the local HTTP origin NPM can use for its auth subrequest."""
+    api = getattr(hass.config, "api", None)
+    raw_address = str(getattr(api, "local_ip", "") or "").strip()
+    try:
+        address = ip_address(raw_address)
+    except ValueError as err:
+        raise HomeAssistantError(
+            "Home Assistant's local API address is unavailable for NPM region protection."
+        ) from err
+    if address.is_unspecified:
+        raise HomeAssistantError(
+            "Home Assistant's local API address is unavailable for NPM region protection."
+        )
+    host = (
+        f"[{address.compressed}]"
+        if isinstance(address, IPv6Address)
+        else address.compressed
+    )
+    port = int(getattr(hass.http, "server_port", 8123))
+    return f"http://{host}:{port}"
+
+
+def _ensure_region_auth_secret(config: Mapping[str, object]) -> dict[str, object]:
+    """Return NPM settings with a persistent secret for the auth subrequest."""
+    secret = str(config.get(NPM_REGION_AUTH_SECRET_KEY) or "").strip()
+    if secret:
+        return dict(config)
+    return {**config, NPM_REGION_AUTH_SECRET_KEY: secrets.token_urlsafe(32)}
+
+
+def _region_auth_rules(
+    hass: HomeAssistant, config: Mapping[str, object]
+) -> list[str]:
+    """Build the compact NPM gate used for public-region enforcement."""
+    secret = str(config.get(NPM_REGION_AUTH_SECRET_KEY) or "").strip()
+    if not secret:
+        raise HomeAssistantError(
+            "NPM region protection is missing its authorization secret. Disable and re-enable NPM protection."
+        )
+    origin = _ha_local_api_url(hass)
+    return [
+        f"auth_request {NPM_REGION_AUTH_PATH};",
+        f"location = {NPM_REGION_AUTH_PATH} {{",
+        "    internal;",
+        "    auth_request off;",
+        "    proxy_pass_request_body off;",
+        '    proxy_set_header Content-Length "";',
+        f'    proxy_set_header X-IP-Ban-Manager-Secret "{secret}";',
+        "    proxy_set_header X-IP-Ban-Manager-Client-IP $remote_addr;",
+        f"    proxy_pass {origin}{NPM_REGION_AUTH_PATH};",
+        "}",
+    ]
+
+
 def _policy_rules(
     hass: HomeAssistant,
     entry: ConfigEntry,
     default_deny: bool,
     *,
     include_callbacks: bool = True,
+    region_auth_rules: tuple[str, ...] = (),
 ) -> list[str]:
     """Build ordered NGINX access rules without changing NGINX's default."""
     allows = [
@@ -808,17 +868,25 @@ def _policy_rules(
         if entry_allowlisted_logins_can_ban(entry)
         else [*allows, *denies]
     )
+    rules.extend(region_auth_rules)
     if default_deny:
         rules.append("deny all;")
     if include_callbacks and entry_callback_route_protection_enabled(entry):
         rules.extend(
-            _callback_location_rules(exact_bans, frozenset(hass.config.components))
+            _callback_location_rules(
+                exact_bans,
+                frozenset(hass.config.components),
+                region_auth_enabled=bool(region_auth_rules),
+            )
         )
     return rules
 
 
 def _callback_location_rules(
-    exact_bans: list[str], component_domains: frozenset[str] = frozenset()
+    exact_bans: list[str],
+    component_domains: frozenset[str] = frozenset(),
+    *,
+    region_auth_enabled: bool = False,
 ) -> list[str]:
     """Build callback locations that bypass non-exact managed restrictions."""
     access_rules = [*exact_bans, "allow all;"]
@@ -838,6 +906,7 @@ def _callback_location_rules(
         rules.extend(
             [
                 f"location {modifier} {path} {{",
+                *(("    auth_request off;",) if region_auth_enabled else ()),
                 *(f"    {rule}" for rule in access_rules),
                 "    include conf.d/include/proxy.conf;",
                 "}",
@@ -1040,6 +1109,12 @@ async def _reconcile_npm_policy(
     desired_rules: dict[int, list[str]] = {}
     if enabled:
         default_deny = entry_default_deny_enabled(entry)
+        region_settings = entry_public_region_settings(hass, entry)
+        region_auth_rules = tuple(
+            _region_auth_rules(hass, config)
+            if region_settings["public_region_enabled"]
+            else ()
+        )
         targets = (
             [host for host in hosts if host.enabled]
             if protect_all_domains
@@ -1055,6 +1130,7 @@ async def _reconcile_npm_policy(
                 entry,
                 default_deny,
                 include_callbacks=host.host_id == selected_host_id,
+                region_auth_rules=region_auth_rules,
             )
     previous_host_ids = _stored_host_ids(config.get("managed_host_ids"))
     if config.get("enabled") and selected_host_id:
@@ -1082,6 +1158,7 @@ async def async_enable_npm(
     """Enable edge-policy synchronization on the configured proxy hosts."""
     entry = _config_entry(hass)
     config = entry_npm_config(entry)
+    config = _ensure_region_auth_secret(config)
     # The main default-deny option is authoritative; keep the keyword for live reloads.
     mirror_default_deny = entry_default_deny_enabled(entry)
     host_id = _stored_int(config.get("proxy_host_id"))
@@ -1127,6 +1204,7 @@ async def async_sync_npm(hass: HomeAssistant) -> None:
     config = entry_npm_config(entry)
     if not config.get("enabled"):
         return
+    config = _ensure_region_auth_secret(config)
     client = NpmClient(
         hass, str(config.get("base_url") or ""), str(config.get("token") or "")
     )
