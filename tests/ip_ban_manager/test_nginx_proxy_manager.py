@@ -288,7 +288,9 @@ async def test_detect_supervisor_npm_addon_prefills_local_url(
     monkeypatch.setenv("SUPERVISOR", "http://supervisor")
     monkeypatch.setenv("SUPERVISOR_TOKEN", "supervisor-token")
     monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())
-    monkeypatch.setattr(hass.config.api, "local_ip", "192.168.2.66")
+    monkeypatch.setattr(
+        npm, "suggested_npm_url", lambda _hass: "http://192.168.2.66:81"
+    )
 
     result = await npm.async_detect_npm_addon(hass)
 

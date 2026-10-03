@@ -24,7 +24,7 @@ async def test_expired_token_marks_connection_for_sign_in(hass, monkeypatch):
             return_value={"error": {"code": 400, "message": "Token has expired"}}
         ),
     )
-    session = SimpleNamespace(request=AsyncMock(return_value=response))
+    session = SimpleNamespace(request=Mock(return_value=response))
     monkeypatch.setattr(npm, "async_get_clientsession", lambda _: session)
     client = npm.NpmClient(hass, "http://npm.test:81", "expired")
     with pytest.raises(npm.NpmAuthenticationError, match="Sign in again"):

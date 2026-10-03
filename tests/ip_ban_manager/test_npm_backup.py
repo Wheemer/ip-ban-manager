@@ -23,6 +23,7 @@ def npm_config(enabled: bool = True) -> dict[str, object]:
         "identity": "admin@example.test",
         "token": "test-token",
         "token_expires": "2030-01-01T00:00:00Z",
+        "region_auth_secret": "",
         "proxy_host_id": 4,
         "exact_match_host_id": 4,
         "access_list_id": 0,

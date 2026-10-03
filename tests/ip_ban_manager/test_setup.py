@@ -203,6 +203,8 @@ class MockViewRequest:
         self._has_user = has_user
         self._user = user if user is not None else MockAdminUser()
         self.headers: dict[str, str] = {}
+        self.method = "POST"
+        self.path = "/auth/login_flow"
         self.rel_url = "/auth/login_flow"
 
     def get(self, key: str, default: object | None = None) -> object | None:

@@ -190,22 +190,24 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
     logging_enabled = entry_blocked_request_logging_enabled(entry)
 
-    def observe_blocked_request(remote_addr: IPAddress, reason: str) -> None:
-        request = current_request.get()
-        if request is not None:
-            record_activity(
-                hass,
-                source="home_assistant",
-                ip=str(remote_addr),
-                method=str(getattr(request, "method", "") or ""),
-                path=str(getattr(request, "path", "") or ""),
-                status=403,
-                detail=reason,
-            )
-            if logging_enabled:
+    blocked_request_observer: BlockedRequestObserver | None = None
+    if logging_enabled:
+
+        def observe_blocked_request(remote_addr: IPAddress, reason: str) -> None:
+            request = current_request.get()
+            if request is not None:
+                record_activity(
+                    hass,
+                    source="home_assistant",
+                    ip=str(remote_addr),
+                    method=str(getattr(request, "method", "") or ""),
+                    path=str(getattr(request, "path", "") or ""),
+                    status=403,
+                    detail=reason,
+                )
                 log_blocked_request(hass, remote_addr, reason)
 
-    blocked_request_observer: BlockedRequestObserver = observe_blocked_request
+        blocked_request_observer = observe_blocked_request
     if not logging_enabled:
         clear_blocked_request_log_state(hass)
 
