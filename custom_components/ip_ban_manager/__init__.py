@@ -18,6 +18,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
+from .activity import async_flush_history as _async_flush_activity_history
+from .activity import async_start_history as _async_start_activity_history
+from .activity import clear_activity as _clear_activity
 from .backup import (
     CONFIG_EXPORT_FORMAT_VERSION,
 )
@@ -199,6 +202,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor"]
 
 _RELOADABLE_MODULES = (
+    "custom_components.ip_ban_manager.activity",
     "custom_components.ip_ban_manager.const",
     "custom_components.ip_ban_manager.metrics",
     "custom_components.ip_ban_manager.entry_helpers",
@@ -407,6 +411,12 @@ _RELOADABLE_BINDINGS: dict[str, tuple[str, str]] = {
         "yaml_config",
         "async_emergency_disable_requested",
     ),
+    "_async_start_activity_history": (
+        "activity",
+        "async_start_history",
+    ),
+    "_async_flush_activity_history": ("activity", "async_flush_history"),
+    "_clear_activity": ("activity", "clear_activity"),
 }
 
 
@@ -468,6 +478,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
 
     await _async_reload_runtime_modules(hass)
+    _async_start_activity_history(hass)
     _async_cleanup_entry_metadata(hass, entry)
     _async_schedule_legacy_cleanup(hass)
     _async_schedule_legacy_folder_cleanup(hass)
@@ -536,6 +547,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await asyncio.gather(*tasks, return_exceptions=True)
     _close_geoip_reader(hass)
     _uninstall_patches(hass)
+    await _async_flush_activity_history(hass)
     hass.http.app.pop(KEY_ALLOWLIST, None)
     hass.http.app.pop(KEY_BLOCKED_NETWORKS, None)
     hass.http.app.pop(KEY_CONFIG_ENTRY, None)
@@ -548,6 +560,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.pop(KEY_METRICS, None)
     hass.data.pop(KEY_BAN_FILE_WRITE_LOCK, None)
     hass.data.pop(KEY_BLOCKED_REQUEST_LOG_STATE, None)
+    _clear_activity(hass)
+    hass.data.pop("ip_ban_manager_activity_history", None)
+    hass.data.pop("ip_ban_manager_activity_history_loaded", None)
     for service in REGISTERED_SERVICES:
         if hass.services.has_service(DOMAIN, service):
             hass.services.async_remove(DOMAIN, service)

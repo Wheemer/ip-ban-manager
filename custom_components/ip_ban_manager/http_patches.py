@@ -24,6 +24,7 @@ from .audit import (
     record_ip_banned,
     record_login_threshold_reached,
 )
+from .activity import record_activity
 from .ban_lookup import NetworkAwareBanLookup, _is_allowed, _normalize_remote_addr
 from .ban_ops import ban_file_lock
 from .const import SOURCE_AUTO
@@ -82,6 +83,16 @@ def _request_remote_ip(request: Request) -> IPAddress | None:
 async def _async_handle_standard_wrong_login(request: Request) -> None:
     """Process failed logins that may become automatic exact bans."""
     remote_addr = _request_remote_ip(request)
+    if remote_addr is not None:
+        record_activity(
+            request.app[KEY_HASS],
+            source="home_assistant",
+            ip=str(remote_addr),
+            method=request.method,
+            path=request.path,
+            status=401,
+            detail="Authentication failed",
+        )
     if remote_addr is not None:
         regional_threshold = regional_login_threshold_for_ip(
             request.app[KEY_HASS], remote_addr
@@ -177,6 +188,15 @@ async def _process_allowlisted_wrong_login(
 ) -> None:
     """Record an allowlisted failed login without letting it become a ban."""
     hass = request.app[KEY_HASS]
+    record_activity(
+        hass,
+        source="home_assistant",
+        ip=str(remote_addr),
+        method=request.method,
+        path=request.path,
+        status=401,
+        detail="Allowlisted authentication failed",
+    )
     remote_host = await async_reverse_dns_name(hass, remote_addr)
 
     remote_display = format_remote_display(remote_host, remote_addr)

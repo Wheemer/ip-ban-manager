@@ -16,6 +16,7 @@ from homeassistant.components.http.const import KEY_HASS
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
+from .activity import async_clear_history
 from .audit import mutation_source, record_geoip_updated
 from .backup import (
     async_export_config,
@@ -75,6 +76,7 @@ _LOGGER = logging.getLogger(__name__)
 
 KEY_RUNTIME_MODULE_MTIMES = "ip_ban_manager_runtime_module_mtimes"
 RUNTIME_MODULE_NAMES = (
+    "custom_components.ip_ban_manager.activity",
     "custom_components.ip_ban_manager.const",
     "custom_components.ip_ban_manager.file_store",
     "custom_components.ip_ban_manager.ip_utils",
@@ -97,6 +99,10 @@ RUNTIME_MODULE_NAMES = (
     "custom_components.ip_ban_manager.panel",
 )
 RUNTIME_BINDINGS: dict[str, tuple[str, str]] = {
+    "async_clear_history": (
+        "custom_components.ip_ban_manager.activity",
+        "async_clear_history",
+    ),
     "entry_public_region_settings": (
         "custom_components.ip_ban_manager.region_rules",
         "entry_public_region_settings",
@@ -418,6 +424,8 @@ async def async_handle_manage_post(
                     "Backup upload must include YAML file content."
                 )
             await async_import_config_from_yaml(hass, content)
+        elif action == "clear_activity_history":
+            await async_clear_history(hass)
         elif action == "npm_connect":
             await async_connect_npm(
                 hass,

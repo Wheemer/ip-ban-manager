@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.8.9
+
+IP Ban Manager 1.8.9 adds bounded incoming activity history and improves NGINX Proxy Manager setup and connection handling.
+
+### Added
+
+- Added Recent and 24-hour History views for incoming requests observed by Home Assistant and connected NGINX Proxy Manager hosts.
+- Added bounded, sanitized activity storage that excludes credentials, headers, cookies, tokens, query strings, and fragments.
+- Added Supervisor detection for installed NGINX Proxy Manager apps, with a local Home Assistant address suggestion on OS and Supervised installations.
+
+### Improved
+
+- NGINX Proxy Manager activity is limited to hosts managed by IP Ban Manager and labels 403 responses as possible edge-policy denials without overstating the exact rule that matched.
+- NGINX Proxy Manager and Supervisor HTTP responses are now closed through async context managers, improving connection reuse and reload behavior.
+- Malformed activity cache data is treated as stale and refetched instead of interrupting panel loading.
+
 ## v1.8.8
 
 IP Ban Manager 1.8.8 keeps panel feedback visible through Home Assistant panel replacement and follows Home Assistant's configured date format.

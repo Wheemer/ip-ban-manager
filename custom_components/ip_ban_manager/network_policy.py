@@ -11,6 +11,7 @@ from homeassistant.components.http.ban import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers.http import current_request
 
 from .audit import (
     record_allowlist_network_added,
@@ -26,6 +27,7 @@ from .ban_lookup import (
 )
 from .ban_ops import ban_manager
 from .blocked_request_log import clear_blocked_request_log_state, log_blocked_request
+from .activity import record_activity
 from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_NETWORK,
@@ -187,14 +189,23 @@ def apply_blocked_networks(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
     allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
     logging_enabled = entry_blocked_request_logging_enabled(entry)
-    blocked_request_observer: BlockedRequestObserver | None = None
-    if logging_enabled:
+    def observe_blocked_request(remote_addr: IPAddress, reason: str) -> None:
+        request = current_request.get()
+        if request is not None:
+            record_activity(
+                hass,
+                source="home_assistant",
+                ip=str(remote_addr),
+                method=str(getattr(request, "method", "") or ""),
+                path=str(getattr(request, "path", "") or ""),
+                status=403,
+                detail=reason,
+            )
+            if logging_enabled:
+                log_blocked_request(hass, remote_addr, reason)
 
-        def observe_blocked_request(remote_addr: IPAddress, reason: str) -> None:
-            log_blocked_request(hass, remote_addr, reason)
-
-        blocked_request_observer = observe_blocked_request
-    else:
+    blocked_request_observer: BlockedRequestObserver = observe_blocked_request
+    if not logging_enabled:
         clear_blocked_request_log_state(hass)
 
     def callback_path_is_protected(path: str) -> bool:

@@ -11,6 +11,7 @@ from homeassistant.const import EVENT_COMPONENT_LOADED
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
+from custom_components.ip_ban_manager import activity
 from custom_components.ip_ban_manager import nginx_proxy_manager as npm
 from custom_components.ip_ban_manager.const import CONF_NPM, DOMAIN
 
@@ -173,6 +174,144 @@ async def test_loaded_component_schedules_edge_policy_sync(
 
 
 @pytest.mark.asyncio
+async def test_npm_activity_reads_selected_proxy_host_logs(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The activity view reads only the managed NPM proxy host access log."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_NPM: {
+                "base_url": "http://npm.example.test:81",
+                "token": "stored-token",
+                "proxy_host_id": 4,
+                "managed_host_ids": [4],
+                "enabled": True,
+            },
+        },
+    )
+    client = AsyncMock()
+    client.log_sources.return_value = {
+        "hosts": {"proxy": [{"id": 4, "label": "ha.example.test"}]}
+    }
+    client.log_tail.return_value = {
+        "lines": [
+            '203.0.113.8 - - [03/Oct/2026:12:34:56 -0230] "GET /login HTTP/1.1" 401 12',
+            '203.0.113.9 - - [03/Oct/2026:12:34:57 -0230] "GET /admin HTTP/1.1" 403 12',
+        ]
+    }
+    monkeypatch.setattr(npm, "NpmClient", lambda *args: client)
+
+    events = await npm.async_npm_activity(hass, entry)
+
+    assert events[0]["ip"] == "203.0.113.8"
+    assert events[0]["host"] == "ha.example.test"
+    assert events[1]["ip"] == "203.0.113.9"
+    assert "possible IP Ban Manager edge-policy deny" in events[1]["detail"]
+    client.log_tail.assert_awaited_once_with(host_id=4)
+    assert activity.history_activity(hass)[0]["ip"] == "203.0.113.9"
+
+
+@pytest.mark.asyncio
+async def test_detect_supervisor_npm_addon_prefills_local_url(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Supervisor discovery finds NPM without attempting authentication."""
+    responses = []
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self) -> "FakeResponse":
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            return None
+
+        async def json(self, *, content_type: object = None) -> object:
+            return {
+                "addons": [
+                    {
+                        "name": "Nginx Proxy Manager",
+                        "slug": "a0d7b954_nginxproxymanager",
+                        "installed": True,
+                        "state": "started",
+                    }
+                ]
+            }
+
+    class FakeSession:
+        def request(
+            self, method: str, url: str, **kwargs: object
+        ) -> FakeResponse:
+            responses.append((method, url, kwargs))
+            return FakeResponse()
+
+    monkeypatch.setenv("SUPERVISOR", "http://supervisor")
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "supervisor-token")
+    monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())
+    monkeypatch.setattr(hass.config.api, "local_ip", "192.168.2.66")
+
+    result = await npm.async_detect_npm_addon(hass)
+
+    assert result["addon_detected"] is True
+    assert result["addon_name"] == "Nginx Proxy Manager"
+    assert result["detected_url"] == "http://192.168.2.66:81"
+    assert responses[0][0:2] == ("GET", "http://supervisor/addons")
+    assert responses[0][2]["headers"] == {
+        "Authorization": "Bearer supervisor-token"
+    }
+
+
+@pytest.mark.asyncio
+async def test_detect_supervisor_ignores_uninstalled_npm_addon(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An add-on repository entry is not enough to prefill NPM settings."""
+    responses = []
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self) -> "FakeResponse":
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            return None
+
+        async def json(self, *, content_type: object = None) -> object:
+            return {
+                "addons": [
+                    {
+                        "name": "Nginx Proxy Manager",
+                        "slug": "a0d7b954_nginxproxymanager",
+                        "installed": False,
+                        "state": "",
+                    }
+                ]
+            }
+
+    class FakeSession:
+        def request(
+            self, method: str, url: str, **kwargs: object
+        ) -> FakeResponse:
+            responses.append((method, url, kwargs))
+            return FakeResponse()
+
+    monkeypatch.setenv("SUPERVISOR", "http://supervisor")
+    monkeypatch.setenv("SUPERVISOR_TOKEN", "supervisor-token")
+    monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())
+
+    result = await npm.async_detect_npm_addon(hass)
+
+    assert result == {"addon_detected": False}
+    assert responses[0][0:2] == ("GET", "http://supervisor/addons")
+
+
+@pytest.mark.asyncio
 async def test_protect_all_domains_updates_every_active_host_only(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -323,11 +462,17 @@ async def test_client_authenticate_uses_token_endpoint(
     class FakeResponse:
         status = 200
 
+        async def __aenter__(self) -> "FakeResponse":
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            return None
+
         async def json(self, *, content_type: object = None) -> object:
             return {"token": "jwt-token", "expires": "tomorrow"}
 
     class FakeSession:
-        async def request(
+        def request(
             self, method: str, url: str, **kwargs: object
         ) -> FakeResponse:
             requests.append({"method": method, "url": url, **kwargs})
@@ -375,11 +520,17 @@ async def test_client_surfaces_npm_api_error(
     class FakeResponse:
         status = 400
 
+        async def __aenter__(self) -> "FakeResponse":
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            return None
+
         async def json(self, *, content_type: object = None) -> object:
             return body
 
     class FakeSession:
-        async def request(self, *args: object, **kwargs: object) -> FakeResponse:
+        def request(self, *args: object, **kwargs: object) -> FakeResponse:
             return FakeResponse()
 
     monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())

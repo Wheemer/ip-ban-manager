@@ -395,6 +395,7 @@ class IPBanManagerPanel extends HTMLElement {
       import_config: `Restored backup from ${path}`,
       download_config: "Backup downloaded.",
       upload_config: "Backup uploaded and applied.",
+      clear_activity_history: "Activity history cleared.",
       npm_connect: "Connected to Nginx Proxy Manager.",
       npm_select_host: "Proxy host selected.",
       npm_sync: "Nginx Proxy Manager rules synchronized.",
@@ -612,6 +613,29 @@ class IPBanManagerPanel extends HTMLElement {
           background: var(--secondary-background-color);
         }
         .row code { overflow-wrap: anywhere; white-space: normal; }
+        .activity-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          min-height: 48px;
+          padding: 9px 10px;
+          border: 1px solid var(--divider-color);
+          border-radius: 6px;
+          background: var(--secondary-background-color);
+        }
+        .activity-row + .activity-row { margin-top: 8px; }
+        .activity-row strong { display: block; overflow-wrap: anywhere; }
+        .activity-row small,
+        .activity-row time { color: var(--secondary-text-color); font-size: 13px; }
+        .activity-row time { flex: 0 0 auto; white-space: nowrap; }
+        .activity-detail { margin-top: 4px; color: var(--secondary-text-color); font-size: 13px; overflow-wrap: anywhere; }
+        .activity-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+        .activity-tabs button { min-height: 34px; padding: 6px 12px; border: 1px solid var(--divider-color); border-radius: 6px; background: transparent; color: var(--primary-text-color); cursor: pointer; }
+        .activity-tabs button.active { border-color: var(--primary-color); color: var(--primary-color); font-weight: 600; }
+        .activity-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .activity-retention { margin: 12px 0 0; color: var(--secondary-text-color); font-size: 13px; }
+        .empty { color: var(--secondary-text-color); }
         .region-toggle-row {
           display: flex;
           align-items: center;
@@ -1008,6 +1032,7 @@ class IPBanManagerPanel extends HTMLElement {
     `;
     return `
       <div class="grid">
+        ${sections.get("activity-section") || ""}
         ${column("column-left", ["options-section", "blocked-ips-section", "blocked-networks-section"])}
         ${column("column-right", ["allowed-ips-section", "allowed-regions-section"])}
       </div>
@@ -1025,12 +1050,58 @@ class IPBanManagerPanel extends HTMLElement {
     const settings = this._data.settings || {};
     const geoip = this._data.geoip || {};
     return new Map([
+      ["activity-section", this._activitySection(this._data.activity || [], this._data.activity_history || [], this._data.nginx_proxy_manager || {})],
       ["options-section", this._optionsSection(settings)],
       ["allowed-ips-section", this._listSection(this._t("allowed_ips.title"), this._t("allowed_ips.hint"), this._allowlistRows(settings), "remove_allowlist", "add_allowlist", this._t("allowed_ips.placeholder"), this._silencedAllowlistedLogins(settings), this._riskyAllowlistRemoveConfirm(settings), "allowed-ips-section")],
       ["blocked-ips-section", this._banSection(status.banned_ips || [])],
       ["allowed-regions-section", geoip.geoip_database_present || settings.public_region_enabled || Object.keys(settings.public_region_rules || {}).length ? this._allowedRegionSection(settings) : ""],
       ["blocked-networks-section", this._blockedNetworksSection(settings)],
     ]);
+  }
+
+  _activitySection(recentEvents, historyEvents, npm) {
+    const history = this._activityView === "history";
+    const events = history ? historyEvents : recentEvents;
+    const rows = (events || []).map((event) => {
+      const request = [event.method, event.path].filter(Boolean).join(" ");
+      const source = this._t(`activity.sources.${event.source}`);
+      const details = [
+        request,
+        event.status ? `HTTP ${event.status}` : "",
+        event.host || "",
+        event.detail || "",
+      ].filter(Boolean).join(" · ");
+      return `
+        <div class="activity-row">
+          <div>
+            <strong>${this._escape(event.ip || "")}</strong>
+            <small>${this._escape(source)}</small>
+            ${details ? `<div class="activity-detail">${this._escape(details)}</div>` : ""}
+          </div>
+          <time>${this._escape(this._formatDate(event.timestamp))}</time>
+        </div>
+      `;
+    }).join("");
+    return `
+      <section class="activity-section wide">
+        <h2>${this._t("activity.title")}</h2>
+        <div class="body">
+          <p class="hint">${this._t("activity.hint")}</p>
+          ${npm.activity_error ? `<div class="health warn">${this._escape(this._t("activity.npm_error", { error: npm.activity_error }))}</div>` : ""}
+          <div class="activity-tabs" role="tablist">
+            <button type="button" class="${history ? "" : "active"}" data-activity-view="recent" role="tab" aria-selected="${!history}">${this._t("activity.recent")}</button>
+            <button type="button" class="${history ? "active" : ""}" data-activity-view="history" role="tab" aria-selected="${history}">${this._t("activity.history")}</button>
+          </div>
+          ${rows || `<div class="empty">${this._t("activity.none")}</div>`}
+          ${history ? `
+            <div class="activity-actions">
+              <p class="activity-retention">${this._t("activity.retention")}</p>
+              <button type="button" class="danger" data-action="clear_activity_history" data-confirm="${this._escape(this._t("activity.clear_confirm"))}">${this._t("activity.clear")}</button>
+            </div>
+          ` : ""}
+        </div>
+      </section>
+    `;
   }
 
   _sectionHasDraft(section) {
@@ -1224,12 +1295,13 @@ class IPBanManagerPanel extends HTMLElement {
 
   _npmOptions(npm) {
     if (!npm.configured || npm.reauth_required) {
-      const suggestedUrl = npm.base_url || npm.suggested_url || "";
+      const suggestedUrl = npm.base_url || npm.detected_url || npm.suggested_url || "";
       return `
         <div class="npm-block">
           <div class="npm-settings">
             <h3>${this._t("npm.title")}</h3>
             <p class="hint">${this._t("npm.hint")}</p>
+            ${npm.addon_detected ? `<p class="hint">${this._escape(this._t("npm.addon_detected", { name: npm.addon_name || "Nginx Proxy Manager" }))}</p>` : ""}
             <form id="npm-connect-form" class="npm-connect-form">
               <input id="npm-url" type="url" value="${this._escape(suggestedUrl)}" placeholder="${this._t("npm.url")}" autocomplete="url">
               <input id="npm-identity" type="email" value="${this._escape(npm.identity || "")}" placeholder="${this._t("npm.identity")}" autocomplete="username">
@@ -1560,6 +1632,14 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _wireEvents(root = this.shadowRoot) {
+    root.querySelectorAll("button[data-activity-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const view = button.dataset.activityView === "history" ? "history" : "recent";
+        if (this._activityView === view) return;
+        this._activityView = view;
+        this._renderSafely();
+      });
+    });
     const npmConnect = root.getElementById("npm-connect-form");
     if (npmConnect) {
       npmConnect.addEventListener("submit", (event) => {

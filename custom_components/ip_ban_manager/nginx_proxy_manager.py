@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -20,6 +21,13 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.util import dt as dt_util
 
+from .activity import (
+    KEY_ACTIVITY_NPM_CACHE,
+    KEY_ACTIVITY_NPM_LOCK,
+    NPM_ACTIVITY_CACHE_SECONDS,
+    parse_npm_access_line,
+    record_history_events,
+)
 from .ban_lookup import (
     CALLBACK_ROUTE_EXACT_PATHS,
     CALLBACK_ROUTE_PREFIXES,
@@ -51,6 +59,7 @@ NPM_ACCESS_LIST_NAME = "IP Ban Manager"
 NPM_CONFIG_BEGIN = "# BEGIN IP BAN MANAGER"
 NPM_CONFIG_END = "# END IP BAN MANAGER"
 NPM_REQUEST_TIMEOUT = ClientTimeout(total=15)
+NPM_DISCOVERY_TIMEOUT = ClientTimeout(total=5)
 NPM_SYNC_DEBOUNCE_SECONDS = 1.0
 _MANAGED_CONFIG_PATTERN = re.compile(
     rf"(?m)^[ \t]*{re.escape(NPM_CONFIG_BEGIN)}[ \t]*\r?\n"
@@ -64,6 +73,7 @@ KEY_NPM_SYNC_TASK = "ip_ban_manager_npm_sync_task"
 KEY_NPM_UNSUBSCRIBERS = "ip_ban_manager_npm_unsubscribers"
 KEY_NPM_TOKEN_TIMER = "ip_ban_manager_npm_token_timer"
 KEY_NPM_TOKEN_TASK = "ip_ban_manager_npm_token_task"
+KEY_NPM_DISCOVERY_CACHE = "ip_ban_manager_npm_discovery_cache"
 
 
 class NpmAuthenticationError(HomeAssistantError):
@@ -147,6 +157,93 @@ def suggested_npm_url(hass: HomeAssistant) -> str:
     return f"http://{host}:81"
 
 
+def _supervisor_origin() -> str:
+    """Return the Supervisor origin when this is an OS or Supervised install."""
+    value = os.environ.get("SUPERVISOR", "").strip()
+    if not value:
+        return ""
+    if "://" not in value:
+        value = f"http://{value}"
+    return value.rstrip("/")
+
+
+def _installed_addon(value: object) -> bool:
+    """Interpret Supervisor's installed flag without treating 'false' as true."""
+    if isinstance(value, str):
+        return value.strip().lower() not in {"", "0", "false", "none", "null"}
+    return bool(value)
+
+
+def _is_npm_addon(value: object) -> bool:
+    """Match the official/community Nginx Proxy Manager add-on identifiers."""
+    if not isinstance(value, Mapping):
+        return False
+    name = re.sub(r"[^a-z0-9]", "", str(value.get("name") or "").lower())
+    slug = re.sub(r"[^a-z0-9]", "", str(value.get("slug") or "").lower())
+    return name == "nginxproxymanager" or slug.endswith("nginxproxymanager")
+
+
+async def async_detect_npm_addon(hass: HomeAssistant) -> dict[str, object]:
+    """Detect a Supervisor-managed NPM add-on without reading credentials."""
+    cached = hass.data.get(KEY_NPM_DISCOVERY_CACHE)
+    if isinstance(cached, Mapping):
+        try:
+            if (
+                dt_util.utcnow().timestamp() - float(cached.get("fetched_at", 0))
+                < 60
+            ):
+                result = cached.get("result")
+                if isinstance(result, Mapping):
+                    return dict(result)
+        except (TypeError, ValueError):
+            pass
+
+    origin = _supervisor_origin()
+    token = os.environ.get("SUPERVISOR_TOKEN", "").strip()
+    if not origin or not token:
+        return {"addon_detected": False}
+
+    result: dict[str, object] = {"addon_detected": False}
+    try:
+        session = async_get_clientsession(hass)
+        async with session.request(
+            "GET",
+            f"{origin}/addons",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=NPM_DISCOVERY_TIMEOUT,
+        ) as response:
+            body = await response.json(content_type=None)
+            addons = body.get("addons") if isinstance(body, Mapping) else None
+            if response.status >= 400 or not isinstance(addons, list):
+                return result
+        addon = next(
+            (
+                item
+                for item in addons
+                if _is_npm_addon(item)
+                and isinstance(item, Mapping)
+                and _installed_addon(item.get("installed"))
+            ),
+            None,
+        )
+        if isinstance(addon, Mapping):
+            result = {
+                "addon_detected": True,
+                "addon_name": str(addon.get("name") or "Nginx Proxy Manager"),
+                "addon_slug": str(addon.get("slug") or ""),
+                "addon_state": str(addon.get("state") or ""),
+                "detected_url": suggested_npm_url(hass),
+            }
+    except (ClientError, TimeoutError, ValueError):
+        return result
+    finally:
+        hass.data[KEY_NPM_DISCOVERY_CACHE] = {
+            "fetched_at": dt_util.utcnow().timestamp(),
+            "result": result,
+        }
+    return result
+
+
 def _normalized_domain(value: object) -> str:
     domain = str(value or "").strip().rstrip(".").lower()
     try:
@@ -227,6 +324,23 @@ def _stored_host_ids(value: object) -> set[int]:
     return {host_id for item in value if (host_id := _stored_int(item)) > 0}
 
 
+def _cached_npm_activity(hass: HomeAssistant) -> list[dict[str, object]] | None:
+    """Return a fresh activity cache, treating malformed data as stale."""
+    cached = hass.data.get(KEY_ACTIVITY_NPM_CACHE)
+    if not isinstance(cached, Mapping):
+        return None
+    try:
+        age = dt_util.utcnow().timestamp() - float(cached.get("fetched_at", 0))
+    except (TypeError, ValueError):
+        return None
+    if age < 0 or age >= NPM_ACTIVITY_CACHE_SECONDS:
+        return None
+    rows = cached.get("events")
+    if not isinstance(rows, list):
+        return []
+    return [dict(row) for row in rows if isinstance(row, Mapping)]
+
+
 def npm_panel_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
     """Return non-sensitive NPM state for the panel."""
     config = entry_npm_config(entry)
@@ -249,6 +363,7 @@ def npm_panel_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, objec
         "hosts": _stored_list(runtime.get("hosts", config.get("hosts"))),
         "last_sync": runtime.get("last_sync"),
         "last_error": runtime.get("last_error"),
+        "activity_error": runtime.get("activity_error"),
         "reauth_required": bool(runtime.get("reauth_required")),
     }
 
@@ -279,19 +394,18 @@ class NpmClient:
                 raise HomeAssistantError("Nginx Proxy Manager is not connected.")
             headers["Authorization"] = f"Bearer {self.token}"
         try:
-            response = await self._session.request(
+            async with self._session.request(
                 method,
                 f"{self.base_url}/api/{path.lstrip('/')}",
                 json=dict(payload) if payload is not None else None,
                 headers=headers,
                 timeout=NPM_REQUEST_TIMEOUT,
-            )
+            ) as response:
+                return await self._response_json(response)
         except (ClientError, TimeoutError) as err:
             raise HomeAssistantError(
                 f"Could not connect to Nginx Proxy Manager: {err}"
             ) from err
-        try:
-            return await self._response_json(response)
         except NpmAuthenticationError as err:
             if authenticated and isinstance(self._hass, HomeAssistant):
                 _runtime(self._hass).update(
@@ -379,6 +493,23 @@ class NpmClient:
             )
         return result
 
+    async def log_sources(self) -> object:
+        """Return NPM's available log sources."""
+        return await self._json("GET", "logs/sources")
+
+    async def log_tail(
+        self,
+        *,
+        host_id: int,
+        lines: int = 100,
+    ) -> object:
+        """Return recent access-log lines for one proxy host."""
+        return await self._json(
+            "GET",
+            f"logs/tail?type=host&host_type=proxy&host_id={host_id}"
+            f"&channel=access&lines={max(1, min(lines, 1000))}",
+        )
+
     async def update_proxy_host_policy(
         self,
         host_id: int,
@@ -410,6 +541,73 @@ class NpmClient:
 def _persist_npm_config(hass: HomeAssistant, config: Mapping[str, object]) -> None:
     update_entry_options(hass, **{CONF_NPM: dict(config)})
     _schedule_token_refresh(hass, config)
+
+
+async def async_npm_activity(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> list[dict[str, object]]:
+    """Read and parse recent NPM access logs without blocking the panel."""
+    config = entry_npm_config(entry)
+    if not config.get("enabled") or not config.get("base_url") or not config.get("token"):
+        return []
+
+    runtime = _runtime(hass)
+    if (cached_events := _cached_npm_activity(hass)) is not None:
+        return cached_events
+
+    lock = hass.data.get(KEY_ACTIVITY_NPM_LOCK)
+    if lock is None:
+        lock = asyncio.Lock()
+        hass.data[KEY_ACTIVITY_NPM_LOCK] = lock
+    async with lock:
+        if (cached_events := _cached_npm_activity(hass)) is not None:
+            return cached_events
+
+        try:
+            client = NpmClient(
+                hass, str(config["base_url"]), str(config["token"])
+            )
+            sources = await client.log_sources()
+            host_labels: dict[int, str] = {}
+            if isinstance(sources, Mapping):
+                hosts = sources.get("hosts")
+                proxy_hosts = hosts.get("proxy") if isinstance(hosts, Mapping) else None
+                if isinstance(proxy_hosts, list):
+                    for item in proxy_hosts:
+                        if isinstance(item, Mapping):
+                            try:
+                                host_id = int(item["id"])
+                            except (KeyError, TypeError, ValueError):
+                                continue
+                            host_labels[host_id] = str(item.get("label") or host_id)
+            host_ids = _stored_host_ids(config.get("managed_host_ids"))
+            if not host_ids:
+                host_ids = {_stored_int(config.get("proxy_host_id"))}
+            events: list[dict[str, object]] = []
+            for host_id in sorted(host_ids):
+                if host_id < 1:
+                    continue
+                result = await client.log_tail(host_id=host_id)
+                lines = result.get("lines") if isinstance(result, Mapping) else None
+                if not isinstance(lines, list):
+                    continue
+                for line in lines:
+                    if isinstance(line, str):
+                        if parsed := parse_npm_access_line(
+                            line, host=host_labels.get(host_id, str(host_id))
+                        ):
+                            events.append(parsed)
+            events = events[-100:]
+            record_history_events(hass, events)
+            hass.data[KEY_ACTIVITY_NPM_CACHE] = {
+                "fetched_at": dt_util.utcnow().timestamp(),
+                "events": events,
+            }
+            runtime["activity_error"] = None
+            return events
+        except (HomeAssistantError, ClientError, TimeoutError) as err:
+            runtime["activity_error"] = str(err)
+            return []
 
 
 @callback
@@ -502,7 +700,9 @@ async def async_connect_npm(
                 "The selected Nginx Proxy Manager host is not accessible with these credentials."
             )
         _persist_npm_config(hass, {**current, **token})
-        _runtime(hass).update({"reauth_required": False, "last_error": None})
+        _runtime(hass).update(
+            {"reauth_required": False, "last_error": None, "activity_error": None}
+        )
         if current.get("enabled"):
             schedule_npm_sync(hass)
         return
@@ -537,7 +737,12 @@ async def async_connect_npm(
         },
     )
     _runtime(hass).update(
-        {"last_error": None, "last_sync": None, "reauth_required": False}
+        {
+            "last_error": None,
+            "last_sync": None,
+            "reauth_required": False,
+            "activity_error": None,
+        }
     )
 
 
@@ -997,7 +1202,9 @@ async def async_disable_npm(
             "managed_host_ids": [],
         },
     )
-    _runtime(hass).update({"last_sync": None, "last_error": None})
+    _runtime(hass).update(
+        {"last_sync": None, "last_error": None, "activity_error": None}
+    )
 
 
 async def async_disconnect_npm(hass: HomeAssistant) -> None:

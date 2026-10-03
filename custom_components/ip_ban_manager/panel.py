@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 from ipaddress import ip_address
 from pathlib import Path
@@ -11,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
+from .activity import history_activity, merge_activity
 from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_BACKUP,
@@ -82,7 +84,12 @@ from .network_policy import (
     current_allowlist_strings,
     current_blocked_network_strings,
 )
-from .nginx_proxy_manager import npm_panel_status, schedule_npm_sync
+from .nginx_proxy_manager import (
+    async_detect_npm_addon,
+    async_npm_activity,
+    npm_panel_status,
+    schedule_npm_sync,
+)
 from .notifications import (
     NOTIFICATION_ICON_URL,
     entry_silenced_allowlisted_login_ip_strings,
@@ -118,6 +125,15 @@ async def async_panel_payload(
     backup_status = await hass.async_add_executor_job(_backup_status, hass)
     geoip = await hass.async_add_executor_job(geoip_status, hass, entry)
     geoip["local_region"] = await async_local_geoip_region(hass)
+    try:
+        npm_activity = await asyncio.wait_for(async_npm_activity(hass, entry), 3)
+    except (HomeAssistantError, TimeoutError):
+        npm_activity = []
+    try:
+        npm_discovery = await asyncio.wait_for(async_detect_npm_addon(hass), 2)
+    except (HomeAssistantError, TimeoutError):
+        npm_discovery = {"addon_detected": False}
+    activity = merge_activity(hass, npm_activity)
     version = await async_integration_version(hass)
     return {
         "ok": True,
@@ -160,7 +176,12 @@ async def async_panel_payload(
             ),
         },
         "geoip": geoip,
-        "nginx_proxy_manager": npm_panel_status(hass, entry),
+        "nginx_proxy_manager": {
+            **npm_panel_status(hass, entry),
+            **npm_discovery,
+        },
+        "activity": activity,
+        "activity_history": history_activity(hass),
         ATTR_BACKUP: backup_status,
     }
 

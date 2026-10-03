@@ -37,6 +37,7 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 - **Blocked networks:** block CIDR networks and wildcard ranges without pretending `ip_bans.yaml` supports ranges.
 - **Default deny:** optionally block everything outside Allowed IPs with guardrails to avoid locking out Home Assistant itself.
 - **Live panel:** manage the whole integration from a dedicated page, with optional sidebar access.
+- **Incoming activity:** review recent requests seen by Home Assistant and, when connected, NGINX Proxy Manager; a sanitized history is retained locally for 24 hours.
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
 - **GeoIP labels and limits:** optionally download a local DB-IP City Lite database for approximate public-IP location labels and country/province access limits.
 - **NGINX Proxy Manager edge protection:** optionally mirror managed IP rules to the exact NPM proxy host serving Home Assistant.
@@ -128,9 +129,24 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 - Optional GeoIP allowed-region access control
 - Optional country and province/state failed-login thresholds
 - Optional NGINX Proxy Manager edge protection
+- Recent and 24-hour historical incoming activity from Home Assistant and connected NGINX Proxy Manager hosts
 - Manual on-disk backup, browser download, and browser upload restore
 
 Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
+
+### Incoming activity
+
+The panel's **Recent Incoming Activity** section shows requests observed by Home Assistant,
+including failed authentication and blocked requests. When NGINX Proxy Manager edge
+protection is connected, recent access-log entries from the managed proxy hosts are merged
+into the same view. The **History** tab keeps a sanitized local record for 24 hours, capped
+at 1,000 events. It stores only the source, IP address, request method and path, status,
+host label, reason, and timestamp; credentials, headers, cookies, tokens, and query strings
+are not stored. NGINX Proxy Manager access-log collection is limited to the hosts selected
+by IP Ban Manager and does not provide authenticated-session tracking. HTTP 403 entries are
+marked as possible edge-policy denies; NPM access logs do not identify the exact `deny`
+directive that produced a response, so this is verification evidence rather than a claim
+about the precise rule that matched.
 
 Blocked-network rows show when each entry was added and how it was created (panel, service, backup restore, and similar sources). Legacy managed-network rows added before tracking show **Added before tracking**. Exact blocked-IP rows show Home Assistant's native ban time and, when GeoIP labels are enabled, an approximate location. Allowed IP rows show the address only.
 
@@ -179,6 +195,8 @@ Home Assistant's own exact interface addresses and IPv6 link-local access paths 
 IP Ban Manager can optionally enforce its managed rules at NGINX Proxy Manager before unwanted requests reach Home Assistant. Connect with the NPM URL, account email, and password. The password is exchanged for an API token and is not stored by IP Ban Manager.
 
 IP Ban Manager matches Home Assistant's configured external hostname against NPM proxy hosts. A single exact hostname match is selected automatically; if there is no unique exact match, the panel asks you to select the correct proxy host. Enabling edge protection then mirrors Allowed IPs, exact IP bans, blocked networks, and **Block everything outside Allowed IPs**. Changes synchronize automatically whenever the managed policy changes. **Protect all NPM domains** extends the same access policy to every active Proxy Host, including hosts added later; Home Assistant callback exceptions remain limited to the selected Home Assistant host.
+
+On Home Assistant OS and Supervised installations, the panel detects the Supervisor-managed Nginx Proxy Manager app and pre-fills its local address when available. The NPM email and password are still entered by the user; IP Ban Manager never guesses credentials or reads the NPM database. Container and external-Docker installations continue to use the manual URL field.
 
 Only the clearly marked IP Ban Manager block in each protected host's advanced configuration is changed. Existing NPM settings and unrelated advanced configuration are preserved. Disabling or disconnecting removes our marked blocks from every host IP Ban Manager managed; disconnecting also removes the stored token.
 

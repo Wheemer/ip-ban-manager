@@ -12,6 +12,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../custom_components/ip
 
 const panel = new Panel();
 const markup = panel._gridMarkup(new Map([
+  ['activity-section', '<section class="activity-section wide">activity</section>'],
   ['options-section', '<section class="options-section">options</section>'],
   ['allowed-ips-section', '<section class="allowed-ips-section">allowed</section>'],
   ['blocked-ips-section', '<section class="blocked-ips-section">blocked</section>'],
@@ -19,6 +20,7 @@ const markup = panel._gridMarkup(new Map([
   ['blocked-networks-section', '<section class="blocked-networks-section">networks</section>'],
 ]));
 
+assert.match(markup, /activity-section wide/);
 const left = markup.slice(markup.indexOf('column-left'), markup.indexOf('column-right'));
 const right = markup.slice(markup.indexOf('column-right'));
 

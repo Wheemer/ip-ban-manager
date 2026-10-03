@@ -137,6 +137,7 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "요청이 Home Assistant에 도달하기 전에 프록시에서 IP Ban Manager의 명시적 IP 및 네트워크 규칙을 적용합니다.",
     "not_connected": "연결되지 않음",
     "connected_short": "연결됨",
@@ -190,6 +191,22 @@
     "npm_connect": "Nginx Proxy Manager에 연결되었습니다.",
     "npm_select_host": "프록시 호스트가 선택되었습니다.",
     "npm_sync": "Nginx Proxy Manager 규칙이 동기화되었습니다.",
-    "npm_disconnect": "Nginx Proxy Manager 연결이 끊어졌습니다."
+    "npm_disconnect": "Nginx Proxy Manager 연결이 끊어졌습니다.",
+    "clear_activity_history": "Activity history cleared."
+  },
+  "activity": {
+    "title": "Recent Incoming Activity",
+    "hint": "Recent requests observed by Home Assistant and Nginx Proxy Manager.",
+    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
+    "none": "No recent activity.",
+    "recent": "Recent",
+    "history": "History",
+    "retention": "History is retained for 24 hours.",
+    "clear": "Clear history",
+    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "sources": {
+      "home_assistant": "Home Assistant",
+      "nginx_proxy_manager": "Nginx Proxy Manager"
+    }
   }
 }

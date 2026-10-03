@@ -137,6 +137,7 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Aplikujte explicitné pravidlá IP a siete IP Ban Manager na serveri proxy predtým, ako požiadavky dosiahnu Home Assistant.",
     "not_connected": "Nepripojené",
     "connected_short": "Pripojené",
@@ -190,6 +191,22 @@
     "npm_connect": "Pripojené k Nginx Proxy Manager.",
     "npm_select_host": "Je vybratý server proxy.",
     "npm_sync": "Pravidlá Nginx Proxy Manager sú synchronizované.",
-    "npm_disconnect": "Nginx Proxy Manager je odpojený."
+    "npm_disconnect": "Nginx Proxy Manager je odpojený.",
+    "clear_activity_history": "Activity history cleared."
+  },
+  "activity": {
+    "title": "Recent Incoming Activity",
+    "hint": "Recent requests observed by Home Assistant and Nginx Proxy Manager.",
+    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
+    "none": "No recent activity.",
+    "recent": "Recent",
+    "history": "History",
+    "retention": "History is retained for 24 hours.",
+    "clear": "Clear history",
+    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "sources": {
+      "home_assistant": "Home Assistant",
+      "nginx_proxy_manager": "Nginx Proxy Manager"
+    }
   }
 }

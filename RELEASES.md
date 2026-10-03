@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.8.9](CHANGELOG.md#v189) | Adds bounded recent and 24-hour incoming activity, Supervisor-aware NGINX Proxy Manager setup, privacy-safe activity storage, and safer async connection handling. |
 | [v1.8.8](CHANGELOG.md#v188) | Hotfix: keeps panel toasts visible through sidebar re-registration, follows Home Assistant date-format localization, and refreshes tested dependency tooling. |
 | [v1.8.7](CHANGELOG.md#v187) | All-domain NGINX Proxy Manager protection, transactional multi-host synchronization and exact-ban writes, admin-gated services, safer backup uploads, balanced panel columns, and fully localized outcome-aware feedback. |
 | [v1.8.6](CHANGELOG.md#v186) | Optional rate-limited blocked-request diagnostics, a dedicated troubleshooting control, Public Region Lock panel polish, and safer runtime module reload ordering. |
