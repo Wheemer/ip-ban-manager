@@ -89,7 +89,7 @@ async def _async_handle_standard_wrong_login(request: Request) -> None:
             source="home_assistant",
             ip=str(remote_addr),
             method=str(getattr(request, "method", "") or ""),
-            path=request.path,
+            path=str(getattr(request, "path", "") or ""),
             status=401,
             detail="Authentication failed",
         )
@@ -193,7 +193,7 @@ async def _process_allowlisted_wrong_login(
         source="home_assistant",
         ip=str(remote_addr),
         method=str(getattr(request, "method", "") or ""),
-        path=request.path,
+        path=str(getattr(request, "path", "") or ""),
         status=401,
         detail="Allowlisted authentication failed",
     )

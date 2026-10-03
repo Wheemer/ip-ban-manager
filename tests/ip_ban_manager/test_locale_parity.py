@@ -38,6 +38,7 @@ ALLOWED_ENGLISH_PANEL_PATHS = {
     "activity.hint",
     "activity.npm_error",
     "activity.none",
+    "activity.request_count",
     "activity.recent",
     "activity.history",
     "activity.retention",

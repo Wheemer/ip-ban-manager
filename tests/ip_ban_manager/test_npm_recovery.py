@@ -18,12 +18,20 @@ from .test_setup import setup_ip_ban_manager
 @pytest.mark.asyncio
 async def test_expired_token_marks_connection_for_sign_in(hass, monkeypatch):
     """NPM reports expired tokens as 400, not 401."""
-    response = SimpleNamespace(
-        status=400,
-        json=AsyncMock(
+
+    class FakeResponse:
+        status = 400
+        json = AsyncMock(
             return_value={"error": {"code": 400, "message": "Token has expired"}}
-        ),
-    )
+        )
+
+        async def __aenter__(self) -> "FakeResponse":
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            return None
+
+    response = FakeResponse()
     session = SimpleNamespace(request=Mock(return_value=response))
     monkeypatch.setattr(npm, "async_get_clientsession", lambda _: session)
     client = npm.NpmClient(hass, "http://npm.test:81", "expired")
