@@ -44,6 +44,66 @@ async def test_failed_login_event_uses_native_notification_message(
 
 
 @pytest.mark.asyncio
+async def test_failed_login_event_respects_global_notification_setting(
+    hass: HomeAssistant,
+) -> None:
+    """Test muted IP Ban Manager notifications do not emit mobile events."""
+    events: list[dict[str, Any]] = []
+
+    @callback
+    def capture_event(event) -> None:
+        events.append(dict(event.data))
+
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_BAN_NOTIFICATIONS_ENABLED: False}
+    )
+    remove = hass.bus.async_listen(EVENT_LOGIN_FAILED, capture_event)
+
+    class MockRequest(MockRequestMetadata):
+        remote = "10.0.0.99"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    remove()
+
+    assert events == []
+
+
+@pytest.mark.asyncio
+async def test_failed_login_event_respects_allowlisted_address_silence(
+    hass: HomeAssistant,
+) -> None:
+    """Test per-address allowlisted notification silence applies to mobile events."""
+    events: list[dict[str, Any]] = []
+
+    @callback
+    def capture_event(event) -> None:
+        events.append(dict(event.data))
+
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: ["192.168.1.1"]}
+    )
+    remove = hass.bus.async_listen(EVENT_LOGIN_FAILED, capture_event)
+
+    class MockRequest(MockRequestMetadata):
+        remote = "192.168.1.1"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    remove()
+
+    assert events == []
+
+
+@pytest.mark.asyncio
 async def test_module_reload_preserves_original_wrong_login(
     hass: HomeAssistant,
 ) -> None:

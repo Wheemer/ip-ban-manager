@@ -9,6 +9,10 @@ IP Ban Manager 1.9.2 adds an opt-in mobile notification scope for every failed l
 - Added a **Notify on any failed login attempt** option to the mobile notification blueprint, using Home Assistant's native failed-login message.
 - Added the `ip_ban_manager_login_failed` automation event with the failed address and native notification message.
 
+### Fixed
+
+- The failed-login automation event now follows IP Ban Manager notification settings, including global notification muting and per-address allowlisted-login silencing.
+
 ## v1.9.1
 
 IP Ban Manager 1.9.1 keeps Incoming Activity focused on requests that reached the protected service and adds a ready-made mobile notification automation.

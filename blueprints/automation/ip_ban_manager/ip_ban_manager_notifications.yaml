@@ -5,7 +5,8 @@ blueprint:
     Send a mobile-app notification when IP Ban Manager bans an address, an
     address reaches the automatic-ban threshold, or repeated allowlisted
     login failures are escalated. It can also notify for every failed login
-    attempt using Home Assistant's native notification text.
+    attempt using Home Assistant's native notification text. It follows IP Ban
+    Manager's notification settings.
   domain: automation
   author: Wheemer
   source_url: https://github.com/Wheemer/ip-ban-manager/blob/main/blueprints/automation/ip_ban_manager/ip_ban_manager_notifications.yaml

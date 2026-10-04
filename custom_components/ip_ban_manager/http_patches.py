@@ -33,7 +33,12 @@ from .entry_helpers import allowlisted_logins_can_ban
 from .geoip import effective_login_threshold_for_ip, regional_login_threshold_for_ip
 from .ha_compat import assert_http_ban_hooks_available
 from .network_policy import apply_blocked_networks
-from .notifications import create_allowlisted_login_notification, format_remote_display
+from .notifications import (
+    create_allowlisted_login_notification,
+    format_remote_display,
+    notifications_enabled,
+    should_notify_allowlisted_login,
+)
 from .reverse_dns import async_reverse_dns_name
 from .storage_keys import (
     KEY_ALLOWLIST,
@@ -83,10 +88,11 @@ def _request_remote_ip(request: Request) -> IPAddress | None:
 
 async def _async_handle_standard_wrong_login(request: Request) -> None:
     """Process failed logins that may become automatic exact bans."""
+    hass = request.app[KEY_HASS]
     remote_addr = _request_remote_ip(request)
     if remote_addr is not None:
         record_activity(
-            request.app[KEY_HASS],
+            hass,
             source="home_assistant",
             ip=str(remote_addr),
             method=str(getattr(request, "method", "") or ""),
@@ -95,9 +101,7 @@ async def _async_handle_standard_wrong_login(request: Request) -> None:
             detail="Authentication failed",
         )
     if remote_addr is not None:
-        regional_threshold = regional_login_threshold_for_ip(
-            request.app[KEY_HASS], remote_addr
-        )
+        regional_threshold = regional_login_threshold_for_ip(hass, remote_addr)
         if regional_threshold is not None:
             await _async_handle_regional_wrong_login(
                 request, remote_addr, regional_threshold
@@ -105,8 +109,7 @@ async def _async_handle_standard_wrong_login(request: Request) -> None:
             return
 
     await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
-    hass = request.app[KEY_HASS]
-    if remote_addr is not None:
+    if remote_addr is not None and notifications_enabled(hass):
         from homeassistant.components import persistent_notification
 
         notification = persistent_notification._async_get_or_create_notifications(
@@ -144,11 +147,12 @@ async def _async_handle_regional_wrong_login(
     logging.getLogger("homeassistant.components.http.ban").warning(
         "%s Requested URL: '%s'. (%s)", base_msg, request.rel_url, user_agent
     )
-    record_login_failed(
-        hass,
-        str(remote_addr),
-        message=f"{base_msg} See the log for details.",
-    )
+    if notifications_enabled(hass):
+        record_login_failed(
+            hass,
+            str(remote_addr),
+            message=f"{base_msg} See the log for details.",
+        )
     persistent_notification.async_create(
         hass,
         f"{base_msg} See the log for details.",
@@ -232,11 +236,15 @@ async def _process_allowlisted_wrong_login(
     notification_msg = f"{base_msg} See the log for details."
 
     logging.getLogger("homeassistant.components.http.ban").warning(log_msg)
-    record_login_failed(hass, str(remote_addr), message=notification_msg)
-
     threshold = effective_login_threshold_for_ip(hass, remote_addr)
     if KEY_BAN_MANAGER in request.app and threshold >= 1:
         request.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] += 1
+
+    attempts = int(request.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {}).get(remote_addr, 0))
+    if notifications_enabled(hass) and should_notify_allowlisted_login(
+        hass, remote_addr, attempts
+    ):
+        record_login_failed(hass, str(remote_addr), message=notification_msg)
 
     create_allowlisted_login_notification(hass, remote_addr, notification_msg)
 
