@@ -103,6 +103,31 @@ def test_allowlisted_activity_is_hidden_from_panel_views() -> None:
     assert [event["ip"] for event in filtered] == ["203.0.113.8"]
 
 
+def test_policy_denied_activity_is_hidden_from_panel_views() -> None:
+    """Recent and historical views contain only requests that reached a service."""
+    events = [
+        {
+            "source": "nginx_proxy_manager",
+            "ip": "203.0.113.8",
+            "status": 403,
+        },
+        {
+            "source": "home_assistant",
+            "ip": "203.0.113.9",
+            "status": 403,
+        },
+        {
+            "source": "nginx_proxy_manager",
+            "ip": "203.0.113.10",
+            "status": 401,
+        },
+    ]
+
+    filtered = activity.without_policy_denied_activity(events)
+
+    assert [event["ip"] for event in filtered] == ["203.0.113.10"]
+
+
 def test_old_activity_is_not_recent() -> None:
     """The Recent view excludes stale proxy-log tail entries."""
     assert not activity.is_recent_activity({"timestamp": "2026-10-01T12:00:00+00:00"})

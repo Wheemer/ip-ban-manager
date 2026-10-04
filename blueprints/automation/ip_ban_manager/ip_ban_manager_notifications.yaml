@@ -1,0 +1,86 @@
+blueprint:
+  name: IP Ban Manager security notifications
+  description: >-
+    Send a mobile-app notification when IP Ban Manager bans an address, an
+    address reaches the automatic-ban threshold, or repeated allowlisted
+    login failures are escalated.
+  domain: automation
+  author: Wheemer
+  source_url: https://github.com/Wheemer/ip-ban-manager/blob/main/blueprints/automation/ip_ban_manager/ip_ban_manager_notifications.yaml
+
+  input:
+    notify_device:
+      name: Mobile device
+      description: The Home Assistant mobile-app device that should receive notifications.
+      selector:
+        device:
+          integration: mobile_app
+          multiple: true
+    notify_on_ban:
+      name: Notify when an IP is banned
+      default: true
+      selector:
+        boolean:
+    notify_on_threshold:
+      name: Notify when the ban threshold is reached
+      default: false
+      selector:
+        boolean:
+    notify_on_allowlisted_escalation:
+      name: Notify on repeated allowlisted login failures
+      default: false
+      selector:
+        boolean:
+
+mode: queued
+max: 10
+
+variables:
+  notify_on_ban: !input notify_on_ban
+  notify_on_threshold: !input notify_on_threshold
+  notify_on_allowlisted_escalation: !input notify_on_allowlisted_escalation
+
+trigger:
+  - platform: event
+    event_type: ip_ban_manager_ip_banned
+    id: ip_banned
+  - platform: event
+    event_type: ip_ban_manager_login_threshold_reached
+    id: login_threshold_reached
+  - platform: event
+    event_type: ip_ban_manager_allowlisted_login_escalated
+    id: allowlisted_login_escalated
+
+condition:
+  - condition: template
+    value_template: >-
+      {{ (trigger.id == 'ip_banned' and notify_on_ban)
+         or (trigger.id == 'login_threshold_reached' and notify_on_threshold)
+         or (trigger.id == 'allowlisted_login_escalated'
+             and notify_on_allowlisted_escalation) }}
+
+action:
+  - repeat:
+      for_each: !input notify_device
+      sequence:
+        - device_id: "{{ repeat.item }}"
+          domain: mobile_app
+          type: notify
+          title: >-
+            {% if trigger.id == 'ip_banned' %}
+              IP Ban Manager: IP banned
+            {% elif trigger.id == 'login_threshold_reached' %}
+              IP Ban Manager: ban threshold reached
+            {% else %}
+              IP Ban Manager: allowlisted login failures
+            {% endif %}
+          message: >-
+            {% set ip = trigger.event.data.ip_address | default('unknown address') %}
+            {% set source = trigger.event.data.source | default('unknown source') %}
+            {% if trigger.id == 'ip_banned' %}
+              {{ ip }} was banned. Source: {{ source }}.
+            {% elif trigger.id == 'login_threshold_reached' %}
+              {{ ip }} reached {{ trigger.event.data.attempts | default('?') }}/{{ trigger.event.data.threshold | default('?') }} failed logins and is being banned.
+            {% else %}
+              {{ ip }} reached {{ trigger.event.data.attempts | default('?') }} repeated failed logins but is allowlisted.
+            {% endif %}

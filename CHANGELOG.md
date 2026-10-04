@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.9.1
+
+IP Ban Manager 1.9.1 keeps Incoming Activity focused on requests that reached the protected service and adds a ready-made mobile notification automation.
+
+### Added
+
+- Added a Home Assistant blueprint for mobile-app notifications on bans, ban-threshold events, and repeated allowlisted login failures.
+
+### Fixed
+
+- Removed NGINX Proxy Manager and Home Assistant policy-denied requests from Incoming Activity Recent and History views. Requests rejected with HTTP 403 no longer appear as if they were allowed through.
+
 ## v1.9.0
 
 IP Ban Manager 1.9.0 adds lightweight NGINX Proxy Manager edge authorization and a clearer, more reliable incoming-activity view.

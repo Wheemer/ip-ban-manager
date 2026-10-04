@@ -370,6 +370,21 @@ def without_allowlisted_activity(
     return filtered
 
 
+def without_policy_denied_activity(
+    events: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    """Remove requests rejected before they reached the protected service."""
+    return [
+        dict(event)
+        for event in events
+        if not (
+            event.get("status") == 403
+            and str(event.get("source") or "")
+            in {"home_assistant", "nginx_proxy_manager"}
+        )
+    ]
+
+
 def is_recent_activity(event: Mapping[str, object]) -> bool:
     """Return whether an event belongs in the live Recent view."""
     timestamp = dt_util.parse_datetime(str(event.get("timestamp") or ""))
