@@ -81,7 +81,8 @@ action:
             {% if trigger.id == 'ip_banned' %}
               {{ ip }} was banned. Source: {{ source }}.
             {% elif trigger.id == 'login_threshold_reached' %}
-              {{ ip }} reached {{ trigger.event.data.attempts | default('?') }}/{{ trigger.event.data.threshold | default('?') }} failed logins and is being banned.
+              {{ ip }} reached {{ trigger.event.data.attempts | default('?') }}/{{
+              trigger.event.data.threshold | default('?') }} failed logins and is being banned.
             {% else %}
               {{ ip }} reached {{ trigger.event.data.attempts | default('?') }} repeated failed logins but is allowlisted.
             {% endif %}
