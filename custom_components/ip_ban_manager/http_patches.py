@@ -240,7 +240,7 @@ async def _process_allowlisted_wrong_login(
     if KEY_BAN_MANAGER in request.app and threshold >= 1:
         request.app[KEY_FAILED_LOGIN_ATTEMPTS][remote_addr] += 1
 
-    attempts = int(request.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {}).get(remote_addr, 0))
+    attempts = int(request.app[KEY_FAILED_LOGIN_ATTEMPTS].get(remote_addr, 0))
     if notifications_enabled(hass) and should_notify_allowlisted_login(
         hass, remote_addr, attempts
     ):
