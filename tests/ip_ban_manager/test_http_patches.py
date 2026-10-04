@@ -9,6 +9,41 @@ from .test_setup import *
 
 
 @pytest.mark.asyncio
+async def test_failed_login_event_uses_native_notification_message(
+    hass: HomeAssistant,
+) -> None:
+    """Test every failed login exposes Home Assistant's native message text."""
+    events: list[dict[str, Any]] = []
+
+    @callback
+    def capture_event(event) -> None:
+        events.append(dict(event.data))
+
+    remove = hass.bus.async_listen(EVENT_LOGIN_FAILED, capture_event)
+    await setup_ip_ban_manager(hass)
+
+    class MockRequest(MockRequestMetadata):
+        remote = "10.0.0.99"
+        app = hass.http.app
+        headers: dict[str, str] = {}
+        rel_url = "/auth/login_flow/test"
+
+    await http_ban.process_wrong_login(cast(Any, MockRequest()))
+    remove()
+
+    assert events == [
+        {
+            ATTR_IP_ADDRESS: "10.0.0.99",
+            ATTR_MESSAGE: (
+                "Login attempt or request with invalid authentication from "
+                "10.0.0.99 (10.0.0.99). See the log for details."
+            ),
+            ATTR_SOURCE: SOURCE_AUTO,
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_module_reload_preserves_original_wrong_login(
     hass: HomeAssistant,
 ) -> None:

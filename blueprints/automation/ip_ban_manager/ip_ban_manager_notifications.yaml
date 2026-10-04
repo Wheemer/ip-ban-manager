@@ -4,7 +4,8 @@ blueprint:
   description: >-
     Send a mobile-app notification when IP Ban Manager bans an address, an
     address reaches the automatic-ban threshold, or repeated allowlisted
-    login failures are escalated.
+    login failures are escalated. It can also notify for every failed login
+    attempt using Home Assistant's native notification text.
   domain: automation
   author: Wheemer
   source_url: https://github.com/Wheemer/ip-ban-manager/blob/main/blueprints/automation/ip_ban_manager/ip_ban_manager_notifications.yaml
@@ -33,6 +34,12 @@ blueprint:
       default: false
       selector:
         boolean:
+    notify_on_login_failed:
+      name: Notify on any failed login attempt
+      description: Send the same message Home Assistant uses for each failed login.
+      default: false
+      selector:
+        boolean:
 
 mode: queued
 max: 10
@@ -41,6 +48,7 @@ variables:
   notify_on_ban: !input notify_on_ban
   notify_on_threshold: !input notify_on_threshold
   notify_on_allowlisted_escalation: !input notify_on_allowlisted_escalation
+  notify_on_login_failed: !input notify_on_login_failed
 
 trigger:
   - platform: event
@@ -52,6 +60,9 @@ trigger:
   - platform: event
     event_type: ip_ban_manager_allowlisted_login_escalated
     id: allowlisted_login_escalated
+  - platform: event
+    event_type: ip_ban_manager_login_failed
+    id: login_failed
 
 condition:
   - condition: template
@@ -59,7 +70,8 @@ condition:
       {{ (trigger.id == 'ip_banned' and notify_on_ban)
          or (trigger.id == 'login_threshold_reached' and notify_on_threshold)
          or (trigger.id == 'allowlisted_login_escalated'
-             and notify_on_allowlisted_escalation) }}
+             and notify_on_allowlisted_escalation)
+         or (trigger.id == 'login_failed' and notify_on_login_failed) }}
 
 action:
   - action: notify.send_message
@@ -70,8 +82,10 @@ action:
           IP Ban Manager: IP banned
         {% elif trigger.id == 'login_threshold_reached' %}
           IP Ban Manager: ban threshold reached
-        {% else %}
+        {% elif trigger.id == 'allowlisted_login_escalated' %}
           IP Ban Manager: allowlisted login failures
+        {% else %}
+          IP Ban Manager: login attempt failed
         {% endif %}
       message: >-
         {% set ip = trigger.event.data.ip_address | default('unknown address') %}
@@ -81,6 +95,8 @@ action:
         {% elif trigger.id == 'login_threshold_reached' %}
           {{ ip }} reached {{ trigger.event.data.attempts | default('?') }}/{{
           trigger.event.data.threshold | default('?') }} failed logins and is being banned.
-        {% else %}
+        {% elif trigger.id == 'allowlisted_login_escalated' %}
           {{ ip }} reached {{ trigger.event.data.attempts | default('?') }} repeated failed logins but is allowlisted.
+        {% else %}
+          {{ trigger.event.data.message | default('Login attempt or request with invalid authentication.') }}
         {% endif %}

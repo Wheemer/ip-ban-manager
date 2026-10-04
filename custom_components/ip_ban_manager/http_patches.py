@@ -23,6 +23,7 @@ from .activity import record_activity
 from .audit import (
     current_mutation_source,
     record_ip_banned,
+    record_login_failed,
     record_login_threshold_reached,
 )
 from .ban_lookup import NetworkAwareBanLookup, _is_allowed, _normalize_remote_addr
@@ -105,6 +106,23 @@ async def _async_handle_standard_wrong_login(request: Request) -> None:
 
     await _ORIGINAL_PROCESS_WRONG_LOGIN(request)
     hass = request.app[KEY_HASS]
+    if remote_addr is not None:
+        from homeassistant.components import persistent_notification
+
+        notification = persistent_notification._async_get_or_create_notifications(
+            hass
+        ).get(
+            NOTIFICATION_ID_LOGIN
+        )  # noqa: SLF001
+        message = (
+            notification["message"]
+            if notification is not None
+            else (
+                "Login attempt or request with invalid authentication from "
+                f"{remote_addr}. See the log for details."
+            )
+        )
+        record_login_failed(hass, str(remote_addr), message=message)
     _handle_http_notifications(hass)
     _schedule_http_notification_rewrite(hass)
 
@@ -125,6 +143,11 @@ async def _async_handle_regional_wrong_login(
     user_agent = request.headers.get("user-agent")
     logging.getLogger("homeassistant.components.http.ban").warning(
         "%s Requested URL: '%s'. (%s)", base_msg, request.rel_url, user_agent
+    )
+    record_login_failed(
+        hass,
+        str(remote_addr),
+        message=f"{base_msg} See the log for details.",
     )
     persistent_notification.async_create(
         hass,
@@ -209,6 +232,7 @@ async def _process_allowlisted_wrong_login(
     notification_msg = f"{base_msg} See the log for details."
 
     logging.getLogger("homeassistant.components.http.ban").warning(log_msg)
+    record_login_failed(hass, str(remote_addr), message=notification_msg)
 
     threshold = effective_login_threshold_for_ip(hass, remote_addr)
     if KEY_BAN_MANAGER in request.app and threshold >= 1:

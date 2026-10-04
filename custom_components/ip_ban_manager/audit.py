@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from .const import (
     ATTR_ATTEMPTS,
     ATTR_IP_ADDRESS,
+    ATTR_MESSAGE,
     ATTR_NETWORK,
     ATTR_SOURCE,
     ATTR_THRESHOLD,
@@ -23,6 +24,7 @@ from .const import (
     EVENT_BLOCKED_NETWORK_REMOVED,
     EVENT_IP_BANNED,
     EVENT_IP_UNBANNED,
+    EVENT_LOGIN_FAILED,
     EVENT_LOGIN_THRESHOLD_REACHED,
     SOURCE_AUTO,
 )
@@ -95,6 +97,19 @@ def record_login_threshold_reached(
             ATTR_IP_ADDRESS: ip_address,
             ATTR_ATTEMPTS: attempts,
             ATTR_THRESHOLD: threshold,
+            ATTR_SOURCE: SOURCE_AUTO,
+        },
+    )
+
+
+def record_login_failed(hass: HomeAssistant, ip_address: str, *, message: str) -> None:
+    """Record every failed login with Home Assistant's native message text."""
+    _fire_event(
+        hass,
+        EVENT_LOGIN_FAILED,
+        {
+            ATTR_IP_ADDRESS: ip_address,
+            ATTR_MESSAGE: message,
             ATTR_SOURCE: SOURCE_AUTO,
         },
     )

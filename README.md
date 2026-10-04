@@ -296,6 +296,7 @@ For a ready-made mobile-app automation, import the IP Ban Manager security notif
 
 - `ip_ban_manager_ip_banned` — after an exact IP ban is written (`ip_address`, `source`)
 - `ip_ban_manager_ip_unbanned` — after an exact IP ban is removed (`ip_address`, `source`)
+- `ip_ban_manager_login_failed` — for every failed login (`ip_address`, `message`, `source`)
 - `ip_ban_manager_login_threshold_reached` — before an automatic ban is applied (`ip_address`, `attempts`, `threshold`, `source`)
 - `ip_ban_manager_allowlisted_login_escalated` — when repeated allowlisted-login failures cross the escalation threshold (`ip_address`, `attempts`, `source`)
 - `ip_ban_manager_allowlist_network_added` / `ip_ban_manager_allowlist_network_removed` — allowlist changes (`network`, `source`)
