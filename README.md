@@ -290,7 +290,9 @@ Adding a ban updates Home Assistant's live ban manager and persists to `ip_bans.
 
 IP Ban Manager fires small, stable Home Assistant events you can use in automations:
 
-For a ready-made mobile-app automation, import the [IP Ban Manager security notifications blueprint](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FWheemer%2Fip-ban-manager%2Fmain%2Fblueprints%2Fautomation%2Fip_ban_manager%2Fip_ban_manager_notifications.yaml).
+For a ready-made mobile-app automation, import the IP Ban Manager security notifications blueprint:
+
+[![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FWheemer%2Fip-ban-manager%2Fmain%2Fblueprints%2Fautomation%2Fip_ban_manager%2Fip_ban_manager_notifications.yaml)
 
 - `ip_ban_manager_ip_banned` — after an exact IP ban is written (`ip_address`, `source`)
 - `ip_ban_manager_ip_unbanned` — after an exact IP ban is removed (`ip_address`, `source`)
