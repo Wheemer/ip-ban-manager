@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
@@ -10,6 +11,7 @@ import pytest
 from homeassistant.const import EVENT_COMPONENT_LOADED
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.util import dt as dt_util
 
 from custom_components.ip_ban_manager import activity
 from custom_components.ip_ban_manager import nginx_proxy_manager as npm
@@ -230,13 +232,18 @@ async def test_npm_activity_reads_selected_proxy_host_logs(
         },
     )
     client = AsyncMock()
+    log_time = dt_util.utcnow()
+    first_log_timestamp = log_time.strftime("%d/%b/%Y:%H:%M:%S +0000")
+    second_log_timestamp = (log_time + timedelta(seconds=1)).strftime(
+        "%d/%b/%Y:%H:%M:%S +0000"
+    )
     client.log_sources.return_value = {
         "hosts": {"proxy": [{"id": 4, "label": "ha.example.test"}]}
     }
     client.log_tail.return_value = {
         "lines": [
-            '203.0.113.8 - - [03/Oct/2026:12:34:56 -0230] "GET /login HTTP/1.1" 401 12',
-            '203.0.113.9 - - [03/Oct/2026:12:34:57 -0230] "GET /admin HTTP/1.1" 403 12',
+            f'203.0.113.8 - - [{first_log_timestamp}] "GET /login HTTP/1.1" 401 12',
+            f'203.0.113.9 - - [{second_log_timestamp}] "GET /admin HTTP/1.1" 403 12',
         ]
     }
     monkeypatch.setattr(npm, "NpmClient", lambda *args: client)
