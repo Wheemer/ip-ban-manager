@@ -10,13 +10,14 @@ blueprint:
   source_url: https://github.com/Wheemer/ip-ban-manager/blob/main/blueprints/automation/ip_ban_manager/ip_ban_manager_notifications.yaml
 
   input:
-    notify_device:
-      name: Mobile device
-      description: The Home Assistant mobile-app device that should receive notifications.
+    notify_target:
+      name: Mobile notification target
+      description: The Home Assistant mobile-app device or notify entity that should receive notifications.
       selector:
-        device:
-          integration: mobile_app
-          multiple: true
+        target:
+          entity:
+            - integration: mobile_app
+              domain: notify
     notify_on_ban:
       name: Notify when an IP is banned
       default: true
@@ -61,25 +62,25 @@ condition:
              and notify_on_allowlisted_escalation) }}
 
 action:
-  - device_id: !input notify_device
-    domain: mobile_app
-    type: notify
-    title: >-
-      {% if trigger.id == 'ip_banned' %}
-        IP Ban Manager: IP banned
-      {% elif trigger.id == 'login_threshold_reached' %}
-        IP Ban Manager: ban threshold reached
-      {% else %}
-        IP Ban Manager: allowlisted login failures
-      {% endif %}
-    message: >-
-      {% set ip = trigger.event.data.ip_address | default('unknown address') %}
-      {% set source = trigger.event.data.source | default('unknown source') %}
-      {% if trigger.id == 'ip_banned' %}
-        {{ ip }} was banned. Source: {{ source }}.
-      {% elif trigger.id == 'login_threshold_reached' %}
-        {{ ip }} reached {{ trigger.event.data.attempts | default('?') }}/{{
-        trigger.event.data.threshold | default('?') }} failed logins and is being banned.
-      {% else %}
-        {{ ip }} reached {{ trigger.event.data.attempts | default('?') }} repeated failed logins but is allowlisted.
-      {% endif %}
+  - action: notify.send_message
+    target: !input notify_target
+    data:
+      title: >-
+        {% if trigger.id == 'ip_banned' %}
+          IP Ban Manager: IP banned
+        {% elif trigger.id == 'login_threshold_reached' %}
+          IP Ban Manager: ban threshold reached
+        {% else %}
+          IP Ban Manager: allowlisted login failures
+        {% endif %}
+      message: >-
+        {% set ip = trigger.event.data.ip_address | default('unknown address') %}
+        {% set source = trigger.event.data.source | default('unknown source') %}
+        {% if trigger.id == 'ip_banned' %}
+          {{ ip }} was banned. Source: {{ source }}.
+        {% elif trigger.id == 'login_threshold_reached' %}
+          {{ ip }} reached {{ trigger.event.data.attempts | default('?') }}/{{
+          trigger.event.data.threshold | default('?') }} failed logins and is being banned.
+        {% else %}
+          {{ ip }} reached {{ trigger.event.data.attempts | default('?') }} repeated failed logins but is allowlisted.
+        {% endif %}
