@@ -28,6 +28,7 @@ from .activity import (
     NPM_ACTIVITY_CACHE_SECONDS,
     parse_npm_access_line,
     record_history_events,
+    without_disallowed_activity,
 )
 from .ban_lookup import (
     CALLBACK_ROUTE_EXACT_PATHS,
@@ -600,7 +601,7 @@ async def async_npm_activity(
                             line, host=host_labels.get(host_id, str(host_id))
                         ):
                             events.append(parsed)
-            events = events[-100:]
+            events = without_disallowed_activity(hass, entry, events)[-100:]
             record_history_events(hass, events)
             hass.data[KEY_ACTIVITY_NPM_CACHE] = {
                 "fetched_at": dt_util.utcnow().timestamp(),

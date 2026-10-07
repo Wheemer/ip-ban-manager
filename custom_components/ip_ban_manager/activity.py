@@ -11,6 +11,8 @@ from time import monotonic
 from typing import Final
 from urllib.parse import urlsplit
 
+from homeassistant.components.http.ban import KEY_BAN_MANAGER
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -383,6 +385,68 @@ def without_policy_denied_activity(
             in {"home_assistant", "nginx_proxy_manager"}
         )
     ]
+
+
+def without_disallowed_activity(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    events: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    """Keep only activity that passes the active IP Ban Manager policy."""
+    from .ban_lookup import _is_allowed
+    from .entry_helpers import (
+        entry_blocked_networks,
+        entry_default_deny_enabled,
+        entry_ip_addresses,
+        parse_allowlist,
+        parse_blocked_networks,
+    )
+    from .geoip import geoip_regions_allow_ip
+    from .region_rules import entry_public_region_settings
+    from .storage_keys import (
+        KEY_BLOCKED_NETWORKS,
+        KEY_DEFAULT_DENY,
+        KEY_INTERNAL_BYPASS_NETWORKS,
+    )
+
+    allowlist = parse_allowlist(entry_ip_addresses(entry))
+    blocked_networks = parse_blocked_networks(entry_blocked_networks(entry))
+    internal_bypass = hass.http.app.get(KEY_INTERNAL_BYPASS_NETWORKS, ())
+    live_blocked_networks = hass.http.app.get(KEY_BLOCKED_NETWORKS, blocked_networks)
+    live_default_deny = hass.http.app.get(
+        KEY_DEFAULT_DENY, entry_default_deny_enabled(entry)
+    )
+    region_settings = entry_public_region_settings(hass, entry)
+    region_rules = frozenset(region_settings["public_region_rules"])
+    ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
+    banned_ips = (
+        getattr(ban_manager, "ip_bans_lookup", {}) if ban_manager is not None else {}
+    )
+
+    filtered: list[dict[str, object]] = []
+    for event in events:
+        try:
+            address = ip_address(str(event.get("ip") or ""))
+        except ValueError:
+            continue
+        if isinstance(banned_ips, dict) and dict.__contains__(banned_ips, address):
+            continue
+        if _is_allowed(address, internal_bypass):
+            filtered.append(dict(event))
+            continue
+        if _is_allowed(address, allowlist):
+            filtered.append(dict(event))
+            continue
+        if _is_allowed(address, live_blocked_networks):
+            continue
+        if live_default_deny:
+            continue
+        if region_settings["public_region_enabled"] and not geoip_regions_allow_ip(
+            hass, address, region_rules
+        ):
+            continue
+        filtered.append(dict(event))
+    return filtered
 
 
 def is_recent_activity(event: Mapping[str, object]) -> bool:

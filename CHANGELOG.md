@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.9.3
+
+IP Ban Manager 1.9.3 keeps Incoming Activity limited to requests that passed the active access policy.
+
+### Fixed
+
+- Blocked exact IPs, blocked networks, default-deny traffic, internal policy denials, and disallowed public-region requests no longer appear in Incoming Activity Recent or History.
+- NGINX Proxy Manager activity is filtered before it is stored, preventing rejected edge requests from being recorded as incoming activity.
+
+### Maintenance
+
+- Updated the pinned pre-commit isort hook and Home Assistant action digest.
+
 ## v1.9.2
 
 IP Ban Manager 1.9.2 adds an opt-in mobile notification scope for every failed login attempt.
