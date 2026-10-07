@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.9.3](CHANGELOG.md#v193) | Keeps Incoming Activity limited to policy-allowed requests and updates the pinned repository automation dependencies. |
 | [v1.9.2](CHANGELOG.md#v192) | Adds an opt-in mobile notification scope for every failed login attempt and the matching automation event, respecting IP Ban Manager notification settings. |
 | [v1.9.1](CHANGELOG.md#v191) | Removes policy-denied requests from Incoming Activity and adds a ready-made mobile notification blueprint for bans and login security events. |
 | [v1.9.0](CHANGELOG.md#v190) | Adds lightweight NGINX Proxy Manager edge authorization, bounded low-power caching, grouped Incoming Activity views, allowlist filtering, and reliable history clearing. |

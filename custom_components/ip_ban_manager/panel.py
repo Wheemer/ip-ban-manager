@@ -17,6 +17,7 @@ from .activity import (
     history_activity,
     merge_activity,
     without_allowlisted_activity,
+    without_disallowed_activity,
     without_policy_denied_activity,
 )
 from .const import (
@@ -193,6 +194,8 @@ async def async_panel_payload(
     )
     activity = without_policy_denied_activity(activity)
     activity_history = without_policy_denied_activity(activity_history)
+    activity = without_disallowed_activity(hass, entry, activity)
+    activity_history = without_disallowed_activity(hass, entry, activity_history)
     locations = await _async_activity_locations(hass, [*activity, *activity_history])
     for event in [*activity, *activity_history]:
         if location := locations.get(str(event.get("ip") or "")):
