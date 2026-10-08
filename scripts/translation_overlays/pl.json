@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Wprowadź prawidłowe adresy IP, sieci CIDR lub sieci z maską jak 192.168.1.* lub 2001:db8:1:2:*.",
+      "invalid_ip_address": "Wprowadź prawidłowe adresy IP, sieci CIDR lub sieci z maską jak 192.168.1.* lub 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Ten wpis Allowlist zaufałby każdemu adresowi IP i w praktyce wyłączyłby blokowanie IP."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "Dodaj bezpieczne domyślne"
             },
             "data_description": {
-              "allowed_ips": "Zaufane adresy i sieci IPv4/IPv6, które nigdy nie powinny być blokowane. Jeden wpis na wiersz. Obsługiwane są sieci CIDR i maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*."
+              "allowed_ips": "Zaufane adresy i sieci IPv4/IPv6, które nigdy nie powinny być blokowane. Jeden wpis na wiersz. Obsługiwane są sieci CIDR i maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Wprowadź prawidłowe adresy IP, sieci CIDR lub sieci z maską jak 192.168.1.* lub 2001:db8:1:2:*.",
+      "invalid_ip_address": "Wprowadź prawidłowe adresy IP, sieci CIDR lub sieci z maską jak 192.168.1.* lub 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Wprowadź dokładnie jeden adres IPv4 lub IPv6 na wiersz. Sieci CIDR i maski należą do Zablokowanych sieci.",
       "invalid_blocked_network": "Wprowadź prawidłowe sieci CIDR IPv4/IPv6 lub sieci z maską jak 203.0.113.* lub 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Ta zablokowana sieć zablokowałaby każdy adres IP. Użyj węższej sieci.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "Dozwolone IP",
-      "hint": "Zaufane adresy i sieci IPv4/IPv6. Te wpisy mają pierwszeństwo przed dokładnymi blokadami, zablokowanymi sieciami i trybem domyślnej odmowy. Obsługiwane są maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*.",
-      "placeholder": "Adres IPv4/IPv6, CIDR lub maska",
+      "hint": "Zaufane adresy i sieci IPv4/IPv6. Te wpisy mają pierwszeństwo przed dokładnymi blokadami, zablokowanymi sieciami i trybem domyślnej odmowy. Obsługiwane są maski IPv4/IPv6 jak 192.168.1.* lub 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "Adres IPv4/IPv6, CIDR lub maska, DNS hostname",
       "remove_confirm": "Usunąć to dozwolone IP? Przy aktywnym trybie domyślnej odmowy lub zablokowanych sieciach usunięcie zaufanego wpisu może zablokować dostęp."
     },
     "blocked_ips": {

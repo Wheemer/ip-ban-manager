@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Aquesta entrada de la llista permesa confiaria en cada adreça IP i desactivaria efectivament el bloqueig IP."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "Afegeix valors segurs per defecte"
             },
             "data_description": {
-              "allowed_ips": "Adreces i xarxes IPv4/IPv6 de confiança que no s'han de bloquejar mai. Una entrada per línia. S'admeten xarxes CIDR i comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*."
+              "allowed_ips": "Adreces i xarxes IPv4/IPv6 de confiança que no s'han de bloquejar mai. Una entrada per línia. S'admeten xarxes CIDR i comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Introduïu una adreça IPv4 o IPv6 exacta per línia. Les xarxes CIDR i comodins van a Xarxes bloquejades.",
       "invalid_blocked_network": "Introduïu xarxes CIDR o comodí IPv4/IPv6 vàlides com 203.0.113.* o 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Aquesta xarxa bloquejada bloquejaria cada adreça IP. Utilitzeu una xarxa més estreta.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "IP permeses",
-      "hint": "Adreces i xarxes IPv4/IPv6 de confiança. Aquestes entrades tenen prioritat sobre bloquejos exactes, xarxes bloquejades i el mode de denegació per defecte. S'admeten comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*.",
-      "placeholder": "Adreça IPv4/IPv6, CIDR o comodí",
+      "hint": "Adreces i xarxes IPv4/IPv6 de confiança. Aquestes entrades tenen prioritat sobre bloquejos exactes, xarxes bloquejades i el mode de denegació per defecte. S'admeten comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "Adreça IPv4/IPv6, CIDR o comodí, DNS hostname",
       "remove_confirm": "Eliminar aquesta IP permesa? Amb la denegació per defecte o xarxes bloquejades actives, eliminar una entrada de confiança pot bloquejar l'accés."
     },
     "blocked_ips": {

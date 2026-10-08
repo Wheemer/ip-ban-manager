@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "IP autorisées",
-    "hint": "Adresses et réseaux IPv4/IPv6 de confiance. Ces entrées priment sur les bannissements exacts, les réseaux bloqués et le mode refus par défaut. Les jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge.",
-    "placeholder": "Adresse IPv4/IPv6, CIDR ou joker",
+    "hint": "Adresses et réseaux IPv4/IPv6 de confiance. Ces entrées priment sur les bannissements exacts, les réseaux bloqués et le mode refus par défaut. Les jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "Adresse IPv4/IPv6, CIDR ou joker, DNS hostname",
     "remove_confirm": "Supprimer cette IP autorisée ? Avec le refus par défaut ou des réseaux bloqués actifs, supprimer une entrée de confiance peut bloquer l'accès."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Appliquez les règles IP et réseau explicites de IP Ban Manager au niveau du proxy avant que les demandes n'atteignent Home Assistant.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "Non connecté",
     "connected_short": "Connecté",
     "active": "Protection des bords active",

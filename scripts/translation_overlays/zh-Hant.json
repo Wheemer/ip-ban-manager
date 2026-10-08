@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "請輸入有效的 IP 地址、CIDR 網絡或通配符網絡，例如 192.168.1.* 或 2001:db8:1:2:*。",
+      "invalid_ip_address": "請輸入有效的 IP 地址、CIDR 網絡或通配符網絡，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "該白名單條目会信任所有 IP 地址，從而實際上禁用 IP 封鎖。"
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "新增安全預設值"
             },
             "data_description": {
-              "allowed_ips": "受信任的 IPv4/IPv6 地址和網絡，永不應被封鎖。每行一个條目。支持 CIDR 網絡以及 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。"
+              "allowed_ips": "受信任的 IPv4/IPv6 地址和網絡，永不應被封鎖。每行一个條目。支持 CIDR 網絡以及 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "請輸入有效的 IP 地址、CIDR 網絡或通配符網絡，例如 192.168.1.* 或 2001:db8:1:2:*。",
+      "invalid_ip_address": "請輸入有效的 IP 地址、CIDR 網絡或通配符網絡，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "每行請輸入一个精確的 IPv4 或 IPv6 地址。CIDR 網絡和通配符應放在“已封鎖的網絡”中。",
       "invalid_blocked_network": "請輸入有效的 IPv4/IPv6 CIDR 網絡或通配符網絡，例如 203.0.113.* 或 2001:db8:1:2:*。",
       "unsafe_blocked_network": "該封鎖網絡会封鎖所有 IP 地址。請使用更窄的網絡。",
@@ -187,8 +187,8 @@
     },
     "allowed_ips": {
       "title": "允許的 IP",
-      "hint": "受信任的 IPv4/IPv6 地址和網絡。這些條目优先于精確封鎖、封鎖網絡和預設拒绝模式。支持 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。",
-      "placeholder": "IPv4/IPv6 地址、CIDR 或通配符",
+      "hint": "受信任的 IPv4/IPv6 地址和網絡。這些條目优先于精確封鎖、封鎖網絡和預設拒绝模式。支持 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "IPv4/IPv6 地址、CIDR 或通配符, DNS hostname",
       "remove_confirm": "移除此允許的 IP？在啟用預設拒绝或封鎖網絡時，移除受信任條目可能導致無法訪問。"
     },
     "blocked_ips": {

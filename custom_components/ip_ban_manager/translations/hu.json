@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*.",
+      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Ez az engedélyezési lista bejegyzés minden IP-címet megbízhatónak tekintene, és gyakorlatilag kikapcsolná az IP-tiltást.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Biztonságos alapértelmezések hozzáadása"
             },
             "data_description": {
-              "allowed_ips": "Megbízható IPv4/IPv6 címek és hálózatok, amelyeket soha nem szabad tiltani. Soronként egy bejegyzés. CIDR-hálózatok és IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak."
+              "allowed_ips": "Megbízható IPv4/IPv6 címek és hálózatok, amelyeket soha nem szabad tiltani. Soronként egy bejegyzés. CIDR-hálózatok és IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*.",
+      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Soronként egy pontos IPv4 vagy IPv6 címet adjon meg. A CIDR-hálózatok és helyettesítők a Blokkolt hálózatok alá tartoznak.",
       "invalid_blocked_network": "Adjon meg érvényes IPv4/IPv6 CIDR-hálózatokat vagy helyettesítő hálózatokat, például 203.0.113.* vagy 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Ez a blokkolt hálózat minden IP-címet blokkoltna. Használjon szűkebb hálózatot.",

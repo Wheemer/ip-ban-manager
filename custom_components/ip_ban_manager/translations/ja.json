@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "有効な IP アドレス、CIDR ネットワーク、または 192.168.1.* や 2001:db8:1:2:* などのワイルドカードネットワークを入力してください。",
+      "invalid_ip_address": "有効な IP アドレス、CIDR ネットワーク、または 192.168.1.* や 2001:db8:1:2:* などのワイルドカードネットワークを入力してください。. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "その許可リストエントリはすべての IP アドレスを信頼し、事実上 IP BAN を無効にします。",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "安全な既定値を追加"
             },
             "data_description": {
-              "allowed_ips": "BAN してはいけない信頼できる IPv4/IPv6 アドレスとネットワーク。1 行に 1 エントリ。CIDR ネットワークと 192.168.1.* や 2001:db8:1:2:* などの IPv4/IPv6 ワイルドカードに対応しています。"
+              "allowed_ips": "BAN してはいけない信頼できる IPv4/IPv6 アドレスとネットワーク。1 行に 1 エントリ。CIDR ネットワークと 192.168.1.* や 2001:db8:1:2:* などの IPv4/IPv6 ワイルドカードに対応しています。. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "有効な IP アドレス、CIDR ネットワーク、または 192.168.1.* や 2001:db8:1:2:* などのワイルドカードネットワークを入力してください。",
+      "invalid_ip_address": "有効な IP アドレス、CIDR ネットワーク、または 192.168.1.* や 2001:db8:1:2:* などのワイルドカードネットワークを入力してください。. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "1 行に正確な IPv4 または IPv6 アドレスを 1 つ入力してください。CIDR ネットワークとワイルドカードは「ブロックされたネットワーク」に入力してください。",
       "invalid_blocked_network": "203.0.113.* や 2001:db8:1:2:* などの有効な IPv4/IPv6 CIDR ネットワークまたはワイルドカードネットワークを入力してください。",
       "unsafe_blocked_network": "そのブロックネットワークはすべての IP アドレスをブロックします。より狭いネットワークを使用してください。",

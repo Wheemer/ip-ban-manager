@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Ange giltiga IP-adresser, CIDR-nätverk eller jokernätverk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "invalid_ip_address": "Ange giltiga IP-adresser, CIDR-nätverk eller jokernätverk som 192.168.1.* eller 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Det allowlist-värdet skulle lita på varje IP-adress och i praktiken inaktivera IP-spärrar.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Lägg till säkra standardvärden"
             },
             "data_description": {
-              "allowed_ips": "Betrodda IPv4-/IPv6-adresser och nätverk som aldrig ska spärras. En post per rad. CIDR-nätverk och IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds."
+              "allowed_ips": "Betrodda IPv4-/IPv6-adresser och nätverk som aldrig ska spärras. En post per rad. CIDR-nätverk och IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Ange giltiga IP-adresser, CIDR-nätverk eller jokernätverk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "invalid_ip_address": "Ange giltiga IP-adresser, CIDR-nätverk eller jokernätverk som 192.168.1.* eller 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Ange en exakt IPv4- eller IPv6-adress per rad. CIDR-nätverk och jokertecken hör till Blockerade nätverk.",
       "invalid_blocked_network": "Ange giltiga IPv4-/IPv6-CIDR-nätverk eller jokernätverk som 203.0.113.* eller 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Det blockerade nätverket skulle blockera varje IP-adress. Använd ett smalare nätverk.",

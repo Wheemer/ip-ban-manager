@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "Engedélyezett IP-k",
-    "hint": "Megbízható IPv4/IPv6 címek és hálózatok. Ezek a bejegyzések elsőbbséget élveznek a pontos tiltásokkal, blokkolt hálózatokkal és az alapértelmezett tiltással szemben. IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak.",
-    "placeholder": "IPv4/IPv6 cím, CIDR vagy helyettesítő",
+    "hint": "Megbízható IPv4/IPv6 címek és hálózatok. Ezek a bejegyzések elsőbbséget élveznek a pontos tiltásokkal, blokkolt hálózatokkal és az alapértelmezett tiltással szemben. IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "IPv4/IPv6 cím, CIDR vagy helyettesítő, DNS hostname",
     "remove_confirm": "Eltávolítja ezt az engedélyezett IP-t? Aktív alapértelmezett tiltás vagy blokkolt hálózatok mellett egy megbízható bejegyzés eltávolítása kizárhatja a hozzáférést."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Alkalmazza a IP Ban Manager explicit IP- és hálózati szabályait a proxyn, mielőtt a kérések elérnék a Home Assistant-t.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "Nincs csatlakoztatva",
     "connected_short": "Csatlakozva",
     "active": "Élvédelem aktív",

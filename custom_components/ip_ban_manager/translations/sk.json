@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Zadajte platné IP adresy, CIDR siete alebo zástupné siete ako 192.168.1.* alebo 2001:db8:1:2:*.",
+      "invalid_ip_address": "Zadajte platné IP adresy, CIDR siete alebo zástupné siete ako 192.168.1.* alebo 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Táto položka zoznamu povolených by dôverovala každej IP adrese a v podstate by vypnula IP zákazy.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Pridať bezpečné predvolené hodnoty"
             },
             "data_description": {
-              "allowed_ips": "Dôveryhodné IPv4/IPv6 adresy a siete, ktoré sa nikdy nemajú zakázať. Jedna položka na riadok. Podporované sú CIDR siete a IPv4/IPv6 zástupné znaky ako 192.168.1.* alebo 2001:db8:1:2:*."
+              "allowed_ips": "Dôveryhodné IPv4/IPv6 adresy a siete, ktoré sa nikdy nemajú zakázať. Jedna položka na riadok. Podporované sú CIDR siete a IPv4/IPv6 zástupné znaky ako 192.168.1.* alebo 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Zadajte platné IP adresy, CIDR siete alebo zástupné siete ako 192.168.1.* alebo 2001:db8:1:2:*.",
+      "invalid_ip_address": "Zadajte platné IP adresy, CIDR siete alebo zástupné siete ako 192.168.1.* alebo 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Zadajte jednu presnú IPv4 alebo IPv6 adresu na riadok. CIDR siete a zástupné znaky patria do Blokované siete.",
       "invalid_blocked_network": "Zadajte platné IPv4/IPv6 CIDR siete alebo zástupné siete ako 203.0.113.* alebo 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Táto blokovaná sieť by zablokovala každú IP adresu. Použite užšiu sieť.",

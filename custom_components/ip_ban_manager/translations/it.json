@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Inserisci indirizzi IP, reti CIDR o reti con wildcard validi come 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Inserisci indirizzi IP, reti CIDR o reti con wildcard validi come 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Questa voce Allowlist considererebbe attendibile ogni indirizzo IP e disattiverebbe di fatto il blocco IP.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Aggiungi valori predefiniti sicuri"
             },
             "data_description": {
-              "allowed_ips": "Indirizzi e reti IPv4/IPv6 attendibili che non devono mai essere bloccati. Una voce per riga. Sono supportate reti CIDR e wildcard IPv4/IPv6 come 192.168.1.* o 2001:db8:1:2:*."
+              "allowed_ips": "Indirizzi e reti IPv4/IPv6 attendibili che non devono mai essere bloccati. Una voce per riga. Sono supportate reti CIDR e wildcard IPv4/IPv6 come 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Inserisci indirizzi IP, reti CIDR o reti con wildcard validi come 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Inserisci indirizzi IP, reti CIDR o reti con wildcard validi come 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Inserisci un indirizzo IPv4 o IPv6 esatto per riga. Reti CIDR e wildcard vanno in Reti bloccate.",
       "invalid_blocked_network": "Inserisci reti CIDR IPv4/IPv6 o reti con wildcard valide come 203.0.113.* o 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Questa rete bloccata bloccherebbe ogni indirizzo IP. Usa una rete più ristretta.",

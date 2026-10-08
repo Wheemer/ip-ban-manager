@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Aquesta entrada de la llista permesa confiaria en cada adreça IP i desactivaria efectivament el bloqueig IP.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Afegeix valors segurs per defecte"
             },
             "data_description": {
-              "allowed_ips": "Adreces i xarxes IPv4/IPv6 de confiança que no s'han de bloquejar mai. Una entrada per línia. S'admeten xarxes CIDR i comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*."
+              "allowed_ips": "Adreces i xarxes IPv4/IPv6 de confiança que no s'han de bloquejar mai. Una entrada per línia. S'admeten xarxes CIDR i comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduïu adreces IP, xarxes CIDR o xarxes comodí vàlides com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Introduïu una adreça IPv4 o IPv6 exacta per línia. Les xarxes CIDR i comodins van a Xarxes bloquejades.",
       "invalid_blocked_network": "Introduïu xarxes CIDR o comodí IPv4/IPv6 vàlides com 203.0.113.* o 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Aquesta xarxa bloquejada bloquejaria cada adreça IP. Utilitzeu una xarxa més estreta.",

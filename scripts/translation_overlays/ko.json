@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "192.168.1.* 또는 2001:db8:1:2:* 같은 유효한 IP 주소, CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요.",
+      "invalid_ip_address": "192.168.1.* 또는 2001:db8:1:2:* 같은 유효한 IP 주소, CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "해당 허용 목록 항목은 모든 IP 주소를 신뢰하여 IP 차단을 사실상 비활성화합니다."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "안전한 기본값 추가"
             },
             "data_description": {
-              "allowed_ips": "절대 차단되지 않아야 하는 신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 한 줄에 하나의 항목을 입력하세요. CIDR 네트워크와 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다."
+              "allowed_ips": "절대 차단되지 않아야 하는 신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 한 줄에 하나의 항목을 입력하세요. CIDR 네트워크와 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "192.168.1.* 또는 2001:db8:1:2:* 같은 유효한 IP 주소, CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요.",
+      "invalid_ip_address": "192.168.1.* 또는 2001:db8:1:2:* 같은 유효한 IP 주소, CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "한 줄에 정확한 IPv4 또는 IPv6 주소 하나를 입력하세요. CIDR 네트워크와 와일드카드는 차단된 네트워크에 입력하세요.",
       "invalid_blocked_network": "203.0.113.* 또는 2001:db8:1:2:* 같은 유효한 IPv4/IPv6 CIDR 네트워크 또는 와일드카드 네트워크를 입력하세요.",
       "unsafe_blocked_network": "해당 차단 네트워크는 모든 IP 주소를 차단합니다. 더 좁은 네트워크를 사용하세요.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "허용 IP",
-      "hint": "신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 이 항목은 정확한 차단, 차단된 네트워크 및 기본 거부 모드보다 우선합니다. 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다.",
-      "placeholder": "IPv4/IPv6 주소, CIDR 또는 와일드카드",
+      "hint": "신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 이 항목은 정확한 차단, 차단된 네트워크 및 기본 거부 모드보다 우선합니다. 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "IPv4/IPv6 주소, CIDR 또는 와일드카드, DNS hostname",
       "remove_confirm": "이 허용 IP를 제거할까요? 기본 거부 또는 차단된 네트워크가 활성화된 경우 신뢰 항목을 제거하면 접근이 차단될 수 있습니다."
     },
     "blocked_ips": {

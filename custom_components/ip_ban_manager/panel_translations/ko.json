@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "허용 IP",
-    "hint": "신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 이 항목은 정확한 차단, 차단된 네트워크 및 기본 거부 모드보다 우선합니다. 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다.",
-    "placeholder": "IPv4/IPv6 주소, CIDR 또는 와일드카드",
+    "hint": "신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 이 항목은 정확한 차단, 차단된 네트워크 및 기본 거부 모드보다 우선합니다. 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "IPv4/IPv6 주소, CIDR 또는 와일드카드, DNS hostname",
     "remove_confirm": "이 허용 IP를 제거할까요? 기본 거부 또는 차단된 네트워크가 활성화된 경우 신뢰 항목을 제거하면 접근이 차단될 수 있습니다."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "요청이 Home Assistant에 도달하기 전에 프록시에서 IP Ban Manager의 명시적 IP 및 네트워크 규칙을 적용합니다.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "연결되지 않음",
     "connected_short": "연결됨",
     "active": "가장자리 보호 활성화",

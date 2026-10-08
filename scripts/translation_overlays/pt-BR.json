@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Digite endereços IP, redes CIDR ou redes com wildcard válidos como 192.168.1.* ou 2001:db8:1:2:*.",
+      "invalid_ip_address": "Digite endereços IP, redes CIDR ou redes com wildcard válidos como 192.168.1.* ou 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Essa entrada Allowlist confiaria em todos os endereços IP e desativaria efetivamente o bloqueio IP."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "Adicionar padrões seguros"
             },
             "data_description": {
-              "allowed_ips": "Endereços e redes IPv4/IPv6 confiáveis que nunca devem ser bloqueados. Uma entrada por linha. Redes CIDR e wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:* são suportados."
+              "allowed_ips": "Endereços e redes IPv4/IPv6 confiáveis que nunca devem ser bloqueados. Uma entrada por linha. Redes CIDR e wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:* são suportados. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Digite endereços IP, redes CIDR ou redes com wildcard válidos como 192.168.1.* ou 2001:db8:1:2:*.",
+      "invalid_ip_address": "Digite endereços IP, redes CIDR ou redes com wildcard válidos como 192.168.1.* ou 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Digite um endereço IPv4 ou IPv6 exato por linha. Redes CIDR e wildcards pertencem a Redes bloqueadas.",
       "invalid_blocked_network": "Digite redes CIDR IPv4/IPv6 ou redes com wildcard válidas como 203.0.113.* ou 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Essa rede bloqueada bloquearia todos os endereços IP. Use uma rede mais restrita.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "IPs permitidos",
-      "hint": "Endereços e redes IPv4/IPv6 confiáveis. Essas entradas têm prioridade sobre bloqueios exatos, redes bloqueadas e modo deny padrão. Wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:* são suportados.",
-      "placeholder": "Endereço IPv4/IPv6, CIDR ou wildcard",
+      "hint": "Endereços e redes IPv4/IPv6 confiáveis. Essas entradas têm prioridade sobre bloqueios exatos, redes bloqueadas e modo deny padrão. Wildcards IPv4/IPv6 como 192.168.1.* ou 2001:db8:1:2:* são suportados. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "Endereço IPv4/IPv6, CIDR ou wildcard, DNS hostname",
       "remove_confirm": "Remover este IP permitido? Com deny padrão ou redes bloqueadas ativas, remover uma entrada confiável pode bloquear o acesso."
     },
     "blocked_ips": {

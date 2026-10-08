@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "Erlaubte IPs",
-    "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke. Diese Einträge haben Vorrang vor exakten Sperren, blockierten Netzwerken und dem Default-Deny-Modus. IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt.",
-    "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter",
+    "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke. Diese Einträge haben Vorrang vor exakten Sperren, blockierten Netzwerken und dem Default-Deny-Modus. IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter, DNS hostname",
     "remove_confirm": "Diese erlaubte IP entfernen? Bei aktivem Default-Deny oder blockierten Netzwerken kann das den Zugriff sperren."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Wenden Sie die expliziten IP- und Netzwerkregeln von IP Ban Manager am Proxy an, bevor Anforderungen Home Assistant erreichen.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "Nicht verbunden",
     "connected_short": "Verbunden",
     "active": "Kantenschutz aktiv",

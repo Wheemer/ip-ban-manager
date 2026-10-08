@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Angiv gyldige IP-adresser, CIDR-netværk eller jokernetværk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "invalid_ip_address": "Angiv gyldige IP-adresser, CIDR-netværk eller jokernetværk som 192.168.1.* eller 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Den tilladte listepost ville stole på alle IP-adresser og i praksis deaktivere IP-udelukkelse."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "Tilføj sikre standardværdier"
             },
             "data_description": {
-              "allowed_ips": "Pålidelige IPv4-/IPv6-adresser og netværk, der aldrig bør udelukkes. Én post pr. linje. CIDR-netværk og IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes."
+              "allowed_ips": "Pålidelige IPv4-/IPv6-adresser og netværk, der aldrig bør udelukkes. Én post pr. linje. CIDR-netværk og IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Angiv gyldige IP-adresser, CIDR-netværk eller jokernetværk som 192.168.1.* eller 2001:db8:1:2:*.",
+      "invalid_ip_address": "Angiv gyldige IP-adresser, CIDR-netværk eller jokernetværk som 192.168.1.* eller 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Angiv én eksakt IPv4- eller IPv6-adresse pr. linje. CIDR-netværk og jokertegn hører til under Blokerede netværk.",
       "invalid_blocked_network": "Angiv gyldige IPv4-/IPv6-CIDR-netværk eller jokernetværk som 203.0.113.* eller 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Det blokerede netværk ville blokere alle IP-adresser. Brug et smallere netværk.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "Tilladte IP'er",
-      "hint": "Pålidelige IPv4-/IPv6-adresser og netværk. Disse poster slår eksakte udelukkelser, blokerede netværk og standard-afvisningstilstand. IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes.",
-      "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn",
+      "hint": "Pålidelige IPv4-/IPv6-adresser og netværk. Disse poster slår eksakte udelukkelser, blokerede netværk og standard-afvisningstilstand. IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* understøttes. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn, DNS hostname",
       "remove_confirm": "Fjerne denne tilladte IP? Med aktiv standard-afvisning eller blokerede netværk kan fjernelse af en pålidelig post låse adgangen ude."
     },
     "blocked_ips": {

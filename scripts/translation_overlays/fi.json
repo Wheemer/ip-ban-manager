@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Syötä kelvollisia IP-osoitteita, CIDR-verkkoja tai jokeriverkkoja kuten 192.168.1.* tai 2001:db8:1:2:*.",
+      "invalid_ip_address": "Syötä kelvollisia IP-osoitteita, CIDR-verkkoja tai jokeriverkkoja kuten 192.168.1.* tai 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Tämä sallituslistan merkintä luottaisi jokaiseen IP-osoitteeseen ja käytännössä poistaisi IP-estot käytöstä."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "Lisää turvalliset oletukset"
             },
             "data_description": {
-              "allowed_ips": "Luotetut IPv4-/IPv6-osoitteet ja verkot, joita ei koskaan estetä. Yksi merkintä per rivi. CIDR-verkot ja IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan."
+              "allowed_ips": "Luotetut IPv4-/IPv6-osoitteet ja verkot, joita ei koskaan estetä. Yksi merkintä per rivi. CIDR-verkot ja IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Syötä kelvollisia IP-osoitteita, CIDR-verkkoja tai jokeriverkkoja kuten 192.168.1.* tai 2001:db8:1:2:*.",
+      "invalid_ip_address": "Syötä kelvollisia IP-osoitteita, CIDR-verkkoja tai jokeriverkkoja kuten 192.168.1.* tai 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Syötä yksi tarkka IPv4- tai IPv6-osoite per rivi. CIDR-verkot ja jokerit kuuluvat Estetyt verkot -kohtaan.",
       "invalid_blocked_network": "Syötä kelvollisia IPv4-/IPv6-CIDR-verkkoja tai jokeriverkkoja kuten 203.0.113.* tai 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Tämä estetty verkko estäisi jokaisen IP-osoitteen. Käytä suppeampaa verkkoa.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "Sallitut IP-osoitteet",
-      "hint": "Luotetut IPv4-/IPv6-osoitteet ja verkot. Nämä merkinnät voittavat tarkat estot, estetyt verkot ja oletus-kielto-tilan. IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan.",
-      "placeholder": "IPv4-/IPv6-osoite, CIDR tai jokeri",
+      "hint": "Luotetut IPv4-/IPv6-osoitteet ja verkot. Nämä merkinnät voittavat tarkat estot, estetyt verkot ja oletus-kielto-tilan. IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "IPv4-/IPv6-osoite, CIDR tai jokeri, DNS hostname",
       "remove_confirm": "Poistetaanko tämä sallittu IP? Kun oletus-kielto tai estetyt verkot ovat aktiivisia, luotetun merkinnän poistaminen voi estää pääsyn."
     },
     "blocked_ips": {

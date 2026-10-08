@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "Tillåtna IP",
-    "hint": "Betrodda IPv4-/IPv6-adresser och nätverk. Dessa poster vinner över exakta spärrar, blockerade nätverk och default-deny-läge. IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds.",
-    "placeholder": "IPv4-/IPv6-adress, CIDR eller jokertecken",
+    "hint": "Betrodda IPv4-/IPv6-adresser och nätverk. Dessa poster vinner över exakta spärrar, blockerade nätverk och default-deny-läge. IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "IPv4-/IPv6-adress, CIDR eller jokertecken, DNS hostname",
     "remove_confirm": "Ta bort denna tillåtna IP? Med aktiv default-deny eller blockerade nätverk kan borttagning av en betrodd post låsa ute åtkomst."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Tillämpa IP Ban Manager:s explicita IP- och nätverksregler vid proxyn innan förfrågningar når Home Assistant.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "Ej ansluten",
     "connected_short": "Ansluten",
     "active": "Kantskydd aktivt",

@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*.",
+      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Ez az engedélyezési lista bejegyzés minden IP-címet megbízhatónak tekintene, és gyakorlatilag kikapcsolná az IP-tiltást."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "Biztonságos alapértelmezések hozzáadása"
             },
             "data_description": {
-              "allowed_ips": "Megbízható IPv4/IPv6 címek és hálózatok, amelyeket soha nem szabad tiltani. Soronként egy bejegyzés. CIDR-hálózatok és IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak."
+              "allowed_ips": "Megbízható IPv4/IPv6 címek és hálózatok, amelyeket soha nem szabad tiltani. Soronként egy bejegyzés. CIDR-hálózatok és IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*.",
+      "invalid_ip_address": "Adjon meg érvényes IP-címeket, CIDR-hálózatokat vagy helyettesítő hálózatokat, például 192.168.1.* vagy 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Soronként egy pontos IPv4 vagy IPv6 címet adjon meg. A CIDR-hálózatok és helyettesítők a Blokkolt hálózatok alá tartoznak.",
       "invalid_blocked_network": "Adjon meg érvényes IPv4/IPv6 CIDR-hálózatokat vagy helyettesítő hálózatokat, például 203.0.113.* vagy 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Ez a blokkolt hálózat minden IP-címet blokkoltna. Használjon szűkebb hálózatot.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "Engedélyezett IP-k",
-      "hint": "Megbízható IPv4/IPv6 címek és hálózatok. Ezek a bejegyzések elsőbbséget élveznek a pontos tiltásokkal, blokkolt hálózatokkal és az alapértelmezett tiltással szemben. IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak.",
-      "placeholder": "IPv4/IPv6 cím, CIDR vagy helyettesítő",
+      "hint": "Megbízható IPv4/IPv6 címek és hálózatok. Ezek a bejegyzések elsőbbséget élveznek a pontos tiltásokkal, blokkolt hálózatokkal és az alapértelmezett tiltással szemben. IPv4/IPv6 helyettesítők, például 192.168.1.* vagy 2001:db8:1:2:* támogatottak. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "IPv4/IPv6 cím, CIDR vagy helyettesítő, DNS hostname",
       "remove_confirm": "Eltávolítja ezt az engedélyezett IP-t? Aktív alapértelmezett tiltás vagy blokkolt hálózatok mellett egy megbízható bejegyzés eltávolítása kizárhatja a hozzáférést."
     },
     "blocked_ips": {

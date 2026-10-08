@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduzca direcciones IP, redes CIDR o redes comodín válidas como 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduzca direcciones IP, redes CIDR o redes comodín válidas como 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Esa entrada de lista permitida confiaría en cada dirección IP y desactivaría efectivamente el bloqueo IP.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Añadir valores seguros"
             },
             "data_description": {
-              "allowed_ips": "Direcciones y redes IPv4/IPv6 de confianza que nunca deben bloquearse. Una entrada por línea. Se admiten redes CIDR y comodines IPv4/IPv6 como 192.168.1.* o 2001:db8:1:2:*."
+              "allowed_ips": "Direcciones y redes IPv4/IPv6 de confianza que nunca deben bloquearse. Una entrada por línea. Se admiten redes CIDR y comodines IPv4/IPv6 como 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduzca direcciones IP, redes CIDR o redes comodín válidas como 192.168.1.* o 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduzca direcciones IP, redes CIDR o redes comodín válidas como 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Introduzca una dirección IPv4 o IPv6 exacta por línea. Las redes CIDR y comodines van en Redes bloqueadas.",
       "invalid_blocked_network": "Introduzca redes CIDR o comodín IPv4/IPv6 válidas como 203.0.113.* o 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Esa red bloqueada bloquearía cada dirección IP. Use una red más estrecha.",

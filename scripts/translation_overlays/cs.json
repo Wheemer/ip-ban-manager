@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Zadejte platné IP adresy, CIDR sítě nebo zástupné sítě jako 192.168.1.* nebo 2001:db8:1:2:*.",
+      "invalid_ip_address": "Zadejte platné IP adresy, CIDR sítě nebo zástupné sítě jako 192.168.1.* nebo 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Tato položka allowlistu by důvěřovala každé IP adrese a prakticky by vypnula IP zákazy."
     },
     "abort": {
@@ -41,7 +41,7 @@
               "quick_allowlist": "Přidat bezpečné výchozí hodnoty"
             },
             "data_description": {
-              "allowed_ips": "Důvěryhodné IPv4/IPv6 adresy a sítě, které se nikdy nesmí zakázat. Jedna položka na řádek. Podporovány jsou CIDR sítě a IPv4/IPv6 zástupné znaky jako 192.168.1.* nebo 2001:db8:1:2:*."
+              "allowed_ips": "Důvěryhodné IPv4/IPv6 adresy a sítě, které se nikdy nesmí zakázat. Jedna položka na řádek. Podporovány jsou CIDR sítě a IPv4/IPv6 zástupné znaky jako 192.168.1.* nebo 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -69,7 +69,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Zadejte platné IP adresy, CIDR sítě nebo zástupné sítě jako 192.168.1.* nebo 2001:db8:1:2:*.",
+      "invalid_ip_address": "Zadejte platné IP adresy, CIDR sítě nebo zástupné sítě jako 192.168.1.* nebo 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Zadejte jednu přesnou IPv4 nebo IPv6 adresu na řádek. CIDR sítě a zástupné znaky patří do Blokované sítě.",
       "invalid_blocked_network": "Zadejte platné IPv4/IPv6 CIDR sítě nebo zástupné sítě jako 203.0.113.* nebo 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Tato blokovaná síť by zablokovala každou IP adresu. Použijte užší síť.",
@@ -186,8 +186,8 @@
     },
     "allowed_ips": {
       "title": "Povolené IP",
-      "hint": "Důvěryhodné IPv4/IPv6 adresy a sítě. Tyto položky mají přednost před přesnými zákazy, blokovanými sítěmi a režimem default-deny. Podporovány jsou IPv4/IPv6 zástupné znaky jako 192.168.1.* nebo 2001:db8:1:2:*.",
-      "placeholder": "IPv4/IPv6 adresa, CIDR nebo zástupný znak",
+      "hint": "Důvěryhodné IPv4/IPv6 adresy a sítě. Tyto položky mají přednost před přesnými zákazy, blokovanými sítěmi a režimem default-deny. Podporovány jsou IPv4/IPv6 zástupné znaky jako 192.168.1.* nebo 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "IPv4/IPv6 adresa, CIDR nebo zástupný znak, DNS hostname",
       "remove_confirm": "Odstranit tuto povolenou IP? Při aktivním default-deny nebo blokovaných sítích může odstranění důvěryhodné položky zablokovat přístup."
     },
     "blocked_ips": {

@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "请输入有效的 IP 地址、CIDR 网络或通配符网络，例如 192.168.1.* 或 2001:db8:1:2:*。",
+      "invalid_ip_address": "请输入有效的 IP 地址、CIDR 网络或通配符网络，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "该白名单条目会信任所有 IP 地址，从而实际上禁用 IP 封禁。",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "添加安全默认值"
             },
             "data_description": {
-              "allowed_ips": "受信任的 IPv4/IPv6 地址和网络，永不应被封禁。每行一个条目。支持 CIDR 网络以及 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。"
+              "allowed_ips": "受信任的 IPv4/IPv6 地址和网络，永不应被封禁。每行一个条目。支持 CIDR 网络以及 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "请输入有效的 IP 地址、CIDR 网络或通配符网络，例如 192.168.1.* 或 2001:db8:1:2:*。",
+      "invalid_ip_address": "请输入有效的 IP 地址、CIDR 网络或通配符网络，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "每行请输入一个精确的 IPv4 或 IPv6 地址。CIDR 网络和通配符应放在“已阻止的网络”中。",
       "invalid_blocked_network": "请输入有效的 IPv4/IPv6 CIDR 网络或通配符网络，例如 203.0.113.* 或 2001:db8:1:2:*。",
       "unsafe_blocked_network": "该阻止网络会阻止所有 IP 地址。请使用更窄的网络。",

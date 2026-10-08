@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduce adrese IP, rețele CIDR sau rețele wildcard valide, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduce adrese IP, rețele CIDR sau rețele wildcard valide, cum ar fi 192.168.1.* sau 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Această intrare din lista permisă ar avea încredere în fiecare adresă IP și ar dezactiva practic interdicțiile IP.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Adaugă valori sigure implicite"
             },
             "data_description": {
-              "allowed_ips": "Adrese și rețele IPv4/IPv6 de încredere care nu trebuie interzise niciodată. O intrare pe linie. Sunt acceptate rețele CIDR și wildcard-uri IPv4/IPv6, cum ar fi 192.168.1.* sau 2001:db8:1:2:*."
+              "allowed_ips": "Adrese și rețele IPv4/IPv6 de încredere care nu trebuie interzise niciodată. O intrare pe linie. Sunt acceptate rețele CIDR și wildcard-uri IPv4/IPv6, cum ar fi 192.168.1.* sau 2001:db8:1:2:*. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Introduce adrese IP, rețele CIDR sau rețele wildcard valide, cum ar fi 192.168.1.* sau 2001:db8:1:2:*.",
+      "invalid_ip_address": "Introduce adrese IP, rețele CIDR sau rețele wildcard valide, cum ar fi 192.168.1.* sau 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Introduce o singură adresă IPv4 sau IPv6 exactă pe linie. Rețelele CIDR și wildcard-urile aparțin secțiunii Rețele blocate.",
       "invalid_blocked_network": "Introduce rețele CIDR sau wildcard IPv4/IPv6 valide, cum ar fi 203.0.113.* sau 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Această rețea blocată ar bloca fiecare adresă IP. Folosește o rețea mai restrânsă.",

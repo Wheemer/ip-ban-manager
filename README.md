@@ -118,7 +118,7 @@ Existing `ban_allowlist:` YAML is treated as a one-time migration path. IP Ban M
 
 Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 
-- Allowed IPs and networks
+- Allowed IPs, networks, and DNS/DDNS hostnames
 - Blocked IPs from Home Assistant's native `ip_bans.yaml`
 - Managed blocked networks
 - Automatic-ban settings

@@ -36,7 +36,7 @@
   },
   "allowed_ips": {
     "title": "Allowed IPs",
-      "hint": "Trusted IPv4/IPv6 addresses, networks, and DNS hostnames. These entries win over exact bans, blocked networks, and default-deny mode. Hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Trusted IPv4/IPv6 addresses, networks, and DNS or DDNS hostnames. These entries win over exact bans, blocked networks, and default-deny mode. Hostnames are forward-resolved and refreshed in the background.",
       "placeholder": "IP address, CIDR, wildcard, or DNS hostname",
     "remove_confirm": "Remove this Allowed IP? With default-deny or blocked networks active, removing a trusted entry can lock out access."
   },

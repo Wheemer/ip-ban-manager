@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "IP permeses",
-    "hint": "Adreces i xarxes IPv4/IPv6 de confiança. Aquestes entrades tenen prioritat sobre bloquejos exactes, xarxes bloquejades i el mode de denegació per defecte. S'admeten comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*.",
-    "placeholder": "Adreça IPv4/IPv6, CIDR o comodí",
+    "hint": "Adreces i xarxes IPv4/IPv6 de confiança. Aquestes entrades tenen prioritat sobre bloquejos exactes, xarxes bloquejades i el mode de denegació per defecte. S'admeten comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "Adreça IPv4/IPv6, CIDR o comodí, DNS hostname",
     "remove_confirm": "Eliminar aquesta IP permesa? Amb la denegació per defecte o xarxes bloquejades actives, eliminar una entrada de confiança pot bloquejar l'accés."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Apliqueu les regles de xarxa i IP explícites de IP Ban Manager al servidor intermediari abans que les sol·licituds arribin a Home Assistant.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "No connectat",
     "connected_short": "Connectat",
     "active": "Protecció de vora activa",
@@ -199,7 +199,7 @@
     "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
     "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
     "none": "No recent activity.",
-    "request_count": "Sol·licituds: {count}",
+    "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
     "retention": "History is retained for 24 hours.",

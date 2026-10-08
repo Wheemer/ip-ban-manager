@@ -19,7 +19,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Saisissez des adresses IP, réseaux CIDR ou réseaux joker valides comme 192.168.1.* ou 2001:db8:1:2:*.",
+      "invalid_ip_address": "Saisissez des adresses IP, réseaux CIDR ou réseaux joker valides comme 192.168.1.* ou 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Cette entrée de liste autorisée ferait confiance à chaque adresse IP et désactiverait effectivement le bannissement IP."
     },
     "abort": {
@@ -40,7 +40,7 @@
               "quick_allowlist": "Ajouter des valeurs sûres"
             },
             "data_description": {
-              "allowed_ips": "Adresses et réseaux IPv4/IPv6 de confiance qui ne doivent jamais être bannis. Une entrée par ligne. Les réseaux CIDR et jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge."
+              "allowed_ips": "Adresses et réseaux IPv4/IPv6 de confiance qui ne doivent jamais être bannis. Une entrée par ligne. Les réseaux CIDR et jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -67,7 +67,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "Saisissez des adresses IP, réseaux CIDR ou réseaux joker valides comme 192.168.1.* ou 2001:db8:1:2:*.",
+      "invalid_ip_address": "Saisissez des adresses IP, réseaux CIDR ou réseaux joker valides comme 192.168.1.* ou 2001:db8:1:2:*. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Saisissez une adresse IPv4 ou IPv6 exacte par ligne. Les CIDR et jokers vont dans Réseaux bloqués.",
       "invalid_blocked_network": "Saisissez des réseaux CIDR ou jokers IPv4/IPv6 valides comme 203.0.113.* ou 2001:db8:1:2:*.",
       "unsafe_blocked_network": "Ce réseau bloqué bloquerait chaque adresse IP. Utilisez un réseau plus étroit.",
@@ -183,8 +183,8 @@
     },
     "allowed_ips": {
       "title": "IP autorisées",
-      "hint": "Adresses et réseaux IPv4/IPv6 de confiance. Ces entrées priment sur les bannissements exacts, les réseaux bloqués et le mode refus par défaut. Les jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge.",
-      "placeholder": "Adresse IPv4/IPv6, CIDR ou joker",
+      "hint": "Adresses et réseaux IPv4/IPv6 de confiance. Ces entrées priment sur les bannissements exacts, les réseaux bloqués et le mode refus par défaut. Les jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "Adresse IPv4/IPv6, CIDR ou joker, DNS hostname",
       "remove_confirm": "Supprimer cette IP autorisée ? Avec le refus par défaut ou des réseaux bloqués actifs, supprimer une entrée de confiance peut bloquer l'accès."
     },
     "blocked_ips": {

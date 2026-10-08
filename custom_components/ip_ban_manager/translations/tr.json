@@ -20,7 +20,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "192.168.1.* veya 2001:db8:1:2:* gibi geçerli IP adresleri, CIDR ağları veya joker ağlar girin.",
+      "invalid_ip_address": "192.168.1.* veya 2001:db8:1:2:* gibi geçerli IP adresleri, CIDR ağları veya joker ağlar girin. DNS/DDNS hostnames are also accepted.",
       "unsafe_allowlist_network": "Bu allowlist girişi her IP adresine güvenirdi ve IP yasaklarını fiilen devre dışı bırakırdı.",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
@@ -42,7 +42,7 @@
               "quick_allowlist": "Güvenli varsayılanları ekle"
             },
             "data_description": {
-              "allowed_ips": "Asla yasaklanmaması gereken güvenilir IPv4/IPv6 adresleri ve ağları. Satır başına bir giriş. 192.168.1.* veya 2001:db8:1:2:* gibi CIDR ağları ve IPv4/IPv6 jokerleri desteklenir."
+              "allowed_ips": "Asla yasaklanmaması gereken güvenilir IPv4/IPv6 adresleri ve ağları. Satır başına bir giriş. 192.168.1.* veya 2001:db8:1:2:* gibi CIDR ağları ve IPv4/IPv6 jokerleri desteklenir. DNS/DDNS hostnames are also supported."
             }
           },
           "banned_ips": {
@@ -70,7 +70,7 @@
       }
     },
     "error": {
-      "invalid_ip_address": "192.168.1.* veya 2001:db8:1:2:* gibi geçerli IP adresleri, CIDR ağları veya joker ağlar girin.",
+      "invalid_ip_address": "192.168.1.* veya 2001:db8:1:2:* gibi geçerli IP adresleri, CIDR ağları veya joker ağlar girin. DNS/DDNS hostnames are also accepted.",
       "invalid_banned_ip": "Satır başına tam bir IPv4 veya IPv6 adresi girin. CIDR ağları ve jokerler Engellenen ağlar bölümüne aittir.",
       "invalid_blocked_network": "203.0.113.* veya 2001:db8:1:2:* gibi geçerli IPv4/IPv6 CIDR ağları veya joker ağlar girin.",
       "unsafe_blocked_network": "Bu engellenen ağ her IP adresini engellerdi. Daha dar bir ağ kullanın.",

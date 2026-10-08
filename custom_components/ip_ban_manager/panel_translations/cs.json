@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "Povolené IP",
-    "hint": "Důvěryhodné IPv4/IPv6 adresy a sítě. Tyto položky mají přednost před přesnými zákazy, blokovanými sítěmi a režimem default-deny. Podporovány jsou IPv4/IPv6 zástupné znaky jako 192.168.1.* nebo 2001:db8:1:2:*.",
-    "placeholder": "IPv4/IPv6 adresa, CIDR nebo zástupný znak",
+    "hint": "Důvěryhodné IPv4/IPv6 adresy a sítě. Tyto položky mají přednost před přesnými zákazy, blokovanými sítěmi a režimem default-deny. Podporovány jsou IPv4/IPv6 zástupné znaky jako 192.168.1.* nebo 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "IPv4/IPv6 adresa, CIDR nebo zástupný znak, DNS hostname",
     "remove_confirm": "Odstranit tuto povolenou IP? Při aktivním default-deny nebo blokovaných sítích může odstranění důvěryhodné položky zablokovat přístup."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Aplikujte explicitní IP a síťová pravidla IP Ban Manager na proxy dříve, než požadavky dosáhnou Home Assistant.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "Nepřipojeno",
     "connected_short": "Připojeno",
     "active": "Ochrana hran je aktivní",

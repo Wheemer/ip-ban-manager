@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "IP permitidas",
-    "hint": "Direcciones y redes IPv4/IPv6 de confianza. Estas entradas prevalecen sobre bloqueos exactos, redes bloqueadas y el modo denegar por defecto. Se admiten comodines IPv4/IPv6 como 192.168.1.* o 2001:db8:1:2:*.",
-    "placeholder": "Dirección IPv4/IPv6, CIDR o comodín",
+    "hint": "Direcciones y redes IPv4/IPv6 de confianza. Estas entradas prevalecen sobre bloqueos exactos, redes bloqueadas y el modo denegar por defecto. Se admiten comodines IPv4/IPv6 como 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "Dirección IPv4/IPv6, CIDR o comodín, DNS hostname",
     "remove_confirm": "¿Eliminar esta IP permitida? Con denegar por defecto o redes bloqueadas activas, quitar una entrada de confianza puede bloquear el acceso."
   },
   "allowed_regions": {
@@ -137,8 +137,8 @@
   },
   "npm": {
     "title": "Nginx Proxy Manager",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "hint": "Aplique las reglas de red e IP explícitas de IP Ban Manager en el proxy antes de que las solicitudes lleguen a Home Assistant.",
+    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
     "not_connected": "No conectado",
     "connected_short": "Conectado",
     "active": "Protección de bordes activa",
