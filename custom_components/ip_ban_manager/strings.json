@@ -42,7 +42,7 @@
               "quick_allowlist": "Add safe defaults"
             },
             "data_description": {
-              "allowed_ips": "Trusted IPv4/IPv6 addresses and networks that should never be banned. Use one entry per line. CIDR networks and IPv4/IPv6 wildcards like 192.168.1.* or 2001:db8:1:2:* are supported."
+              "allowed_ips": "Trusted IPv4/IPv6 addresses, networks, and DNS hostnames that should never be banned. Use one entry per line. CIDR networks, IPv4/IPv6 wildcards, and forward-resolved hostnames like phone.example.org are supported."
             }
           },
           "banned_ips": {

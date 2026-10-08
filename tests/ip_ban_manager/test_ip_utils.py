@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 
 from custom_components.ip_ban_manager.ip_utils import (
+    is_allowlist_hostname,
+    normalize_allowlist_entry,
     normalize_allowlist_network,
     parse_allowlist_network,
 )
@@ -52,3 +54,19 @@ def test_reject_invalid_wildcard_forms(value: str) -> None:
     """Test malformed wildcard shorthand is rejected."""
     with pytest.raises(ValueError):
         normalize_allowlist_network(value)
+
+
+@pytest.mark.parametrize("value", ["phone.example.org", "Phone.Example.Org.", "ha"])
+def test_normalize_dns_allowlist_entry(value: str) -> None:
+    """Test DNS hostnames are accepted and stored canonically."""
+    assert is_allowlist_hostname(value)
+    assert normalize_allowlist_entry(value) == value.rstrip(".").lower()
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["https://phone.example.org", "phone.example.org/path", "bad name", "192.168.1.1"],
+)
+def test_reject_non_hostname_allowlist_values(value: str) -> None:
+    """Test URLs and malformed values are not treated as hostnames."""
+    assert not is_allowlist_hostname(value)

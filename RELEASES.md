@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.9.4](CHANGELOG.md#v194) | Adds forward-resolved DNS hostname entries to Allowed IPs for DDNS clients, with background IPv4/IPv6 refresh and consistent activity filtering. |
 | [v1.9.3](CHANGELOG.md#v193) | Keeps Incoming Activity limited to policy-allowed requests and updates the pinned repository automation dependencies. |
 | [v1.9.2](CHANGELOG.md#v192) | Adds an opt-in mobile notification scope for every failed login attempt and the matching automation event, respecting IP Ban Manager notification settings. |
 | [v1.9.1](CHANGELOG.md#v191) | Removes policy-denied requests from Incoming Activity and adds a ready-made mobile notification blueprint for bans and login security events. |

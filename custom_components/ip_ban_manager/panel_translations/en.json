@@ -36,8 +36,8 @@
   },
   "allowed_ips": {
     "title": "Allowed IPs",
-    "hint": "Trusted IPv4/IPv6 addresses and networks. These entries win over exact bans, blocked networks, and default-deny mode. IPv4/IPv6 wildcards like 192.168.1.* or 2001:db8:1:2:* are supported.",
-    "placeholder": "IPv4/IPv6 address, CIDR, or wildcard",
+      "hint": "Trusted IPv4/IPv6 addresses, networks, and DNS hostnames. These entries win over exact bans, blocked networks, and default-deny mode. Hostnames are forward-resolved and refreshed in the background.",
+      "placeholder": "IP address, CIDR, wildcard, or DNS hostname",
     "remove_confirm": "Remove this Allowed IP? With default-deny or blocked networks active, removing a trusted entry can lock out access."
   },
   "allowed_regions": {

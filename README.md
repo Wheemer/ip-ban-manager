@@ -32,7 +32,7 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 
 ## What It Does
 
-- **Allowed IPs:** trust IPv4/IPv6 addresses, CIDR networks, and wildcard networks like `192.168.1.*` or `2001:db8:1:2:*`.
+- **Allowed IPs:** trust IPv4/IPv6 addresses, CIDR networks, wildcard networks like `192.168.1.*` or `2001:db8:1:2:*`, and DNS hostnames. Hostnames are resolved in the background and refreshed periodically, so a DDNS name can follow a changing address.
 - **Blocked IPs:** add, remove, review, and clear Home Assistant's native exact IP bans without restarting.
 - **Blocked networks:** block CIDR networks and wildcard ranges without pretending `ip_bans.yaml` supports ranges.
 - **Default deny:** optionally block everything outside Allowed IPs with guardrails to avoid locking out Home Assistant itself.
@@ -160,6 +160,7 @@ Allowed IPs are trusted addresses and networks that should not be blocked. Suppo
 - IPv6 CIDR network: `2001:db8::/64`
 - IPv4 wildcard network: `192.168.1.*`
 - IPv6 wildcard network: `2001:db8:1:2:*` (expands to `/64`; `2001:db8::*` expands to `/32`)
+- DNS hostname: `phone.example.org` (forward-resolved to its current IPv4/IPv6 addresses; reverse DNS is not used)
 
 Allowed entries win over managed blocked networks and default-deny mode.
 

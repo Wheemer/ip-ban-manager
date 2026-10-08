@@ -54,7 +54,7 @@ from .const import (
 )
 from .entry_meta import build_imported_meta, build_setup_allowlist_meta
 from .internal_networks import async_home_assistant_allowlist_safe_defaults
-from .ip_utils import normalize_allowlist_network, parse_allowlist_network
+from .ip_utils import normalize_allowlist_entry, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
@@ -120,10 +120,13 @@ def _dedupe_items(items: Iterable[str]) -> list[str]:
 def _validate_ip_addresses(value: str | Iterable[str]) -> list[str]:
     """Validate and normalize configured IP addresses and networks."""
     ip_addresses = _dedupe_items(
-        normalize_allowlist_network(address) for address in _normalize_list(value)
+        normalize_allowlist_entry(address) for address in _normalize_list(value)
     )
     for address in ip_addresses:
-        network = parse_allowlist_network(address)
+        try:
+            network = parse_allowlist_network(address)
+        except ValueError:
+            continue
         if network.prefixlen == 0:
             raise UnsafeAllowlistError
 
@@ -158,9 +161,12 @@ def _validate_ban_safety(
     """Validate cross-list edits that could lock users out or hide mistakes."""
     allowlist_values = list(allowlist)
 
-    allowlist_networks: list[IPNetwork] = [
-        parse_allowlist_network(network) for network in allowlist_values
-    ]
+    allowlist_networks: list[IPNetwork] = []
+    for network in allowlist_values:
+        try:
+            allowlist_networks.append(parse_allowlist_network(network))
+        except ValueError:
+            continue
     banned_ip_values = [ip_address(banned_ip) for banned_ip in banned_ips]
 
     if any(
@@ -178,7 +184,12 @@ def _validate_local_block_safety(
     default_deny_enabled: bool = False,
 ) -> None:
     """Reject local network blocks that have no local allowlist path back in."""
-    allowlist_networks = [parse_allowlist_network(network) for network in allowlist]
+    allowlist_networks: list[IPNetwork] = []
+    for network in allowlist:
+        try:
+            allowlist_networks.append(parse_allowlist_network(network))
+        except ValueError:
+            continue
     blocked = [parse_allowlist_network(network) for network in blocked_networks]
     detected = [
         network
@@ -825,6 +836,7 @@ class OptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         """Persist validated options and apply them immediately."""
         from .ban_ops import async_replace_ip_bans
+        from .dns_allowlist import async_refresh_dns_allowlist
         from .network_policy import (
             apply_ban_settings,
             update_allowlist_entry,
@@ -855,6 +867,7 @@ class OptionsFlow(config_entries.OptionsFlow):
         apply_ban_settings(self.hass, self._config_entry)
         await async_register_panel(self.hass, sidebar_enabled=sidebar_panel_enabled)
         update_allowlist_entry(self.hass, ip_addresses, meta_source=SOURCE_CONFIGURE)
+        await async_refresh_dns_allowlist(self.hass)
         update_blocked_networks_entry(
             self.hass, blocked_networks, meta_source=SOURCE_CONFIGURE
         )

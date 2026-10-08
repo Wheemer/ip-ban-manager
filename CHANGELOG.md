@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.9.4
+
+IP Ban Manager 1.9.4 adds DNS hostname entries to the live allowlist.
+
+### Added
+
+- Allowed IPs now accept DNS hostnames, including DDNS names used by changing mobile or remote connections.
+- Hostnames are forward-resolved for IPv4 and IPv6 in the executor and refreshed in the background without blocking Home Assistant's request path.
+- Last-known successful addresses remain trusted during a temporary DNS lookup failure, while unresolved new hostnames never widen access.
+
+### Fixed
+
+- Incoming Activity filtering now uses the same resolved hostname allowlist as request enforcement.
+
 ## v1.9.3
 
 IP Ban Manager 1.9.3 keeps Incoming Activity limited to requests that passed the active access policy.

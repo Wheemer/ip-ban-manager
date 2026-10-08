@@ -117,6 +117,7 @@ from .runtime_options import (
 )
 from .status import async_current_status
 from .storage_keys import (
+    KEY_ALLOWLIST,
     KEY_CONFIG_ENTRY,
     KEY_PANEL_MODULE_URL,
     KEY_PANEL_REGISTERED,
@@ -187,7 +188,9 @@ async def async_panel_payload(
         npm_discovery = {"addon_detected": False}
     activity = merge_activity(hass, npm_activity)
     activity_history = history_activity(hass)
-    allowlist_networks = parse_allowlist(entry_ip_addresses(entry))
+    allowlist_networks = hass.http.app.get(
+        KEY_ALLOWLIST, parse_allowlist(entry_ip_addresses(entry))
+    )
     activity = without_allowlisted_activity(activity, allowlist_networks)
     activity_history = without_allowlisted_activity(
         activity_history, allowlist_networks

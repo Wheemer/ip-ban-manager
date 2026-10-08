@@ -404,12 +404,15 @@ def without_disallowed_activity(
     from .geoip import geoip_regions_allow_ip
     from .region_rules import entry_public_region_settings
     from .storage_keys import (
+        KEY_ALLOWLIST,
         KEY_BLOCKED_NETWORKS,
         KEY_DEFAULT_DENY,
         KEY_INTERNAL_BYPASS_NETWORKS,
     )
 
-    allowlist = parse_allowlist(entry_ip_addresses(entry))
+    allowlist = hass.http.app.get(
+        KEY_ALLOWLIST, parse_allowlist(entry_ip_addresses(entry))
+    )
     blocked_networks = parse_blocked_networks(entry_blocked_networks(entry))
     internal_bypass = hass.http.app.get(KEY_INTERNAL_BYPASS_NETWORKS, ())
     live_blocked_networks = hass.http.app.get(KEY_BLOCKED_NETWORKS, blocked_networks)

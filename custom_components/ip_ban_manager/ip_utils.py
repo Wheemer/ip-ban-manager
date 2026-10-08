@@ -2,9 +2,40 @@
 
 from __future__ import annotations
 
+import re
 from ipaddress import IPv4Network, IPv6Network, ip_network
 
 IPNetwork = IPv4Network | IPv6Network
+
+_HOSTNAME_LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+
+
+def is_allowlist_hostname(value: str) -> bool:
+    """Return whether a value is a DNS hostname rather than an IP entry."""
+    candidate = value.strip().lower().rstrip(".")
+    if not candidate or len(candidate) > 253 or "/" in candidate or ":" in candidate:
+        return False
+    try:
+        ip_network(candidate)
+    except ValueError:
+        pass
+    else:
+        return False
+    try:
+        labels = candidate.split(".")
+        return bool(labels) and all(
+            _HOSTNAME_LABEL.fullmatch(label) for label in labels
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+def normalize_allowlist_entry(value: str) -> str:
+    """Normalize an IP/network or DNS hostname allowlist entry."""
+    candidate = value.strip()
+    if is_allowlist_hostname(candidate):
+        return candidate.lower().rstrip(".")
+    return normalize_allowlist_network(candidate)
 
 
 def _normalize_ipv4_wildcard(candidate: str) -> str | None:

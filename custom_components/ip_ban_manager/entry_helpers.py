@@ -38,7 +38,7 @@ from .const import (
     MAX_LOGIN_ATTEMPTS_THRESHOLD,
     MAX_REGIONAL_LOGIN_THRESHOLDS,
 )
-from .ip_utils import parse_allowlist_network
+from .ip_utils import is_allowlist_hostname, parse_allowlist_network
 from .metrics import mark_config_write
 from .storage_keys import KEY_CONFIG_ENTRY, IPNetwork
 
@@ -47,7 +47,11 @@ DEFAULT_SIDEBAR_PANEL_ENABLED = True
 
 def parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:
     """Parse configured IP addresses and networks."""
-    return tuple(parse_allowlist_network(ip) for ip in ip_addresses)
+    return tuple(
+        parse_allowlist_network(ip)
+        for ip in ip_addresses
+        if not is_allowlist_hostname(ip)
+    )
 
 
 def parse_blocked_networks(networks: list[str]) -> tuple[IPNetwork, ...]:

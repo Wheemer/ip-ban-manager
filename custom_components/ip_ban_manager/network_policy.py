@@ -40,6 +40,7 @@ from .const import (
     SOURCE_PANEL,
     SOURCE_SERVICE,
 )
+from .dns_allowlist import async_refresh_dns_allowlist
 from .entry_helpers import (
     effective_login_threshold,
     entry_allowed_region_country,
@@ -66,7 +67,11 @@ from .internal_networks import (
     async_home_assistant_internal_allowlist_networks,
     async_home_assistant_self_networks,
 )
-from .ip_utils import parse_allowlist_network
+from .ip_utils import (
+    is_allowlist_hostname,
+    normalize_allowlist_entry,
+    parse_allowlist_network,
+)
 from .region_rules import entry_public_region_settings, has_public_region_settings
 from .runtime_options import entry_callback_route_protection_enabled
 from .storage_keys import (
@@ -113,7 +118,11 @@ async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
     """Add newly detected internal defaults for entries using safe local defaults."""
     entry = _config_entry(hass)
     current = entry_ip_addresses(entry)
-    current_networks = {parse_allowlist_network(network) for network in current}
+    current_networks = {
+        parse_allowlist_network(network)
+        for network in current
+        if not is_allowlist_hostname(network)
+    }
     if parse_allowlist_network("127.0.0.1") not in current_networks:
         return
 
@@ -352,7 +361,12 @@ async def async_add_allowlist_network(
 ) -> None:
     """Add an allowlist network immediately."""
     try:
-        network = parse_allowlist_network(network_value)
+        normalized_entry = normalize_allowlist_entry(network_value)
+        network = (
+            None
+            if is_allowlist_hostname(normalized_entry)
+            else parse_allowlist_network(normalized_entry)
+        )
     except ValueError as err:
         if source == SOURCE_PANEL:
             raise HomeAssistantError("Invalid IP address or network.") from err
@@ -362,7 +376,7 @@ async def async_add_allowlist_network(
             translation_placeholders={ATTR_NETWORK: network_value},
         ) from err
 
-    if network.prefixlen == 0:
+    if network is not None and network.prefixlen == 0:
         if source == SOURCE_PANEL:
             raise HomeAssistantError(
                 "Allowing every address belongs outside the allowlist."
@@ -374,7 +388,7 @@ async def async_add_allowlist_network(
         )
 
     banned_ips = ban_manager(hass).ip_bans_lookup
-    if any(banned_ip in network for banned_ip in banned_ips):
+    if network is not None and any(banned_ip in network for banned_ip in banned_ips):
         message = (
             "An allowlist network cannot include an exact banned IP. "
             "Remove the ban first and try again."
@@ -388,11 +402,20 @@ async def async_add_allowlist_network(
         )
 
     current = current_allowlist_strings(hass)
-    normalized_network = str(network)
-    current_networks = {
-        parse_allowlist_network(current_network) for current_network in current
-    }
-    if network in current_networks:
+    normalized_network = normalized_entry if network is None else str(network)
+    if network is None:
+        already_present = any(
+            is_allowlist_hostname(current_network)
+            and normalize_allowlist_entry(current_network) == normalized_network
+            for current_network in current
+        )
+    else:
+        already_present = any(
+            not is_allowlist_hostname(current_network)
+            and parse_allowlist_network(current_network) == network
+            for current_network in current
+        )
+    if already_present:
         return
 
     updated = [*current, normalized_network]
@@ -408,6 +431,7 @@ async def async_add_allowlist_network(
             raise
         raise ServiceValidationError(str(err)) from err
     update_allowlist_entry(hass, updated, meta_source=source)
+    await async_refresh_dns_allowlist(hass)
     record_allowlist_network_added(hass, normalized_network, source)
 
 
@@ -416,7 +440,9 @@ async def async_remove_allowlist_network(
 ) -> None:
     """Remove an allowlist network immediately."""
     try:
-        network = parse_allowlist_network(network_value)
+        normalized_entry = normalize_allowlist_entry(network_value)
+        if not is_allowlist_hostname(normalized_entry):
+            parse_allowlist_network(normalized_entry)
     except ValueError as err:
         if source == SOURCE_PANEL:
             raise HomeAssistantError("Invalid IP address or network.") from err
@@ -427,11 +453,20 @@ async def async_remove_allowlist_network(
         ) from err
 
     current = current_allowlist_strings(hass)
-    remaining_networks = [
-        current_network
-        for current_network in current
-        if parse_allowlist_network(current_network) != network
-    ]
+    if is_allowlist_hostname(normalized_entry):
+        remaining_networks = [
+            current_network
+            for current_network in current
+            if normalize_allowlist_entry(current_network) != normalized_entry
+        ]
+    else:
+        network = parse_allowlist_network(normalized_entry)
+        remaining_networks = [
+            current_network
+            for current_network in current
+            if is_allowlist_hostname(current_network)
+            or parse_allowlist_network(current_network) != network
+        ]
     if len(remaining_networks) == len(current):
         return
 
@@ -447,7 +482,8 @@ async def async_remove_allowlist_network(
             raise
         raise ServiceValidationError(str(err)) from err
     update_allowlist_entry(hass, remaining_networks)
-    record_allowlist_network_removed(hass, str(network), source)
+    await async_refresh_dns_allowlist(hass)
+    record_allowlist_network_removed(hass, normalized_entry, source)
 
 
 async def async_add_blocked_network(

@@ -55,6 +55,9 @@ from .const import (
     SERVICE_REMOVE_IP_BAN,
     SERVICE_UPDATE_GEOIP,
 )
+from .dns_allowlist import async_refresh_dns_allowlist as _async_refresh_dns_allowlist
+from .dns_allowlist import async_start_dns_allowlist as _async_start_dns_allowlist
+from .dns_allowlist import async_stop_dns_allowlist as _async_stop_dns_allowlist
 from .entry_helpers import (
     entry_allowlisted_login_notifications_enabled as _entry_allowlisted_login_notifications_enabled,
 )
@@ -211,6 +214,7 @@ _RELOADABLE_MODULES = (
     "custom_components.ip_ban_manager.ban_lookup",
     "custom_components.ip_ban_manager.ban_ops",
     "custom_components.ip_ban_manager.geoip",
+    "custom_components.ip_ban_manager.dns_allowlist",
     "custom_components.ip_ban_manager.geoip_lifecycle",
     "custom_components.ip_ban_manager.health",
     "custom_components.ip_ban_manager.legacy_migration",
@@ -271,6 +275,9 @@ _RELOADABLE_BINDINGS: dict[str, tuple[str, str]] = {
     "_entry_ip_addresses": ("entry_helpers", "entry_ip_addresses"),
     "_entry_sidebar_panel_enabled": ("entry_helpers", "entry_sidebar_panel_enabled"),
     "_parse_allowlist": ("entry_helpers", "parse_allowlist"),
+    "_async_refresh_dns_allowlist": ("dns_allowlist", "async_refresh_dns_allowlist"),
+    "_async_start_dns_allowlist": ("dns_allowlist", "async_start_dns_allowlist"),
+    "_async_stop_dns_allowlist": ("dns_allowlist", "async_stop_dns_allowlist"),
     "_close_geoip_reader": ("geoip", "close_geoip_reader"),
     "_async_schedule_geoip_reader_prepare": (
         "geoip_lifecycle",
@@ -508,6 +515,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _install_load_bans_patch(hass, ban_manager)
     await _async_update_internal_bypass_networks(hass)
     await _async_sync_detected_allowlist_defaults(hass)
+    await _async_start_dns_allowlist(hass)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
     await _async_remove_allowlisted_ip_bans(hass)
@@ -537,6 +545,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _unregister_http_views(hass)
     await _unload_npm_sync(hass)
     _async_remove_panel(hass)
+    await _async_stop_dns_allowlist(hass)
     tasks: list[asyncio.Task[object]] = []
     legacy_cleanup_task = hass.data.pop(KEY_LEGACY_FOLDER_CLEANUP_TASK, None)
     if legacy_cleanup_task is not None:
