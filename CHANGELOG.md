@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.9.5
+
+IP Ban Manager 1.9.5 clarifies DNS and DDNS hostname allowlist support across the user-facing documentation.
+
+### Improved
+
+- Allowed IPs guidance now explicitly identifies DNS/DDNS hostnames as supported entries and explains that they are forward-resolved and refreshed in the background.
+- Config-flow text, panel help, allowlist service descriptions, the README, and all shipped translation overlays now use consistent hostname guidance.
+
 ## v1.9.4
 
 IP Ban Manager 1.9.4 adds DNS hostname entries to the live allowlist.
