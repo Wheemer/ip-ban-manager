@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Notifiche di blocco automatico",
     "ban_notifications_enabled_hint": "Mostra avvisi quando le IP vengono bloccate.",
     "blocked_request_logging_enabled": "Registra le richieste bloccate",
-    "blocked_request_logging_enabled_hint": "Diagnostica: registra IP client, motivo del blocco, metodo e percorso nel registro di Home Assistant. Le voci ripetute sono limitate.",
+    "blocked_request_logging_enabled_hint": "Diagnostica: registra IP client, motivo del blocco, metodo e percorso nel registro di Home Assistant. Le voci ripetute sono limitate. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Notifiche accesso Allowlist",
     "allowlisted_login_notifications_enabled_hint": "Avvisa su accessi attendibili falliti.",
     "callback_route_protection_enabled": "Proteggi i callback di integrazione",

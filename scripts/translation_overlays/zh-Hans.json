@@ -238,7 +238,7 @@
         "subdivision": "当地或自定义省/州"
       },
       "blocked_request_logging_enabled": "记录被阻止的请求",
-      "blocked_request_logging_enabled_hint": "诊断：在 Home Assistant 日志中记录客户端 IP、阻止原因、方法和路径。重复记录会受到速率限制。"
+      "blocked_request_logging_enabled_hint": "诊断：在 Home Assistant 日志中记录客户端 IP、阻止原因、方法和路径。重复记录会受到速率限制。. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "保存到配置",

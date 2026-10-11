@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Automatikus tiltási értesítések",
     "ban_notifications_enabled_hint": "Riasztások megjelenítése blokkolt IP-k esetén.",
     "blocked_request_logging_enabled": "Blokkolt kérések naplózása",
-    "blocked_request_logging_enabled_hint": "Diagnosztika: rögzíti a kliens IP-címét, a blokkolás okát, a metódust és az útvonalat a Home Assistant naplójában. Az ismétlődő bejegyzések korlátozottak.",
+    "blocked_request_logging_enabled_hint": "Diagnosztika: rögzíti a kliens IP-címét, a blokkolás okát, a metódust és az útvonalat a Home Assistant naplójában. Az ismétlődő bejegyzések korlátozottak. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Engedélyezett bejelentkezési értesítések",
     "allowlisted_login_notifications_enabled_hint": "Riasztás sikertelen megbízható bejelentkezéseknél.",
     "callback_route_protection_enabled": "Védje az integrációs visszahívásokat",

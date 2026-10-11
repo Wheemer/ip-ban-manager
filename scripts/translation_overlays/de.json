@@ -237,7 +237,7 @@
         "subdivision": "Lokale oder benutzerdefinierte Provinz/Bundesstaat"
       },
       "blocked_request_logging_enabled": "Blockierte Anfragen protokollieren",
-      "blocked_request_logging_enabled_hint": "Diagnose: Client-IP, Blockierungsgrund, Methode und Pfad im Home-Assistant-Protokoll erfassen. Wiederholte Einträge werden begrenzt."
+      "blocked_request_logging_enabled_hint": "Diagnose: Client-IP, Blockierungsgrund, Methode und Pfad im Home-Assistant-Protokoll erfassen. Wiederholte Einträge werden begrenzt. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "In Konfiguration speichern",

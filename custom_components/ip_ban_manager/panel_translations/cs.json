@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Automatická oznámení o zákazu",
     "ban_notifications_enabled_hint": "Zobrazit upozornění při blokování IP.",
     "blocked_request_logging_enabled": "Protokolovat blokované požadavky",
-    "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, důvod blokování, metodu a cestu do protokolu Home Assistant. Opakované záznamy jsou omezeny.",
+    "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, důvod blokování, metodu a cestu do protokolu Home Assistant. Opakované záznamy jsou omezeny. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Oznámení o přihlášení z allowlistu",
     "allowlisted_login_notifications_enabled_hint": "Upozornit na neúspěšná důvěryhodná přihlášení.",
     "callback_route_protection_enabled": "Chraňte integrační zpětná volání",

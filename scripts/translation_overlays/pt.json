@@ -237,7 +237,7 @@
         "subdivision": "Província/estado local ou personalizado"
       },
       "blocked_request_logging_enabled": "Registar pedidos bloqueados",
-      "blocked_request_logging_enabled_hint": "Diagnóstico: regista o IP do cliente, motivo do bloqueio, método e caminho no registo do Home Assistant. As entradas repetidas são limitadas."
+      "blocked_request_logging_enabled_hint": "Diagnóstico: regista o IP do cliente, motivo do bloqueio, método e caminho no registo do Home Assistant. As entradas repetidas são limitadas. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Guardar na configuração",

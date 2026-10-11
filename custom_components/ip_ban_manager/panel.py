@@ -188,6 +188,7 @@ async def async_panel_payload(
         npm_discovery = {"addon_detected": False}
     activity = merge_activity(hass, npm_activity)
     activity_history = history_activity(hass)
+    include_blocked_activity = entry_blocked_request_logging_enabled(entry)
     allowlist_networks = hass.http.app.get(
         KEY_ALLOWLIST, parse_allowlist(entry_ip_addresses(entry))
     )
@@ -195,10 +196,18 @@ async def async_panel_payload(
     activity_history = without_allowlisted_activity(
         activity_history, allowlist_networks
     )
-    activity = without_policy_denied_activity(activity)
-    activity_history = without_policy_denied_activity(activity_history)
-    activity = without_disallowed_activity(hass, entry, activity)
-    activity_history = without_disallowed_activity(hass, entry, activity_history)
+    activity = without_policy_denied_activity(
+        activity, include_blocked=include_blocked_activity
+    )
+    activity_history = without_policy_denied_activity(
+        activity_history, include_blocked=include_blocked_activity
+    )
+    activity = without_disallowed_activity(
+        hass, entry, activity, include_blocked=include_blocked_activity
+    )
+    activity_history = without_disallowed_activity(
+        hass, entry, activity_history, include_blocked=include_blocked_activity
+    )
     locations = await _async_activity_locations(hass, [*activity, *activity_history])
     for event in [*activity, *activity_history]:
         if location := locations.get(str(event.get("ip") or "")):

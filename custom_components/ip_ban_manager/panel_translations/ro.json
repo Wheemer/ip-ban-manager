@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Notificări automate de interdicție",
     "ban_notifications_enabled_hint": "Afișează alerte când IP-urile sunt blocate.",
     "blocked_request_logging_enabled": "Înregistrează cererile blocate",
-    "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate.",
+    "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Notificări de autentificare pe lista permisă",
     "allowlisted_login_notifications_enabled_hint": "Alerte la autentificări de încredere eșuate.",
     "callback_route_protection_enabled": "Protejați apelurile de integrare",

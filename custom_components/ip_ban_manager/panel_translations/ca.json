@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Notificacions de bloqueig automàtic",
     "ban_notifications_enabled_hint": "Mostra alertes quan es bloquegen IP.",
     "blocked_request_logging_enabled": "Registra les sol·licituds bloquejades",
-    "blocked_request_logging_enabled_hint": "Diagnòstic: registra la IP del client, el motiu del bloqueig, el mètode i la ruta al registre de Home Assistant. Les entrades repetides es limiten.",
+    "blocked_request_logging_enabled_hint": "Diagnòstic: registra la IP del client, el motiu del bloqueig, el mètode i la ruta al registre de Home Assistant. Les entrades repetides es limiten. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Notificacions d'inici de sessió a la llista permesa",
     "allowlisted_login_notifications_enabled_hint": "Alerta en inicis de sessió de confiança fallits.",
     "callback_route_protection_enabled": "Protegiu les devolució de trucades d'integració",

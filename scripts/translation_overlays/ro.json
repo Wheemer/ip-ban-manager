@@ -237,7 +237,7 @@
         "subdivision": "Provincie/stat local sau personalizat"
       },
       "blocked_request_logging_enabled": "Înregistrează cererile blocate",
-      "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate."
+      "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Salvează în configurație",

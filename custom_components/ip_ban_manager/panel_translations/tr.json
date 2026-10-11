@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Otomatik yasak bildirimleri",
     "ban_notifications_enabled_hint": "IP'ler engellendiğinde uyarı göster.",
     "blocked_request_logging_enabled": "Engellenen istekleri günlüğe kaydet",
-    "blocked_request_logging_enabled_hint": "Tanılama: istemci IP'sini, engelleme nedenini, yöntemi ve yolu Home Assistant günlüğüne kaydeder. Tekrarlanan girdiler sınırlandırılır.",
+    "blocked_request_logging_enabled_hint": "Tanılama: istemci IP'sini, engelleme nedenini, yöntemi ve yolu Home Assistant günlüğüne kaydeder. Tekrarlanan girdiler sınırlandırılır. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Allowlist giriş bildirimleri",
     "allowlisted_login_notifications_enabled_hint": "Güvenilir başarısız girişlerde uyar.",
     "callback_route_protection_enabled": "Entegrasyon geri aramalarını koruyun",

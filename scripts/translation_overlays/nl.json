@@ -237,7 +237,7 @@
         "subdivision": "Lokale of aangepaste provincie/staat"
       },
       "blocked_request_logging_enabled": "Geblokkeerde verzoeken loggen",
-      "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt."
+      "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Opslaan in config",

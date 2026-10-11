@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Automaattiset estoilmoitukset",
     "ban_notifications_enabled_hint": "Näytä hälytykset, kun IP-osoitteita estetään.",
     "blocked_request_logging_enabled": "Kirjaa estetyt pyynnöt",
-    "blocked_request_logging_enabled_hint": "Diagnostiikka: kirjaa asiakkaan IP-osoite, eston syy, menetelmä ja polku Home Assistantin lokiin. Toistuvia merkintöjä rajoitetaan.",
+    "blocked_request_logging_enabled_hint": "Diagnostiikka: kirjaa asiakkaan IP-osoite, eston syy, menetelmä ja polku Home Assistantin lokiin. Toistuvia merkintöjä rajoitetaan. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Sallittujen kirjautumisten ilmoitukset",
     "allowlisted_login_notifications_enabled_hint": "Hälytä epäonnistuneista luotetuista kirjautumisista.",
     "callback_route_protection_enabled": "Suojaa integroinnin takaisinsoittoja",

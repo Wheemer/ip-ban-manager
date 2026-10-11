@@ -237,7 +237,7 @@
         "subdivision": "지역 또는 맞춤형 주/주"
       },
       "blocked_request_logging_enabled": "차단된 요청 기록",
-      "blocked_request_logging_enabled_hint": "진단: 클라이언트 IP, 차단 이유, 메서드 및 경로를 Home Assistant 로그에 기록합니다. 반복 항목은 제한됩니다."
+      "blocked_request_logging_enabled_hint": "진단: 클라이언트 IP, 차단 이유, 메서드 및 경로를 Home Assistant 로그에 기록합니다. 반복 항목은 제한됩니다. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "구성에 저장",

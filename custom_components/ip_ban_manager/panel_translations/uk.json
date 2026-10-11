@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Автоматичні сповіщення про блокування",
     "ban_notifications_enabled_hint": "Показувати попередження при блокуванні IP.",
     "blocked_request_logging_enabled": "Записувати заблоковані запити",
-    "blocked_request_logging_enabled_hint": "Діагностика: записує IP клієнта, причину блокування, метод і шлях у журнал Home Assistant. Повторювані записи обмежуються.",
+    "blocked_request_logging_enabled_hint": "Діагностика: записує IP клієнта, причину блокування, метод і шлях у журнал Home Assistant. Повторювані записи обмежуються. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Сповіщення про вхід з allowlist",
     "allowlisted_login_notifications_enabled_hint": "Попереджати про невдалі довірені входи.",
     "callback_route_protection_enabled": "Захист зворотних викликів інтеграції",

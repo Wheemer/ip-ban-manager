@@ -237,7 +237,7 @@
         "subdivision": "Helyi vagy egyéni tartomány/állam"
       },
       "blocked_request_logging_enabled": "Blokkolt kérések naplózása",
-      "blocked_request_logging_enabled_hint": "Diagnosztika: rögzíti a kliens IP-címét, a blokkolás okát, a metódust és az útvonalat a Home Assistant naplójában. Az ismétlődő bejegyzések korlátozottak."
+      "blocked_request_logging_enabled_hint": "Diagnosztika: rögzíti a kliens IP-címét, a blokkolás okát, a metódust és az útvonalat a Home Assistant naplójában. Az ismétlődő bejegyzések korlátozottak. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Mentés a konfigurációba",

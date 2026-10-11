@@ -237,7 +237,7 @@
         "subdivision": "ローカルまたはカスタムの州/州"
       },
       "blocked_request_logging_enabled": "ブロックされたリクエストを記録",
-      "blocked_request_logging_enabled_hint": "診断用: クライアント IP、ブロック理由、メソッド、パスを Home Assistant ログに記録します。繰り返しの記録は制限されます。"
+      "blocked_request_logging_enabled_hint": "診断用: クライアント IP、ブロック理由、メソッド、パスを Home Assistant ログに記録します。繰り返しの記録は制限されます。. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "設定に保存",

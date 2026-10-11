@@ -237,7 +237,7 @@
         "subdivision": "Местная или пользовательская провинция/штат"
       },
       "blocked_request_logging_enabled": "Записывать заблокированные запросы",
-      "blocked_request_logging_enabled_hint": "Диагностика: записывает IP клиента, причину блокировки, метод и путь в журнал Home Assistant. Повторяющиеся записи ограничиваются."
+      "blocked_request_logging_enabled_hint": "Диагностика: записывает IP клиента, причину блокировки, метод и путь в журнал Home Assistant. Повторяющиеся записи ограничиваются. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Сохранить в config",

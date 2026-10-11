@@ -237,7 +237,7 @@
         "subdivision": "Τοπική ή προσαρμοσμένη επαρχία/πολιτεία"
       },
       "blocked_request_logging_enabled": "Καταγραφή αποκλεισμένων αιτημάτων",
-      "blocked_request_logging_enabled_hint": "Διαγνωστικά: καταγραφή IP πελάτη, αιτίας αποκλεισμού, μεθόδου και διαδρομής στο αρχείο καταγραφής του Home Assistant. Οι επαναλαμβανόμενες εγγραφές περιορίζονται."
+      "blocked_request_logging_enabled_hint": "Διαγνωστικά: καταγραφή IP πελάτη, αιτίας αποκλεισμού, μεθόδου και διαδρομής στο αρχείο καταγραφής του Home Assistant. Οι επαναλαμβανόμενες εγγραφές περιορίζονται. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Αποθήκευση στη ρύθμιση",

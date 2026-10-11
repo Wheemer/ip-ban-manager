@@ -238,7 +238,7 @@
         "subdivision": "當地或自訂省/州"
       },
       "blocked_request_logging_enabled": "記錄被封鎖的請求",
-      "blocked_request_logging_enabled_hint": "診斷：在 Home Assistant 記錄中記錄用戶端 IP、封鎖原因、方法和路徑。重複記錄會受到速率限制。"
+      "blocked_request_logging_enabled_hint": "診斷：在 Home Assistant 記錄中記錄用戶端 IP、封鎖原因、方法和路徑。重複記錄會受到速率限制。. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "儲存到設定",

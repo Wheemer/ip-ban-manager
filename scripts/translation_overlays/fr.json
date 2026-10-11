@@ -234,7 +234,7 @@
         "subdivision": "Province/état local ou personnalisé"
       },
       "blocked_request_logging_enabled": "Journaliser les requêtes bloquées",
-      "blocked_request_logging_enabled_hint": "Diagnostic : enregistre l’IP du client, le motif du blocage, la méthode et le chemin dans le journal Home Assistant. Les entrées répétées sont limitées."
+      "blocked_request_logging_enabled_hint": "Diagnostic : enregistre l’IP du client, le motif du blocage, la méthode et le chemin dans le journal Home Assistant. Les entrées répétées sont limitées. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Enregistrer dans la config",

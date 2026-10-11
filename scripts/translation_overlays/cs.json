@@ -237,7 +237,7 @@
         "subdivision": "Místní nebo vlastní provincie/stát"
       },
       "blocked_request_logging_enabled": "Protokolovat blokované požadavky",
-      "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, důvod blokování, metodu a cestu do protokolu Home Assistant. Opakované záznamy jsou omezeny."
+      "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, důvod blokování, metodu a cestu do protokolu Home Assistant. Opakované záznamy jsou omezeny. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Uložit do config",

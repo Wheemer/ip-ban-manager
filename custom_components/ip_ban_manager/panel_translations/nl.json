@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Automatische banmeldingen",
     "ban_notifications_enabled_hint": "Waarschuwingen tonen wanneer IP's worden geblokkeerd.",
     "blocked_request_logging_enabled": "Geblokkeerde verzoeken loggen",
-    "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt.",
+    "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Allowlist-loginmeldingen",
     "allowlisted_login_notifications_enabled_hint": "Waarschuwen bij mislukte vertrouwde logins.",
     "callback_route_protection_enabled": "Bescherm integratie-callbacks",

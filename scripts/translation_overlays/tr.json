@@ -237,7 +237,7 @@
         "subdivision": "Yerel veya özel il/eyalet"
       },
       "blocked_request_logging_enabled": "Engellenen istekleri günlüğe kaydet",
-      "blocked_request_logging_enabled_hint": "Tanılama: istemci IP'sini, engelleme nedenini, yöntemi ve yolu Home Assistant günlüğüne kaydeder. Tekrarlanan girdiler sınırlandırılır."
+      "blocked_request_logging_enabled_hint": "Tanılama: istemci IP'sini, engelleme nedenini, yöntemi ve yolu Home Assistant günlüğüne kaydeder. Tekrarlanan girdiler sınırlandırılır. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Config'e kaydet",

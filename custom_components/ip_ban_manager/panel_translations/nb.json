@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Automatiske utestengelsesvarsler",
     "ban_notifications_enabled_hint": "Vis varsler når IP-er blokkeres.",
     "blocked_request_logging_enabled": "Logg blokkerte forespørsler",
-    "blocked_request_logging_enabled_hint": "Diagnostikk: registrer klient-IP, blokkeringsårsak, metode og sti i Home Assistant-loggen. Gjentatte oppføringer begrenses.",
+    "blocked_request_logging_enabled_hint": "Diagnostikk: registrer klient-IP, blokkeringsårsak, metode og sti i Home Assistant-loggen. Gjentatte oppføringer begrenses. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Varsler for tillatte innlogginger",
     "allowlisted_login_notifications_enabled_hint": "Varsle ved mislykkede pålitelige innlogginger.",
     "callback_route_protection_enabled": "Beskytt integrasjonstilbakekallinger",

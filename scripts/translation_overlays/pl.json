@@ -237,7 +237,7 @@
         "subdivision": "Lokalna lub niestandardowa prowincja/stan"
       },
       "blocked_request_logging_enabled": "Rejestruj zablokowane żądania",
-      "blocked_request_logging_enabled_hint": "Diagnostyka: zapisuje IP klienta, powód blokady, metodę i ścieżkę w dzienniku Home Assistant. Powtarzające się wpisy są ograniczane."
+      "blocked_request_logging_enabled_hint": "Diagnostyka: zapisuje IP klienta, powód blokady, metodę i ścieżkę w dzienniku Home Assistant. Powtarzające się wpisy są ograniczane. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Zapisz w konfiguracji",

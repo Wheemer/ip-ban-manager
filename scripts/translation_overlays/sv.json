@@ -237,7 +237,7 @@
         "subdivision": "Lokal eller anpassad provins/stat"
       },
       "blocked_request_logging_enabled": "Logga blockerade förfrågningar",
-      "blocked_request_logging_enabled_hint": "Diagnostik: registrera klient-IP, blockeringsorsak, metod och sökväg i Home Assistant-loggen. Upprepade poster begränsas."
+      "blocked_request_logging_enabled_hint": "Diagnostik: registrera klient-IP, blockeringsorsak, metod och sökväg i Home Assistant-loggen. Upprepade poster begränsas. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Spara till config",

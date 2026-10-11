@@ -77,7 +77,7 @@
     "ban_notifications_enabled": "Notifications de bannissement automatique",
     "ban_notifications_enabled_hint": "Afficher des alertes lorsque des IP sont bloquées.",
     "blocked_request_logging_enabled": "Journaliser les requêtes bloquées",
-    "blocked_request_logging_enabled_hint": "Diagnostic : enregistre l’IP du client, le motif du blocage, la méthode et le chemin dans le journal Home Assistant. Les entrées répétées sont limitées.",
+    "blocked_request_logging_enabled_hint": "Diagnostic : enregistre l’IP du client, le motif du blocage, la méthode et le chemin dans le journal Home Assistant. Les entrées répétées sont limitées. Also show denied requests in Incoming Activity when enabled.",
     "allowlisted_login_notifications_enabled": "Notifications de connexion autorisée",
     "allowlisted_login_notifications_enabled_hint": "Alerter en cas d'échecs de connexion de sources de confiance.",
     "callback_route_protection_enabled": "Protéger les rappels d’intégration",

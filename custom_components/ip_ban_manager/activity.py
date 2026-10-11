@@ -372,15 +372,27 @@ def without_allowlisted_activity(
     return filtered
 
 
+def _keep_activity_event(event: Mapping[str, object], *, include_blocked: bool) -> bool:
+    """Keep recorded policy denials when blocked-request visibility is enabled."""
+    return (
+        include_blocked
+        and event.get("status") == 403
+        and str(event.get("source") or "") in {"home_assistant", "nginx_proxy_manager"}
+    )
+
+
 def without_policy_denied_activity(
     events: Sequence[Mapping[str, object]],
+    *,
+    include_blocked: bool = False,
 ) -> list[dict[str, object]]:
-    """Remove requests rejected before they reached the protected service."""
+    """Remove policy-denied requests unless blocked visibility is enabled."""
     return [
         dict(event)
         for event in events
         if not (
-            event.get("status") == 403
+            not _keep_activity_event(event, include_blocked=include_blocked)
+            and event.get("status") == 403
             and str(event.get("source") or "")
             in {"home_assistant", "nginx_proxy_manager"}
         )
@@ -391,8 +403,10 @@ def without_disallowed_activity(
     hass: HomeAssistant,
     entry: ConfigEntry,
     events: Sequence[Mapping[str, object]],
+    *,
+    include_blocked: bool = False,
 ) -> list[dict[str, object]]:
-    """Keep only activity that passes the active IP Ban Manager policy."""
+    """Keep policy-allowed activity and optionally recorded policy denials."""
     from .ban_lookup import _is_allowed
     from .entry_helpers import (
         entry_blocked_networks,
@@ -431,6 +445,9 @@ def without_disallowed_activity(
         try:
             address = ip_address(str(event.get("ip") or ""))
         except ValueError:
+            continue
+        if _keep_activity_event(event, include_blocked=include_blocked):
+            filtered.append(dict(event))
             continue
         if isinstance(banned_ips, dict) and dict.__contains__(banned_ips, address):
             continue

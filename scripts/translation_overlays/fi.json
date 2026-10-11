@@ -237,7 +237,7 @@
         "subdivision": "Paikallinen tai mukautettu provinssi/osavaltio"
       },
       "blocked_request_logging_enabled": "Kirjaa estetyt pyynnöt",
-      "blocked_request_logging_enabled_hint": "Diagnostiikka: kirjaa asiakkaan IP-osoite, eston syy, menetelmä ja polku Home Assistantin lokiin. Toistuvia merkintöjä rajoitetaan."
+      "blocked_request_logging_enabled_hint": "Diagnostiikka: kirjaa asiakkaan IP-osoite, eston syy, menetelmä ja polku Home Assistantin lokiin. Toistuvia merkintöjä rajoitetaan. Also show denied requests in Incoming Activity when enabled."
     },
     "backup": {
       "save_title": "Tallenna konfiguraatioon",
