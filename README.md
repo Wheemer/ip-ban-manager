@@ -136,10 +136,14 @@ Changes apply immediately. Home Assistant does not need to restart after list ed
 
 ### Incoming activity
 
-The panel's **Recent Incoming Activity** section shows requests observed by Home Assistant,
-including failed authentication and blocked requests. When NGINX Proxy Manager edge
-protection is connected, recent access-log entries from the managed proxy hosts are merged
-into the same view. The **History** tab keeps a sanitized local record for 24 hours, capped
+The panel's **Recent Incoming Activity** section shows requests observed by Home Assistant
+that reached the protected service and passed the active IP Ban Manager policy, including
+failed authentication. When NGINX Proxy Manager edge protection is connected, recent
+access-log entries from the managed proxy hosts are merged into the same view after the
+same policy filtering. Requests rejected by Public Region Lock, default-deny, blocked
+networks, or exact bans are intentionally excluded from Recent and History; enable
+**Log blocked requests** when you need those denied requests in the Home Assistant log.
+The **History** tab keeps a sanitized local record for 24 hours, capped
 at 1,000 events. It stores only the source, IP address, request method and path, status,
 host label, reason, and timestamp; credentials, headers, cookies, tokens, and query strings
 are not stored. NGINX Proxy Manager access-log collection is limited to the hosts selected
