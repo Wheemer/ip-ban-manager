@@ -124,7 +124,7 @@ Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
 - Automatic-ban settings
 - Default-deny mode
 - Allowlisted-login notification settings
-- Optional rate-limited blocked-request logging for troubleshooting effective client addresses and enforcement reasons
+- Optional rate-limited blocked-request logging and Incoming Activity visibility for denied requests
 - Local GeoIP database download/update
 - Optional GeoIP allowed-region access control
 - Optional country and province/state failed-login thresholds
@@ -142,7 +142,7 @@ failed authentication. When NGINX Proxy Manager edge protection is connected, re
 access-log entries from the managed proxy hosts are merged into the same view after the
 same policy filtering. Requests rejected by Public Region Lock, default-deny, blocked
 networks, or exact bans are intentionally excluded from Recent and History; enable
-**Log blocked requests** when you need those denied requests in the Home Assistant log.
+**Show blocked requests** to include denied requests in Incoming Activity and the Home Assistant log.
 The **History** tab keeps a sanitized local record for 24 hours, capped
 at 1,000 events. It stores only the source, IP address, request method and path, status,
 host label, reason, and timestamp; credentials, headers, cookies, tokens, and query strings
@@ -327,7 +327,7 @@ On startup, IP Ban Manager also reconciles Home Assistant's exact ban list again
 
 ## Diagnostic Sensors
 
-Enable **Log blocked requests** temporarily when troubleshooting an unexpected rejection. Home Assistant's log will record the effective client IP it received, the enforcement reason, HTTP method, and path without query parameters or headers. Repeated requests from the same IP for the same reason are rate-limited, and the in-memory tracker is bounded. Requests rejected by NGINX Proxy Manager cannot appear because they never reach Home Assistant.
+Enable **Show blocked requests** when you need denied requests in Incoming Activity or the Home Assistant log. Home Assistant's log will record the effective client IP it received, the enforcement reason, HTTP method, and path without query parameters or headers. Repeated requests from the same IP for the same reason are rate-limited, and the in-memory tracker is bounded. Requests rejected by NGINX Proxy Manager cannot appear because they never reach Home Assistant.
 
 IP Ban Manager adds numeric diagnostic sensors with detailed attributes:
 
