@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.9.6
+
+IP Ban Manager 1.9.6 expands the optional blocked-request view.
+
+### Improved
+
+- **Blocked request activity:** enabling **Show blocked requests** now displays recorded policy-denied requests in Incoming Activity, including the source IP, reason, method, and path.
+- Blocked-request records remain privacy-sanitized, rate-limited, and bounded.
+- The default activity view remains limited to requests allowed through the active policy.
+
 ## v1.9.5
 
 IP Ban Manager 1.9.5 clarifies DNS and DDNS hostname allowlist support across the user-facing documentation.
