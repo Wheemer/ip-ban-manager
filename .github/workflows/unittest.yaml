@@ -31,3 +31,5 @@ jobs:
       run: pytest -vvv
       env:
         PYTHONPATH: .
+    - name: Panel JavaScript tests
+      run: node tests/*.cjs
