@@ -20,15 +20,11 @@
 Originally created by [palfrey](https://github.com/palfrey). This fork builds on that allowlist work with a live Home Assistant IP ban and allowlist manager UI.
 
 > [!WARNING]
-> **THIS IS A HACK. USE AT YOUR OWN RISK.** Home Assistant does not provide a public integration API for changing the HTTP IP ban manager at runtime, so this integration uses a small internal hook around Home Assistant's built-in ban manager.
+> This integration uses Home Assistant's internal HTTP ban interfaces because there is no public API for these controls. Review your Allowed IPs before enabling restrictive settings, and keep the [emergency-disable instructions](#emergency-disable) accessible.
 
-IP Ban Manager gives Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning) the management UI it has always needed: trusted IPs and networks, live ban review and removal, managed network blocks, default-deny controls, GeoIP labels and region limits, backup/restore, services, diagnostics, and branded notifications.
+IP Ban Manager provides a live interface for Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning), with allowlists, network blocks, region restrictions, notifications, and automation support.
 
-Compatibility target: Home Assistant `2024.7.4` and newer, including older Supervised, Container, Core, and OS installs that are still running in the wild.
-
-## Release Notes
-
-See the [release summary](RELEASES.md) for a quick version-by-version table, or [CHANGELOG.md](CHANGELOG.md) for every release, upgrade note, and full change detail.
+Requires Home Assistant `2024.7.4` or newer. Designed for Home Assistant OS, Container, and existing Core and Supervised installations.
 
 ## What It Does
 
@@ -37,13 +33,13 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 - **Blocked networks:** block CIDR networks and wildcard ranges without pretending `ip_bans.yaml` supports ranges.
 - **Default deny:** optionally block everything outside Allowed IPs with guardrails to avoid locking out Home Assistant itself.
 - **Live panel:** manage the whole integration from a dedicated page, with optional sidebar access.
-- **Incoming activity:** review recent requests seen by Home Assistant and, when connected, NGINX Proxy Manager; a sanitized history is retained locally for 24 hours.
+- **Incoming activity:** review observed failed logins and optional blocked requests, plus access-log activity from connected NGINX Proxy Manager hosts. Local history is retained for 24 hours.
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
 - **GeoIP labels and limits:** optionally download a local DB-IP City Lite database for approximate public-IP location labels and country/province access limits.
-- **NGINX Proxy Manager edge protection:** optionally mirror managed IP rules to the exact NPM proxy host serving Home Assistant.
+- **NGINX Proxy Manager edge protection:** mirror rules to the Home Assistant proxy host, or optionally all active NPM proxy hosts.
 - **Backup and restore:** save/restore a readable YAML backup under `/config`, or download/upload a backup in the browser.
 - **Diagnostics and automation:** numeric sensors, `ip_ban_manager.*` services, and Home Assistant events for scripts and automations.
-- **Translations:** config flow, options, repairs, services, entity names, and the live panel follow the signed-in Home Assistant user's language when a locale file is available. See [Translations](docs/translations.md) for the shipped locales and maintenance notes.
+- **Translations:** the Home Assistant UI and panel ship English plus 25 translated locales, with English fallback. Some notification and runtime messages remain in English. See [Translations](docs/translations.md).
 
 ## Screenshots
 
@@ -88,12 +84,12 @@ See the [release summary](RELEASES.md) for a quick version-by-version table, or 
 If the button does not work:
 
 1. Open HACS.
-2. Add `Wheemer/ip-ban-manager` as a custom integration repository.
+2. In **Custom repositories**, add `https://github.com/Wheemer/ip-ban-manager` with category **Integration**.
 3. Install **IP Ban Manager**.
 4. Restart Home Assistant once so the custom integration is loaded.
 5. Add it from **Settings > Devices & services > Add integration**.
 
-After install or a HACS update, a **Core restart** is required for new Python code to load. Reloading only the IP Ban Manager config entry is enough to tear down and restore its runtime hooks, services, and panel API for the already-loaded module (for example after disabling/re-enabling the entry), but it does not replace integration files already imported into the Home Assistant process.
+Restart Home Assistant Core after a HACS installation or update. Reloading the integration tears down and restores its hooks, services, and panel API, and reloads its runtime Python modules. A reload does not replace every imported module, so it is not a substitute for the post-update Core restart.
 
 ## Configure
 
@@ -116,41 +112,34 @@ Existing `ban_allowlist:` YAML is treated as a one-time migration path. IP Ban M
 
 ## Live Panel
 
-Open **Settings > Devices & services > IP Ban Manager > Configure** to manage:
+Open **Settings > Devices & services > IP Ban Manager > Configure**. The panel is
+administrator-only. **Show in sidebar** adds a menu entry; turning it off does not
+remove access through **Configure**.
 
-- Allowed IPs, networks, and DNS/DDNS hostnames
-- Blocked IPs from Home Assistant's native `ip_bans.yaml`
-- Managed blocked networks
-- Automatic-ban settings
-- Default-deny mode
-- Allowlisted-login notification settings
-- Optional rate-limited blocked-request logging and Incoming Activity visibility for denied requests
-- Local GeoIP database download/update
-- Optional GeoIP allowed-region access control
-- Optional country and province/state failed-login thresholds
-- Optional NGINX Proxy Manager edge protection
-- Recent and 24-hour historical incoming activity from Home Assistant and connected NGINX Proxy Manager hosts
-- Manual on-disk backup, browser download, and browser upload restore
+The panel groups options, allowlists and blocks, incoming activity, Public Region
+Lock, NPM edge protection, GeoIP, and backups into their own sections.
 
-Changes apply immediately. Home Assistant does not need to restart after list edits or option changes.
+List **Add**, **Block**, and **Remove** actions apply immediately. For options, Public Region Lock, and NPM settings, select the section's **Apply** button. These changes do not require a Home Assistant restart.
 
 ### Incoming activity
 
-The panel's **Recent Incoming Activity** section shows requests observed by Home Assistant
-that reached the protected service and passed the active IP Ban Manager policy, including
-failed authentication. When NGINX Proxy Manager edge protection is connected, recent
-access-log entries from the managed proxy hosts are merged into the same view after the
-same policy filtering. Requests rejected by Public Region Lock, default-deny, blocked
-networks, or exact bans are intentionally excluded from Recent and History; enable
-**Show blocked requests** to include denied requests in Incoming Activity and the Home Assistant log.
-The **History** tab keeps a sanitized local record for 24 hours, capped
-at 1,000 events. It stores only the source, IP address, request method and path, status,
-host label, reason, and timestamp; credentials, headers, cookies, tokens, and query strings
-are not stored. NGINX Proxy Manager access-log collection is limited to the hosts selected
-by IP Ban Manager and does not provide authenticated-session tracking. HTTP 403 entries are
-marked as possible edge-policy denies; NPM access logs do not identify the exact `deny`
-directive that produced a response, so this is verification evidence rather than a claim
-about the precise rule that matched.
+**Incoming Activity** groups requests by source IP and updates automatically. **Recent**
+covers the last 15 minutes; **History** retains up to 1,000 sanitized events for 24 hours,
+with up to 200 grouped rows displayed. Allowed IPs are excluded from both views.
+
+Home Assistant alone provides failed-login activity and, when enabled, managed blocked
+requests. It is not a complete access log or a list of logged-in sessions. Connecting
+NGINX Proxy Manager adds access-log entries from the managed proxy hosts.
+
+By default, requests rejected by the current IP Ban Manager policy are hidden. Turn on
+**Show blocked requests** to include them in both tabs and log HA-side denials. This
+records the effective client IP, reason, method, and path. Repeated HA log messages for
+the same IP and reason are rate-limited. Requests rejected before the integration's
+HTTP hook cannot be recorded by that hook.
+
+History omits query strings, headers, cookies, and request bodies. Paths and IP addresses
+are still retained locally. NPM HTTP 403 responses are marked as possible policy denials;
+the access log does not establish which rule or upstream service produced the response.
 
 Blocked-network rows show when each entry was added and how it was created (panel, service, backup restore, and similar sources). Legacy managed-network rows added before tracking show **Added before tracking**. Exact blocked-IP rows show Home Assistant's native ban time and, when GeoIP labels are enabled, an approximate location. Allowed IP rows show the address only.
 
@@ -171,16 +160,15 @@ addresses remain trusted for at most five minutes, then expire. Restoring a
 backup refreshes hostname entries immediately; connected NPM rules follow changes
 to their resolved addresses automatically.
 
-Allowed entries win over managed blocked networks and default-deny mode.
+Allowed entries override managed blocked networks, default-deny mode, and Public Region
+Lock. Exact IP bans take precedence; **Bans inside Allowed IPs** permits automatic bans
+of trusted sources. With that option off, setup removes pre-existing bans covered by
+the allowlist.
 
 The setup and Configure safe-default option can add Home Assistant's detected
 local access paths plus relevant internal container/Supervisor addresses. Those
 entries are shown in **Allowed IPs** so they are visible, editable, and backed up
 with the rest of the integration settings.
-
-GeoIP uses a downloaded local DB-IP City Lite database and IP Ban Manager's
-bundled pure-Python MaxMind DB reader, so Docker installs do not need Home
-Assistant to write Python packages into the container at startup.
 
 ### Blocked IPs
 
@@ -194,17 +182,19 @@ Blocked networks are managed by IP Ban Manager. They support IPv4/IPv6 CIDR netw
 
 ### Safety Checks
 
-IP Ban Manager validates changes before writing them. It rejects malformed entries, all-Internet allowlists or network blocks, exact bans that are also allowed, risky default-deny changes, unsafe local lockout cases, and unconfirmed multi-ban clears.
+IP Ban Manager checks entry formats, conflicting lists, and detected local access paths before applying changes. Individual `/0` allowlist and blocked-network entries are rejected. Clearing multiple exact bans requires confirmation. These checks reduce accidental lockouts but cannot guarantee access through every network or proxy configuration.
 
 Home Assistant's own exact interface addresses, including its IPv6 link-local addresses, are protected internally. Other local clients and detected container/Supervisor networks belong in **Allowed IPs**, where the safe-default option makes those allowances visible and editable.
 
-**Protect integration callbacks** is on by default. It keeps Home Assistant's shared OAuth and registered webhook routes reachable through IP Ban Manager's managed rules, including blocked networks, default-deny mode, and GeoIP region limits. Named callback routes are protected only when their integration is loaded. Exact IP bans still apply.
+**Protect integration callbacks** is on by default. It exempts `/auth/token`, `/api/webhook/` routes, and supported integration-specific callback routes from managed network, default-deny, and region restrictions. Integration-specific routes are enabled only when that integration is loaded. Exact IP bans and Home Assistant's own authentication checks still apply.
 
 ### NGINX Proxy Manager Edge Protection
 
 IP Ban Manager can optionally enforce its managed rules at NGINX Proxy Manager before unwanted requests reach Home Assistant. Connect with the NPM URL, account email, and password. The password is exchanged for an API token and is not stored by IP Ban Manager.
 
-IP Ban Manager matches Home Assistant's configured external hostname against NPM proxy hosts. A single exact hostname match is selected automatically; if there is no unique exact match, the panel asks you to select the correct proxy host. Enabling edge protection then mirrors Allowed IPs, exact IP bans, blocked networks, and **Block everything outside Allowed IPs**. Changes synchronize automatically whenever the managed policy changes. **Protect all NPM domains** extends the same access policy to every active Proxy Host, including hosts added later; Home Assistant callback exceptions remain limited to the selected Home Assistant host.
+Set Home Assistant's external URL before connecting. IP Ban Manager matches its exact hostname against NPM proxy hosts. A single match is selected automatically; otherwise, select the appropriate host in the panel. Enabling edge protection mirrors Allowed IPs, exact bans, blocked networks, and default-deny rules. Public Region Lock uses an authorization subrequest to Home Assistant.
+
+Policy changes synchronize automatically. **Protect all NPM domains** applies the policy to every active Proxy Host found during synchronization; newly added hosts are included on the next sync. Home Assistant callback exceptions remain limited to the selected Home Assistant host.
 
 On Home Assistant OS and Supervised installations, the panel detects the Supervisor-managed Nginx Proxy Manager app and pre-fills its local address when available. The NPM email and password are still entered by the user; IP Ban Manager never guesses credentials or reads the NPM database. Container and external-Docker installations continue to use the manual URL field.
 
@@ -225,7 +215,7 @@ The live panel can **Save**, **Restore**, **Download**, and **Upload** a YAML ba
 
 **Download** builds the same YAML from the current live settings and saves it through the browser. **Upload** restores from a file you pick on this device.
 
-The backup includes IP Ban Manager settings plus a timestamp-preserving copy of Home Assistant's exact IP bans. If validation fails, nothing is changed.
+The backup includes IP Ban Manager settings and a timestamp-preserving copy of Home Assistant's exact IP bans. Invalid backups are rejected before their settings are saved. If applying a validated backup fails, the integration attempts to restore the previous configuration and reports any rollback failure. The GeoIP database and activity history are not included.
 
 Backups also include NGINX Proxy Manager connection settings, the selected proxy host, edge-protection state, and API token. **Treat the backup as a private credential file; do not attach it to public issues.** The account password is not stored or exported. Cached host lists and runtime status are not included.
 
@@ -235,19 +225,21 @@ Older backups without NPM settings leave the current NPM connection unchanged. T
 
 ## GeoIP Labels
 
-GeoIP labels are optional. When enabled, IP Ban Manager downloads the free DB-IP City Lite MMDB database to:
+GeoIP labels are optional. Use the GeoIP section's **Download** button to install the free DB-IP City Lite database, then enable location labels and select **Apply**. Enabling the checkbox alone does not download a database. The file is stored at:
 
 ```text
 /config/ip_ban_manager/geoip/dbip-city-lite.mmdb
 ```
 
-GeoIP location lookups use the downloaded database locally; no live online geolocation request is made while handling logins or bans. Private, loopback, and local-network addresses are not geolocated. Location data is approximate and provided by DB-IP.com.
+Remote public-IP locations are looked up locally in the downloaded database. Private and loopback addresses are not geolocated. Location data is approximate and provided by DB-IP.com. The bundled pure-Python MaxMind DB reader avoids installing Python packages inside the Home Assistant container at startup.
+
+The current-region shortcuts use Home Assistant's configured country and home coordinates. Resolving those coordinates to a province/state uses an online OpenStreetMap Nominatim request, cached for 12 hours. This is separate from local lookups of incoming IP addresses.
 
 Reverse-DNS names shown in notifications are separate from GeoIP. Public-address PTR records are resolved through Cloudflare DNS-over-HTTPS, while private and local addresses use Home Assistant's local resolver. Results are cached for 10 minutes.
 
 ### Public Region Lock
 
-Public Region Lock has an on/off checkbox and a saved list of countries or provinces/states. Enter an ISO country code such as `CA`, or a subdivision code such as `CA-NL`, set its failed-login threshold, then select **Add**. Adding an existing code updates its threshold. Quick-add buttons use Home Assistant's detected current country or province/state. Each row has **Remove**.
+Public Region Lock has an on/off checkbox and a saved list of countries or provinces/states. Enter an ISO country code such as `CA`, or a subdivision code such as `CA-NL`, set its failed-login threshold, then select **Add**. Adding an existing code updates its threshold. Edit an existing row and select its **Apply** button to save changes, or **Remove** to delete it. Quick-add buttons use Home Assistant's detected current country or province/state.
 
 Select **Enable Public Region Lock** and **Apply** to activate the list. This is a restrictive policy: public IPs outside every listed region, including unknown locations, are blocked. Allowed IPs, local/private traffic, Home Assistant's internal access paths, and the **Protect integration callbacks** option are still respected.
 
@@ -275,7 +267,7 @@ ip_ban_manager: disabled
 
 When either path is active, IP Ban Manager skips its runtime hooks, panel, services, sensors, managed blocked networks, and default-deny handling. Home Assistant will show a Repair warning until you remove the file or YAML key and restart.
 
-This does not uninstall the integration and does not remove Home Assistant's native exact bans from `ip_bans.yaml`.
+This does not uninstall the integration or remove Home Assistant's native exact bans from `ip_bans.yaml`. Rules already synchronized to NPM also remain on the proxy; the emergency switch cannot remove those while the integration is disabled.
 
 ## Services
 
@@ -283,16 +275,20 @@ IP Ban Manager adds services for scripts and automations. Calls made by signed-i
 users require an administrator account; internal automation calls continue to work
 without a user context.
 
-- `ip_ban_manager.add_ip_ban`
-- `ip_ban_manager.remove_ip_ban`
-- `ip_ban_manager.remove_all_ip_bans`
-- `ip_ban_manager.add_allowlist_network`
-- `ip_ban_manager.remove_allowlist_network`
-- `ip_ban_manager.add_blocked_network`
-- `ip_ban_manager.remove_blocked_network`
-- `ip_ban_manager.update_geoip`
-- `ip_ban_manager.export_config`
-- `ip_ban_manager.import_config`
+All action names below use the `ip_ban_manager.` prefix.
+
+| Action | Required data | Purpose |
+| --- | --- | --- |
+| `add_ip_ban` | `ip_address` | Ban one IPv4 or IPv6 address. |
+| `remove_ip_ban` | `ip_address` | Remove one exact ban and its failed-login counter. |
+| `remove_all_ip_bans` | `confirm: true` | Clear all exact bans. |
+| `add_allowlist_network` | `network` | Allow an IP, CIDR, wildcard range, or DNS hostname. |
+| `remove_allowlist_network` | `network` | Remove an allowed entry. |
+| `add_blocked_network` | `network` | Block a CIDR or wildcard range. |
+| `remove_blocked_network` | `network` | Remove a managed network block. |
+| `update_geoip` | None | Download or update the local GeoIP database. |
+| `export_config` | None | Save the on-disk YAML backup. |
+| `import_config` | None | Restore the on-disk YAML backup. |
 
 Adding a ban updates Home Assistant's live ban manager and persists to `ip_bans.yaml`. Removing a ban updates the live ban manager, clears that IP's failed-login counter, and rewrites `ip_bans.yaml`. Clearing every ban requires `confirm: true`.
 
@@ -307,7 +303,7 @@ For a ready-made mobile-app automation, import the IP Ban Manager security notif
 - `ip_ban_manager_ip_banned` — after an exact IP ban is written (`ip_address`, `source`)
 - `ip_ban_manager_ip_unbanned` — after an exact IP ban is removed (`ip_address`, `source`)
 - `ip_ban_manager_login_failed` — when IP Ban Manager would show a failed-login notification (`ip_address`, `message`, `source`); it respects the notification settings and per-address allowlisted-login silencing.
-- `ip_ban_manager_login_threshold_reached` — before an automatic ban is applied (`ip_address`, `attempts`, `threshold`, `source`)
+- `ip_ban_manager_login_threshold_reached` — after an automatic ban is written for a source that reached its threshold (`ip_address`, `attempts`, `threshold`, `source`)
 - `ip_ban_manager_allowlisted_login_escalated` — when repeated allowlisted-login failures cross the escalation threshold (`ip_address`, `attempts`, `source`)
 - `ip_ban_manager_allowlist_network_added` / `ip_ban_manager_allowlist_network_removed` — allowlist changes (`network`, `source`)
 - `ip_ban_manager_blocked_network_added` / `ip_ban_manager_blocked_network_removed` — blocked-network changes (`network`, `source`)
@@ -331,8 +327,6 @@ action:
 On startup, IP Ban Manager also reconciles Home Assistant's exact ban list against Allowed IPs. If Home Assistant bans a trusted address before IP Ban Manager finishes loading, the ban is removed automatically after setup unless **Bans inside Allowed IPs** is enabled.
 
 ## Diagnostic Sensors
-
-Enable **Show blocked requests** when you need denied requests in Incoming Activity or the Home Assistant log. Home Assistant's log will record the effective client IP it received, the enforcement reason, HTTP method, and path without query parameters or headers. Repeated requests from the same IP for the same reason are rate-limited, and the in-memory tracker is bounded. Requests rejected by NGINX Proxy Manager cannot appear because they never reach Home Assistant.
 
 IP Ban Manager adds numeric diagnostic sensors with detailed attributes:
 
