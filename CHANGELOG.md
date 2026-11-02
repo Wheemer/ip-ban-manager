@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.9.7
+
+### 🛡️ Policy reliability
+
+- Prevent concurrent ban changes and cancelled file writes from leaving active bans and `ip_bans.yaml` inconsistent.
+- Queue NGINX Proxy Manager updates instead of interrupting rules being applied, and restore prior settings when configuration or backup application fails.
+- Keep HTTP requests from reloading shared Python modules mid-request; correct setup-failure cleanup, integration unload, and shutdown handling.
+
+### 🌐 Allowlists and GeoIP
+
+- Limit internal self-protection to identified addresses instead of silently exempting entire networks. Broader local allowances remain visible in Allowed IPs.
+- Expire stale DNS allowlist results after a five-minute grace period, resolve restored hostname entries immediately, and synchronize their addresses to NPM.
+- Bound reverse-DNS and location caches, coordinate GeoIP reader replacement, and prepare region enforcement before applying it at startup.
+
+### 🔔 Notifications
+
+- Respect global notification muting for allowlisted login alerts.
+- Silence and dismiss only the matching address's notification, including older encoded action links.
+- Correct repeated-login headings and avoid recreating unchanged notifications.
+
+### 🔧 Maintenance
+
+- Clarify the README's setup, Apply controls, traffic visibility, backup recovery, and GeoIP behavior.
+- Update uv to 0.13.5 and pinned automation dependencies, including CodeQL 4.39.1, Scorecard 2.5.0, setup-python 7.1.0, setup-uv 10.3.2, Renovate 46.3.10, and Hassfest.
+
 ## v1.9.6
 
 IP Ban Manager 1.9.6 expands the optional blocked-request view.
