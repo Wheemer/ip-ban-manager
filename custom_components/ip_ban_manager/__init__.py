@@ -11,7 +11,11 @@ from collections.abc import Callable
 from types import ModuleType
 from typing import Any
 
-from homeassistant.components.http.ban import KEY_BAN_MANAGER, IpBanManager
+from homeassistant.components.http.ban import (
+    KEY_BAN_MANAGER,
+    KEY_LOGIN_THRESHOLD,
+    IpBanManager,
+)
 from homeassistant.config_entries import SOURCE_IMPORT as HA_SOURCE_IMPORT
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -191,6 +195,7 @@ from .storage_keys import (
     KEY_METRICS,
     KEY_ORIGINAL_ADD_BAN,
     KEY_ORIGINAL_LOAD_BANS,
+    KEY_ORIGINAL_LOGIN_THRESHOLD,
     KEY_PANEL_REGISTERED,
     KEY_PANEL_SIDEBAR_ENABLED,
     KEY_REVERSE_DNS_CACHE,
@@ -222,6 +227,7 @@ _RELOADABLE_MODULES = (
     "custom_components.ip_ban_manager.nginx_proxy_manager",
     "custom_components.ip_ban_manager.notifications",
     "custom_components.ip_ban_manager.panel",
+    "custom_components.ip_ban_manager.configuration_transaction",
     "custom_components.ip_ban_manager.backup",
     "custom_components.ip_ban_manager.http_patches",
     "custom_components.ip_ban_manager.http_views",
@@ -482,6 +488,21 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
+    try:
+        return await _async_setup_entry(hass, entry)
+    except BaseException:
+        try:
+            try:
+                await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+            finally:
+                await _async_unload_runtime(hass)
+        except Exception:
+            _LOGGER.exception("Could not clean up IP Ban Manager after setup failed")
+        raise
+
+
+async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Install runtime hooks with cleanup provided by the setup entry point."""
     if hass.data.get(KEY_EMERGENCY_DISABLED):
         _LOGGER.warning(
             "IP Ban Manager config entry setup skipped because ip_ban_manager is disabled"
@@ -516,11 +537,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_update_internal_bypass_networks(hass)
     await _async_sync_detected_allowlist_defaults(hass)
     await _async_start_dns_allowlist(hass)
+    if _entry_geoip_enabled(entry):
+        from .geoip import async_prepare_geoip_reader
+        from .region_rules import entry_public_region_settings
+
+        if entry_public_region_settings(hass, entry)["public_region_enabled"]:
+            await async_prepare_geoip_reader(hass)
+        else:
+            _async_schedule_geoip_reader_prepare(hass)
     _apply_ban_settings(hass, entry)
     _apply_blocked_networks(hass, entry)
     await _async_remove_allowlisted_ip_bans(hass)
-    if _entry_geoip_enabled(entry):
-        _async_schedule_geoip_reader_prepare(hass)
     allowlist = hass.http.app[KEY_ALLOWLIST]
 
     if len(allowlist) == 0:
@@ -542,6 +569,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
+    await _async_unload_runtime(hass)
+    return True
+
+
+async def _async_unload_runtime(hass: HomeAssistant) -> None:
+    """Release integration-owned runtime after platform unload or failed setup."""
     _unregister_http_views(hass)
     await _unload_npm_sync(hass)
     _async_remove_panel(hass)
@@ -561,6 +596,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await asyncio.gather(*tasks, return_exceptions=True)
     _close_geoip_reader(hass)
     _uninstall_patches(hass)
+    if KEY_ORIGINAL_LOGIN_THRESHOLD in hass.http.app:
+        hass.http.app[KEY_LOGIN_THRESHOLD] = hass.http.app.pop(
+            KEY_ORIGINAL_LOGIN_THRESHOLD
+        )
     await _async_flush_activity_history(hass)
     hass.http.app.pop(KEY_ALLOWLIST, None)
     hass.http.app.pop(KEY_BLOCKED_NETWORKS, None)
@@ -568,6 +607,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.http.app.pop(KEY_DEFAULT_DENY, None)
     hass.http.app.pop(KEY_INTERNAL_BYPASS_NETWORKS, None)
     hass.http.app.pop(KEY_REVERSE_DNS_CACHE, None)
+    hass.data.pop("ip_ban_manager_activity_location_cache", None)
+    hass.data.pop("ip_ban_manager_npm_region_auth_cache", None)
+    hass.data.pop("ip_ban_manager_npm_region_auth_misses", None)
     # Static asset routes are process-lifetime in Home Assistant; leave
     # KEY_STATIC_PATH_REGISTERED set so unload/reload does not double-register.
     hass.data.pop(KEY_HEALTH, None)
@@ -580,5 +622,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for service in REGISTERED_SERVICES:
         if hass.services.has_service(DOMAIN, service):
             hass.services.async_remove(DOMAIN, service)
-    await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    return True
+    from homeassistant.helpers import issue_registry as ir
+
+    from .health import HEALTH_CHECK_FAILED_ISSUE_ID
+
+    ir.async_delete_issue(hass, DOMAIN, HEALTH_CHECK_FAILED_ISSUE_ID)

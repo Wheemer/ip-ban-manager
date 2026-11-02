@@ -21,6 +21,7 @@ REVERSE_DNS_CACHE_TTL = timedelta(minutes=10)
 DNS_OVER_HTTPS_URL = "https://cloudflare-dns.com/dns-query"
 DNS_TYPE_PTR = 12
 DNS_OVER_HTTPS_TIMEOUT = ClientTimeout(total=3)
+REVERSE_DNS_CACHE_MAX_ENTRIES = 1024
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,9 @@ async def async_reverse_dns_name(
     """Return a cached reverse-DNS name for a remote address."""
     now = dt_util.utcnow()
     cache = hass.http.app.setdefault(KEY_REVERSE_DNS_CACHE, {})
+    for address in tuple(cache):
+        if cache[address].expires_at <= now:
+            cache.pop(address, None)
     cached = cache.get(remote_addr)
     if cached is not None and cached.expires_at > now:
         metric_increment(hass, "reverse_dns_cache_hits")
@@ -51,6 +55,8 @@ async def async_reverse_dns_name(
     if hostname is not None:
         hostname = hostname.rstrip(".")
 
+    if remote_addr not in cache and len(cache) >= REVERSE_DNS_CACHE_MAX_ENTRIES:
+        cache.pop(next(iter(cache)), None)
     cache[remote_addr] = ReverseDNSCacheEntry(
         hostname=hostname,
         expires_at=now + REVERSE_DNS_CACHE_TTL,

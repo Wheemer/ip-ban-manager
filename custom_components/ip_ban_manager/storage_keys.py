@@ -25,6 +25,7 @@ KEY_INTERNAL_BYPASS_NETWORKS = AppKey[tuple[IPNetwork, ...]](
 )
 KEY_ORIGINAL_ADD_BAN = AppKey[AddBanCallable]("ip_ban_manager_original_add_ban")
 KEY_ORIGINAL_LOAD_BANS = AppKey[LoadBansCallable]("ip_ban_manager_original_load_bans")
+KEY_ORIGINAL_LOGIN_THRESHOLD = AppKey[int]("ip_ban_manager_original_login_threshold")
 KEY_STATIC_PATH_REGISTERED = AppKey[bool]("ip_ban_manager_static_path_registered")
 KEY_PANEL_REGISTERED = AppKey[bool]("ip_ban_manager_panel_registered")
 KEY_PANEL_SIDEBAR_ENABLED = AppKey[bool]("ip_ban_manager_panel_sidebar_enabled")

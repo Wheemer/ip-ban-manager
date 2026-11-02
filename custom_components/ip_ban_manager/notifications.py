@@ -262,7 +262,8 @@ def dismiss_allowlisted_login_notifications(
         message = notification["message"]
         message_lower = message.lower()
         if notification_id == NOTIFICATION_ID_LOGIN:
-            matching_ids.add(notification_id)
+            if remote_addr is None or first_ip_address_in_text(message) == remote_addr:
+                matching_ids.add(notification_id)
             continue
         if remote_addr is None:
             if (
@@ -276,8 +277,12 @@ def dismiss_allowlisted_login_notifications(
         remote_addr_text = str(remote_addr)
         encoded_remote_addr = quote(remote_addr_text, safe="")
         if (
-            remote_addr_text in message
-            or f"ip_address={encoded_remote_addr}" in message
+            first_ip_address_in_text(message) == remote_addr
+            or re.search(
+                rf"[?&]ip_address={re.escape(encoded_remote_addr)}(?:[&#)\s]|$)",
+                message,
+            )
+            is not None
         ) and (
             ALLOWLISTED_LOGIN_SILENCE_URL in message
             or ALLOWLISTED_LOGIN_SILENCE_LABEL in message
@@ -306,7 +311,11 @@ def silence_allowlisted_login_notifications(
     if notification_id:
         from homeassistant.components import persistent_notification
 
-        persistent_notification.async_dismiss(hass, notification_id)
+        current = persistent_notification._async_get_or_create_notifications(hass).get(
+            notification_id
+        )
+        if current and first_ip_address_in_text(current["message"]) == remote_addr:
+            persistent_notification.async_dismiss(hass, notification_id)
     dismiss_allowlisted_login_notifications(hass, remote_addr)
 
 
@@ -361,6 +370,16 @@ def with_notification_heading(heading: str, message: str) -> str:
     brand_header = notification_brand_header()
     heading_line = f"**{heading}**"
     message = strip_notification_brand_header(message)
+    while message.startswith("**"):
+        first_line, separator, rest = message.partition("\n")
+        if first_line not in {
+            "**Login attempt failed**",
+            "**Allowlisted login failed**",
+            "**Repeated allowlisted login failures**",
+            "**IP banned**",
+        }:
+            break
+        message = rest.lstrip("\n") if separator else ""
     if message.startswith(heading_line):
         return f"{brand_header}\n\n{message}"
     return f"{brand_header}\n\n{heading_line}\n\n{message}"
@@ -455,6 +474,8 @@ def create_allowlisted_login_notification(
     hass: HomeAssistant, remote_addr: IPAddress, base_message: str
 ) -> None:
     """Create an IP Ban Manager failed-login notification for an allowlisted source."""
+    if not notifications_enabled(hass):
+        return
     failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
     attempts = int(failed_attempts.get(remote_addr, 0))
     threshold = effective_login_threshold_for_ip(hass, remote_addr)
@@ -545,7 +566,10 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
         if notification_id == NOTIFICATION_ID_LOGIN and remote_addr is not None:
             failed_attempts = app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
             attempts = int(failed_attempts.get(remote_addr, 0))
-            if attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD:
+            if (
+                attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD
+                and is_allowlisted_source(hass, remote_addr)
+            ):
                 heading = "Repeated allowlisted login failures"
                 message = with_notification_heading(heading, message)
             if entry is not None:
@@ -569,7 +593,7 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
             message = with_geoip_attribution_footer(message)
         if (
             message != notification["message"]
-            or notification["title"] == NOTIFICATION_TITLE
+            or notification["title"] != NOTIFICATION_TITLE
         ):
             persistent_notification.async_create(
                 hass,

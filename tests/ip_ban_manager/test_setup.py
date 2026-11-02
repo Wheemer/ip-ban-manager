@@ -420,8 +420,10 @@ async def test_setup_entry_keeps_preexisting_allowlisted_ban_when_enabled(
 @pytest.mark.asyncio
 async def test_setup_entry_removes_preexisting_internal_ban_even_when_enabled(
     hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test startup always clears exact bans for Home Assistant internal paths."""
+    monkeypatch.setenv("SUPERVISOR", "172.30.32.2")
     hass.data[DATA_CUSTOM_COMPONENTS] = None
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})

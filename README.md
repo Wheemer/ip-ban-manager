@@ -166,6 +166,11 @@ Allowed IPs are trusted addresses and networks that should not be blocked. Suppo
 - IPv6 wildcard network: `2001:db8:1:2:*` (expands to `/64`; `2001:db8::*` expands to `/32`)
 - DNS hostname: `phone.example.org` (forward-resolved to its current IPv4/IPv6 addresses; reverse DNS is not used)
 
+DNS hostnames refresh every minute. If resolution fails, the last successful
+addresses remain trusted for at most five minutes, then expire. Restoring a
+backup refreshes hostname entries immediately; connected NPM rules follow changes
+to their resolved addresses automatically.
+
 Allowed entries win over managed blocked networks and default-deny mode.
 
 The setup and Configure safe-default option can add Home Assistant's detected
@@ -191,7 +196,7 @@ Blocked networks are managed by IP Ban Manager. They support IPv4/IPv6 CIDR netw
 
 IP Ban Manager validates changes before writing them. It rejects malformed entries, all-Internet allowlists or network blocks, exact bans that are also allowed, risky default-deny changes, unsafe local lockout cases, and unconfirmed multi-ban clears.
 
-Home Assistant's own exact interface addresses and IPv6 link-local access paths are protected internally. Detected container/Supervisor access paths can also be added to **Allowed IPs** by the safe-default option so users can see and manage them directly.
+Home Assistant's own exact interface addresses, including its IPv6 link-local addresses, are protected internally. Other local clients and detected container/Supervisor networks belong in **Allowed IPs**, where the safe-default option makes those allowances visible and editable.
 
 **Protect integration callbacks** is on by default. It keeps Home Assistant's shared OAuth and registered webhook routes reachable through IP Ban Manager's managed rules, including blocked networks, default-deny mode, and GeoIP region limits. Named callback routes are protected only when their integration is loaded. Exact IP bans still apply.
 

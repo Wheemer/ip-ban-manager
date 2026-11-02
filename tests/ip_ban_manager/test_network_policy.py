@@ -235,9 +235,12 @@ async def test_default_deny_blocks_everything_outside_allowlist(
 
 @pytest.mark.asyncio
 async def test_default_deny_preserves_supervisor_frontend_check(
-    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test default-deny mode does not block Supervisor's readiness check."""
+    monkeypatch.setenv("SUPERVISOR", "172.30.32.2")
     hass.data[DATA_CUSTOM_COMPONENTS] = None
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
@@ -260,8 +263,8 @@ async def test_default_deny_preserves_supervisor_frontend_check(
     ban_manager.ip_bans_lookup[supervisor_addr] = IpBan(supervisor_addr)
 
     assert supervisor_addr not in ban_manager.ip_bans_lookup
-    assert ip_address("172.30.33.254") not in ban_manager.ip_bans_lookup
-    assert ip_address("172.30.34.1") not in ban_manager.ip_bans_lookup
+    assert ip_address("172.30.33.254") in ban_manager.ip_bans_lookup
+    assert ip_address("172.30.34.1") in ban_manager.ip_bans_lookup
     assert ip_address("172.31.0.1") in ban_manager.ip_bans_lookup
 
 
@@ -273,7 +276,7 @@ def test_supervisor_internal_networks_uses_supervisor_env(
     networks = _supervisor_internal_networks()
 
     assert ip_address("172.30.40.2") in networks[0]
-    assert ip_address("172.30.255.254") in networks[0]
+    assert ip_address("172.30.255.254") not in networks[0]
     assert ip_address("172.31.0.1") not in networks[0]
 
 

@@ -137,7 +137,7 @@ def _supervisor_host_from_env() -> str | None:
 
 def _supervisor_internal_networks() -> tuple[IPNetwork, ...]:
     """Return narrow internal networks that should not be blocked by managed rules."""
-    networks = list(SUPERVISOR_INTERNAL_NETWORKS)
+    networks: list[IPNetwork] = []
     supervisor_host = _supervisor_host_from_env()
     if supervisor_host is None:
         return tuple(networks)
@@ -145,10 +145,7 @@ def _supervisor_internal_networks() -> tuple[IPNetwork, ...]:
     with suppress(ValueError):
         supervisor_addr = ip_address(supervisor_host)
         if isinstance(supervisor_addr, IPv4Address):
-            if supervisor_addr in SUPERVISOR_DOCKER_PARENT_NETWORK:
-                networks.insert(0, SUPERVISOR_DOCKER_PARENT_NETWORK)
-            else:
-                networks.insert(0, IPv4Network(f"{supervisor_addr}/32"))
+            networks.insert(0, IPv4Network(f"{supervisor_addr}/32"))
         else:
             networks.insert(0, IPv6Network(f"{supervisor_addr}/128"))
 

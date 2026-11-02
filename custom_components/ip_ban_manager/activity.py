@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 
 from homeassistant.components.http.ban import KEY_BAN_MANAGER
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -22,6 +23,7 @@ KEY_ACTIVITY_HISTORY: Final = "ip_ban_manager_activity_history"
 KEY_ACTIVITY_HISTORY_LOADED: Final = "ip_ban_manager_activity_history_loaded"
 KEY_ACTIVITY_HISTORY_LOAD_TASK: Final = "ip_ban_manager_activity_history_load_task"
 KEY_ACTIVITY_HISTORY_SAVE_TASK: Final = "ip_ban_manager_activity_history_save_task"
+KEY_ACTIVITY_STOP_UNSUBSCRIBE: Final = "ip_ban_manager_activity_stop_unsubscribe"
 KEY_ACTIVITY_HISTORY_CLEARED_AT: Final = "ip_ban_manager_activity_history_cleared_at"
 KEY_ACTIVITY_NPM_CACHE: Final = "ip_ban_manager_activity_npm_cache"
 KEY_ACTIVITY_NPM_LOCK: Final = "ip_ban_manager_activity_npm_lock"
@@ -170,6 +172,15 @@ def async_start_history(hass: HomeAssistant) -> None:
     """Start history loading in the background after runtime setup begins."""
     if hass.data.get(KEY_ACTIVITY_HISTORY_LOADED):
         return
+
+    async def stop_history(_event: object) -> None:
+        # HA removes a one-shot listener before invoking it.
+        hass.data.pop(KEY_ACTIVITY_STOP_UNSUBSCRIBE, None)
+        await async_flush_history(hass)
+
+    hass.data[KEY_ACTIVITY_STOP_UNSUBSCRIBE] = hass.bus.async_listen_once(
+        EVENT_HOMEASSISTANT_STOP, stop_history
+    )
     hass.data[KEY_ACTIVITY_HISTORY_LOADED] = True
     hass.data[KEY_ACTIVITY_HISTORY_LOAD_TASK] = hass.async_create_task(
         _async_load_history(hass), "IP Ban Manager activity history load"
@@ -204,6 +215,8 @@ def _schedule_history_save(hass: HomeAssistant) -> None:
 
 async def async_flush_history(hass: HomeAssistant) -> None:
     """Persist pending history before an integration unload."""
+    if unsubscribe := hass.data.pop(KEY_ACTIVITY_STOP_UNSUBSCRIBE, None):
+        unsubscribe()
     load_task = hass.data.pop(KEY_ACTIVITY_HISTORY_LOAD_TASK, None)
     if load_task is not None and not load_task.done():
         await asyncio.gather(load_task, return_exceptions=True)

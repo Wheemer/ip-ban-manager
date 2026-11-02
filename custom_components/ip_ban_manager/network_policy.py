@@ -80,6 +80,7 @@ from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_DEFAULT_DENY,
     KEY_INTERNAL_BYPASS_NETWORKS,
+    KEY_ORIGINAL_LOGIN_THRESHOLD,
     IPAddress,
 )
 
@@ -165,6 +166,9 @@ def dismiss_http_notifications(hass: HomeAssistant) -> None:
 def apply_ban_settings(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Apply integration-owned ban settings to Home Assistant's live app."""
     if native_ip_banning_enabled(hass):
+        hass.http.app.setdefault(
+            KEY_ORIGINAL_LOGIN_THRESHOLD, hass.http.app[KEY_LOGIN_THRESHOLD]
+        )
         hass.http.app[KEY_LOGIN_THRESHOLD] = effective_login_threshold(entry, hass)
     if not entry_ban_notifications_enabled(entry):
         dismiss_http_notifications(hass)
