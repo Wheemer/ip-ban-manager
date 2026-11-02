@@ -566,7 +566,7 @@ async def test_silence_allowlisted_login_notifications_view_can_silence_address(
 
     persistent_notification.async_create(
         hass,
-        "Allowlisted login failed",
+        "Allowlisted login failed from 192.168.1.1",
         "IP Ban Manager",
         NOTIFICATION_ID_LOGIN,
     )

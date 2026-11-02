@@ -31,12 +31,6 @@ async def async_home_assistant_self_networks(
             interface = ip_interface(
                 f"{address['address']}/{address['network_prefix']}"
             )
-            if (
-                isinstance(interface.network, IPv6Network)
-                and interface.network.is_link_local
-            ):
-                networks.append(interface.network)
-                continue
             host_prefix = 32 if isinstance(interface.ip, IPv4Address) else 128
             networks.append(ip_network(f"{interface.ip}/{host_prefix}"))
 

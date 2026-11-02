@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from asyncio import CancelledError, Lock
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
 from ipaddress import ip_address
 from pathlib import Path
@@ -106,14 +107,43 @@ async def async_commit_ip_bans(
     updated_bans: Mapping[IPAddress, IpBan],
 ) -> None:
     """Persist a replacement ban lookup and restore live state on write failure."""
+
+    def replace(bans: dict[IPAddress, IpBan]) -> None:
+        bans.clear()
+        bans.update(updated_bans)
+
+    await async_mutate_ip_bans(hass, ban_manager_, replace)
+
+
+async def async_mutate_ip_bans(
+    hass: HomeAssistant,
+    ban_manager_: IpBanManager,
+    mutate: Callable[[dict[IPAddress, IpBan]], None],
+) -> None:
+    """Serialize the complete read, mutation, and durable write transaction."""
     async with ban_file_lock(hass):
         live_bans = ban_manager_.ip_bans_lookup
         previous_bans = dict(live_bans)
+        updated_bans = dict(previous_bans)
+        mutate(updated_bans)
         live_bans.clear()
         live_bans.update(updated_bans)
+        write = asyncio.create_task(
+            _async_rewrite_ip_bans_file_unlocked(hass, ban_manager_)
+        )
         try:
-            await _async_rewrite_ip_bans_file_unlocked(hass, ban_manager_)
-        except (CancelledError, Exception):
+            await asyncio.shield(write)
+        except CancelledError:
+            # An executor write cannot be stopped. Keep the lock until its result
+            # is known, and preserve the matching live state on successful write.
+            try:
+                await write
+            except Exception:
+                live_bans.clear()
+                live_bans.update(previous_bans)
+                raise
+            raise
+        except Exception:
             live_bans.clear()
             live_bans.update(previous_bans)
             raise
@@ -200,18 +230,18 @@ async def async_remove_ip_ban(
         ) from err
 
     ban_manager_ = ban_manager(hass)
-    updated_bans = dict(ban_manager_.ip_bans_lookup)
-    removed_ban = updated_bans.pop(remote_addr, None)
-    if removed_ban is None:
-        if source == SOURCE_PANEL:
-            raise HomeAssistantError(f"{remote_addr} is not banned.")
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="ip_address_not_banned",
-            translation_placeholders={ATTR_IP_ADDRESS: str(remote_addr)},
-        )
 
-    await async_commit_ip_bans(hass, ban_manager_, updated_bans)
+    def remove(bans: dict[IPAddress, IpBan]) -> None:
+        if bans.pop(remote_addr, None) is None:
+            if source == SOURCE_PANEL:
+                raise HomeAssistantError(f"{remote_addr} is not banned.")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="ip_address_not_banned",
+                translation_placeholders={ATTR_IP_ADDRESS: str(remote_addr)},
+            )
+
+    await async_mutate_ip_bans(hass, ban_manager_, remove)
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
     dismiss_ban_notification_for_ips(hass, [remote_addr])
     record_ip_unbanned(hass, str(remote_addr), source)
@@ -237,12 +267,11 @@ async def async_remove_allowlisted_ip_bans(hass: HomeAssistant) -> list[IPAddres
     if not removed_addrs:
         return []
 
-    updated_bans = {
-        remote_addr: ip_ban
-        for remote_addr, ip_ban in ban_manager_.ip_bans_lookup.items()
-        if remote_addr not in removed_addrs
-    }
-    await async_commit_ip_bans(hass, ban_manager_, updated_bans)
+    def remove(bans: dict[IPAddress, IpBan]) -> None:
+        for remote_addr in removed_addrs:
+            bans.pop(remote_addr, None)
+
+    await async_mutate_ip_bans(hass, ban_manager_, remove)
     for remote_addr in removed_addrs:
         hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
     dismiss_ban_notification_for_ips(hass, removed_addrs)

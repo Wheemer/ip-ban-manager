@@ -52,6 +52,7 @@ from .const import (
     DOMAIN,
     SOURCE_IMPORT,
 )
+from .dns_allowlist import async_refresh_dns_allowlist
 from .entry_helpers import (
     coerce_allowed_region_options,
     entry_allowed_region_country,
@@ -386,6 +387,16 @@ async def async_apply_config_backup_payload(
     hass: HomeAssistant, payload: dict[str, object]
 ) -> None:
     """Validate and apply an IP Ban Manager backup payload."""
+    from .configuration_transaction import configuration_transaction
+
+    async with configuration_transaction(hass):
+        await _async_apply_config_backup_payload(hass, payload)
+
+
+async def _async_apply_config_backup_payload(
+    hass: HomeAssistant, payload: dict[str, object]
+) -> None:
+    """Apply a backup within the caller's rollback boundary."""
     if payload.get("domain") not in (None, DOMAIN):
         raise HomeAssistantError("Backup file is not for IP Ban Manager.")
     version = payload.get("format_version", 1)
@@ -681,6 +692,7 @@ async def async_apply_config_backup_payload(
         },
     )
     hass.http.app[KEY_ALLOWLIST] = parse_allowlist(allowlist)
+    await async_refresh_dns_allowlist(hass)
     apply_ban_settings(hass, updated_entry)
     apply_blocked_networks(hass, updated_entry)
     geoip_database_present = await hass.async_add_executor_job(

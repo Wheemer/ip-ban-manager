@@ -6,10 +6,12 @@ import asyncio
 import os
 import re
 import secrets
-from collections.abc import Mapping
+from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import wraps
 from ipaddress import IPv6Address, ip_address
+from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from aiohttp import ClientError, ClientResponse, ClientTimeout
@@ -46,6 +48,7 @@ from .const import (
     EVENT_IP_BANNED,
     EVENT_IP_UNBANNED,
 )
+from .dns_allowlist import KEY_DNS_ALLOWLIST_CACHE
 from .entry_helpers import (
     entry_allowlisted_logins_can_ban,
     entry_blocked_networks,
@@ -53,7 +56,7 @@ from .entry_helpers import (
     entry_ip_addresses,
     update_entry_options,
 )
-from .ip_utils import parse_allowlist_network
+from .ip_utils import is_allowlist_hostname, parse_allowlist_network
 from .region_rules import entry_public_region_settings
 from .runtime_options import entry_callback_route_protection_enabled
 from .storage_keys import KEY_CONFIG_ENTRY
@@ -64,6 +67,29 @@ NPM_CONFIG_END = "# END IP BAN MANAGER"
 NPM_REQUEST_TIMEOUT = ClientTimeout(total=15)
 NPM_DISCOVERY_TIMEOUT = ClientTimeout(total=5)
 NPM_SYNC_DEBOUNCE_SECONDS = 1.0
+_NPM_POLICY_LOCK = "ip_ban_manager_npm_policy_lock"
+_NPM_SYNC_PENDING = "ip_ban_manager_npm_sync_pending"
+
+
+def _serialized_policy(
+    operation: Callable[..., Coroutine[Any, Any, Any]],
+) -> Callable[..., Coroutine[Any, Any, Any]]:
+    """Finish each remote policy transaction before cancellation or another write."""
+
+    @wraps(operation)
+    async def run(hass: HomeAssistant, *args: Any, **kwargs: Any) -> Any:
+        lock = hass.data.setdefault(_NPM_POLICY_LOCK, asyncio.Lock())
+        async with lock:
+            task = asyncio.create_task(operation(hass, *args, **kwargs))
+            try:
+                return await asyncio.shield(task)
+            except asyncio.CancelledError:
+                await task
+                raise
+
+    return run
+
+
 NPM_REGION_AUTH_PATH = "/api/ip_ban_manager/npm-region-auth"
 NPM_REGION_AUTH_SECRET_KEY = "region_auth_secret"
 _MANAGED_CONFIG_PATTERN = re.compile(
@@ -846,10 +872,16 @@ def _policy_rules(
     region_auth_rules: tuple[str, ...] = (),
 ) -> list[str]:
     """Build ordered NGINX access rules without changing NGINX's default."""
-    allows = [
-        f"allow {parse_allowlist_network(value)};"
-        for value in entry_ip_addresses(entry)
-    ]
+    allows: list[str] = []
+    cache = hass.data.get(KEY_DNS_ALLOWLIST_CACHE, {})
+    for value in entry_ip_addresses(entry):
+        if is_allowlist_hostname(value):
+            addresses = sorted(cache.get(value.lower().rstrip("."), set()))
+            allows.extend(
+                f"allow {parse_allowlist_network(address)};" for address in addresses
+            )
+        else:
+            allows.append(f"allow {parse_allowlist_network(value)};")
     ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
     exact_bans = (
         [f"deny {ban.ip_address};" for ban in chronological_ip_bans(ban_manager)]
@@ -1147,6 +1179,7 @@ def _access_list_name(item: object) -> str:
     return str(item.get("name") or "") if isinstance(item, Mapping) else ""
 
 
+@_serialized_policy
 async def async_enable_npm(
     hass: HomeAssistant,
     *,
@@ -1196,6 +1229,7 @@ async def async_enable_npm(
     )
 
 
+@_serialized_policy
 async def async_sync_npm(hass: HomeAssistant) -> None:
     """Synchronize current IP/network rules to the selected proxy host."""
     entry = _config_entry(hass)
@@ -1232,6 +1266,7 @@ async def async_sync_npm(hass: HomeAssistant) -> None:
     )
 
 
+@_serialized_policy
 async def async_disable_npm(
     hass: HomeAssistant, *, protect_all_domains: bool | None = None
 ) -> None:
@@ -1283,6 +1318,7 @@ async def async_disable_npm(
     )
 
 
+@_serialized_policy
 async def async_disconnect_npm(hass: HomeAssistant) -> None:
     """Remove the managed proxy rules and forget NPM credentials."""
     config = entry_npm_config(_config_entry(hass))
@@ -1316,8 +1352,9 @@ async def async_disconnect_npm(hass: HomeAssistant) -> None:
 
 async def _async_debounced_sync(hass: HomeAssistant) -> None:
     try:
-        await asyncio.sleep(NPM_SYNC_DEBOUNCE_SECONDS)
-        await async_sync_npm(hass)
+        while hass.data.pop(_NPM_SYNC_PENDING, False):
+            await asyncio.sleep(NPM_SYNC_DEBOUNCE_SECONDS)
+            await async_sync_npm(hass)
     except asyncio.CancelledError:
         raise
     except (HomeAssistantError, ClientError, TimeoutError) as err:
@@ -1331,8 +1368,9 @@ async def _async_debounced_sync(hass: HomeAssistant) -> None:
 def schedule_npm_sync(hass: HomeAssistant, _event: Event | None = None) -> None:
     """Debounce NPM writes after local policy events."""
     task = hass.data.get(KEY_NPM_SYNC_TASK)
+    hass.data[_NPM_SYNC_PENDING] = True
     if task is not None and not task.done():
-        task.cancel()
+        return
     hass.data[KEY_NPM_SYNC_TASK] = hass.async_create_task(
         _async_debounced_sync(hass), "IP Ban Manager NPM sync"
     )
@@ -1382,4 +1420,5 @@ async def unload_npm_sync(hass: HomeAssistant) -> None:
         tasks.append(task)
     if tasks:
         await asyncio.gather(*tasks, return_exceptions=True)
+    hass.data.pop(_NPM_SYNC_PENDING, None)
     hass.data.pop(KEY_NPM_RUNTIME, None)

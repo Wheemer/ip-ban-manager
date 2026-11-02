@@ -3,15 +3,9 @@
 from __future__ import annotations
 
 import hmac
-import importlib
-import logging
 from collections import deque
-from collections.abc import Callable
 from ipaddress import ip_address
-from pathlib import Path
 from time import monotonic
-from types import ModuleType
-from typing import Any
 
 from aiohttp.web import Request, Response
 from homeassistant.components.http import HomeAssistantView
@@ -77,10 +71,7 @@ from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_HTTP_VIEW_HANDLERS,
     KEY_HTTP_VIEWS,
-    KEY_LOCAL_GEOIP_REGION_CACHE,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 _NPM_REGION_AUTH_CACHE_KEY = "ip_ban_manager_npm_region_auth_cache"
 _NPM_REGION_AUTH_MISSES_KEY = "ip_ban_manager_npm_region_auth_misses"
@@ -90,148 +81,12 @@ _NPM_REGION_AUTH_MISS_WINDOW = 1.0
 _NPM_REGION_AUTH_MAX_CACHE_MISSES = 20
 _NPM_REGION_AUTH_MISS_MAX_ENTRIES = 4096
 
-KEY_RUNTIME_MODULE_MTIMES = "ip_ban_manager_runtime_module_mtimes"
-RUNTIME_MODULE_NAMES = (
-    "custom_components.ip_ban_manager.activity",
-    "custom_components.ip_ban_manager.const",
-    "custom_components.ip_ban_manager.file_store",
-    "custom_components.ip_ban_manager.ip_utils",
-    "custom_components.ip_ban_manager.entry_meta",
-    "custom_components.ip_ban_manager.entry_helpers",
-    "custom_components.ip_ban_manager.metrics",
-    "custom_components.ip_ban_manager.audit",
-    "custom_components.ip_ban_manager.ban_lookup",
-    "custom_components.ip_ban_manager.runtime_options",
-    "custom_components.ip_ban_manager.region_rules",
-    "custom_components.ip_ban_manager.backup",
-    "custom_components.ip_ban_manager.ban_ops",
-    "custom_components.ip_ban_manager.geoip",
-    "custom_components.ip_ban_manager.health",
-    "custom_components.ip_ban_manager.i18n",
-    "custom_components.ip_ban_manager.network_policy",
-    "custom_components.ip_ban_manager.nginx_proxy_manager",
-    "custom_components.ip_ban_manager.notifications",
-    "custom_components.ip_ban_manager.panel_assets",
-    "custom_components.ip_ban_manager.panel",
-)
-RUNTIME_BINDINGS: dict[str, tuple[str, str]] = {
-    "async_clear_history": (
-        "custom_components.ip_ban_manager.activity",
-        "async_clear_history",
-    ),
-    "entry_public_region_settings": (
-        "custom_components.ip_ban_manager.region_rules",
-        "entry_public_region_settings",
-    ),
-    "async_export_config": (
-        "custom_components.ip_ban_manager.backup",
-        "async_export_config",
-    ),
-    "async_import_config": (
-        "custom_components.ip_ban_manager.backup",
-        "async_import_config",
-    ),
-    "async_import_config_from_yaml": (
-        "custom_components.ip_ban_manager.backup",
-        "async_import_config_from_yaml",
-    ),
-    "config_download_payload": (
-        "custom_components.ip_ban_manager.backup",
-        "config_download_payload",
-    ),
-    "async_add_ip_ban": (
-        "custom_components.ip_ban_manager.ban_ops",
-        "async_add_ip_ban",
-    ),
-    "async_remove_ip_ban": (
-        "custom_components.ip_ban_manager.ban_ops",
-        "async_remove_ip_ban",
-    ),
-    "async_download_geoip_database": (
-        "custom_components.ip_ban_manager.geoip",
-        "async_download_geoip_database",
-    ),
-    "async_update_health_issue": (
-        "custom_components.ip_ban_manager.health",
-        "async_update_health_issue",
-    ),
-    "async_add_allowlist_network": (
-        "custom_components.ip_ban_manager.network_policy",
-        "async_add_allowlist_network",
-    ),
-    "async_add_blocked_network": (
-        "custom_components.ip_ban_manager.network_policy",
-        "async_add_blocked_network",
-    ),
-    "async_remove_allowlist_network": (
-        "custom_components.ip_ban_manager.network_policy",
-        "async_remove_allowlist_network",
-    ),
-    "async_remove_blocked_network": (
-        "custom_components.ip_ban_manager.network_policy",
-        "async_remove_blocked_network",
-    ),
-    "async_connect_npm": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "async_connect_npm",
-    ),
-    "async_disconnect_npm": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "async_disconnect_npm",
-    ),
-    "async_enable_npm": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "async_enable_npm",
-    ),
-    "async_select_npm_host": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "async_select_npm_host",
-    ),
-    "async_sync_npm": (
-        "custom_components.ip_ban_manager.nginx_proxy_manager",
-        "async_sync_npm",
-    ),
-    "dismiss_allowlisted_login_notifications": (
-        "custom_components.ip_ban_manager.notifications",
-        "dismiss_allowlisted_login_notifications",
-    ),
-    "notification_action_response": (
-        "custom_components.ip_ban_manager.notifications",
-        "notification_action_response",
-    ),
-    "silence_allowlisted_login_notifications": (
-        "custom_components.ip_ban_manager.notifications",
-        "silence_allowlisted_login_notifications",
-    ),
-    "async_panel_payload": (
-        "custom_components.ip_ban_manager.panel",
-        "async_panel_payload",
-    ),
-    "async_panel_set_options": (
-        "custom_components.ip_ban_manager.panel",
-        "async_panel_set_options",
-    ),
-    "panel_silence_allowlisted_login_notification": (
-        "custom_components.ip_ban_manager.panel",
-        "panel_silence_allowlisted_login_notification",
-    ),
-    "panel_unsilence_allowlisted_login_notification": (
-        "custom_components.ip_ban_manager.panel",
-        "panel_unsilence_allowlisted_login_notification",
-    ),
-    "async_panel_js_response": (
-        "custom_components.ip_ban_manager.panel_assets",
-        "async_panel_js_response",
-    ),
-}
-
 
 async def async_dispatch_http_view(
     view: HomeAssistantView, request: Request, handler_name: str
 ) -> Response:
     """Dispatch to the setup-installed handler, or refuse when unloaded."""
     hass = request.app[KEY_HASS]
-    await async_refresh_runtime_imports(hass)
     handlers = hass.data.get(KEY_HTTP_VIEW_HANDLERS)
     if not isinstance(handlers, dict):
         return http_view_not_loaded_response(view, handler_name)
@@ -586,7 +441,6 @@ class IPBanManagerPanelView(HomeAssistantView):
     async def get(self, request: Request) -> Response:
         """Return panel.js with the manifest version baked into the header."""
         hass = request.app[KEY_HASS]
-        await async_refresh_runtime_imports(hass)
         return await async_panel_js_response(hass)
 
 
@@ -675,59 +529,6 @@ def install_http_view_handlers(hass: HomeAssistant) -> None:
         ),
         "manage_post": async_handle_manage_post,
     }
-
-
-async def async_refresh_runtime_imports(hass: HomeAssistant) -> None:
-    """Refresh panel/status helpers after source files change on disk."""
-    previous = hass.data.get(KEY_RUNTIME_MODULE_MTIMES)
-    result = await hass.async_add_executor_job(
-        refresh_runtime_imports_sync, previous if isinstance(previous, dict) else None
-    )
-    if result is None:
-        return
-
-    mtimes, bindings = result
-    hass.data[KEY_RUNTIME_MODULE_MTIMES] = mtimes
-    if not bindings:
-        return
-
-    globals().update(bindings)
-    hass.data.pop(KEY_HTTP_VIEW_HANDLERS, None)
-    install_http_view_handlers(hass)
-    hass.http.app.pop(KEY_LOCAL_GEOIP_REGION_CACHE, None)
-    _LOGGER.debug("Reloaded IP Ban Manager runtime modules after source update")
-
-
-def refresh_runtime_imports_sync(
-    previous: dict[str, float] | None,
-) -> tuple[dict[str, float], dict[str, Callable[..., Any]]] | None:
-    """Reload selected runtime modules when their source files changed."""
-    modules = {
-        module_name: importlib.import_module(module_name)
-        for module_name in RUNTIME_MODULE_NAMES
-    }
-    mtimes = runtime_module_mtimes(modules)
-    if mtimes == previous:
-        return None
-
-    importlib.invalidate_caches()
-    for module_name in RUNTIME_MODULE_NAMES:
-        modules[module_name] = importlib.reload(modules[module_name])
-
-    return mtimes, {
-        binding: getattr(modules[module_name], attribute)
-        for binding, (module_name, attribute) in RUNTIME_BINDINGS.items()
-    }
-
-
-def runtime_module_mtimes(modules: dict[str, ModuleType]) -> dict[str, float]:
-    """Return source-file mtimes for modules used by sticky HTTP views."""
-    mtimes: dict[str, float] = {}
-    for module_name, module in modules.items():
-        module_file = getattr(module, "__file__", None)
-        if module_file:
-            mtimes[module_name] = Path(module_file).stat().st_mtime
-    return mtimes
 
 
 def register_http_views(hass: HomeAssistant) -> None:

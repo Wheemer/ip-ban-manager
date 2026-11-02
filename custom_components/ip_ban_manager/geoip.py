@@ -19,6 +19,7 @@ from ipaddress import ip_address
 from pathlib import Path
 from socket import getaddrinfo
 from tempfile import NamedTemporaryFile
+from threading import RLock
 from typing import Any, cast
 from urllib.error import URLError
 from urllib.parse import urlencode, urlsplit
@@ -60,6 +61,7 @@ from .storage_keys import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_READER_LOCK = globals().get("_READER_LOCK", RLock())
 
 DBIP_ATTRIBUTION = "IP geolocation by DB-IP.com"
 DBIP_DOWNLOAD_MAX_BYTES = 250 * 1024 * 1024
@@ -333,11 +335,13 @@ async def async_download_geoip_database(hass: HomeAssistant) -> None:
 
 def close_geoip_reader(hass: HomeAssistant) -> None:
     """Close any cached GeoIP database reader."""
-    reader = hass.http.app.pop(KEY_GEOIP_READER, None)
-    hass.http.app.pop(KEY_GEOIP_READER_MTIME, None)
-    close = getattr(reader, "close", None)
-    if callable(close):
-        close()
+    with _READER_LOCK:
+        reader = hass.http.app.pop(KEY_GEOIP_READER, None)
+        hass.http.app.pop(KEY_GEOIP_READER_MTIME, None)
+        hass.data.pop("ip_ban_manager_activity_location_cache", None)
+        close = getattr(reader, "close", None)
+        if callable(close):
+            close()
 
 
 def _maxminddb_module() -> Any:
@@ -385,13 +389,13 @@ async def async_prepare_geoip_reader(hass: HomeAssistant) -> None:
     result = await hass.async_add_executor_job(
         open_geoip_reader, geoip_database_path(hass)
     )
-    close_geoip_reader(hass)
-    if result is None:
-        return
-
-    reader, mtime = result
-    hass.http.app[KEY_GEOIP_READER] = reader
-    hass.http.app[KEY_GEOIP_READER_MTIME] = mtime
+    with _READER_LOCK:
+        close_geoip_reader(hass)
+        if result is None:
+            return
+        reader, mtime = result
+        hass.http.app[KEY_GEOIP_READER] = reader
+        hass.http.app[KEY_GEOIP_READER_MTIME] = mtime
 
 
 def geoip_reader(hass: HomeAssistant) -> object | None:
@@ -742,15 +746,15 @@ def geoip_location_details_for_ip(
     if require_geoip_enabled and entry is not None and not entry_geoip_enabled(entry):
         return None
 
-    reader = geoip_reader(hass)
-    if reader is None:
-        return None
-
-    metric_increment(hass, "geoip_lookups")
-    try:
-        result = cast(Any, reader).get(str(normalized_addr))
-    except (ValueError, OSError, RuntimeError):
-        return None
+    with _READER_LOCK:
+        reader = geoip_reader(hass)
+        if reader is None:
+            return None
+        metric_increment(hass, "geoip_lookups")
+        try:
+            result = cast(Any, reader).get(str(normalized_addr))
+        except (ValueError, OSError, RuntimeError):
+            return None
     if not isinstance(result, dict):
         return None
 

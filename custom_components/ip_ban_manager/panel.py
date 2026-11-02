@@ -127,6 +127,7 @@ from .storage_keys import (
 
 _ACTIVITY_LOCATION_CACHE_KEY = "ip_ban_manager_activity_location_cache"
 _ACTIVITY_LOCATION_CACHE_TTL = 3600.0
+_ACTIVITY_LOCATION_CACHE_MAX_ENTRIES = 1024
 
 
 def _activity_locations_sync(
@@ -148,6 +149,9 @@ async def _async_activity_locations(
     """Return cached activity locations without blocking the event loop."""
     now = monotonic()
     cache = hass.data.setdefault(_ACTIVITY_LOCATION_CACHE_KEY, {})
+    for address in tuple(cache):
+        if now - cache[address][0] >= _ACTIVITY_LOCATION_CACHE_TTL:
+            cache.pop(address, None)
     locations: dict[str, str | None] = {}
     missing: list[str] = []
     for event in events:
@@ -164,6 +168,11 @@ async def _async_activity_locations(
             _activity_locations_sync, hass, missing
         )
         for address, location in fresh.items():
+            if (
+                address not in cache
+                and len(cache) >= _ACTIVITY_LOCATION_CACHE_MAX_ENTRIES
+            ):
+                cache.pop(next(iter(cache)), None)
             cache[address] = (now, location)
             locations[address] = location
     return locations
@@ -297,6 +306,14 @@ def _config_entry(hass: HomeAssistant) -> ConfigEntry:
 
 async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     """Persist and apply panel-managed booleans and threshold."""
+    from .configuration_transaction import configuration_transaction
+
+    async with configuration_transaction(hass):
+        await _async_panel_set_options(hass, options)
+
+
+async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None:
+    """Apply validated options within the caller's rollback boundary."""
     if not isinstance(options, dict):
         raise HomeAssistantError("Options must be a JSON object.")
 
@@ -426,6 +443,9 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
     entry = update_entry_options(hass, **current_options)
     apply_ban_settings(hass, entry)
     apply_blocked_networks(hass, entry)
+    await async_register_panel(
+        hass, sidebar_enabled=bool(current_options[CONF_SIDEBAR_PANEL_ENABLED])
+    )
     if npm_enabled is None and npm_protect_all is None:
         schedule_npm_sync(hass)
     else:
@@ -447,9 +467,6 @@ async def async_panel_set_options(hass: HomeAssistant, options: object) -> None:
             await npm_manager.async_enable_npm(hass, protect_all_domains=protect_all)
         else:
             await npm_manager.async_disable_npm(hass, protect_all_domains=protect_all)
-    await async_register_panel(
-        hass, sidebar_enabled=bool(current_options[CONF_SIDEBAR_PANEL_ENABLED])
-    )
 
 
 def panel_silence_allowlisted_login_notification(

@@ -820,6 +820,15 @@ class OptionsFlow(config_entries.OptionsFlow):
         )
 
     async def _async_save_management_changes(
+        self, *args: Any, **kwargs: Any
+    ) -> config_entries.ConfigFlowResult:
+        """Apply management settings within a rollback boundary."""
+        from .configuration_transaction import configuration_transaction
+
+        async with configuration_transaction(self.hass):
+            return await self._async_apply_management_changes(*args, **kwargs)
+
+    async def _async_apply_management_changes(
         self,
         ip_addresses: list[str],
         banned_ips: list[str],

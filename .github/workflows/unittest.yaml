@@ -32,4 +32,7 @@ jobs:
       env:
         PYTHONPATH: .
     - name: Panel JavaScript tests
-      run: node tests/*.cjs
+      run: |
+        for file in tests/*.cjs; do
+          node "$file" || exit "$?"
+        done
