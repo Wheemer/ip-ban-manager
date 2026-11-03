@@ -51,37 +51,37 @@ Requires Home Assistant `2026.4.0` or newer. Designed for Home Assistant OS, Con
 
 ### Live panel
 
-The released panel, shown with example addresses and settings. Expand a tab, then click its preview to view the full-size image.
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png" alt="Activity" width="420"></a>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png" alt="Allowed IPs" width="420"></a>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png" alt="Blocking" width="420"></a>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png" alt="Notifications" width="420"></a>
+    </td>
+  </tr>
+</table>
 
-<details open>
-  <summary>Activity</summary>
-  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png" alt="Activity tab with a source IP, location, request details, and Block action" width="640"></a>
-</details>
+### Edge protection and backups
 
-<details>
-  <summary>Allowed IPs</summary>
-  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png" alt="Allowed IPs tab with trusted addresses and silenced login notifications" width="640"></a>
-</details>
-
-<details>
-  <summary>Blocking</summary>
-  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png" alt="Blocking tab with blocked IP locations and dates, blocked networks, and Public Region Lock" width="640"></a>
-</details>
-
-<details>
-  <summary>Notifications</summary>
-  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png" alt="Notifications tab with ban alerts, trusted-login alerts, and blocked-request activity settings" width="640"></a>
-</details>
-
-<details>
-  <summary>Settings</summary>
-  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png" alt="Settings tab with general and advanced options, NGINX Proxy Manager, and the GeoIP database" width="640"></a>
-</details>
-
-<details>
-  <summary>Backup</summary>
-  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png" alt="Backup tab with Save, Restore, Download, and Upload controls" width="640"></a>
-</details>
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png" alt="Settings, NGINX Proxy Manager, and GeoIP" width="420"></a>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png" alt="Backup" width="420"></a>
+    </td>
+  </tr>
+</table>
 
 ## Install
 
