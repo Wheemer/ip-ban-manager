@@ -51,31 +51,37 @@ Requires Home Assistant `2026.4.0` or newer. Designed for Home Assistant OS, Con
 
 ### Live panel
 
-<table>
-  <tr>
-    <td>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-overview.png" alt="IP Ban Manager Settings options" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-rules.png" alt="IP Ban Manager blocked IPs, public region lock, and blocked networks" width="100%">
-    </td>
-  </tr>
-</table>
+The released panel, shown with example addresses and settings. Expand a tab, then click its preview to view the full-size image.
 
-### Edge protection and backups
+<details open>
+  <summary>Activity</summary>
+  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png" alt="Activity tab with a source IP, location, request details, and Block action" width="640"></a>
+</details>
 
-<table>
-  <tr>
-    <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-nginx-proxy-manager.png" alt="IP Ban Manager NGINX Proxy Manager settings" width="100%">
-    </td>
-    <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-geoip-backup.png" alt="IP Ban Manager Backup tab" width="100%">
-    </td>
-  </tr>
-</table>
+<details>
+  <summary>Allowed IPs</summary>
+  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png" alt="Allowed IPs tab with trusted addresses and silenced login notifications" width="640"></a>
+</details>
+
+<details>
+  <summary>Blocking</summary>
+  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png" alt="Blocking tab with blocked IP locations and dates, blocked networks, and Public Region Lock" width="640"></a>
+</details>
+
+<details>
+  <summary>Notifications</summary>
+  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png" alt="Notifications tab with ban alerts, trusted-login alerts, and blocked-request activity settings" width="640"></a>
+</details>
+
+<details>
+  <summary>Settings</summary>
+  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png" alt="Settings tab with general and advanced options, NGINX Proxy Manager, and the GeoIP database" width="640"></a>
+</details>
+
+<details>
+  <summary>Backup</summary>
+  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png" alt="Backup tab with Save, Restore, Download, and Upload controls" width="640"></a>
+</details>
 
 ## Install
 
