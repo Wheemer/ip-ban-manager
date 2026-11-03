@@ -14,6 +14,7 @@ from .const import (
     ALLOWED_REGION_COUNTRY,
     ALLOWED_REGION_MODES,
     ALLOWED_REGION_SUBDIVISION,
+    CONF_ACTIVITY_HISTORY_HOURS,
     CONF_ALLOWED_IPS,
     CONF_ALLOWED_REGION_COUNTRY,
     CONF_ALLOWED_REGION_MODE,
@@ -43,6 +44,41 @@ from .metrics import mark_config_write
 from .storage_keys import KEY_CONFIG_ENTRY, IPNetwork
 
 DEFAULT_SIDEBAR_PANEL_ENABLED = True
+DEFAULT_ACTIVITY_HISTORY_HOURS = 24
+MAX_ACTIVITY_HISTORY_HOURS = 168
+
+
+def normalize_activity_history_hours(value: object) -> int:
+    """Require a bounded whole-hour history retention value."""
+    if (
+        isinstance(value, bool)
+        or not str(value).strip().isascii()
+        or not str(value).strip().isdigit()
+    ):
+        raise HomeAssistantError(
+            "History retention must be a whole number of hours (1-168)."
+        )
+    hours = int(str(value).strip())
+    if not 1 <= hours <= MAX_ACTIVITY_HISTORY_HOURS:
+        raise HomeAssistantError("History retention must be between 1 and 168 hours.")
+    return hours
+
+
+def entry_activity_history_hours(entry: ConfigEntry | None) -> int:
+    """Return bounded retention, retaining the existing default for old entries."""
+    if entry is None:
+        return DEFAULT_ACTIVITY_HISTORY_HOURS
+    try:
+        return normalize_activity_history_hours(
+            entry.options.get(
+                CONF_ACTIVITY_HISTORY_HOURS,
+                entry.data.get(
+                    CONF_ACTIVITY_HISTORY_HOURS, DEFAULT_ACTIVITY_HISTORY_HOURS
+                ),
+            )
+        )
+    except HomeAssistantError:
+        return DEFAULT_ACTIVITY_HISTORY_HOURS
 
 
 def parse_allowlist(ip_addresses: list[str]) -> tuple[IPNetwork, ...]:

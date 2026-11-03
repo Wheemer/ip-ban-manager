@@ -156,7 +156,9 @@
       "add_country": "Aktuelles Land hinzufügen",
       "add_subdivision": "Aktuelle Provinz/Bundesland hinzufügen",
       "hint": "Regeln bleiben ausgeschaltet gespeichert. Provinzschwellen gehen vor Landesschwellen. Null deaktiviert automatische Sperren. Bestehenden Code zum Aktualisieren hinzufügen.",
-      "warning": "Achtung: Öffentliche IPs außerhalb der Liste oder ohne Standort werden gesperrt. Erlaubte IPs, interner Verkehr und der Rückrufschutz bleiben berücksichtigt."
+      "warning": "Achtung: Öffentliche IPs außerhalb der Liste oder ohne Standort werden gesperrt. Erlaubte IPs, interner Verkehr und der Rückrufschutz bleiben berücksichtigt.",
+      "replace_country": "{country} erlaubt bereits alle Regionen. Durch {region} ersetzen? Andere aufgeführte Regionen bleiben erlaubt.",
+      "replace_provinces": "Die aufgeführten Regionen in {country} durch das gesamte Land ersetzen?"
     },
     "regional_rules": {
       "title": "Regionale Anmeldeschwellen",
@@ -237,7 +239,9 @@
         "subdivision": "Lokale oder benutzerdefinierte Provinz/Bundesstaat"
       },
       "blocked_request_logging_enabled": "Blockierte Anfragen protokollieren",
-      "blocked_request_logging_enabled_hint": "Diagnose: Client-IP, Blockierungsgrund, Methode und Pfad im Home-Assistant-Protokoll erfassen. Wiederholte Einträge werden begrenzt. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnose: Client-IP, Blockierungsgrund, Methode und Pfad im Home-Assistant-Protokoll erfassen. Wiederholte Einträge werden begrenzt. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Verlauf aufbewahren (Stunden)",
+      "activity_history_hours_hint": "1-168 Stunden; bis zu 1.000 Ereignisse. Eine Verkürzung löscht ältere Einträge."
     },
     "backup": {
       "save_title": "In Konfiguration speichern",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Alle NPM-Domains schützen",
       "protect_all_domains_hint": "Diese Regeln auf alle aktiven Proxy-Hosts anwenden, einschließlich später hinzugefügter Hosts.",
       "protect_all_domains_warning": "IP Ban Manager-Regeln auf alle aktiven Nginx Proxy Manager-Hosts anwenden? Bestehende Host-Einstellungen bleiben erhalten, aber diese Zugriffsregeln wirken sich auf jede Domain aus."
+    },
+    "tabs": {
+      "activity": "Aktivität",
+      "settings": "Einstellungen",
+      "backup": "Sicherung",
+      "allowed": "Erlaubte IPs",
+      "blocking": "Sperren",
+      "notifications": "Benachrichtigungen"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Änderung bestätigen",
+      "cancel": "Abbrechen",
+      "continue": "Fortfahren",
+      "dismiss": "Schließen"
     }
   },
   "entity": {

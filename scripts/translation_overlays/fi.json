@@ -156,7 +156,9 @@
       "add_country": "Lisää nykyinen maa",
       "add_subdivision": "Lisää nykyinen maakunta/osavaltio",
       "hint": "Säännöt säilyvät lukon ollessa pois. Maakunnan raja ohittaa maan rajan. Nolla poistaa automaattiset estot. Päivitä lisäämällä olemassa oleva koodi.",
-      "warning": "Varoitus: listan ulkopuoliset ja sijainniltaan tuntemattomat julkiset IP:t estetään. Sallitut IP:t, sisäinen liikenne ja takaisinsoittojen suojaus huomioidaan."
+      "warning": "Varoitus: listan ulkopuoliset ja sijainniltaan tuntemattomat julkiset IP:t estetään. Sallitut IP:t, sisäinen liikenne ja takaisinsoittojen suojaus huomioidaan.",
+      "replace_country": "{country} sallii jo kaikki alueet. Korvataanko alueella {region}? Muut luetellut alueet pysyvät sallittuina.",
+      "replace_provinces": "Korvataanko maan {country} luetellut alueet koko maalla?"
     },
     "regional_rules": {
       "title": "Alueelliset kirjautumisrajat",
@@ -237,7 +239,9 @@
         "subdivision": "Paikallinen tai mukautettu provinssi/osavaltio"
       },
       "blocked_request_logging_enabled": "Kirjaa estetyt pyynnöt",
-      "blocked_request_logging_enabled_hint": "Diagnostiikka: kirjaa asiakkaan IP-osoite, eston syy, menetelmä ja polku Home Assistantin lokiin. Toistuvia merkintöjä rajoitetaan. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnostiikka: kirjaa asiakkaan IP-osoite, eston syy, menetelmä ja polku Home Assistantin lokiin. Toistuvia merkintöjä rajoitetaan. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Historian säilytys (tuntia)",
+      "activity_history_hours_hint": "1-168 tuntia; enintään 1 000 tapahtumaa. Lyhentäminen poistaa vanhemmat tiedot."
     },
     "backup": {
       "save_title": "Tallenna konfiguraatioon",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Suojaa kaikki NPM-verkkotunnukset",
       "protect_all_domains_hint": "Käytä näitä sääntöjä kaikkiin aktiivisiin välityspalvelimiin, myös myöhemmin lisättäviin.",
       "protect_all_domains_warning": "Käytetäänkö IP Ban Managerin sääntöjä kaikkiin aktiivisiin Nginx Proxy Manager -palvelimiin? Nykyiset palvelinasetukset säilyvät, mutta nämä käyttösäännöt vaikuttavat kaikkiin verkkotunnuksiin."
+    },
+    "tabs": {
+      "activity": "Toiminta",
+      "settings": "Asetukset",
+      "backup": "Varmuuskopio",
+      "allowed": "Sallitut IP-osoitteet",
+      "blocking": "Estot",
+      "notifications": "Ilmoitukset"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Vahvista muutos",
+      "cancel": "Peruuta",
+      "continue": "Jatka",
+      "dismiss": "Sulje"
     }
   },
   "entity": {

@@ -4,7 +4,9 @@
     "add_country": "Dodaj bieżący kraj",
     "add_subdivision": "Dodaj bieżącą prowincję/stan",
     "hint": "Reguły pozostają zapisane po wyłączeniu. Próg prowincji ma pierwszeństwo przed krajem. Zero wyłącza automatyczne blokady. Dodaj istniejący kod, aby go zmienić.",
-    "warning": "Uwaga: publiczne IP spoza listy lub o nieznanej lokalizacji są blokowane. Dozwolone IP, ruch wewnętrzny i ochrona callbacków są respektowane."
+    "warning": "Uwaga: publiczne IP spoza listy lub o nieznanej lokalizacji są blokowane. Dozwolone IP, ruch wewnętrzny i ochrona callbacków są respektowane.",
+    "replace_country": "{country} zezwala już na wszystkie regiony. Zastąpić przez {region}? Pozostałe wymienione regiony pozostaną dozwolone.",
+    "replace_provinces": "Zastąpić wymienione regiony w {country} całym krajem?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Blokady w dozwolonych IP",
     "allowlisted_logins_can_ban_hint": "Ostrożnie: zaufane IP mogą być blokowane.",
     "default_deny_enabled": "Blokuj wszystko poza dozwolonymi IP",
-    "default_deny_enabled_hint": "Ostrożnie: tylko dozwolone IP mogą się łączyć."
+    "default_deny_enabled_hint": "Ostrożnie: tylko dozwolone IP mogą się łączyć.",
+    "activity_history_hours": "Przechowywanie historii (godziny)",
+    "activity_history_hours_hint": "1-168 godzin; maksymalnie 1000 zdarzeń. Skrócenie usuwa starsze wpisy."
   },
   "backup": {
     "save_title": "Zapisz w konfiguracji",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Aktywność",
+    "settings": "Ustawienia",
+    "backup": "Kopia zapasowa",
+    "allowed": "Dozwolone IP",
+    "blocking": "Blokowanie",
+    "notifications": "Powiadomienia"
+  },
+  "confirmation": {
+    "title": "Potwierdź zmianę",
+    "cancel": "Anuluj",
+    "continue": "Kontynuuj",
+    "dismiss": "Zamknij"
   }
 }

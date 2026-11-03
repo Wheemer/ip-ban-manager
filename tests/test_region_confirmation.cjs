@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const component = path.join(__dirname, '../custom_components/ip_ban_manager');
+(async () => {
 let Panel;
 let accepted = false;
 let message;
@@ -23,6 +24,7 @@ function flatten(value, prefix = '') {
 }
 flatten(JSON.parse(fs.readFileSync(path.join(component, 'panel_translations/en.json'), 'utf8')));
 const panel = new Panel();
+panel._confirm = async text => { message = text; return accepted; };
 panel._data = {
   translations,
   geoip: { local_region: { subdivision_code: 'CA-NL', subdivision_label: 'Newfoundland and Labrador' } },
@@ -48,22 +50,39 @@ const form = {
 panel._data.settings = { public_region_enabled: true, public_region_rules: { CA: 5 } };
 panel.shadowRoot = {
   getElementById: id => id === 'regional-threshold-form' ? form : null,
-  querySelectorAll: selector => selector === 'button[data-region-code]' ? [shortcut] : [],
+  querySelectorAll: selector => selector === '[data-region-code]' ? [shortcut] : [],
 };
 const posts = [];
 panel._post = (action, payload) => posts.push({ action, payload });
 panel._wireEvents();
-listeners.shortcut();
+await listeners.shortcut();
 assert.equal(posts.length, 0, 'Cancel must not save');
-assert.match(message, /Canada \(CA\): 5/);
+assert.match(message, /Canada \(CA\) already allows every/);
+assert.doesNotMatch(message, /Canada \(CA\): 5/);
 assert.match(message, /Newfoundland and Labrador \(NL\): 3/);
 accepted = true;
-listeners.shortcut();
+await listeners.shortcut();
 assert.equal(posts[0].action, 'set_public_region');
 assert.equal(posts[0].payload.value, 'CA-NL');
 assert.equal(posts[0].payload.threshold, 3);
+assert.equal(posts[0].payload.replace_regions.join(','), 'CA');
 message = undefined;
 panel._data.settings.public_region_enabled = false;
-listeners.shortcut();
+panel._data.settings.public_region_rules = { 'CA-NL': 3 };
+await listeners.shortcut();
 assert.equal(message, undefined, 'Saving a disabled rule must not claim to enable blocking');
 console.log('Shortcut event checks passed: cancel, confirm, and disabled lock.');
+panel._data.settings.public_region_rules = { 'CA-NL': 3 };
+await panel._saveRegion('CA-ON', 5);
+assert.equal(posts.at(-1).payload.replace_regions.length, 0);
+assert.equal(posts.at(-1).payload.value, 'CA-ON');
+panel._data.settings.public_region_rules = { 'CA-NL': 3, 'CA-ON': 5, US: 7 };
+await panel._saveRegion('CA', 6);
+assert.match(message, /whole country/);
+assert.equal(posts.at(-1).payload.replace_regions.sort().join(','), 'CA-NL,CA-ON');
+accepted = false;
+const before = posts.length;
+await panel._saveRegion('CA', 6);
+assert.equal(posts.length, before);
+console.log('Overlapping country/province replacement requires confirmation; sibling provinces coexist.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

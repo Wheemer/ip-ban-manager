@@ -4,7 +4,9 @@
     "add_country": "Προσθήκη τρέχουσας χώρας",
     "add_subdivision": "Προσθήκη τρέχουσας επαρχίας/πολιτείας",
     "hint": "Οι κανόνες διατηρούνται όταν είναι ανενεργό. Το όριο επαρχίας υπερισχύει της χώρας. Το μηδέν απενεργοποιεί αυτόματους αποκλεισμούς. Προσθέστε υπάρχοντα κωδικό για ενημέρωση.",
-    "warning": "Προσοχή: δημόσιες IP εκτός λίστας ή με άγνωστη τοποθεσία αποκλείονται. Οι επιτρεπόμενες IP, η εσωτερική κίνηση και η προστασία callbacks γίνονται σεβαστές."
+    "warning": "Προσοχή: δημόσιες IP εκτός λίστας ή με άγνωστη τοποθεσία αποκλείονται. Οι επιτρεπόμενες IP, η εσωτερική κίνηση και η προστασία callbacks γίνονται σεβαστές.",
+    "replace_country": "Η χώρα {country} επιτρέπει ήδη όλες τις περιφέρειες. Αντικατάσταση με {region}; Οι άλλες καταχωρημένες περιφέρειες παραμένουν επιτρεπτές.",
+    "replace_provinces": "Αντικατάσταση των περιφερειών της χώρας {country} με ολόκληρη τη χώρα;"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Αποκλεισμοί εντός επιτρεπόμενων IP",
     "allowlisted_logins_can_ban_hint": "Προσοχή: οι αξιόπιστες IP μπορούν να αποκλειστούν.",
     "default_deny_enabled": "Αποκλεισμός όλων εκτός επιτρεπόμενων IP",
-    "default_deny_enabled_hint": "Προσοχή: μόνο επιτρεπόμενες IP μπορούν να συνδεθούν."
+    "default_deny_enabled_hint": "Προσοχή: μόνο επιτρεπόμενες IP μπορούν να συνδεθούν.",
+    "activity_history_hours": "Διατήρηση ιστορικού (ώρες)",
+    "activity_history_hours_hint": "1-168 ώρες, έως 1.000 συμβάντα. Η μείωση διαγράφει παλαιότερες εγγραφές."
   },
   "backup": {
     "save_title": "Αποθήκευση στη ρύθμιση",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Δραστηριότητα",
+    "settings": "Ρυθμίσεις",
+    "backup": "Αντίγραφο ασφαλείας",
+    "allowed": "Επιτρεπόμενες IP",
+    "blocking": "Αποκλεισμός",
+    "notifications": "Ειδοποιήσεις"
+  },
+  "confirmation": {
+    "title": "Επιβεβαίωση αλλαγής",
+    "cancel": "Ακύρωση",
+    "continue": "Συνέχεια",
+    "dismiss": "Κλείσιμο"
   }
 }

@@ -30,6 +30,7 @@ from .ban_ops import (
 from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_BANNED_IPS,
+    CONF_ACTIVITY_HISTORY_HOURS,
     CONF_ALLOWED_REGION_COUNTRY,
     CONF_ALLOWED_REGION_MODE,
     CONF_ALLOWED_REGION_SUBDIVISION,
@@ -55,6 +56,7 @@ from .const import (
 from .dns_allowlist import async_refresh_dns_allowlist
 from .entry_helpers import (
     coerce_allowed_region_options,
+    entry_activity_history_hours,
     entry_allowed_region_country,
     entry_allowed_region_mode,
     entry_allowed_region_subdivision,
@@ -70,6 +72,7 @@ from .entry_helpers import (
     entry_login_threshold,
     entry_regional_login_thresholds,
     entry_sidebar_panel_enabled,
+    normalize_activity_history_hours,
     normalize_login_attempts_threshold,
     normalize_regional_login_thresholds,
     parse_allowlist,
@@ -213,6 +216,7 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
             CONF_ALLOWLIST_ENTRY_META: entry_allowlist_meta(entry),
             CONF_BLOCKED_NETWORK_ENTRY_META: entry_blocked_network_meta(entry),
             CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
+            CONF_ACTIVITY_HISTORY_HOURS: entry_activity_history_hours(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
             CONF_BLOCKED_REQUEST_LOGGING_ENABLED: (
                 entry_blocked_request_logging_enabled(entry)
@@ -480,6 +484,9 @@ async def _async_apply_config_backup_payload(
         CONF_BAN_NOTIFICATIONS_ENABLED,
         entry_ban_notifications_enabled(entry),
     )
+    activity_history_hours = normalize_activity_history_hours(
+        settings.get(CONF_ACTIVITY_HISTORY_HOURS, entry_activity_history_hours(entry))
+    )
     blocked_request_logging_enabled = _bool_from_import(
         settings,
         CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
@@ -673,6 +680,7 @@ async def _async_apply_config_backup_payload(
             CONF_ALLOWLIST_ENTRY_META: allowlist_meta,
             CONF_BLOCKED_NETWORK_ENTRY_META: blocked_meta,
             CONF_AUTO_BAN_ENABLED: auto_ban_enabled,
+            CONF_ACTIVITY_HISTORY_HOURS: activity_history_hours,
             CONF_BAN_NOTIFICATIONS_ENABLED: ban_notifications_enabled,
             CONF_BLOCKED_REQUEST_LOGGING_ENABLED: blocked_request_logging_enabled,
             CONF_CALLBACK_ROUTE_PROTECTION_ENABLED: callback_route_protection_enabled,

@@ -156,7 +156,9 @@
       "add_country": "Huidig land toevoegen",
       "add_subdivision": "Huidige provincie/deelstaat toevoegen",
       "hint": "Regels blijven opgeslagen als dit uitstaat. Provinciedrempels gaan boven landdrempels. Nul schakelt automatische blokkering uit. Voeg een bestaande code toe om die bij te werken.",
-      "warning": "Let op: openbare IP’s buiten de lijst of zonder bekende locatie worden geblokkeerd. Toegestane IP’s, intern verkeer en callbackbescherming blijven gerespecteerd."
+      "warning": "Let op: openbare IP’s buiten de lijst of zonder bekende locatie worden geblokkeerd. Toegestane IP’s, intern verkeer en callbackbescherming blijven gerespecteerd.",
+      "replace_country": "{country} staat alle provincies al toe. Vervangen door {region}? Andere vermelde provincies blijven toegestaan.",
+      "replace_provinces": "De vermelde provincies in {country} vervangen door het hele land?"
     },
     "regional_rules": {
       "title": "Regionale inlogdrempels",
@@ -237,7 +239,9 @@
         "subdivision": "Lokale of aangepaste provincie/staat"
       },
       "blocked_request_logging_enabled": "Geblokkeerde verzoeken loggen",
-      "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnostiek: registreert client-IP, blokkeerreden, methode en pad in het Home Assistant-logboek. Herhaalde vermeldingen worden beperkt. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Geschiedenis bewaren (uren)",
+      "activity_history_hours_hint": "1-168 uur; maximaal 1.000 gebeurtenissen. Verkorten verwijdert oudere vermeldingen."
     },
     "backup": {
       "save_title": "Opslaan in config",
@@ -335,6 +339,23 @@
       "protect_all_domains": "Alle NPM-domeinen beveiligen",
       "protect_all_domains_hint": "Pas deze regels toe op alle actieve proxyhosts, ook op hosts die later worden toegevoegd.",
       "protect_all_domains_warning": "IP Ban Manager-regels toepassen op alle actieve Nginx Proxy Manager-hosts? Bestaande hostinstellingen blijven behouden, maar deze toegangsregels zijn van invloed op elk domein."
+    },
+    "tabs": {
+      "activity": "Activiteit",
+      "settings": "Instellingen",
+      "backup": "Back-up",
+      "allowed": "Toegestane IP's",
+      "blocking": "Blokkeren",
+      "notifications": "Meldingen"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Wijziging bevestigen",
+      "cancel": "Annuleren",
+      "continue": "Doorgaan",
+      "dismiss": "Sluiten"
     }
   },
   "entity": {

@@ -4,7 +4,9 @@
     "add_country": "Přidat aktuální zemi",
     "add_subdivision": "Přidat aktuální provincii/stát",
     "hint": "Pravidla zůstanou uložená i po vypnutí. Práh provincie má přednost před zemí. Nula vypne automatické blokování. Přidáním existujícího kódu jej aktualizujete.",
-    "warning": "Pozor: veřejné IP mimo seznam nebo s neznámou polohou jsou blokovány. Povolené IP, interní provoz a ochrana callbacků jsou respektovány."
+    "warning": "Pozor: veřejné IP mimo seznam nebo s neznámou polohou jsou blokovány. Povolené IP, interní provoz a ochrana callbacků jsou respektovány.",
+    "replace_country": "{country} již povoluje všechny regiony. Nahradit regionem {region}? Ostatní uvedené regiony zůstanou povoleny.",
+    "replace_provinces": "Nahradit uvedené regiony v {country} celou zemí?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Zákazy uvnitř povolených IP",
     "allowlisted_logins_can_ban_hint": "Buďte opatrní: důvěryhodné IP lze blokovat.",
     "default_deny_enabled": "Blokovat vše mimo povolené IP",
-    "default_deny_enabled_hint": "Buďte opatrní: mohou se připojit jen povolené IP."
+    "default_deny_enabled_hint": "Buďte opatrní: mohou se připojit jen povolené IP.",
+    "activity_history_hours": "Uchování historie (hodiny)",
+    "activity_history_hours_hint": "1-168 hodin; nejvýše 1 000 událostí. Zkrácení odstraní starší záznamy."
   },
   "backup": {
     "save_title": "Uložit do config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Aktivita",
+    "settings": "Nastavení",
+    "backup": "Záloha",
+    "allowed": "Povolené IP",
+    "blocking": "Blokování",
+    "notifications": "Oznámení"
+  },
+  "confirmation": {
+    "title": "Potvrdit změnu",
+    "cancel": "Zrušit",
+    "continue": "Pokračovat",
+    "dismiss": "Zavřít"
   }
 }

@@ -162,10 +162,15 @@ async def test_panel_registration_requires_admin(
     assert registered["frontend_url_path"] == DOMAIN
     assert registered["config_panel_domain"] == DOMAIN
     assert registered["require_admin"] is True
-    assert registered["webcomponent_name"] == "ip-ban-manager-panel"
     module_url = cast(str, registered["module_url"])
+    assert (
+        registered["webcomponent_name"]
+        == f"ip-ban-manager-{module_url.rsplit('/', 1)[-1][:-3]}"
+    )
     version = ban_panel_assets.integration_version()
-    assert module_url.startswith(f"/api/{DOMAIN}/panel.js?v={version}&t=")
+    assert module_url.startswith(f"/api/{DOMAIN}/panel-{version.replace('.', '-')}-")
+    assert module_url.endswith(".js")
+    assert "?" not in module_url
 
 
 @pytest.mark.asyncio
@@ -181,7 +186,7 @@ async def test_panel_script_url_serves_current_bundle(hass: HomeAssistant) -> No
         f'const PANEL_VERSION = "{ban_panel_assets.integration_version()}"'
         in response.text
     )
-    assert 'customElements.define("ip-ban-manager-panel", IPBanManagerPanel)' in (
+    assert "customElements.define(PANEL_ELEMENT_NAME, IPBanManagerPanel)" in (
         response.text
     )
     assert "ip-ban-manager-panel-v27" not in response.text

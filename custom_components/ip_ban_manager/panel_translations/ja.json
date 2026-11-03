@@ -4,7 +4,9 @@
     "add_country": "現在の国を追加",
     "add_subdivision": "現在の都道府県/州を追加",
     "hint": "オフでもルールは保存されます。都道府県/州のしきい値が国より優先されます。ゼロは自動ブロックを無効にします。既存コードの追加で更新できます。",
-    "warning": "注意：有効時、一覧外や所在地不明の公開 IP はブロックされます。許可済み IP、内部通信、コールバック保護設定は尊重されます。"
+    "warning": "注意：有効時、一覧外や所在地不明の公開 IP はブロックされます。許可済み IP、内部通信、コールバック保護設定は尊重されます。",
+    "replace_country": "{country}はすべての地域を許可しています。{region}に置き換えますか？他の登録済み地域は引き続き許可されます。",
+    "replace_provinces": "{country}の登録済み地域を国全体の許可に置き換えますか？"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "許可 IP 内の BAN",
     "allowlisted_logins_can_ban_hint": "注意: 信頼済み IP もブロックできます。",
     "default_deny_enabled": "許可 IP 以外をすべてブロック",
-    "default_deny_enabled_hint": "注意: 許可 IP のみ接続できます。"
+    "default_deny_enabled_hint": "注意: 許可 IP のみ接続できます。",
+    "activity_history_hours": "履歴の保持期間（時間）",
+    "activity_history_hours_hint": "1～168時間、最大1,000件。期間を短くすると古い履歴が削除されます。"
   },
   "backup": {
     "save_title": "設定に保存",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "アクティビティ",
+    "settings": "設定",
+    "backup": "バックアップ",
+    "allowed": "許可 IP",
+    "blocking": "ブロック",
+    "notifications": "通知"
+  },
+  "confirmation": {
+    "title": "変更を確認",
+    "cancel": "キャンセル",
+    "continue": "続行",
+    "dismiss": "閉じる"
   }
 }

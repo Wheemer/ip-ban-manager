@@ -48,6 +48,9 @@ ALLOWED_ENGLISH_PANEL_PATHS = {
     "activity.sources.home_assistant",
     "activity.sources.nginx_proxy_manager",
     "title",
+    # Genuine shared words/loanwords (French Notifications, Italian Backup).
+    "tabs.notifications",
+    "tabs.backup",
 }
 
 

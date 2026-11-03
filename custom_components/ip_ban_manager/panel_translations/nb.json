@@ -4,7 +4,9 @@
     "add_country": "Legg til gjeldende land",
     "add_subdivision": "Legg til gjeldende provins/delstat",
     "hint": "Regler beholdes når låsen er av. Provinsterskler går foran landsterskler. Null deaktiverer automatiske blokkeringer. Legg til eksisterende kode for å oppdatere den.",
-    "warning": "Advarsel: offentlige IP-er utenfor listen eller med ukjent plassering blokkeres. Tillatte IP-er, intern trafikk og callbackbeskyttelse respekteres."
+    "warning": "Advarsel: offentlige IP-er utenfor listen eller med ukjent plassering blokkeres. Tillatte IP-er, intern trafikk og callbackbeskyttelse respekteres.",
+    "replace_country": "{country} tillater allerede alle regioner. Erstatte med {region}? Andre oppførte regioner forblir tillatt.",
+    "replace_provinces": "Erstatte de oppførte regionene i {country} med hele landet?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Utestengelser innenfor tillatte IP-er",
     "allowlisted_logins_can_ban_hint": "Vær forsiktig: pålitelige IP-er kan blokkeres.",
     "default_deny_enabled": "Blokker alt utenfor tillatte IP-er",
-    "default_deny_enabled_hint": "Vær forsiktig: bare tillatte IP-er kan koble til."
+    "default_deny_enabled_hint": "Vær forsiktig: bare tillatte IP-er kan koble til.",
+    "activity_history_hours": "Historikkoppbevaring (timer)",
+    "activity_history_hours_hint": "1-168 timer; opptil 1 000 hendelser. Kortere tid sletter eldre oppføringer."
   },
   "backup": {
     "save_title": "Lagre til config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Aktivitet",
+    "settings": "Innstillinger",
+    "backup": "Sikkerhetskopi",
+    "allowed": "Tillatte IP-er",
+    "blocking": "Blokkering",
+    "notifications": "Varsler"
+  },
+  "confirmation": {
+    "title": "Bekreft endring",
+    "cancel": "Avbryt",
+    "continue": "Fortsett",
+    "dismiss": "Lukk"
   }
 }

@@ -4,7 +4,9 @@
     "add_country": "Aktuelles Land hinzufügen",
     "add_subdivision": "Aktuelle Provinz/Bundesland hinzufügen",
     "hint": "Regeln bleiben ausgeschaltet gespeichert. Provinzschwellen gehen vor Landesschwellen. Null deaktiviert automatische Sperren. Bestehenden Code zum Aktualisieren hinzufügen.",
-    "warning": "Achtung: Öffentliche IPs außerhalb der Liste oder ohne Standort werden gesperrt. Erlaubte IPs, interner Verkehr und der Rückrufschutz bleiben berücksichtigt."
+    "warning": "Achtung: Öffentliche IPs außerhalb der Liste oder ohne Standort werden gesperrt. Erlaubte IPs, interner Verkehr und der Rückrufschutz bleiben berücksichtigt.",
+    "replace_country": "{country} erlaubt bereits alle Regionen. Durch {region} ersetzen? Andere aufgeführte Regionen bleiben erlaubt.",
+    "replace_provinces": "Die aufgeführten Regionen in {country} durch das gesamte Land ersetzen?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Sperren innerhalb erlaubter IPs",
     "allowlisted_logins_can_ban_hint": "Vorsicht: vertrauenswürdige IPs können blockiert werden.",
     "default_deny_enabled": "Alles außerhalb erlaubter IPs blockieren",
-    "default_deny_enabled_hint": "Vorsicht: nur erlaubte IPs können verbinden."
+    "default_deny_enabled_hint": "Vorsicht: nur erlaubte IPs können verbinden.",
+    "activity_history_hours": "Verlauf aufbewahren (Stunden)",
+    "activity_history_hours_hint": "1-168 Stunden; bis zu 1.000 Ereignisse. Eine Verkürzung löscht ältere Einträge."
   },
   "backup": {
     "save_title": "In Konfiguration speichern",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Aktivität",
+    "settings": "Einstellungen",
+    "backup": "Sicherung",
+    "allowed": "Erlaubte IPs",
+    "blocking": "Sperren",
+    "notifications": "Benachrichtigungen"
+  },
+  "confirmation": {
+    "title": "Änderung bestätigen",
+    "cancel": "Abbrechen",
+    "continue": "Fortfahren",
+    "dismiss": "Schließen"
   }
 }

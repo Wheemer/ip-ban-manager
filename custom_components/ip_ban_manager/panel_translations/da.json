@@ -4,7 +4,9 @@
     "add_country": "Tilføj aktuelt land",
     "add_subdivision": "Tilføj aktuel provins/delstat",
     "hint": "Regler bevares, når låsen er slået fra. Provinstærskler går foran landetærskler. Nul deaktiverer automatiske blokeringer. Tilføj en eksisterende kode for at opdatere den.",
-    "warning": "Advarsel: offentlige IP-adresser uden for listen eller med ukendt placering blokeres. Tilladte IP-adresser, intern trafik og callbackbeskyttelse respekteres."
+    "warning": "Advarsel: offentlige IP-adresser uden for listen eller med ukendt placering blokeres. Tilladte IP-adresser, intern trafik og callbackbeskyttelse respekteres.",
+    "replace_country": "{country} tillader allerede alle regioner. Erstat med {region}? Andre angivne regioner forbliver tilladt.",
+    "replace_provinces": "Erstat de angivne regioner i {country} med hele landet?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Udelukkelser inden for tilladte IP'er",
     "allowlisted_logins_can_ban_hint": "Vær forsigtig: pålidelige IP'er kan blokeres.",
     "default_deny_enabled": "Bloker alt uden for tilladte IP'er",
-    "default_deny_enabled_hint": "Vær forsigtig: kun tilladte IP'er kan oprette forbindelse."
+    "default_deny_enabled_hint": "Vær forsigtig: kun tilladte IP'er kan oprette forbindelse.",
+    "activity_history_hours": "Historikopbevaring (timer)",
+    "activity_history_hours_hint": "1-168 timer; højst 1.000 hændelser. En kortere periode sletter ældre poster."
   },
   "backup": {
     "save_title": "Gem til config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Aktivitet",
+    "settings": "Indstillinger",
+    "backup": "Sikkerhedskopi",
+    "allowed": "Tilladte IP'er",
+    "blocking": "Blokering",
+    "notifications": "Notifikationer"
+  },
+  "confirmation": {
+    "title": "Bekræft ændring",
+    "cancel": "Annuller",
+    "continue": "Fortsæt",
+    "dismiss": "Luk"
   }
 }

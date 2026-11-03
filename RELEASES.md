@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.10.0](CHANGELOG.md#v1100) | Redesigned tabbed panel, consistent controls and confirmation dialogs, configurable history retention, safer country/province replacement, and automatic panel build refresh. Requires Home Assistant 2026.4.0+. |
 | [v1.9.7](CHANGELOG.md#v197) | Fixes concurrent ban writes, NPM synchronization, unload/reload handling, DNS allowlist expiry, and notification consistency; clarifies documentation and updates automation dependencies. |
 | [v1.9.6](CHANGELOG.md#v196) | Adds optional blocked-request rows to Incoming Activity while keeping the default view policy-filtered and diagnostics bounded. |
 | [v1.9.5](CHANGELOG.md#v195) | Clarifies DNS/DDNS hostname support throughout the Allowed IPs panel, config flow, services, README, and translations. |

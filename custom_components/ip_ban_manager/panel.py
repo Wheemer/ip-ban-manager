@@ -24,6 +24,7 @@ from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_BACKUP,
     ATTR_LAST_EXPORT,
+    CONF_ACTIVITY_HISTORY_HOURS,
     CONF_ALLOWED_REGION_COUNTRY,
     CONF_ALLOWED_REGION_MODE,
     CONF_ALLOWED_REGION_SUBDIVISION,
@@ -44,6 +45,7 @@ from .const import (
 )
 from .entry_helpers import (
     coerce_allowed_region_options,
+    entry_activity_history_hours,
     entry_allowed_region_country,
     entry_allowed_region_mode,
     entry_allowed_region_subdivision,
@@ -59,6 +61,7 @@ from .entry_helpers import (
     entry_login_threshold,
     entry_regional_login_thresholds,
     entry_sidebar_panel_enabled,
+    normalize_activity_history_hours,
     normalize_login_attempts_threshold,
     normalize_regional_login_thresholds,
     parse_allowlist,
@@ -106,7 +109,6 @@ from .notifications import (
     unsilence_allowlisted_login_notifications,
 )
 from .panel_assets import (
-    PANEL_WEB_COMPONENT,
     async_integration_version,
     async_panel_js_url,
 )
@@ -239,6 +241,7 @@ async def async_panel_payload(
                 entry_blocked_networks(entry), entry_blocked_network_meta(entry)
             ),
             CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
+            CONF_ACTIVITY_HISTORY_HOURS: entry_activity_history_hours(entry),
             CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
             CONF_BLOCKED_REQUEST_LOGGING_ENABLED: (
                 entry_blocked_request_logging_enabled(entry)
@@ -339,6 +342,7 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         ):
             raise HomeAssistantError("Confirm the Public Region Lock change first.")
     current_options = {
+        CONF_ACTIVITY_HISTORY_HOURS: entry_activity_history_hours(entry),
         CONF_AUTO_BAN_ENABLED: entry_auto_ban_enabled(entry),
         CONF_BAN_NOTIFICATIONS_ENABLED: entry_ban_notifications_enabled(entry),
         CONF_BLOCKED_REQUEST_LOGGING_ENABLED: (
@@ -374,6 +378,10 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         if key in options:
             current_options[key] = coerce_panel_boolean(options[key])
 
+    if CONF_ACTIVITY_HISTORY_HOURS in options:
+        current_options[CONF_ACTIVITY_HISTORY_HOURS] = normalize_activity_history_hours(
+            options[CONF_ACTIVITY_HISTORY_HOURS]
+        )
     if CONF_LOGIN_ATTEMPTS_THRESHOLD in options:
         current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = (
             normalize_login_attempts_threshold(options[CONF_LOGIN_ATTEMPTS_THRESHOLD])
@@ -562,7 +570,7 @@ async def async_register_panel(
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=DOMAIN,
-        webcomponent_name=PANEL_WEB_COMPONENT,
+        webcomponent_name=f"ip-ban-manager-{module_url.rsplit('/', 1)[-1][:-3]}",
         sidebar_title=ENTRY_TITLE if sidebar_enabled else None,
         sidebar_icon="mdi:shield-lock-outline" if sidebar_enabled else None,
         module_url=module_url,

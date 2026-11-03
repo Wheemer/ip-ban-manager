@@ -156,7 +156,9 @@
       "add_country": "Legg til gjeldende land",
       "add_subdivision": "Legg til gjeldende provins/delstat",
       "hint": "Regler beholdes når låsen er av. Provinsterskler går foran landsterskler. Null deaktiverer automatiske blokkeringer. Legg til eksisterende kode for å oppdatere den.",
-      "warning": "Advarsel: offentlige IP-er utenfor listen eller med ukjent plassering blokkeres. Tillatte IP-er, intern trafikk og callbackbeskyttelse respekteres."
+      "warning": "Advarsel: offentlige IP-er utenfor listen eller med ukjent plassering blokkeres. Tillatte IP-er, intern trafikk og callbackbeskyttelse respekteres.",
+      "replace_country": "{country} tillater allerede alle regioner. Erstatte med {region}? Andre oppførte regioner forblir tillatt.",
+      "replace_provinces": "Erstatte de oppførte regionene i {country} med hele landet?"
     },
     "regional_rules": {
       "title": "Regionale innloggingsterskler",
@@ -237,7 +239,9 @@
         "subdivision": "Lokal eller tilpasset provins/stat"
       },
       "blocked_request_logging_enabled": "Logg blokkerte forespørsler",
-      "blocked_request_logging_enabled_hint": "Diagnostikk: registrer klient-IP, blokkeringsårsak, metode og sti i Home Assistant-loggen. Gjentatte oppføringer begrenses. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnostikk: registrer klient-IP, blokkeringsårsak, metode og sti i Home Assistant-loggen. Gjentatte oppføringer begrenses. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Historikkoppbevaring (timer)",
+      "activity_history_hours_hint": "1-168 timer; opptil 1 000 hendelser. Kortere tid sletter eldre oppføringer."
     },
     "backup": {
       "save_title": "Lagre til config",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Beskytt alle NPM-domener",
       "protect_all_domains_hint": "Bruk disse reglene på alle aktive proxyverter, også verter som legges til senere.",
       "protect_all_domains_warning": "Bruke IP Ban Manager-regler på alle aktive Nginx Proxy Manager-verter? Eksisterende vertsinnstillinger beholdes, men disse tilgangsreglene vil påvirke alle domener."
+    },
+    "tabs": {
+      "activity": "Aktivitet",
+      "settings": "Innstillinger",
+      "backup": "Sikkerhetskopi",
+      "allowed": "Tillatte IP-er",
+      "blocking": "Blokkering",
+      "notifications": "Varsler"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Bekreft endring",
+      "cancel": "Avbryt",
+      "continue": "Fortsett",
+      "dismiss": "Lukk"
     }
   },
   "entity": {

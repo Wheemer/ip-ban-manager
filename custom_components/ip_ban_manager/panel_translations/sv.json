@@ -4,7 +4,9 @@
     "add_country": "Lägg till aktuellt land",
     "add_subdivision": "Lägg till aktuell provins/delstat",
     "hint": "Regler sparas när låset är av. Provinsgränser går före landsgränser. Noll stänger av automatiska blockeringar. Lägg till en befintlig kod för att uppdatera den.",
-    "warning": "Varning: offentliga IP-adresser utanför listan eller med okänd plats blockeras. Tillåtna IP-adresser, intern trafik och callbackskydd respekteras."
+    "warning": "Varning: offentliga IP-adresser utanför listan eller med okänd plats blockeras. Tillåtna IP-adresser, intern trafik och callbackskydd respekteras.",
+    "replace_country": "{country} tillåter redan alla regioner. Ersätt med {region}? Andra listade regioner förblir tillåtna.",
+    "replace_provinces": "Ersätt listade regioner i {country} med hela landet?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Spärrar inom tillåtna IP",
     "allowlisted_logins_can_ban_hint": "Var försiktig: betrodda IP kan blockeras.",
     "default_deny_enabled": "Blockera allt utanför tillåtna IP",
-    "default_deny_enabled_hint": "Var försiktig: endast tillåtna IP kan ansluta."
+    "default_deny_enabled_hint": "Var försiktig: endast tillåtna IP kan ansluta.",
+    "activity_history_hours": "Historiklagring (timmar)",
+    "activity_history_hours_hint": "1-168 timmar; högst 1 000 händelser. En kortare tid raderar äldre poster."
   },
   "backup": {
     "save_title": "Spara till config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Aktivitet",
+    "settings": "Inställningar",
+    "backup": "Säkerhetskopia",
+    "allowed": "Tillåtna IP",
+    "blocking": "Blockering",
+    "notifications": "Aviseringar"
+  },
+  "confirmation": {
+    "title": "Bekräfta ändring",
+    "cancel": "Avbryt",
+    "continue": "Fortsätt",
+    "dismiss": "Stäng"
   }
 }

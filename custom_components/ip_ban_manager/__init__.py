@@ -226,6 +226,7 @@ _RELOADABLE_MODULES = (
     "custom_components.ip_ban_manager.network_policy",
     "custom_components.ip_ban_manager.nginx_proxy_manager",
     "custom_components.ip_ban_manager.notifications",
+    "custom_components.ip_ban_manager.panel_assets",
     "custom_components.ip_ban_manager.panel",
     "custom_components.ip_ban_manager.configuration_transaction",
     "custom_components.ip_ban_manager.backup",

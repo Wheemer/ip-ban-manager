@@ -156,7 +156,9 @@
       "add_country": "Додати поточну країну",
       "add_subdivision": "Додати поточну область/штат",
       "hint": "Правила зберігаються після вимкнення. Поріг області має пріоритет над країною. Нуль вимикає автоблокування. Додайте наявний код для оновлення.",
-      "warning": "Увага: публічні IP поза списком або з невідомим розташуванням блокуються. Дозволені IP, внутрішній трафік і захист зворотних викликів враховуються."
+      "warning": "Увага: публічні IP поза списком або з невідомим розташуванням блокуються. Дозволені IP, внутрішній трафік і захист зворотних викликів враховуються.",
+      "replace_country": "{country} вже дозволяє всі регіони. Замінити на {region}? Інші перелічені регіони залишаться дозволеними.",
+      "replace_provinces": "Замінити перелічені регіони {country} усією країною?"
     },
     "regional_rules": {
       "title": "Регіональні пороги входу",
@@ -237,7 +239,9 @@
         "subdivision": "Місцева або спеціальна провінція/штат"
       },
       "blocked_request_logging_enabled": "Записувати заблоковані запити",
-      "blocked_request_logging_enabled_hint": "Діагностика: записує IP клієнта, причину блокування, метод і шлях у журнал Home Assistant. Повторювані записи обмежуються. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Діагностика: записує IP клієнта, причину блокування, метод і шлях у журнал Home Assistant. Повторювані записи обмежуються. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Зберігання історії (години)",
+      "activity_history_hours_hint": "1-168 годин; до 1000 подій. Скорочення терміну видаляє старі записи."
     },
     "backup": {
       "save_title": "Зберегти в config",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Захистити всі домени NPM",
       "protect_all_domains_hint": "Застосувати ці правила до всіх активних проксі-вузлів, включно з доданими пізніше.",
       "protect_all_domains_warning": "Застосувати правила IP Ban Manager до всіх активних вузлів Nginx Proxy Manager? Наявні налаштування буде збережено, але ці правила доступу вплинуть на всі домени."
+    },
+    "tabs": {
+      "activity": "Активність",
+      "settings": "Налаштування",
+      "backup": "Резервна копія",
+      "allowed": "Дозволені IP",
+      "blocking": "Блокування",
+      "notifications": "Сповіщення"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Підтвердити зміну",
+      "cancel": "Скасувати",
+      "continue": "Продовжити",
+      "dismiss": "Закрити"
     }
   },
   "entity": {

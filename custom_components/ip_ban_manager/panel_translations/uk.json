@@ -4,7 +4,9 @@
     "add_country": "Додати поточну країну",
     "add_subdivision": "Додати поточну область/штат",
     "hint": "Правила зберігаються після вимкнення. Поріг області має пріоритет над країною. Нуль вимикає автоблокування. Додайте наявний код для оновлення.",
-    "warning": "Увага: публічні IP поза списком або з невідомим розташуванням блокуються. Дозволені IP, внутрішній трафік і захист зворотних викликів враховуються."
+    "warning": "Увага: публічні IP поза списком або з невідомим розташуванням блокуються. Дозволені IP, внутрішній трафік і захист зворотних викликів враховуються.",
+    "replace_country": "{country} вже дозволяє всі регіони. Замінити на {region}? Інші перелічені регіони залишаться дозволеними.",
+    "replace_provinces": "Замінити перелічені регіони {country} усією країною?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Блокування всередині дозволених IP",
     "allowlisted_logins_can_ban_hint": "Будьте обережні: довірені IP можна блокувати.",
     "default_deny_enabled": "Блокувати все поза дозволеними IP",
-    "default_deny_enabled_hint": "Будьте обережні: підключатися можуть лише дозволені IP."
+    "default_deny_enabled_hint": "Будьте обережні: підключатися можуть лише дозволені IP.",
+    "activity_history_hours": "Зберігання історії (години)",
+    "activity_history_hours_hint": "1-168 годин; до 1000 подій. Скорочення терміну видаляє старі записи."
   },
   "backup": {
     "save_title": "Зберегти в config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Активність",
+    "settings": "Налаштування",
+    "backup": "Резервна копія",
+    "allowed": "Дозволені IP",
+    "blocking": "Блокування",
+    "notifications": "Сповіщення"
+  },
+  "confirmation": {
+    "title": "Підтвердити зміну",
+    "cancel": "Скасувати",
+    "continue": "Продовжити",
+    "dismiss": "Закрити"
   }
 }

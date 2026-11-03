@@ -65,7 +65,11 @@ from .panel import (
     panel_silence_allowlisted_login_notification,
     panel_unsilence_allowlisted_login_notification,
 )
-from .panel_assets import PANEL_JS_PATH, async_panel_js_response
+from .panel_assets import (
+    PANEL_JS_PATH,
+    PANEL_VERSIONED_JS_PATH,
+    async_panel_js_response,
+)
 from .region_rules import entry_public_region_settings
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
@@ -347,6 +351,28 @@ async def async_handle_manage_post(
                             "That region already exists. Edit its row instead."
                         )
                     thresholds.pop(original)
+                country = region.split("-")[0]
+                overlaps = [
+                    key
+                    for key in thresholds
+                    if (
+                        key == country
+                        if "-" in region
+                        else key.startswith(f"{country}-")
+                    )
+                ]
+                replacements = data.get("replace_regions", [])
+                if (
+                    not isinstance(replacements, list)
+                    or any(not isinstance(key, str) for key in replacements)
+                    or sorted(replacements) != sorted(overlaps)
+                    or (overlaps and data.get("confirmed") is not True)
+                ):
+                    raise HomeAssistantError(
+                        "The country or province rules changed. Review and confirm the replacement."
+                    )
+                for key in overlaps:
+                    thresholds.pop(key)
                 thresholds[region] = threshold
             await async_panel_set_options(
                 hass, {**region_options, "confirmed": data.get("confirmed")}
@@ -444,6 +470,18 @@ class IPBanManagerPanelView(HomeAssistantView):
         return await async_panel_js_response(hass)
 
 
+class IPBanManagerVersionedPanelView(HomeAssistantView):
+    """Serve distinct build filenames without accumulating generated copies."""
+
+    name = "api:ip_ban_manager:versioned_panel_js"
+    url = PANEL_VERSIONED_JS_PATH
+    requires_auth = False
+
+    async def get(self, request: Request, asset: str) -> Response:
+        """Serve only the currently installed asset identity."""
+        return await async_panel_js_response(request.app[KEY_HASS], asset)
+
+
 class IPBanManagerStatusView(HomeAssistantView):
     """Return live IP Ban Manager state for the bundled panel."""
 
@@ -487,6 +525,7 @@ def integration_view_urls() -> set[str]:
         for url in (
             SilenceAllowlistedLoginNotificationsView.url,
             IPBanManagerPanelView.url,
+            IPBanManagerVersionedPanelView.url,
             IPBanManagerStatusView.url,
             IPBanManagerNpmRegionAuthorizeView.url,
             IPBanManagerManageView.url,
@@ -537,6 +576,7 @@ def register_http_views(hass: HomeAssistant) -> None:
     views = (
         SilenceAllowlistedLoginNotificationsView(),
         IPBanManagerPanelView(),
+        IPBanManagerVersionedPanelView(),
         IPBanManagerStatusView(),
         IPBanManagerNpmRegionAuthorizeView(),
         IPBanManagerManageView(),

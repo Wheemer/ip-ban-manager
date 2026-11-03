@@ -4,7 +4,9 @@
     "add_country": "Lisää nykyinen maa",
     "add_subdivision": "Lisää nykyinen maakunta/osavaltio",
     "hint": "Säännöt säilyvät lukon ollessa pois. Maakunnan raja ohittaa maan rajan. Nolla poistaa automaattiset estot. Päivitä lisäämällä olemassa oleva koodi.",
-    "warning": "Varoitus: listan ulkopuoliset ja sijainniltaan tuntemattomat julkiset IP:t estetään. Sallitut IP:t, sisäinen liikenne ja takaisinsoittojen suojaus huomioidaan."
+    "warning": "Varoitus: listan ulkopuoliset ja sijainniltaan tuntemattomat julkiset IP:t estetään. Sallitut IP:t, sisäinen liikenne ja takaisinsoittojen suojaus huomioidaan.",
+    "replace_country": "{country} sallii jo kaikki alueet. Korvataanko alueella {region}? Muut luetellut alueet pysyvät sallittuina.",
+    "replace_provinces": "Korvataanko maan {country} luetellut alueet koko maalla?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Estot sallittujen IP-osoitteiden sisällä",
     "allowlisted_logins_can_ban_hint": "Ole varovainen: luotetut IP-osoitteet voidaan estää.",
     "default_deny_enabled": "Estä kaikki sallittujen IP-osoitteiden ulkopuolelta",
-    "default_deny_enabled_hint": "Ole varovainen: vain sallitut IP-osoitteet voivat yhdistää."
+    "default_deny_enabled_hint": "Ole varovainen: vain sallitut IP-osoitteet voivat yhdistää.",
+    "activity_history_hours": "Historian säilytys (tuntia)",
+    "activity_history_hours_hint": "1-168 tuntia; enintään 1 000 tapahtumaa. Lyhentäminen poistaa vanhemmat tiedot."
   },
   "backup": {
     "save_title": "Tallenna konfiguraatioon",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Toiminta",
+    "settings": "Asetukset",
+    "backup": "Varmuuskopio",
+    "allowed": "Sallitut IP-osoitteet",
+    "blocking": "Estot",
+    "notifications": "Ilmoitukset"
+  },
+  "confirmation": {
+    "title": "Vahvista muutos",
+    "cancel": "Peruuta",
+    "continue": "Jatka",
+    "dismiss": "Sulje"
   }
 }

@@ -156,7 +156,9 @@
       "add_country": "Añadir país actual",
       "add_subdivision": "Añadir provincia/estado actual",
       "hint": "Las reglas se conservan al desactivar. La provincia tiene prioridad sobre el país. Cero desactiva bloqueos automáticos. Añada un código existente para actualizarlo.",
-      "warning": "Atención: se bloquean IP públicas fuera de la lista o sin ubicación conocida. Se respetan las IP permitidas, el tráfico interno y la protección de callbacks."
+      "warning": "Atención: se bloquean IP públicas fuera de la lista o sin ubicación conocida. Se respetan las IP permitidas, el tráfico interno y la protección de callbacks.",
+      "replace_country": "{country} ya permite todas las provincias. ¿Sustituirlo por {region}? Las demás provincias de la lista seguirán permitidas.",
+      "replace_provinces": "¿Sustituir las provincias de {country} por todo el país?"
     },
     "regional_rules": {
       "title": "Umbrales de acceso regionales",
@@ -237,7 +239,9 @@
         "subdivision": "Provincia/estado local o personalizado"
       },
       "blocked_request_logging_enabled": "Registrar solicitudes bloqueadas",
-      "blocked_request_logging_enabled_hint": "Diagnóstico: registra la IP del cliente, el motivo del bloqueo, el método y la ruta en el registro de Home Assistant. Las entradas repetidas se limitan. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnóstico: registra la IP del cliente, el motivo del bloqueo, el método y la ruta en el registro de Home Assistant. Las entradas repetidas se limitan. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Retención del historial (horas)",
+      "activity_history_hours_hint": "1-168 horas; hasta 1000 eventos. Reducir el plazo elimina entradas antiguas."
     },
     "backup": {
       "save_title": "Guardar en config",
@@ -335,6 +339,23 @@
       "protect_all_domains": "Proteger todos los dominios de NPM",
       "protect_all_domains_hint": "Aplicar estas reglas a todos los hosts proxy activos, incluidos los que se añadan más adelante.",
       "protect_all_domains_warning": "¿Aplicar las reglas de IP Ban Manager a todos los hosts activos de Nginx Proxy Manager? La configuración existente de los hosts se conservará, pero estas reglas de acceso afectarán a todos los dominios."
+    },
+    "tabs": {
+      "activity": "Actividad",
+      "settings": "Configuración",
+      "backup": "Copia de seguridad",
+      "allowed": "IP permitidas",
+      "blocking": "Bloqueo",
+      "notifications": "Notificaciones"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Confirmar cambio",
+      "cancel": "Cancelar",
+      "continue": "Continuar",
+      "dismiss": "Cerrar"
     }
   },
   "entity": {
