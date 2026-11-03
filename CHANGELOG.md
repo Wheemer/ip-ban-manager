@@ -23,7 +23,7 @@
 
 - Require Home Assistant 2026.4.0 or newer for this panel generation.
 - Load each panel build using a distinct filename and component identity so updated controls do not require a manual hard refresh.
-- Update panel translations and the pinned Hassfest action.
+- Update panel translations, the pinned Hassfest action, and uv to 0.13.6.
 
 ## v1.9.7
 
