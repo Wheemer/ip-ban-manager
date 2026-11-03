@@ -4,7 +4,9 @@
     "add_country": "Добавить текущую страну",
     "add_subdivision": "Добавить текущую область/штат",
     "hint": "Правила сохраняются при отключении. Порог области важнее порога страны. Ноль отключает автоблокировки. Добавьте существующий код для обновления.",
-    "warning": "Внимание: публичные IP вне списка или с неизвестным местоположением блокируются. Разрешённые IP, внутренний трафик и защита обратных вызовов учитываются."
+    "warning": "Внимание: публичные IP вне списка или с неизвестным местоположением блокируются. Разрешённые IP, внутренний трафик и защита обратных вызовов учитываются.",
+    "replace_country": "{country} уже разрешает все регионы. Заменить на {region}? Другие перечисленные регионы останутся разрешены.",
+    "replace_provinces": "Заменить перечисленные регионы {country} всей страной?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Блокировки внутри разрешённых IP",
     "allowlisted_logins_can_ban_hint": "Будьте осторожны: доверенные IP можно блокировать.",
     "default_deny_enabled": "Блокировать всё вне разрешённых IP",
-    "default_deny_enabled_hint": "Будьте осторожны: подключаться могут только разрешённые IP."
+    "default_deny_enabled_hint": "Будьте осторожны: подключаться могут только разрешённые IP.",
+    "activity_history_hours": "Хранение истории (часы)",
+    "activity_history_hours_hint": "1-168 часов; до 1000 событий. Сокращение срока удаляет старые записи."
   },
   "backup": {
     "save_title": "Сохранить в config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Активность",
+    "settings": "Настройки",
+    "backup": "Резервная копия",
+    "allowed": "Разрешённые IP",
+    "blocking": "Блокировка",
+    "notifications": "Уведомления"
+  },
+  "confirmation": {
+    "title": "Подтвердить изменение",
+    "cancel": "Отмена",
+    "continue": "Продолжить",
+    "dismiss": "Закрыть"
   }
 }

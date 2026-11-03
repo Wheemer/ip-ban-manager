@@ -4,7 +4,9 @@
     "add_country": "Aggiungi paese attuale",
     "add_subdivision": "Aggiungi provincia/stato attuale",
     "hint": "Le regole restano salvate quando disattivato. La provincia prevale sul paese. Zero disattiva i blocchi automatici. Aggiungi un codice esistente per aggiornarlo.",
-    "warning": "Attenzione: IP pubblici fuori dall’elenco o con posizione sconosciuta sono bloccati. IP consentiti, traffico interno e protezione dei callback sono rispettati."
+    "warning": "Attenzione: IP pubblici fuori dall’elenco o con posizione sconosciuta sono bloccati. IP consentiti, traffico interno e protezione dei callback sono rispettati.",
+    "replace_country": "{country} consente già tutte le province. Sostituire con {region}? Le altre province elencate restano consentite.",
+    "replace_provinces": "Sostituire le province elencate di {country} con tutto il paese?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Blocchi nelle IP consentite",
     "allowlisted_logins_can_ban_hint": "Attenzione: le IP attendibili possono essere bloccate.",
     "default_deny_enabled": "Blocca tutto al di fuori delle IP consentite",
-    "default_deny_enabled_hint": "Attenzione: solo le IP consentite possono connettersi."
+    "default_deny_enabled_hint": "Attenzione: solo le IP consentite possono connettersi.",
+    "activity_history_hours": "Conservazione cronologia (ore)",
+    "activity_history_hours_hint": "1-168 ore; fino a 1.000 eventi. Ridurre la durata elimina le voci più vecchie."
   },
   "backup": {
     "save_title": "Salva in configurazione",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Attività",
+    "settings": "Impostazioni",
+    "backup": "Backup",
+    "allowed": "IP consentite",
+    "blocking": "Blocco",
+    "notifications": "Notifiche"
+  },
+  "confirmation": {
+    "title": "Conferma modifica",
+    "cancel": "Annulla",
+    "continue": "Continua",
+    "dismiss": "Chiudi"
   }
 }

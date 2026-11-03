@@ -156,7 +156,9 @@
       "add_country": "Afegeix el país actual",
       "add_subdivision": "Afegeix la província/l’estat actual",
       "hint": "Les regles es conserven quan es desactiva. La província preval sobre el país. Zero desactiva els bloqueigs automàtics. Afegiu un codi existent per actualitzar-lo.",
-      "warning": "Atenció: es bloquegen les IP públiques fora de la llista o sense ubicació coneguda. Es respecten les IP permeses, el trànsit intern i la protecció de callbacks."
+      "warning": "Atenció: es bloquegen les IP públiques fora de la llista o sense ubicació coneguda. Es respecten les IP permeses, el trànsit intern i la protecció de callbacks.",
+      "replace_country": "{country} ja permet totes les províncies. Substituir per {region}? Les altres províncies de la llista continuen permeses.",
+      "replace_provinces": "Substituir les províncies de {country} per tot el país?"
     },
     "regional_rules": {
       "title": "Llindars d’accés regionals",
@@ -237,7 +239,9 @@
         "subdivision": "Província/estat local o personalitzat"
       },
       "blocked_request_logging_enabled": "Registra les sol·licituds bloquejades",
-      "blocked_request_logging_enabled_hint": "Diagnòstic: registra la IP del client, el motiu del bloqueig, el mètode i la ruta al registre de Home Assistant. Les entrades repetides es limiten. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnòstic: registra la IP del client, el motiu del bloqueig, el mètode i la ruta al registre de Home Assistant. Les entrades repetides es limiten. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Retenció de l’historial (hores)",
+      "activity_history_hours_hint": "1-168 hores; fins a 1.000 esdeveniments. Reduir el termini elimina les entrades antigues."
     },
     "backup": {
       "save_title": "Desa a la configuració",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Protegeix tots els dominis NPM",
       "protect_all_domains_hint": "Aplica aquestes regles a tots els amfitrions intermediaris actius, inclosos els que s'afegeixin més endavant.",
       "protect_all_domains_warning": "Voleu aplicar les regles d'IP Ban Manager a tots els amfitrions actius de Nginx Proxy Manager? La configuració existent dels amfitrions es conserva, però aquestes regles d'accés afectaran tots els dominis."
+    },
+    "tabs": {
+      "activity": "Activitat",
+      "settings": "Configuració",
+      "backup": "Còpia de seguretat",
+      "allowed": "IP permeses",
+      "blocking": "Bloqueig",
+      "notifications": "Notificacions"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Confirma el canvi",
+      "cancel": "Cancel·la",
+      "continue": "Continua",
+      "dismiss": "Tanca"
     }
   },
   "entity": {

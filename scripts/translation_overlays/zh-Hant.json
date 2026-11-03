@@ -156,7 +156,9 @@
       "add_country": "新增目前國家",
       "add_subdivision": "新增目前省/州",
       "hint": "關閉時保留規則。省/州門檻優先於國家。零停用自動登入封鎖。新增現有代碼可更新規則。",
-      "warning": "高風險：啟用後，清單外或位置未知的公開 IP 將被封鎖。允許的 IP、內部流量及整合回呼保護選項仍受尊重。"
+      "warning": "高風險：啟用後，清單外或位置未知的公開 IP 將被封鎖。允許的 IP、內部流量及整合回呼保護選項仍受尊重。",
+      "replace_country": "{country}已允許所有省份。替換為{region}？其他列出的省份仍獲允許。",
+      "replace_provinces": "將{country}列出的省份替換為允許整個國家？"
     },
     "regional_rules": {
       "title": "區域登入門檻",
@@ -238,7 +240,9 @@
         "subdivision": "當地或自訂省/州"
       },
       "blocked_request_logging_enabled": "記錄被封鎖的請求",
-      "blocked_request_logging_enabled_hint": "診斷：在 Home Assistant 記錄中記錄用戶端 IP、封鎖原因、方法和路徑。重複記錄會受到速率限制。. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "診斷：在 Home Assistant 記錄中記錄用戶端 IP、封鎖原因、方法和路徑。重複記錄會受到速率限制。. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "歷史記錄保留時間（小時）",
+      "activity_history_hours_hint": "1-168小時，最多1,000筆事件。縮短時間將刪除較早的記錄。"
     },
     "backup": {
       "save_title": "儲存到設定",
@@ -336,6 +340,23 @@
       "protect_all_domains": "保護所有 NPM 網域",
       "protect_all_domains_hint": "將這些規則套用至所有作用中的代理主機，包括日後新增的主機。",
       "protect_all_domains_warning": "要將 IP Ban Manager 規則套用至所有作用中的 Nginx Proxy Manager 主機嗎？現有主機設定會保留，但這些存取規則將影響所有網域。"
+    },
+    "tabs": {
+      "activity": "活動",
+      "settings": "設定",
+      "backup": "備份",
+      "allowed": "允許的 IP",
+      "blocking": "封鎖",
+      "notifications": "通知"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "確認變更",
+      "cancel": "取消",
+      "continue": "繼續",
+      "dismiss": "關閉"
     }
   },
   "entity": {

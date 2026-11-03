@@ -156,7 +156,9 @@
       "add_country": "Lägg till aktuellt land",
       "add_subdivision": "Lägg till aktuell provins/delstat",
       "hint": "Regler sparas när låset är av. Provinsgränser går före landsgränser. Noll stänger av automatiska blockeringar. Lägg till en befintlig kod för att uppdatera den.",
-      "warning": "Varning: offentliga IP-adresser utanför listan eller med okänd plats blockeras. Tillåtna IP-adresser, intern trafik och callbackskydd respekteras."
+      "warning": "Varning: offentliga IP-adresser utanför listan eller med okänd plats blockeras. Tillåtna IP-adresser, intern trafik och callbackskydd respekteras.",
+      "replace_country": "{country} tillåter redan alla regioner. Ersätt med {region}? Andra listade regioner förblir tillåtna.",
+      "replace_provinces": "Ersätt listade regioner i {country} med hela landet?"
     },
     "regional_rules": {
       "title": "Regionala inloggningströsklar",
@@ -237,7 +239,9 @@
         "subdivision": "Lokal eller anpassad provins/stat"
       },
       "blocked_request_logging_enabled": "Logga blockerade förfrågningar",
-      "blocked_request_logging_enabled_hint": "Diagnostik: registrera klient-IP, blockeringsorsak, metod och sökväg i Home Assistant-loggen. Upprepade poster begränsas. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnostik: registrera klient-IP, blockeringsorsak, metod och sökväg i Home Assistant-loggen. Upprepade poster begränsas. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Historiklagring (timmar)",
+      "activity_history_hours_hint": "1-168 timmar; högst 1 000 händelser. En kortare tid raderar äldre poster."
     },
     "backup": {
       "save_title": "Spara till config",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Skydda alla NPM-domäner",
       "protect_all_domains_hint": "Tillämpa dessa regler på alla aktiva proxyvärdar, även värdar som läggs till senare.",
       "protect_all_domains_warning": "Tillämpa IP Ban Manager-regler på alla aktiva Nginx Proxy Manager-värdar? Befintliga värdinställningar behålls, men dessa åtkomstregler påverkar alla domäner."
+    },
+    "tabs": {
+      "activity": "Aktivitet",
+      "settings": "Inställningar",
+      "backup": "Säkerhetskopia",
+      "allowed": "Tillåtna IP",
+      "blocking": "Blockering",
+      "notifications": "Aviseringar"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Bekräfta ändring",
+      "cancel": "Avbryt",
+      "continue": "Fortsätt",
+      "dismiss": "Stäng"
     }
   },
   "entity": {

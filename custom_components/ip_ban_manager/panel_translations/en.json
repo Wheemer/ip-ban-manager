@@ -4,7 +4,9 @@
     "add_country": "Add Current Country",
     "add_subdivision": "Add Current Province/State",
     "hint": "Saved rules remain when off. Province/state thresholds override country thresholds. Zero disables automatic login bans. Add an existing code to update it.",
-    "warning": "High impact: when enabled, public IPs outside this list or with unknown locations are blocked. Allowed IPs, internal traffic, and the Protect integration callbacks option are respected."
+    "warning": "High impact: when enabled, public IPs outside this list or with unknown locations are blocked. Allowed IPs, internal traffic, and the Protect integration callbacks option are respected.",
+    "replace_country": "{country} already allows every province/state. Replace it with {region}? Other listed provinces/states remain allowed.",
+    "replace_provinces": "Replace the listed provinces/states in {country} with access from the whole country?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -36,8 +38,8 @@
   },
   "allowed_ips": {
     "title": "Allowed IPs",
-      "hint": "Trusted IPv4/IPv6 addresses, networks, and DNS or DDNS hostnames. These entries win over exact bans, blocked networks, and default-deny mode. Hostnames are forward-resolved and refreshed in the background.",
-      "placeholder": "IP address, CIDR, wildcard, or DNS hostname",
+    "hint": "Trusted IPv4/IPv6 addresses, networks, and DNS or DDNS hostnames. These entries win over exact bans, blocked networks, and default-deny mode. Hostnames are forward-resolved and refreshed in the background.",
+    "placeholder": "IP address, CIDR, wildcard, or DNS hostname",
     "remove_confirm": "Remove this Allowed IP? With default-deny or blocked networks active, removing a trusted entry can lock out access."
   },
   "allowed_regions": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Bans inside Allowed IPs",
     "allowlisted_logins_can_ban_hint": "Be careful: trusted IPs can be blocked.",
     "default_deny_enabled": "Block everything outside Allowed IPs",
-    "default_deny_enabled_hint": "Be careful: only Allowed IPs can connect."
+    "default_deny_enabled_hint": "Be careful: only Allowed IPs can connect.",
+    "activity_history_hours": "History retention (hours)",
+    "activity_history_hours_hint": "1-168 hours; up to 1,000 events. Shortening this deletes older history."
   },
   "backup": {
     "save_title": "Save to config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Activity",
+    "settings": "Settings",
+    "backup": "Backup",
+    "allowed": "Allowed IPs",
+    "blocking": "Blocking",
+    "notifications": "Notifications"
+  },
+  "confirmation": {
+    "title": "Confirm change",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "dismiss": "Dismiss"
   }
 }

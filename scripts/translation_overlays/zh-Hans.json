@@ -156,7 +156,9 @@
       "add_country": "添加当前国家",
       "add_subdivision": "添加当前省/州",
       "hint": "关闭时保留规则。省/州阈值优先于国家。零禁用自动登录封禁。添加已有代码可更新规则。",
-      "warning": "高风险：启用后，列表外或位置未知的公共 IP 将被阻止。允许的 IP、内部流量及集成回调保护选项仍受尊重。"
+      "warning": "高风险：启用后，列表外或位置未知的公共 IP 将被阻止。允许的 IP、内部流量及集成回调保护选项仍受尊重。",
+      "replace_country": "{country}已允许所有省份。替换为{region}？其他列出的省份仍获允许。",
+      "replace_provinces": "将{country}列出的省份替换为允许整个国家？"
     },
     "regional_rules": {
       "title": "区域登录阈值",
@@ -238,7 +240,9 @@
         "subdivision": "当地或自定义省/州"
       },
       "blocked_request_logging_enabled": "记录被阻止的请求",
-      "blocked_request_logging_enabled_hint": "诊断：在 Home Assistant 日志中记录客户端 IP、阻止原因、方法和路径。重复记录会受到速率限制。. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "诊断：在 Home Assistant 日志中记录客户端 IP、阻止原因、方法和路径。重复记录会受到速率限制。. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "历史记录保留时间（小时）",
+      "activity_history_hours_hint": "1-168小时，最多1,000条事件。缩短时间将删除较早的记录。"
     },
     "backup": {
       "save_title": "保存到配置",
@@ -336,6 +340,23 @@
       "protect_all_domains": "保护所有 NPM 域名",
       "protect_all_domains_hint": "将这些规则应用于所有活动的代理主机，包括以后添加的主机。",
       "protect_all_domains_warning": "要将 IP Ban Manager 规则应用于所有活动的 Nginx Proxy Manager 主机吗？现有主机设置会保留，但这些访问规则将影响所有域名。"
+    },
+    "tabs": {
+      "activity": "活动",
+      "settings": "设置",
+      "backup": "备份",
+      "allowed": "允许的 IP",
+      "blocking": "阻止",
+      "notifications": "通知"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "确认更改",
+      "cancel": "取消",
+      "continue": "继续",
+      "dismiss": "关闭"
     }
   },
   "entity": {

@@ -156,7 +156,9 @@
       "add_country": "Adaugă țara curentă",
       "add_subdivision": "Adaugă provincia/statul curent",
       "hint": "Regulile rămân salvate când este dezactivată. Pragul provinciei are prioritate față de țară. Zero dezactivează blocările automate. Adăugați un cod existent pentru actualizare.",
-      "warning": "Atenție: IP-urile publice din afara listei sau cu locație necunoscută sunt blocate. IP-urile permise, traficul intern și protecția callbackurilor sunt respectate."
+      "warning": "Atenție: IP-urile publice din afara listei sau cu locație necunoscută sunt blocate. IP-urile permise, traficul intern și protecția callbackurilor sunt respectate.",
+      "replace_country": "{country} permite deja toate regiunile. Înlocuiți cu {region}? Celelalte regiuni listate rămân permise.",
+      "replace_provinces": "Înlocuiți regiunile listate din {country} cu întreaga țară?"
     },
     "regional_rules": {
       "title": "Praguri regionale de autentificare",
@@ -237,7 +239,9 @@
         "subdivision": "Provincie/stat local sau personalizat"
       },
       "blocked_request_logging_enabled": "Înregistrează cererile blocate",
-      "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnostic: înregistrează IP-ul clientului, motivul blocării, metoda și calea în jurnalul Home Assistant. Intrările repetate sunt limitate. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Păstrarea istoricului (ore)",
+      "activity_history_hours_hint": "1-168 ore; maximum 1.000 de evenimente. Scurtarea șterge intrările mai vechi."
     },
     "backup": {
       "save_title": "Salvează în configurație",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Protejează toate domeniile NPM",
       "protect_all_domains_hint": "Aplică aceste reguli tuturor gazdelor proxy active, inclusiv celor adăugate ulterior.",
       "protect_all_domains_warning": "Aplicați regulile IP Ban Manager tuturor gazdelor active Nginx Proxy Manager? Setările existente vor fi păstrate, dar aceste reguli de acces vor afecta toate domeniile."
+    },
+    "tabs": {
+      "activity": "Activitate",
+      "settings": "Setări",
+      "backup": "Copie de siguranță",
+      "allowed": "IP-uri permise",
+      "blocking": "Blocare",
+      "notifications": "Notificări"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Confirmă modificarea",
+      "cancel": "Anulează",
+      "continue": "Continuă",
+      "dismiss": "Închide"
     }
   },
   "entity": {

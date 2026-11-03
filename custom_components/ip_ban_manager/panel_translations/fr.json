@@ -4,7 +4,9 @@
     "add_country": "Ajouter le pays actuel",
     "add_subdivision": "Ajouter la province/l’État actuel",
     "hint": "Les règles restent enregistrées à l’arrêt. La province prime sur le pays. Zéro désactive les bannissements automatiques. Ajoutez un code existant pour le modifier.",
-    "warning": "Attention : les IP publiques hors liste ou sans localisation sont bloquées. Les IP autorisées, le trafic interne et l’option de protection des rappels sont respectés."
+    "warning": "Attention : les IP publiques hors liste ou sans localisation sont bloquées. Les IP autorisées, le trafic interne et l’option de protection des rappels sont respectés.",
+    "replace_country": "{country} autorise déjà toutes les provinces. Remplacer cette règle par {region} ? Les autres provinces de la liste restent autorisées.",
+    "replace_provinces": "Remplacer les provinces de {country} par une autorisation pour tout le pays ?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Bannissements dans les IP autorisées",
     "allowlisted_logins_can_ban_hint": "Attention : les IP de confiance peuvent être bloquées.",
     "default_deny_enabled": "Bloquer tout sauf les IP autorisées",
-    "default_deny_enabled_hint": "Attention : seules les IP autorisées peuvent se connecter."
+    "default_deny_enabled_hint": "Attention : seules les IP autorisées peuvent se connecter.",
+    "activity_history_hours": "Conservation de l’historique (heures)",
+    "activity_history_hours_hint": "1-168 heures ; 1 000 événements maximum. Réduire la durée supprime les anciennes entrées."
   },
   "backup": {
     "save_title": "Enregistrer dans la config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Activité",
+    "settings": "Paramètres",
+    "backup": "Sauvegarde",
+    "allowed": "IP autorisées",
+    "blocking": "Blocage",
+    "notifications": "Notifications"
+  },
+  "confirmation": {
+    "title": "Confirmer la modification",
+    "cancel": "Annuler",
+    "continue": "Continuer",
+    "dismiss": "Fermer"
   }
 }

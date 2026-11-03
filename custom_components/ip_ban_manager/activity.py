@@ -18,6 +18,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
+from .storage_keys import KEY_CONFIG_ENTRY
+
 KEY_ACTIVITY_EVENTS: Final = "ip_ban_manager_activity_events"
 KEY_ACTIVITY_HISTORY: Final = "ip_ban_manager_activity_history"
 KEY_ACTIVITY_HISTORY_LOADED: Final = "ip_ban_manager_activity_history_loaded"
@@ -103,7 +105,12 @@ def _sanitize_event(event: Mapping[str, object]) -> dict[str, object] | None:
 
 
 def _prune_history(hass: HomeAssistant) -> None:
-    cutoff = dt_util.utcnow().timestamp() - ACTIVITY_HISTORY_MAX_AGE_SECONDS
+    from .entry_helpers import entry_activity_history_hours
+
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY) if hass.http is not None else None
+    cutoff = (
+        dt_util.utcnow().timestamp() - entry_activity_history_hours(entry) * 60 * 60
+    )
     valid: list[dict[str, object]] = []
     for event in _history(hass):
         sanitized = _sanitize_event(event)
@@ -248,7 +255,7 @@ async def async_clear_history(hass: HomeAssistant) -> None:
 
 
 def history_activity(hass: HomeAssistant) -> list[dict[str, object]]:
-    """Return persisted, sanitized activity from the last 24 hours."""
+    """Return persisted, sanitized activity within configured retention."""
     _prune_history(hass)
     return group_activity(_history(hass))[:MAX_ACTIVITY_HISTORY_DISPLAY_EVENTS]
 
@@ -286,7 +293,7 @@ def record_activity(
     detail: str = "",
     timestamp: datetime | None = None,
 ) -> None:
-    """Record one sanitized activity event in recent and 24-hour history."""
+    """Record one sanitized activity event in recent and bounded history."""
     try:
         normalized_ip = str(ip_address(ip))
     except ValueError:

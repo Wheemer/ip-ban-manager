@@ -4,7 +4,9 @@
     "add_country": "Geçerli ülkeyi ekle",
     "add_subdivision": "Geçerli ili/eyaleti ekle",
     "hint": "Kapalıyken kurallar saklanır. İl eşiği ülke eşiğinden önceliklidir. Sıfır otomatik engellemeyi kapatır. Güncellemek için mevcut kodu ekleyin.",
-    "warning": "Dikkat: liste dışındaki veya konumu bilinmeyen genel IP’ler engellenir. İzin verilen IP’ler, iç trafik ve geri çağrı koruması dikkate alınır."
+    "warning": "Dikkat: liste dışındaki veya konumu bilinmeyen genel IP’ler engellenir. İzin verilen IP’ler, iç trafik ve geri çağrı koruması dikkate alınır.",
+    "replace_country": "{country} zaten tüm bölgeleri kapsıyor. {region} ile değiştirilsin mi? Diğer listelenen bölgeler izinli kalır.",
+    "replace_provinces": "{country} için listelenen bölgeler tüm ülkeyle değiştirilsin mi?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "İzin verilen IP içinde yasaklar",
     "allowlisted_logins_can_ban_hint": "Dikkatli olun: güvenilir IP'ler engellenebilir.",
     "default_deny_enabled": "İzin verilen IP dışındaki her şeyi engelle",
-    "default_deny_enabled_hint": "Dikkatli olun: yalnızca izin verilen IP'ler bağlanabilir."
+    "default_deny_enabled_hint": "Dikkatli olun: yalnızca izin verilen IP'ler bağlanabilir.",
+    "activity_history_hours": "Geçmiş saklama süresi (saat)",
+    "activity_history_hours_hint": "1-168 saat; en fazla 1.000 olay. Süreyi kısaltmak eski kayıtları siler."
   },
   "backup": {
     "save_title": "Config'e kaydet",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Etkinlik",
+    "settings": "Ayarlar",
+    "backup": "Yedekleme",
+    "allowed": "İzin verilen IP",
+    "blocking": "Engelleme",
+    "notifications": "Bildirimler"
+  },
+  "confirmation": {
+    "title": "Değişikliği onayla",
+    "cancel": "İptal",
+    "continue": "Devam et",
+    "dismiss": "Kapat"
   }
 }

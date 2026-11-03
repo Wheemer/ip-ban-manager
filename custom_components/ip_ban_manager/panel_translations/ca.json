@@ -4,7 +4,9 @@
     "add_country": "Afegeix el país actual",
     "add_subdivision": "Afegeix la província/l’estat actual",
     "hint": "Les regles es conserven quan es desactiva. La província preval sobre el país. Zero desactiva els bloqueigs automàtics. Afegiu un codi existent per actualitzar-lo.",
-    "warning": "Atenció: es bloquegen les IP públiques fora de la llista o sense ubicació coneguda. Es respecten les IP permeses, el trànsit intern i la protecció de callbacks."
+    "warning": "Atenció: es bloquegen les IP públiques fora de la llista o sense ubicació coneguda. Es respecten les IP permeses, el trànsit intern i la protecció de callbacks.",
+    "replace_country": "{country} ja permet totes les províncies. Substituir per {region}? Les altres províncies de la llista continuen permeses.",
+    "replace_provinces": "Substituir les províncies de {country} per tot el país?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Bloquejos dins IP permeses",
     "allowlisted_logins_can_ban_hint": "Aniu amb compte: les IP de confiança es poden bloquejar.",
     "default_deny_enabled": "Bloqueja tot el que quedi fora de les IP permeses",
-    "default_deny_enabled_hint": "Aniu amb compte: només les IP permeses poden connectar-se."
+    "default_deny_enabled_hint": "Aniu amb compte: només les IP permeses poden connectar-se.",
+    "activity_history_hours": "Retenció de l’historial (hores)",
+    "activity_history_hours_hint": "1-168 hores; fins a 1.000 esdeveniments. Reduir el termini elimina les entrades antigues."
   },
   "backup": {
     "save_title": "Desa a la configuració",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Activitat",
+    "settings": "Configuració",
+    "backup": "Còpia de seguretat",
+    "allowed": "IP permeses",
+    "blocking": "Bloqueig",
+    "notifications": "Notificacions"
+  },
+  "confirmation": {
+    "title": "Confirma el canvi",
+    "cancel": "Cancel·la",
+    "continue": "Continua",
+    "dismiss": "Tanca"
   }
 }

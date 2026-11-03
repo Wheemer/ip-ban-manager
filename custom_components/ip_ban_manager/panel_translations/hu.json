@@ -4,7 +4,9 @@
     "add_country": "Jelenlegi ország hozzáadása",
     "add_subdivision": "Jelenlegi tartomány/állam hozzáadása",
     "hint": "A szabályok kikapcsolva is megmaradnak. A tartomány küszöbe megelőzi az országét. A nulla kikapcsolja az automatikus tiltást. Frissítéshez adja hozzá a meglévő kódot.",
-    "warning": "Figyelem: a listán kívüli vagy ismeretlen helyű nyilvános IP-k tiltva lesznek. Az engedélyezett IP-k, a belső forgalom és a visszahívások védelme továbbra is érvényes."
+    "warning": "Figyelem: a listán kívüli vagy ismeretlen helyű nyilvános IP-k tiltva lesznek. Az engedélyezett IP-k, a belső forgalom és a visszahívások védelme továbbra is érvényes.",
+    "replace_country": "{country} már minden régiót engedélyez. Lecseréli erre: {region}? A többi felsorolt régió engedélyezve marad.",
+    "replace_provinces": "Lecseréli {country} felsorolt régióit az egész országra?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Tiltások az engedélyezett IP-k között",
     "allowlisted_logins_can_ban_hint": "Legyen óvatos: megbízható IP-k is blokkolhatók.",
     "default_deny_enabled": "Minden blokkolt az engedélyezett IP-ken kívül",
-    "default_deny_enabled_hint": "Legyen óvatos: csak engedélyezett IP-k csatlakozhatnak."
+    "default_deny_enabled_hint": "Legyen óvatos: csak engedélyezett IP-k csatlakozhatnak.",
+    "activity_history_hours": "Előzmények megőrzése (óra)",
+    "activity_history_hours_hint": "1-168 óra; legfeljebb 1000 esemény. A rövidítés törli a régebbi bejegyzéseket."
   },
   "backup": {
     "save_title": "Mentés a konfigurációba",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Tevékenység",
+    "settings": "Beállítások",
+    "backup": "Biztonsági mentés",
+    "allowed": "Engedélyezett IP-k",
+    "blocking": "Blokkolás",
+    "notifications": "Értesítések"
+  },
+  "confirmation": {
+    "title": "Módosítás megerősítése",
+    "cancel": "Mégse",
+    "continue": "Folytatás",
+    "dismiss": "Bezárás"
   }
 }

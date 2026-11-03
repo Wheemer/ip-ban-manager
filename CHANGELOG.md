@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.10.0
+
+### 🎨 Redesigned panel
+
+- Organize controls into Activity, Allowed IPs, Blocking, Notifications, Settings, and Backup tabs, with clearer sections and a compact version footer.
+- Keep unsaved edits when switching tabs or receiving live activity updates.
+- Unify button sizing, hover and keyboard-focus feedback, confirmation dialogs, and disabled states. Apply becomes active only when its section has changes; Allowed IPs Add stays inactive until an entry is typed.
+- Distinguish blocking actions, removals, and backup transfers with restrained, consistent styling.
+
+### 🛡️ Region controls
+
+- Confirm replacement when switching between a whole country and its provinces/states, rather than keeping overlapping rules that defeat the narrower restriction.
+- Keep sibling provinces and unrelated countries unchanged, and reject stale replacement confirmations.
+
+### 🕒 Activity history
+
+- Configure history retention from 1 to 168 hours in Settings, with the existing 24-hour default and 1,000-event limit.
+- Include retention in configuration backups and explain the effect of shortening the history window.
+
+### 🔧 Compatibility and maintenance
+
+- Require Home Assistant 2026.4.0 or newer for this panel generation.
+- Load each panel build using a distinct filename and component identity so updated controls do not require a manual hard refresh.
+- Update panel translations and the pinned Hassfest action.
+
 ## v1.9.7
 
 ### 🛡️ Policy reliability

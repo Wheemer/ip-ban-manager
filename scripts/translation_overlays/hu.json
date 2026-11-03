@@ -156,7 +156,9 @@
       "add_country": "Jelenlegi ország hozzáadása",
       "add_subdivision": "Jelenlegi tartomány/állam hozzáadása",
       "hint": "A szabályok kikapcsolva is megmaradnak. A tartomány küszöbe megelőzi az országét. A nulla kikapcsolja az automatikus tiltást. Frissítéshez adja hozzá a meglévő kódot.",
-      "warning": "Figyelem: a listán kívüli vagy ismeretlen helyű nyilvános IP-k tiltva lesznek. Az engedélyezett IP-k, a belső forgalom és a visszahívások védelme továbbra is érvényes."
+      "warning": "Figyelem: a listán kívüli vagy ismeretlen helyű nyilvános IP-k tiltva lesznek. Az engedélyezett IP-k, a belső forgalom és a visszahívások védelme továbbra is érvényes.",
+      "replace_country": "{country} már minden régiót engedélyez. Lecseréli erre: {region}? A többi felsorolt régió engedélyezve marad.",
+      "replace_provinces": "Lecseréli {country} felsorolt régióit az egész országra?"
     },
     "regional_rules": {
       "title": "Regionális bejelentkezési küszöbök",
@@ -237,7 +239,9 @@
         "subdivision": "Helyi vagy egyéni tartomány/állam"
       },
       "blocked_request_logging_enabled": "Blokkolt kérések naplózása",
-      "blocked_request_logging_enabled_hint": "Diagnosztika: rögzíti a kliens IP-címét, a blokkolás okát, a metódust és az útvonalat a Home Assistant naplójában. Az ismétlődő bejegyzések korlátozottak. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnosztika: rögzíti a kliens IP-címét, a blokkolás okát, a metódust és az útvonalat a Home Assistant naplójában. Az ismétlődő bejegyzések korlátozottak. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Előzmények megőrzése (óra)",
+      "activity_history_hours_hint": "1-168 óra; legfeljebb 1000 esemény. A rövidítés törli a régebbi bejegyzéseket."
     },
     "backup": {
       "save_title": "Mentés a konfigurációba",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Az összes NPM-tartomány védelme",
       "protect_all_domains_hint": "A szabályok alkalmazása minden aktív proxyállomásra, beleértve a később hozzáadottakat is.",
       "protect_all_domains_warning": "Alkalmazza az IP Ban Manager szabályait minden aktív Nginx Proxy Manager-állomásra? A meglévő beállítások megmaradnak, de ezek a hozzáférési szabályok minden tartományt érintenek."
+    },
+    "tabs": {
+      "activity": "Tevékenység",
+      "settings": "Beállítások",
+      "backup": "Biztonsági mentés",
+      "allowed": "Engedélyezett IP-k",
+      "blocking": "Blokkolás",
+      "notifications": "Értesítések"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Módosítás megerősítése",
+      "cancel": "Mégse",
+      "continue": "Folytatás",
+      "dismiss": "Bezárás"
     }
   },
   "entity": {

@@ -156,7 +156,9 @@
       "add_country": "Přidat aktuální zemi",
       "add_subdivision": "Přidat aktuální provincii/stát",
       "hint": "Pravidla zůstanou uložená i po vypnutí. Práh provincie má přednost před zemí. Nula vypne automatické blokování. Přidáním existujícího kódu jej aktualizujete.",
-      "warning": "Pozor: veřejné IP mimo seznam nebo s neznámou polohou jsou blokovány. Povolené IP, interní provoz a ochrana callbacků jsou respektovány."
+      "warning": "Pozor: veřejné IP mimo seznam nebo s neznámou polohou jsou blokovány. Povolené IP, interní provoz a ochrana callbacků jsou respektovány.",
+      "replace_country": "{country} již povoluje všechny regiony. Nahradit regionem {region}? Ostatní uvedené regiony zůstanou povoleny.",
+      "replace_provinces": "Nahradit uvedené regiony v {country} celou zemí?"
     },
     "regional_rules": {
       "title": "Regionální prahy přihlášení",
@@ -237,7 +239,9 @@
         "subdivision": "Místní nebo vlastní provincie/stát"
       },
       "blocked_request_logging_enabled": "Protokolovat blokované požadavky",
-      "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, důvod blokování, metodu a cestu do protokolu Home Assistant. Opakované záznamy jsou omezeny. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnostika: zaznamená IP klienta, důvod blokování, metodu a cestu do protokolu Home Assistant. Opakované záznamy jsou omezeny. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Uchování historie (hodiny)",
+      "activity_history_hours_hint": "1-168 hodin; nejvýše 1 000 událostí. Zkrácení odstraní starší záznamy."
     },
     "backup": {
       "save_title": "Uložit do config",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Chránit všechny domény NPM",
       "protect_all_domains_hint": "Použít tato pravidla na všechny aktivní proxy hostitele včetně těch, kteří budou přidáni později.",
       "protect_all_domains_warning": "Použít pravidla IP Ban Manager na všechny aktivní hostitele Nginx Proxy Manager? Stávající nastavení hostitelů zůstanou zachována, ale tato přístupová pravidla ovlivní všechny domény."
+    },
+    "tabs": {
+      "activity": "Aktivita",
+      "settings": "Nastavení",
+      "backup": "Záloha",
+      "allowed": "Povolené IP",
+      "blocking": "Blokování",
+      "notifications": "Oznámení"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Potvrdit změnu",
+      "cancel": "Zrušit",
+      "continue": "Pokračovat",
+      "dismiss": "Zavřít"
     }
   },
   "entity": {

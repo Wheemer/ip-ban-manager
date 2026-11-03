@@ -4,7 +4,9 @@
     "add_country": "Añadir país actual",
     "add_subdivision": "Añadir provincia/estado actual",
     "hint": "Las reglas se conservan al desactivar. La provincia tiene prioridad sobre el país. Cero desactiva bloqueos automáticos. Añada un código existente para actualizarlo.",
-    "warning": "Atención: se bloquean IP públicas fuera de la lista o sin ubicación conocida. Se respetan las IP permitidas, el tráfico interno y la protección de callbacks."
+    "warning": "Atención: se bloquean IP públicas fuera de la lista o sin ubicación conocida. Se respetan las IP permitidas, el tráfico interno y la protección de callbacks.",
+    "replace_country": "{country} ya permite todas las provincias. ¿Sustituirlo por {region}? Las demás provincias de la lista seguirán permitidas.",
+    "replace_provinces": "¿Sustituir las provincias de {country} por todo el país?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "Bloqueos dentro de IP permitidas",
     "allowlisted_logins_can_ban_hint": "Cuidado: las IP de confianza pueden bloquearse.",
     "default_deny_enabled": "Bloquear todo fuera de IP permitidas",
-    "default_deny_enabled_hint": "Cuidado: solo las IP permitidas pueden conectarse."
+    "default_deny_enabled_hint": "Cuidado: solo las IP permitidas pueden conectarse.",
+    "activity_history_hours": "Retención del historial (horas)",
+    "activity_history_hours_hint": "1-168 horas; hasta 1000 eventos. Reducir el plazo elimina entradas antiguas."
   },
   "backup": {
     "save_title": "Guardar en config",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "Actividad",
+    "settings": "Configuración",
+    "backup": "Copia de seguridad",
+    "allowed": "IP permitidas",
+    "blocking": "Bloqueo",
+    "notifications": "Notificaciones"
+  },
+  "confirmation": {
+    "title": "Confirmar cambio",
+    "cancel": "Cancelar",
+    "continue": "Continuar",
+    "dismiss": "Cerrar"
   }
 }

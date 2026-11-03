@@ -156,7 +156,9 @@
       "add_country": "Tilføj aktuelt land",
       "add_subdivision": "Tilføj aktuel provins/delstat",
       "hint": "Regler bevares, når låsen er slået fra. Provinstærskler går foran landetærskler. Nul deaktiverer automatiske blokeringer. Tilføj en eksisterende kode for at opdatere den.",
-      "warning": "Advarsel: offentlige IP-adresser uden for listen eller med ukendt placering blokeres. Tilladte IP-adresser, intern trafik og callbackbeskyttelse respekteres."
+      "warning": "Advarsel: offentlige IP-adresser uden for listen eller med ukendt placering blokeres. Tilladte IP-adresser, intern trafik og callbackbeskyttelse respekteres.",
+      "replace_country": "{country} tillader allerede alle regioner. Erstat med {region}? Andre angivne regioner forbliver tilladt.",
+      "replace_provinces": "Erstat de angivne regioner i {country} med hele landet?"
     },
     "regional_rules": {
       "title": "Regionale login-grænser",
@@ -237,7 +239,9 @@
         "subdivision": "Lokal eller tilpasset provins/stat"
       },
       "blocked_request_logging_enabled": "Log blokerede anmodninger",
-      "blocked_request_logging_enabled_hint": "Diagnostik: registrer klient-IP, blokeringsårsag, metode og sti i Home Assistant-loggen. Gentagne poster hastighedsbegrænses. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "Diagnostik: registrer klient-IP, blokeringsårsag, metode og sti i Home Assistant-loggen. Gentagne poster hastighedsbegrænses. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "Historikopbevaring (timer)",
+      "activity_history_hours_hint": "1-168 timer; højst 1.000 hændelser. En kortere periode sletter ældre poster."
     },
     "backup": {
       "save_title": "Gem til config",
@@ -334,6 +338,23 @@
       "protect_all_domains": "Beskyt alle NPM-domæner",
       "protect_all_domains_hint": "Anvend disse regler på alle aktive proxyværter, også værter der tilføjes senere.",
       "protect_all_domains_warning": "Anvend IP Ban Manager-regler på alle aktive Nginx Proxy Manager-værter? Eksisterende værtsindstillinger bevares, men disse adgangsregler vil påvirke alle domæner."
+    },
+    "tabs": {
+      "activity": "Aktivitet",
+      "settings": "Indstillinger",
+      "backup": "Sikkerhedskopi",
+      "allowed": "Tilladte IP'er",
+      "blocking": "Blokering",
+      "notifications": "Notifikationer"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "Bekræft ændring",
+      "cancel": "Annuller",
+      "continue": "Fortsæt",
+      "dismiss": "Luk"
     }
   },
   "entity": {

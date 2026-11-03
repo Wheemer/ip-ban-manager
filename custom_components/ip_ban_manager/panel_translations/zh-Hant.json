@@ -4,7 +4,9 @@
     "add_country": "新增目前國家",
     "add_subdivision": "新增目前省/州",
     "hint": "關閉時保留規則。省/州門檻優先於國家。零停用自動登入封鎖。新增現有代碼可更新規則。",
-    "warning": "高風險：啟用後，清單外或位置未知的公開 IP 將被封鎖。允許的 IP、內部流量及整合回呼保護選項仍受尊重。"
+    "warning": "高風險：啟用後，清單外或位置未知的公開 IP 將被封鎖。允許的 IP、內部流量及整合回呼保護選項仍受尊重。",
+    "replace_country": "{country}已允許所有省份。替換為{region}？其他列出的省份仍獲允許。",
+    "replace_provinces": "將{country}列出的省份替換為允許整個國家？"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "在“允許的 IP”内封鎖",
     "allowlisted_logins_can_ban_hint": "請謹慎：受信任的 IP 也可能被封鎖。",
     "default_deny_enabled": "封鎖“允許的 IP”之外的所有訪問",
-    "default_deny_enabled_hint": "請謹慎：僅允許的 IP 可以連接。"
+    "default_deny_enabled_hint": "請謹慎：僅允許的 IP 可以連接。",
+    "activity_history_hours": "歷史記錄保留時間（小時）",
+    "activity_history_hours_hint": "1-168小時，最多1,000筆事件。縮短時間將刪除較早的記錄。"
   },
   "backup": {
     "save_title": "儲存到設定",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "活動",
+    "settings": "設定",
+    "backup": "備份",
+    "allowed": "允許的 IP",
+    "blocking": "封鎖",
+    "notifications": "通知"
+  },
+  "confirmation": {
+    "title": "確認變更",
+    "cancel": "取消",
+    "continue": "繼續",
+    "dismiss": "關閉"
   }
 }

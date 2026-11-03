@@ -4,7 +4,9 @@
     "add_country": "현재 국가 추가",
     "add_subdivision": "현재 도/주 추가",
     "hint": "꺼져 있어도 규칙은 저장됩니다. 도/주 임계값이 국가보다 우선합니다. 0은 자동 로그인 차단을 끕니다. 기존 코드를 추가하면 업데이트됩니다.",
-    "warning": "주의: 활성화하면 목록 밖이거나 위치를 알 수 없는 공개 IP가 차단됩니다. 허용된 IP, 내부 트래픽 및 통합 콜백 보호 옵션은 유지됩니다."
+    "warning": "주의: 활성화하면 목록 밖이거나 위치를 알 수 없는 공개 IP가 차단됩니다. 허용된 IP, 내부 트래픽 및 통합 콜백 보호 옵션은 유지됩니다.",
+    "replace_country": "{country}는 이미 모든 지역을 허용합니다. {region}으로 바꾸시겠습니까? 다른 등록된 지역은 계속 허용됩니다.",
+    "replace_provinces": "{country}의 등록된 지역을 국가 전체 허용으로 바꾸시겠습니까?"
   },
   "title": "IP Ban Manager",
   "regional_rules": {
@@ -104,7 +106,9 @@
     "allowlisted_logins_can_ban": "허용 IP 내 차단",
     "allowlisted_logins_can_ban_hint": "주의: 신뢰 IP도 차단될 수 있습니다.",
     "default_deny_enabled": "허용 IP 외 모든 접속 차단",
-    "default_deny_enabled_hint": "주의: 허용 IP만 연결할 수 있습니다."
+    "default_deny_enabled_hint": "주의: 허용 IP만 연결할 수 있습니다.",
+    "activity_history_hours": "기록 보관 기간(시간)",
+    "activity_history_hours_hint": "1~168시간, 최대 1,000개 이벤트. 기간을 줄이면 오래된 기록이 삭제됩니다."
   },
   "backup": {
     "save_title": "구성에 저장",
@@ -202,12 +206,26 @@
     "request_count": "Requests: {count}",
     "recent": "Recent",
     "history": "History",
-    "retention": "History is retained for 24 hours.",
+    "retention": "History is retained for {hours} hours.",
     "clear": "Clear history",
     "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"
     }
+  },
+  "tabs": {
+    "activity": "활동",
+    "settings": "설정",
+    "backup": "백업",
+    "allowed": "허용 IP",
+    "blocking": "차단",
+    "notifications": "알림"
+  },
+  "confirmation": {
+    "title": "변경 확인",
+    "cancel": "취소",
+    "continue": "계속",
+    "dismiss": "닫기"
   }
 }

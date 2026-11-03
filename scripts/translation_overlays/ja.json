@@ -156,7 +156,9 @@
       "add_country": "現在の国を追加",
       "add_subdivision": "現在の都道府県/州を追加",
       "hint": "オフでもルールは保存されます。都道府県/州のしきい値が国より優先されます。ゼロは自動ブロックを無効にします。既存コードの追加で更新できます。",
-      "warning": "注意：有効時、一覧外や所在地不明の公開 IP はブロックされます。許可済み IP、内部通信、コールバック保護設定は尊重されます。"
+      "warning": "注意：有効時、一覧外や所在地不明の公開 IP はブロックされます。許可済み IP、内部通信、コールバック保護設定は尊重されます。",
+      "replace_country": "{country}はすべての地域を許可しています。{region}に置き換えますか？他の登録済み地域は引き続き許可されます。",
+      "replace_provinces": "{country}の登録済み地域を国全体の許可に置き換えますか？"
     },
     "regional_rules": {
       "title": "地域別ログインしきい値",
@@ -237,7 +239,9 @@
         "subdivision": "ローカルまたはカスタムの州/州"
       },
       "blocked_request_logging_enabled": "ブロックされたリクエストを記録",
-      "blocked_request_logging_enabled_hint": "診断用: クライアント IP、ブロック理由、メソッド、パスを Home Assistant ログに記録します。繰り返しの記録は制限されます。. Also show denied requests in Incoming Activity when enabled."
+      "blocked_request_logging_enabled_hint": "診断用: クライアント IP、ブロック理由、メソッド、パスを Home Assistant ログに記録します。繰り返しの記録は制限されます。. Also show denied requests in Incoming Activity when enabled.",
+      "activity_history_hours": "履歴の保持期間（時間）",
+      "activity_history_hours_hint": "1～168時間、最大1,000件。期間を短くすると古い履歴が削除されます。"
     },
     "backup": {
       "save_title": "設定に保存",
@@ -334,6 +338,23 @@
       "protect_all_domains": "すべての NPM ドメインを保護",
       "protect_all_domains_hint": "後から追加されるものを含む、すべての有効なプロキシホストにこれらのルールを適用します。",
       "protect_all_domains_warning": "IP Ban Manager のルールを、すべての有効な Nginx Proxy Manager ホストに適用しますか？既存のホスト設定は維持されますが、これらのアクセスルールはすべてのドメインに影響します。"
+    },
+    "tabs": {
+      "activity": "アクティビティ",
+      "settings": "設定",
+      "backup": "バックアップ",
+      "allowed": "許可 IP",
+      "blocking": "ブロック",
+      "notifications": "通知"
+    },
+    "activity": {
+      "retention": "History is retained for {hours} hours."
+    },
+    "confirmation": {
+      "title": "変更を確認",
+      "cancel": "キャンセル",
+      "continue": "続行",
+      "dismiss": "閉じる"
     }
   },
   "entity": {

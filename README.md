@@ -8,7 +8,7 @@
 ### Live IP ban and allowlist management for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-CUSTOM-FD7E14?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://github.com/hacs/integration)
-[![Home Assistant 2024.7.4+](https://img.shields.io/badge/HOME%20ASSISTANT-2024.7.4%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
+[![Home Assistant 2026.4.0+](https://img.shields.io/badge/HOME%20ASSISTANT-2026.4.0%2B-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white&labelColor=555555)](https://www.home-assistant.io/)
 [![Latest release](https://img.shields.io/github/v/release/Wheemer/ip-ban-manager?style=for-the-badge&logo=github&logoColor=white&label=RELEASE&labelColor=555555&color=22C55E)](https://github.com/Wheemer/ip-ban-manager/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Wheemer/ip-ban-manager/total?style=for-the-badge&logo=github&logoColor=white&label=DOWNLOADS&labelColor=555555&color=8A2BE2)](https://github.com/Wheemer/ip-ban-manager/releases)
 [![License](https://img.shields.io/badge/LICENSE-AGPL--3.0-64748B?style=for-the-badge&labelColor=555555)](https://github.com/Wheemer/ip-ban-manager/blob/main/LICENSE)
@@ -24,7 +24,7 @@ Originally created by [palfrey](https://github.com/palfrey). This fork builds on
 
 IP Ban Manager provides a live interface for Home Assistant's built-in [IP filtering and banning](https://www.home-assistant.io/integrations/http/#ip-filtering-and-banning), with allowlists, network blocks, region restrictions, notifications, and automation support.
 
-Requires Home Assistant `2024.7.4` or newer. Designed for Home Assistant OS, Container, and existing Core and Supervised installations.
+Requires Home Assistant `2026.4.0` or newer. Designed for Home Assistant OS, Container, and existing Core and Supervised installations. Older Home Assistant installations must stay on an earlier compatible IP Ban Manager release.
 
 ## What It Does
 
@@ -33,7 +33,7 @@ Requires Home Assistant `2024.7.4` or newer. Designed for Home Assistant OS, Con
 - **Blocked networks:** block CIDR networks and wildcard ranges without pretending `ip_bans.yaml` supports ranges.
 - **Default deny:** optionally block everything outside Allowed IPs with guardrails to avoid locking out Home Assistant itself.
 - **Live panel:** manage the whole integration from a dedicated page, with optional sidebar access.
-- **Incoming activity:** review observed failed logins and optional blocked requests, plus access-log activity from connected NGINX Proxy Manager hosts. Local history is retained for 24 hours.
+- **Incoming activity:** review observed failed logins and optional blocked requests, plus access-log activity from connected NGINX Proxy Manager hosts. Local history defaults to 24 hours, configurable from 1 to 168 hours in Settings.
 - **Notifications:** replace Home Assistant's raw ban messages with IP Ban Manager notifications, optional allowlisted-login alerts, and stale-notification cleanup.
 - **GeoIP labels and limits:** optionally download a local DB-IP City Lite database for approximate public-IP location labels and country/province access limits.
 - **NGINX Proxy Manager edge protection:** mirror rules to the Home Assistant proxy host, or optionally all active NPM proxy hosts.
@@ -54,7 +54,7 @@ Requires Home Assistant `2024.7.4` or newer. Designed for Home Assistant OS, Con
 <table>
   <tr>
     <td>
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-overview.png" alt="IP Ban Manager options and allowed IPs" width="100%">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-overview.png" alt="IP Ban Manager Settings options" width="100%">
     </td>
   </tr>
   <tr>
@@ -64,7 +64,7 @@ Requires Home Assistant `2024.7.4` or newer. Designed for Home Assistant OS, Con
   </tr>
 </table>
 
-### Edge protection, GeoIP, and backups
+### Edge protection and backups
 
 <table>
   <tr>
@@ -72,7 +72,7 @@ Requires Home Assistant `2024.7.4` or newer. Designed for Home Assistant OS, Con
       <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-nginx-proxy-manager.png" alt="IP Ban Manager NGINX Proxy Manager settings" width="100%">
     </td>
     <td width="50%">
-      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-geoip-backup.png" alt="IP Ban Manager GeoIP and backup tools" width="100%">
+      <img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-geoip-backup.png" alt="IP Ban Manager Backup tab" width="100%">
     </td>
   </tr>
 </table>
@@ -116,16 +116,34 @@ Open **Settings > Devices & services > IP Ban Manager > Configure**. The panel i
 administrator-only. **Show in sidebar** adds a menu entry; turning it off does not
 remove access through **Configure**.
 
-The panel groups options, allowlists and blocks, incoming activity, Public Region
-Lock, NPM edge protection, GeoIP, and backups into their own sections.
+The panel has six tabs:
+
+- **Activity:** incoming traffic, with Recent and History views.
+- **Allowed IPs:** trusted addresses and silenced-login notifications.
+- **Blocking:** Blocked IPs, Blocked Networks, and Public Region Lock.
+- **Notifications:** ban alerts, allowlisted-login alerts, and activity logging.
+- **Settings:** general options, automatic bans, NPM edge protection, and GeoIP.
+- **Backup:** save, restore, download, and upload configuration backups.
+
+Switching tabs preserves unsaved fields. Incoming activity continues to update
+without refreshing the whole panel.
+The Notifications and Settings Apply buttons save their own section's options.
+Apply stays muted until that section has unsaved changes. Reverting or saving the
+changes makes it inactive again. Allowed IPs Add stays inactive while its field
+is empty. Blocking actions, removals, and backup transfers have distinct styling.
 
 List **Add**, **Block**, and **Remove** actions apply immediately. For options, Public Region Lock, and NPM settings, select the section's **Apply** button. These changes do not require a Home Assistant restart.
 
 ### Incoming activity
 
 **Incoming Activity** groups requests by source IP and updates automatically. **Recent**
-covers the last 15 minutes; **History** retains up to 1,000 sanitized events for 24 hours,
+covers the last 15 minutes; **History** retains up to 1,000 sanitized events for 24 hours by default,
 with up to 200 grouped rows displayed. Allowed IPs are excluded from both views.
+
+Set **History retention (hours)** under **Settings** to choose 1-168 hours.
+The 1,000-event limit still applies. Shortening retention deletes older history;
+extending it cannot recover expired entries. The retention setting is included in
+configuration backups; the activity history itself is not.
 
 Home Assistant alone provides failed-login activity and, when enabled, managed blocked
 requests. It is not a complete access log or a list of logged-in sessions. Connecting
@@ -245,7 +263,14 @@ Select **Enable Public Region Lock** and **Apply** to activate the list. This is
 
 Turning the lock off retains the list but disables both its access restriction and regional retry overrides. Other IP bans and the global failed-login threshold are unchanged. Only the checkbox turns the lock off: turn it off and apply before removing the last region. An empty list cannot be enabled. Enabling or changing an active restriction requires confirmation and a working GeoIP database.
 
-While enabled, province/state thresholds override country thresholds. Zero disables automatic login bans for that matching region, not its access restriction. Listing a country permits the whole country even when a province in it has a different retry threshold. GeoIP locations are approximate, so a legitimate user's ISP may be located in a different region.
+You can list several provinces/states, such as `CA-NL` and `CA-ON`. Adding a province
+when its whole country is already listed asks to replace the country rule. Adding
+the whole country back asks to replace its province rules. Cancel leaves the list
+unchanged; other countries and sibling provinces are preserved.
+
+Zero disables automatic login bans for that matching region, not its access
+restriction. GeoIP locations are approximate, so a legitimate user's ISP may be
+located in a different region.
 
 Existing single-region settings retain their original access boundary when converted to a list. Manual backups include the list and enabled state. New backups use format 3 to prevent older integration versions from silently ignoring these rules; format 1 and 2 backups remain importable.
 
