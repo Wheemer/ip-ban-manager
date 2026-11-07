@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.10.1
+
+### 🔧 NGINX Proxy Manager
+
+- Use the Home Assistant proxy host's forward address for regional authorization, preventing timeouts when NPM runs on a separate machine and Home Assistant reports an internal container IP.
+- Keep regional protection active across resyncs. A separate Home Assistant origin override is available for setups that need it.
+
 ## v1.10.0
 
 ### 🎨 Redesigned panel
