@@ -405,7 +405,10 @@ async def async_handle_manage_post(
         elif action == "npm_select_host":
             await async_select_npm_host(hass, data.get("host_id"))
         elif action == "npm_enable":
-            await async_enable_npm(hass)
+            origin = data.get("ha_origin")
+            if origin is not None and not isinstance(origin, str):
+                raise HomeAssistantError("Home Assistant origin must be a URL string.")
+            await async_enable_npm(hass, ha_origin=origin)
         elif action == "npm_sync":
             await async_sync_npm(hass)
         elif action == "npm_disconnect":

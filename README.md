@@ -216,6 +216,15 @@ Home Assistant's own exact interface addresses, including its IPv6 link-local ad
 
 IP Ban Manager can optionally enforce its managed rules at NGINX Proxy Manager before unwanted requests reach Home Assistant. Connect with the NPM URL, account email, and password. The password is exchanged for an API token and is not stored by IP Ban Manager.
 
+For regional authorization, NPM calls Home Assistant at the selected proxy host's
+forward scheme, host, and port. This is separate from the NPM URL above. If
+NPM needs a different Home Assistant destination, send an administrator-authenticated
+`POST /api/ip_ban_manager/manage` with
+`{"action":"npm_enable","ha_origin":"http://192.168.1.40:8123"}`
+(substitute the origin reachable from NPM). The override is saved across syncs;
+pass an empty `ha_origin` to return to the proxy host's forward destination.
+An unavailable authorization upstream does not bypass regional protection.
+
 Set Home Assistant's external URL before connecting. IP Ban Manager matches its exact hostname against NPM proxy hosts. A single match is selected automatically; otherwise, select the appropriate host in the panel. Enabling edge protection mirrors Allowed IPs, exact bans, blocked networks, and default-deny rules. Public Region Lock uses an authorization subrequest to Home Assistant.
 
 Policy changes synchronize automatically. **Protect all NPM domains** applies the policy to every active Proxy Host found during synchronization; newly added hosts are included on the next sync. Home Assistant callback exceptions remain limited to the selected Home Assistant host.

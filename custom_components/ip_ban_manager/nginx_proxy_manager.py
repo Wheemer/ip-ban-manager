@@ -125,6 +125,7 @@ class NpmProxyHost:
     enabled: bool
     advanced_config: str
     locations: tuple[str, ...] = ()
+    forward_origin: str = ""
 
     def panel_dict(self) -> dict[str, object]:
         """Return a non-sensitive panel representation."""
@@ -303,6 +304,7 @@ def _proxy_host(value: object) -> NpmProxyHost | None:
         access_list_id=max(0, access_list_id),
         enabled=bool(value.get("enabled", True)),
         advanced_config=str(value.get("advanced_config") or ""),
+        forward_origin=_forward_origin(value),
         locations=tuple(
             str(location.get("path") or "")
             for location in value.get("locations", []) or []
@@ -810,27 +812,42 @@ async def async_select_npm_host(hass: HomeAssistant, host_id_value: object) -> N
     )
 
 
-def _ha_local_api_url(hass: HomeAssistant) -> str:
-    """Return the local HTTP origin NPM can use for its auth subrequest."""
-    api = getattr(hass.config, "api", None)
-    raw_address = str(getattr(api, "local_ip", "") or "").strip()
+def normalize_ha_origin(value: object) -> str:
+    """Validate an HTTP origin before interpolating it into NGINX config."""
+    raw = str(value or "").strip()
     try:
-        address = ip_address(raw_address)
+        parsed = urlsplit(raw)
+        host = parsed.hostname
+        port = parsed.port
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not host
+            or parsed.path not in {"", "/"}
+            or (port is not None and port < 1)
+            or not re.fullmatch(
+                r"https?://(?:[a-zA-Z0-9._-]+|\[[a-fA-F0-9:]+\])(?::[0-9]+)?/?", raw
+            )
+        ):
+            raise ValueError
+        if ":" in host:
+            host = f"[{IPv6Address(host).compressed}]"
+        return f"{parsed.scheme}://{host}{f':{port}' if port else ''}"
     except ValueError as err:
         raise HomeAssistantError(
-            "Home Assistant's local API address is unavailable for NPM region protection."
+            "Enter a Home Assistant origin reachable from NPM, without a path."
         ) from err
-    if address.is_unspecified:
-        raise HomeAssistantError(
-            "Home Assistant's local API address is unavailable for NPM region protection."
+
+
+def _forward_origin(value: Mapping[str, object]) -> str:
+    host = str(value.get("forward_host") or "")
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    try:
+        return normalize_ha_origin(
+            f"{value.get('forward_scheme')}://{host}:{value.get('forward_port')}"
         )
-    host = (
-        f"[{address.compressed}]"
-        if isinstance(address, IPv6Address)
-        else address.compressed
-    )
-    port = int(getattr(hass.http, "server_port", 8123))
-    return f"http://{host}:{port}"
+    except HomeAssistantError:
+        return ""
 
 
 def _ensure_region_auth_secret(config: Mapping[str, object]) -> dict[str, object]:
@@ -841,14 +858,18 @@ def _ensure_region_auth_secret(config: Mapping[str, object]) -> dict[str, object
     return {**config, NPM_REGION_AUTH_SECRET_KEY: secrets.token_urlsafe(32)}
 
 
-def _region_auth_rules(hass: HomeAssistant, config: Mapping[str, object]) -> list[str]:
+def _region_auth_rules(config: Mapping[str, object], host: NpmProxyHost) -> list[str]:
     """Build the compact NPM gate used for public-region enforcement."""
     secret = str(config.get(NPM_REGION_AUTH_SECRET_KEY) or "").strip()
     if not secret:
         raise HomeAssistantError(
             "NPM region protection is missing its authorization secret. Disable and re-enable NPM protection."
         )
-    origin = _ha_local_api_url(hass)
+    origin = normalize_ha_origin(config.get("ha_origin") or host.forward_origin)
+    if urlsplit(origin).hostname in host.domain_names:
+        raise HomeAssistantError(
+            "The Home Assistant origin must not point back to its NPM proxy hostname."
+        )
     return [
         f"auth_request {NPM_REGION_AUTH_PATH};",
         f"location = {NPM_REGION_AUTH_PATH} {{",
@@ -1132,16 +1153,19 @@ async def _reconcile_npm_policy(
 ) -> list[int]:
     """Reconcile the selected host or every active proxy host."""
     selected_host_id = _stored_int(config.get("proxy_host_id"))
-    if enabled and not any(host.host_id == selected_host_id for host in hosts):
+    selected_host = next(
+        (host for host in hosts if host.host_id == selected_host_id), None
+    )
+    if enabled and selected_host is None:
         raise HomeAssistantError(
             "The selected Nginx Proxy Manager host no longer exists."
         )
     desired_rules: dict[int, list[str]] = {}
-    if enabled:
+    if enabled and selected_host is not None:
         default_deny = entry_default_deny_enabled(entry)
         region_settings = entry_public_region_settings(hass, entry)
         region_auth_rules = tuple(
-            _region_auth_rules(hass, config)
+            _region_auth_rules(config, selected_host)
             if region_settings["public_region_enabled"]
             else ()
         )
@@ -1185,11 +1209,16 @@ async def async_enable_npm(
     *,
     mirror_default_deny: bool | None = None,
     protect_all_domains: bool | None = None,
+    ha_origin: str | None = None,
 ) -> None:
     """Enable edge-policy synchronization on the configured proxy hosts."""
     entry = _config_entry(hass)
     config = entry_npm_config(entry)
     config = _ensure_region_auth_secret(config)
+    if ha_origin is not None:
+        config["ha_origin"] = (
+            normalize_ha_origin(ha_origin) if ha_origin.strip() else ""
+        )
     # The main default-deny option is authoritative; keep the keyword for live reloads.
     mirror_default_deny = entry_default_deny_enabled(entry)
     host_id = _stored_int(config.get("proxy_host_id"))

@@ -111,18 +111,21 @@ def test_managed_config_replacement_preserves_user_configuration() -> None:
     assert updated.count(npm.NPM_CONFIG_END) == 1
 
 
-def test_region_auth_rules_use_local_ha_and_compact_npm_gate() -> None:
+def test_region_auth_rules_use_proxy_destination_and_compact_npm_gate() -> None:
     """NPM receives an auth subrequest instead of a large country CIDR list."""
-    hass = cast(
-        HomeAssistant,
-        SimpleNamespace(
-            config=SimpleNamespace(api=SimpleNamespace(local_ip="192.168.1.40")),
-            http=SimpleNamespace(server_port=8123),
-        ),
+    host = npm._proxy_host(
+        {
+            "id": 1,
+            "domain_names": ["ha.example.test"],
+            "forward_scheme": "http",
+            "forward_host": "192.168.1.40",
+            "forward_port": 8123,
+        }
     )
+    assert host is not None
 
     rules = npm._region_auth_rules(
-        hass, {npm.NPM_REGION_AUTH_SECRET_KEY: "test-secret"}
+        {npm.NPM_REGION_AUTH_SECRET_KEY: "test-secret"}, host
     )
     rendered = "\n".join(rules)
 
@@ -134,6 +137,35 @@ def test_region_auth_rules_use_local_ha_and_compact_npm_gate() -> None:
         in rendered
     )
     assert len(rendered) < 2000
+    explicit = npm._region_auth_rules(
+        {
+            npm.NPM_REGION_AUTH_SECRET_KEY: "test-secret",
+            "ha_origin": "http://[fd00::40]:8123",
+        },
+        host,
+    )
+    assert (
+        "    proxy_pass http://[fd00::40]:8123/api/ip_ban_manager/npm-region-auth;"
+        in explicit
+    )
+    with pytest.raises(HomeAssistantError, match="must not point back"):
+        npm._region_auth_rules(
+            {
+                npm.NPM_REGION_AUTH_SECRET_KEY: "test-secret",
+                "ha_origin": "https://ha.example.test",
+            },
+            host,
+        )
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["", "http://ha/path", "http://ha;include", "http://ha:0", "http://user@ha"],
+)
+def test_invalid_ha_origin_is_rejected(origin: str) -> None:
+    """Missing or unsafe origins must not produce a proxy rule."""
+    with pytest.raises(HomeAssistantError):
+        npm.normalize_ha_origin(origin)
 
 
 def test_callback_locations_bypass_non_exact_edge_restrictions() -> None:
