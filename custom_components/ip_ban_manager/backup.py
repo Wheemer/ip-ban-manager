@@ -45,6 +45,7 @@ from .const import (
     CONF_DEFAULT_DENY_ENABLED,
     CONF_GEOIP_ENABLED,
     CONF_IP_ADDRESSES,
+    CONF_IPV6_LOCAL_DEFAULTS_MIGRATED,
     CONF_LOGIN_ATTEMPTS_THRESHOLD,
     CONF_NPM,
     CONF_REGIONAL_LOGIN_THRESHOLDS,
@@ -212,6 +213,12 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
         "settings": {
             **entry_public_region_settings(hass, entry),
             CONF_IP_ADDRESSES: entry_ip_addresses(entry),
+            CONF_IPV6_LOCAL_DEFAULTS_MIGRATED: bool(
+                entry.options.get(
+                    CONF_IPV6_LOCAL_DEFAULTS_MIGRATED,
+                    entry.data.get(CONF_IPV6_LOCAL_DEFAULTS_MIGRATED, False),
+                )
+            ),
             CONF_BLOCKED_NETWORKS: entry_blocked_networks(entry),
             CONF_ALLOWLIST_ENTRY_META: entry_allowlist_meta(entry),
             CONF_BLOCKED_NETWORK_ENTRY_META: entry_blocked_network_meta(entry),
@@ -487,6 +494,14 @@ async def _async_apply_config_backup_payload(
     activity_history_hours = normalize_activity_history_hours(
         settings.get(CONF_ACTIVITY_HISTORY_HOURS, entry_activity_history_hours(entry))
     )
+    ipv6_defaults_migrated = _bool_from_import(
+        settings, CONF_IPV6_LOCAL_DEFAULTS_MIGRATED, False
+    ) or bool(
+        entry.options.get(
+            CONF_IPV6_LOCAL_DEFAULTS_MIGRATED,
+            entry.data.get(CONF_IPV6_LOCAL_DEFAULTS_MIGRATED, False),
+        )
+    )
     blocked_request_logging_enabled = _bool_from_import(
         settings,
         CONF_BLOCKED_REQUEST_LOGGING_ENABLED,
@@ -676,6 +691,7 @@ async def _async_apply_config_backup_payload(
         hass,
         **{
             CONF_IP_ADDRESSES: allowlist,
+            CONF_IPV6_LOCAL_DEFAULTS_MIGRATED: ipv6_defaults_migrated,
             CONF_BLOCKED_NETWORKS: blocked_networks,
             CONF_ALLOWLIST_ENTRY_META: allowlist_meta,
             CONF_BLOCKED_NETWORK_ENTRY_META: blocked_meta,

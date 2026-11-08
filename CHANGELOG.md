@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.10.2
+
+### 🌐 IPv6 upgrade fix
+
+- Restore local hostname access for eligible existing installations by migrating detected IPv6 link-local networks into visible Allowed IPs entries.
+- Respect custom allowlists and explicitly blocked networks. Removing the migrated allowance remains effective after reloads and backup restores.
+
 ## v1.10.1
 
 ### 🔧 NGINX Proxy Manager

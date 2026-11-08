@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ipaddress import IPv4Network, IPv6Network
+
 from homeassistant.components.http.ban import (
     KEY_BAN_MANAGER,
     KEY_LOGIN_THRESHOLD,
@@ -31,10 +33,12 @@ from .blocked_request_log import clear_blocked_request_log_state, log_blocked_re
 from .const import (
     ALLOWED_REGION_ANYWHERE,
     ATTR_NETWORK,
+    ATTR_SOURCE,
     CONF_ALLOWLIST_ENTRY_META,
     CONF_BLOCKED_NETWORK_ENTRY_META,
     CONF_BLOCKED_NETWORKS,
     CONF_IP_ADDRESSES,
+    CONF_IPV6_LOCAL_DEFAULTS_MIGRATED,
     DOMAIN,
     SOURCE_DETECTED,
     SOURCE_PANEL,
@@ -82,6 +86,7 @@ from .storage_keys import (
     KEY_INTERNAL_BYPASS_NETWORKS,
     KEY_ORIGINAL_LOGIN_THRESHOLD,
     IPAddress,
+    IPNetwork,
 )
 
 
@@ -115,8 +120,17 @@ async def async_update_internal_bypass_networks(hass: HomeAssistant) -> None:
         lookup.internal_bypass_networks = networks
 
 
+def _network_is_covered(network: IPNetwork, allowed: IPNetwork) -> bool:
+    """Compare subnets without mixing address families."""
+    if isinstance(network, IPv4Network) and isinstance(allowed, IPv4Network):
+        return network.subnet_of(allowed)
+    if isinstance(network, IPv6Network) and isinstance(allowed, IPv6Network):
+        return network.subnet_of(allowed)
+    return False
+
+
 async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
-    """Add newly detected internal defaults for entries using safe local defaults."""
+    """Sync internal defaults and migrate legacy link-local trust once."""
     entry = _config_entry(hass)
     current = entry_ip_addresses(entry)
     current_networks = {
@@ -138,7 +152,10 @@ async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
         if parse_allowlist_network(network) not in internal_networks
     ]
     if not any(
-        parse_allowlist_network(network) in current_networks
+        any(
+            _network_is_covered(parse_allowlist_network(network), allowed)
+            for allowed in current_networks
+        )
         for network in local_defaults
     ):
         return
@@ -151,8 +168,43 @@ async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
             if parse_allowlist_network(network) not in current_networks
         ),
     ]
-    if updated != current:
-        update_allowlist_entry(hass, updated, meta_source=SOURCE_DETECTED)
+    migrate_ipv6 = False
+    if not entry.options.get(
+        CONF_IPV6_LOCAL_DEFAULTS_MIGRATED,
+        entry.data.get(CONF_IPV6_LOCAL_DEFAULTS_MIGRATED, False),
+    ):
+        meta = entry_allowlist_meta(entry)
+        uses_detected_local = not meta or any(
+            network in current
+            and meta.get(network, {}).get(ATTR_SOURCE) == SOURCE_DETECTED
+            for network in local_defaults
+        )
+        link_local = [
+            network
+            for network in map(parse_allowlist_network, local_defaults)
+            if isinstance(network, IPv6Network) and network.is_link_local
+        ]
+        if uses_detected_local and link_local:
+            migrate_ipv6 = True
+            blocked = parse_blocked_networks(entry_blocked_networks(entry))
+            for network in link_local:
+                covered = any(
+                    _network_is_covered(network, allowed)
+                    for allowed in current_networks
+                )
+                explicitly_blocked = any(
+                    denied.version == 6 and network.overlaps(denied)
+                    for denied in blocked
+                )
+                if not covered and not explicitly_blocked:
+                    updated.append(str(network))
+    if updated != current or migrate_ipv6:
+        update_allowlist_entry(
+            hass,
+            updated,
+            meta_source=SOURCE_DETECTED,
+            mark_ipv6_defaults_migrated=migrate_ipv6,
+        )
 
 
 def dismiss_http_notifications(hass: HomeAssistant) -> None:
@@ -270,6 +322,7 @@ def update_allowlist_entry(
     ip_addresses: list[str],
     *,
     meta_source: str | None = None,
+    mark_ipv6_defaults_migrated: bool = False,
 ) -> None:
     """Persist and apply the current allowlist without a Home Assistant restart."""
     entry = _config_entry(hass)
@@ -284,13 +337,13 @@ def update_allowlist_entry(
         allowlist_meta = sync_network_list_meta(
             allowlist_meta, ip_addresses, source=meta_source
         )
-    update_entry_options(
-        hass,
-        **{
-            CONF_IP_ADDRESSES: ip_addresses,
-            CONF_ALLOWLIST_ENTRY_META: allowlist_meta,
-        },
-    )
+    updates: dict[str, object] = {
+        CONF_IP_ADDRESSES: ip_addresses,
+        CONF_ALLOWLIST_ENTRY_META: allowlist_meta,
+    }
+    if mark_ipv6_defaults_migrated:
+        updates[CONF_IPV6_LOCAL_DEFAULTS_MIGRATED] = True
+    update_entry_options(hass, **updates)
     hass.http.app[KEY_ALLOWLIST] = parse_allowlist(ip_addresses)
     apply_blocked_networks(hass, _config_entry(hass))
 
