@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.10.2](CHANGELOG.md#v1102) | Fixes IPv6 link-local allowance migration on upgrades while respecting custom lists, explicit blocks, and removed allowances. |
 | [v1.10.1](CHANGELOG.md#v1101) | Fixes regional authorization when NGINX Proxy Manager runs on a separate machine. |
 | [v1.10.0](CHANGELOG.md#v1100) | Redesigned tabbed panel, consistent controls and confirmation dialogs, configurable history retention, safer country/province replacement, and automatic panel build refresh. Requires Home Assistant 2026.4.0+. |
 | [v1.9.7](CHANGELOG.md#v197) | Fixes concurrent ban writes, NPM synchronization, unload/reload handling, DNS allowlist expiry, and notification consistency; clarifies documentation and updates automation dependencies. |

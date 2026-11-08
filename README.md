@@ -140,6 +140,13 @@ is empty. Blocking actions, removals, and backup transfers have distinct styling
 
 List **Add**, **Block**, and **Remove** actions apply immediately. For options, Public Region Lock, and NPM settings, select the section's **Apply** button. These changes do not require a Home Assistant restart.
 
+When upgrading an existing local-safe-default configuration, IP Ban Manager can
+add the detected IPv6 link-local subnet to **Allowed IPs** once. This preserves
+local hostname access that uses IPv6 instead of IPv4. The entry is visible and
+removable; removing it is respected on later reloads. Custom configurations and
+explicit overlapping IPv6 network blocks are not overridden. Other IPv6 networks
+still require their own allowed entries.
+
 ### Incoming activity
 
 **Incoming Activity** groups requests by source IP and updates automatically. **Recent**

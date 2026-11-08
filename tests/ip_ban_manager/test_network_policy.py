@@ -480,13 +480,13 @@ async def test_setup_does_not_duplicate_equivalent_internal_defaults(
 async def test_default_deny_does_not_block_ipv6_link_local_access(
     hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Test default-deny still allows enabled adapter IPv6 link-local access."""
+    """Visible IPv6 allowance permits clients without a hidden subnet bypass."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
-    ipbm._update_allowlist_entry(hass, ["192.168.1.0/24"])
+    ipbm._update_allowlist_entry(hass, ["192.168.1.0/24", "fe80::/64"])
 
     async def mock_self_networks(hass: HomeAssistant) -> tuple[IPv6Network, ...]:
-        return (IPv6Network("fe80::/64"),)
+        return (IPv6Network("fe80::1/128"),)
 
     async def mock_detected_subnets(hass: HomeAssistant) -> list[str]:
         return ["192.168.1.0/24", "fe80::/64"]
