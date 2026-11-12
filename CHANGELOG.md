@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.10.3
+
+### 🔧 Blocking fixes
+
+- Save exact IP bans when the address is already rejected by Public Region Lock or default-deny rules, so the ban remains effective if those restrictions are later relaxed.
+- Stop Block clicks from creating phantom incoming activity for the target IP using the administrator's management request.
+
+### 🛠️ Maintenance
+
+- Update uv to 0.13.7, setup-uv to 10.3.3, CodeQL to 4.39.3, and Renovate's GitHub Action to 46.3.13.
+
 ## v1.10.2
 
 ### 🌐 IPv6 upgrade fix
