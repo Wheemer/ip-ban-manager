@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
-from contextlib import suppress
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, suppress
+from contextvars import ContextVar
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address
 from urllib.parse import urlsplit
 
@@ -21,6 +22,22 @@ from .blocked_request_log import (
 IPAddress = IPv4Address | IPv6Address
 IPNetwork = IPv4Network | IPv6Network
 BlockedRequestObserver = Callable[[IPAddress, str], None]
+
+_EXACT_BAN_MEMBERSHIP: ContextVar[bool] = globals().get(
+    "_EXACT_BAN_MEMBERSHIP",
+    ContextVar("ip_ban_manager_exact_membership", default=False),
+)
+
+
+@contextmanager
+def exact_ban_membership() -> Iterator[None]:
+    """Limit HA's add-ban deduplication to stored bans in this task."""
+    token = _EXACT_BAN_MEMBERSHIP.set(True)
+    try:
+        yield
+    finally:
+        _EXACT_BAN_MEMBERSHIP.reset(token)
+
 
 SUPERVISOR_DOCKER_PARENT_NETWORK = IPv4Network("172.30.0.0/16")
 SUPERVISOR_INTERNAL_NETWORKS: tuple[IPNetwork, ...] = (
@@ -82,6 +99,8 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
             return False
 
         remote_addr = _normalize_remote_addr(key)
+        if _EXACT_BAN_MEMBERSHIP.get():
+            return dict.__contains__(self, key) or dict.__contains__(self, remote_addr)
         if _is_allowed(remote_addr, self.internal_bypass_networks):
             return False
 

@@ -26,7 +26,12 @@ from .audit import (
     record_login_failed,
     record_login_threshold_reached,
 )
-from .ban_lookup import NetworkAwareBanLookup, _is_allowed, _normalize_remote_addr
+from .ban_lookup import (
+    NetworkAwareBanLookup,
+    _is_allowed,
+    _normalize_remote_addr,
+    exact_ban_membership,
+)
 from .ban_ops import ban_file_lock
 from .const import SOURCE_AUTO
 from .entry_helpers import allowlisted_logins_can_ban
@@ -276,6 +281,10 @@ def install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> Non
     app = hass.http.app
     app.setdefault(KEY_ORIGINAL_ADD_BAN, ban_manager.async_add_ban)
 
+    async def add_exact_ban(remote_addr: IPAddress) -> None:
+        with exact_ban_membership():
+            await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
+
     async def allowlist_async_add_ban(remote_addr: IPAddress) -> None:
         async with ban_file_lock(hass):
             if _is_allowed(remote_addr, app.get(KEY_INTERNAL_BYPASS_NETWORKS, ())):
@@ -296,12 +305,15 @@ def install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> Non
                 return
 
             active_ban_manager = app.get(KEY_BAN_MANAGER)
-            already_banned = (
-                active_ban_manager is not None
-                and remote_addr in active_ban_manager.ip_bans_lookup
+            already_banned = active_ban_manager is not None and (
+                dict.__contains__(active_ban_manager.ip_bans_lookup, remote_addr)
+                or dict.__contains__(
+                    active_ban_manager.ip_bans_lookup,
+                    _normalize_remote_addr(remote_addr),
+                )
             )
             if already_banned:
-                await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
+                await add_exact_ban(remote_addr)
                 return
 
             _LOGGER.info("Banning IP %s", remote_addr)
@@ -310,7 +322,7 @@ def install_add_ban_patch(hass: HomeAssistant, ban_manager: IpBanManager) -> Non
             if threshold is None:
                 threshold = effective_login_threshold_for_ip(hass, remote_addr)
             attempts = int(app[KEY_FAILED_LOGIN_ATTEMPTS].get(remote_addr, 0))
-            await app[KEY_ORIGINAL_ADD_BAN](remote_addr)
+            await add_exact_ban(remote_addr)
             if should_record_threshold and threshold >= 1 and attempts >= threshold:
                 record_login_threshold_reached(
                     hass,
