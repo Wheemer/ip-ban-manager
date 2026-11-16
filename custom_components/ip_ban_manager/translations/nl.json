@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Die instelling zou elk gedetecteerd lokaal toegangspad blokkeren. Voeg eerst een huidig lokaal netwerk toe aan Toegestane IP's.",
       "unsafe_allowlist_network": "Dat allowlist-item zou elk IP-adres vertrouwen en IP-bans praktisch uitschakelen.",
       "banned_ip_allowlisted": "Een IP kan niet tegelijk toegestaan en geband zijn. Verwijder het uit één lijst en probeer opnieuw.",
-      "confirmation_required": "Vink het bevestigingsvakje aan voordat u alle geblokkeerde IP's wist."
+      "confirmation_required": "Vink het bevestigingsvakje aan voordat u alle geblokkeerde IP's wist.",
+      "geoip_required": "Schakel regionale regels uit voordat je GeoIP uitschakelt."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "Gezondheidscontrole IP Ban Manager vereist aandacht",
       "description": "IP Ban Manager vond een of meer setupproblemen die live banbeheer kunnen beïnvloeden:\n\n{issues}\n\nOpen het IP Ban Manager-paneel na het oplossen om de gezondheidscontrole te vernieuwen."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Verzoek mislukt.",
+      "description": "{issues}"
     }
   },
   "selector": {

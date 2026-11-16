@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Den innstillingen ville blokkere alle oppdagede lokale tilgangsveier. Legg til et nåværende lokalt nettverk i Tillatte IP-er først.",
       "unsafe_allowlist_network": "Det tillatte listeelementet ville ha stolt på alle IP-adresser og i praksis deaktivere IP-utestengelse.",
       "banned_ip_allowlisted": "En IP kan ikke være både tillatt og utestengt. Fjern den fra én liste og prøv igjen.",
-      "confirmation_required": "Merk av i bekreftelsesboksen før du fjerner alle blokkerte IP-er."
+      "confirmation_required": "Merk av i bekreftelsesboksen før du fjerner alle blokkerte IP-er.",
+      "geoip_required": "Slå av regionale regler før du deaktiverer GeoIP."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager-helsesjekk krever oppmerksomhet",
       "description": "IP Ban Manager fant ett eller flere oppsettsproblemer som kan påvirke live utestengelsesadministrasjon:\n\n{issues}\n\nÅpne IP Ban Manager-panelet etter at du har rettet disse for å oppdatere helsesjekken."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Forespørselen mislyktes.",
+      "description": "{issues}"
     }
   },
   "selector": {

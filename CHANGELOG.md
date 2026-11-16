@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.10.4-3
+
+### 🛡️ Safer configuration
+
+- Prevent GeoIP from being disabled through the older Configure form while regional rules still require it.
+- Keep deliberate exact bans when a DNS allowlist hostname resolves to the same address during startup.
+- Normalize older mapped IPv6 ban entries and reject hexadecimal numeric addresses entered as DNS names.
+
+### 🌐 NGINX Proxy Manager
+
+- Exclude response-only custom-location metadata from updates while preserving editable host settings.
+- Distinguish permission errors from expired credentials, recover invalid saved authorization secrets, and retry only temporary token-renewal failures.
+- Preserve the original error when rollback checks fail and clear stale Repairs after recovery or backup restoration.
+
+### 🔧 Runtime reliability
+
+- Probe GeoIP records before replacing a working database and share concurrent local-region lookups.
+- Refresh imported Python bindings during reload and drain owned migration, DNS, and location work during unload.
+- Preserve unread activity history after unexpected storage failures and avoid re-sorting it on every panel refresh.
+
+### 🎨 Panel and translations
+
+- Confirm region removals while Public Region Lock is enabled, save numeric settings independently, and retain validation errors across redraws.
+- Improve late-save reconciliation, saved-value feedback, keyboard focus, screen-reader labels, and touch targets.
+- Complete discovery, backup, and DNS guidance translations and correct the Allowed IPs example image.
+
 ## v1.10.4-2
 
 ### 🛡️ Protection and recovery

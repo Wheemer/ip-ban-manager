@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Tämä asetus estäisi jokaisen havaittuun paikalliseen käyttöpolkuun. Lisää ensin nykyinen paikallinen verkko Sallitut IP-osoitteet -listaan.",
       "unsafe_allowlist_network": "Tämä sallituslistan merkintä luottaisi jokaiseen IP-osoitteeseen ja käytännössä poistaisi IP-estot käytöstä.",
       "banned_ip_allowlisted": "IP-osoite ei voi olla sekä sallittu että estetty. Poista se jostakin listasta ja yritä uudelleen.",
-      "confirmation_required": "Valitse vahvistusruutu ennen kaikkien estettyjen IP-osoitteiden tyhjentämistä."
+      "confirmation_required": "Valitse vahvistusruutu ennen kaikkien estettyjen IP-osoitteiden tyhjentämistä.",
+      "geoip_required": "Poista alueelliset säännöt käytöstä ennen GeoIP:n poistamista käytöstä."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "IP Ban Managerin kuntotarkistus vaatii huomiota",
       "description": "IP Ban Manager löysi yhden tai useamman asetusongelman, jotka voivat vaikuttaa live-estojen hallintaan:\n\n{issues}\n\nAvaa IP Ban Manager -paneeli korjausten jälkeen päivittääksesi kuntotarkistuksen."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Pyyntö epäonnistui.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "Sallitut IP-osoitteet",
       "hint": "Luotetut IPv4-/IPv6-osoitteet, verkot ja DNS-/DDNS-nimet. Tarkat IP-estot ovat ensisijaisia. Sallitut merkinnät ohittavat verkko- ja alue-estot sekä oletuseston. Nimet selvitetään ja päivitetään taustalla.",
-      "placeholder": "IPv4-/IPv6-osoite, CIDR tai jokeri, DNS hostname",
+      "placeholder": "IP-osoite, CIDR, jokerimerkki tai DNS-isäntänimi",
       "remove_confirm": "Poistetaanko tämä sallittu IP? Kun oletus-kielto tai estetyt verkot ovat aktiivisia, luotetun merkinnän poistaminen voi estää pääsyn."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Lataa kopio tälle laitteelle tai lähetä varmuuskopio palautusta varten.",
       "download": "Lataa",
       "upload": "Lähetä",
-      "upload_confirm": "Lähetetäänkö {filename} ja korvataanko nykyiset IP Ban Manager -asetukset ja tarkat IP-estot?"
+      "upload_confirm": "Lähetetäänkö {filename} ja korvataanko nykyiset IP Ban Manager -asetukset ja tarkat IP-estot?",
+      "transfer_title": "Siirto"
     },
     "geoip": {
       "title": "GeoIP-tietokanta",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Irrota Nginx Proxy Manager? IP Ban Manager:n säännöt poistetaan valitusta välityspalvelimesta.",
       "protect_all_domains": "Suojaa kaikki NPM-verkkotunnukset",
       "protect_all_domains_hint": "Käytä näitä sääntöjä kaikkiin aktiivisiin välityspalvelimiin, myös myöhemmin lisättäviin.",
-      "protect_all_domains_warning": "Käytetäänkö IP Ban Managerin sääntöjä kaikkiin aktiivisiin Nginx Proxy Manager -palvelimiin? Nykyiset palvelinasetukset säilyvät, mutta nämä käyttösäännöt vaikuttavat kaikkiin verkkotunnuksiin."
+      "protect_all_domains_warning": "Käytetäänkö IP Ban Managerin sääntöjä kaikkiin aktiivisiin Nginx Proxy Manager -palvelimiin? Nykyiset palvelinasetukset säilyvät, mutta nämä käyttösäännöt vaikuttavat kaikkiin verkkotunnuksiin.",
+      "addon_detected": "Home Assistant havaitsi Nginx Proxy Manager -sovelluksen ja täytti sen paikallisen osoitteen."
     },
     "tabs": {
       "activity": "Toiminta",

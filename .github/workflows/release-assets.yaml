@@ -24,9 +24,10 @@ jobs:
     - name: Validate HACS release zip
       run: |
         python scripts/validate_hacs_zip.py ip-ban-manager.zip
+        sha256sum ip-ban-manager.zip > ip-ban-manager.zip.sha256
     - name: Upload release asset
       env:
         GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       run: |
         test -n "$GH_TOKEN"
-        gh release upload "${{ github.event.release.tag_name }}" ip-ban-manager.zip --clobber
+        gh release upload "${{ github.event.release.tag_name }}" ip-ban-manager.zip ip-ban-manager.zip.sha256

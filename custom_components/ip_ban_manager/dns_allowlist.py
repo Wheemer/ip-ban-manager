@@ -26,6 +26,7 @@ DNS_STALE_GRACE_SECONDS = 300
 KEY_DNS_ALLOWLIST_RESOLVED_AT = "ip_ban_manager_dns_allowlist_resolved_at"
 KEY_DNS_ALLOWLIST_TASK = "ip_ban_manager_dns_allowlist_task"
 KEY_DNS_ALLOWLIST_LOCK = "ip_ban_manager_dns_allowlist_lock"
+KEY_DNS_ALLOWLIST_RESOLUTIONS = "ip_ban_manager_dns_allowlist_resolutions"
 
 
 def _hostnames(values: Iterable[str]) -> tuple[str, ...]:
@@ -79,7 +80,13 @@ async def _async_refresh_dns_allowlist(hass: HomeAssistant) -> None:
         async with slots:
             return await _async_resolve_hostname(hass, hostname)
 
-    resolved = await asyncio.gather(*(resolve(hostname) for hostname in hostnames))
+    pending = asyncio.gather(*(resolve(hostname) for hostname in hostnames))
+    hass.data[KEY_DNS_ALLOWLIST_RESOLUTIONS] = pending
+    try:
+        resolved = await pending
+    finally:
+        if hass.data.get(KEY_DNS_ALLOWLIST_RESOLUTIONS) is pending:
+            hass.data.pop(KEY_DNS_ALLOWLIST_RESOLUTIONS, None)
     if (
         hass.http.app.get(KEY_CONFIG_ENTRY) is not entry
         or _hostnames(entry_ip_addresses(entry)) != hostnames
@@ -125,6 +132,8 @@ async def _async_refresh_dns_allowlist(hass: HomeAssistant) -> None:
 
 async def async_start_dns_allowlist(hass: HomeAssistant) -> None:
     """Resolve configured hostnames and schedule bounded refreshes."""
+    if unsubscribe := hass.data.pop(KEY_DNS_ALLOWLIST_UNSUBSCRIBER, None):
+        unsubscribe()
     await async_refresh_dns_allowlist(hass)
 
     @callback
@@ -144,6 +153,10 @@ async def async_stop_dns_allowlist(hass: HomeAssistant) -> None:
     """Stop hostname refreshes and clear their cache."""
     if unsubscribe := hass.data.pop(KEY_DNS_ALLOWLIST_UNSUBSCRIBER, None):
         unsubscribe()
+    pending = hass.data.pop(KEY_DNS_ALLOWLIST_RESOLUTIONS, None)
+    if pending is not None:
+        pending.cancel()
+        await asyncio.gather(pending, return_exceptions=True)
     task = hass.data.pop(KEY_DNS_ALLOWLIST_TASK, None)
     if task is not None and not task.done():
         task.cancel()

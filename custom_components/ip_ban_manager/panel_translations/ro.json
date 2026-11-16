@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "IP-uri permise",
     "hint": "Adrese IPv4/IPv6, rețele și nume DNS/DDNS de încredere. Blocările IP exacte au prioritate. Intrările permise ocolesc blocările de rețea, regiune și refuzul implicit. Numele sunt rezolvate și actualizate în fundal.",
-    "placeholder": "Adresă IPv4/IPv6, CIDR sau wildcard, DNS hostname",
+    "placeholder": "Adresă IP, CIDR, metacaracter sau nume de gazdă DNS",
     "remove_confirm": "Elimini această IP permisă? Cu refuzul implicit sau rețelele blocate active, eliminarea unei intrări de încredere poate bloca accesul."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Salvează",
     "restore": "Restaurează",
     "restore_confirm": "Restaurezi din backup-ul de pe disc și înlocuiești setările curente IP Ban Manager și interdicțiile IP exacte?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Transfer de date",
     "transfer_hint": "Descarcă o copie pe acest dispozitiv sau încarcă un backup pentru restaurare.",
     "download": "Descarcă",
     "upload": "Încarcă",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Aplicați IP-ul și regulile de rețea explicite ale IP Ban Manager la proxy înainte ca solicitările să ajungă la Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant a detectat aplicația Nginx Proxy Manager și a completat adresa locală.",
     "not_connected": "Nu este conectat",
     "connected_short": "Conectat",
     "active": "Protecția marginilor activă",

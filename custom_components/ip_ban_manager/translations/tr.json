@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Bu ayar algılanan her yerel erişim yolunu engellerdi. Önce İzin verilen IP'ye güncel bir yerel ağ ekleyin.",
       "unsafe_allowlist_network": "Bu allowlist girişi her IP adresine güvenirdi ve IP yasaklarını fiilen devre dışı bırakırdı.",
       "banned_ip_allowlisted": "Bir IP hem izin verilen hem yasaklı olamaz. Bir listeden kaldırın ve tekrar deneyin.",
-      "confirmation_required": "Tüm engellenen IP'leri temizlemeden önce onay kutusunu işaretleyin."
+      "confirmation_required": "Tüm engellenen IP'leri temizlemeden önce onay kutusunu işaretleyin.",
+      "geoip_required": "GeoIP özelliğini kapatmadan önce bölgesel kuralları kapatın."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager sağlık kontrolü dikkat gerektiriyor",
       "description": "IP Ban Manager, canlı yasak yönetimini etkileyebilecek bir veya daha fazla kurulum sorunu buldu:\n\n{issues}\n\nBunları düzelttikten sonra sağlık kontrolünü yenilemek için IP Ban Manager panelini açın."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · İstek başarısız.",
+      "description": "{issues}"
     }
   },
   "selector": {

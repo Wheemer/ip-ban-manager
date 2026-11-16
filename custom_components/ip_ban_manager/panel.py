@@ -227,12 +227,18 @@ async def async_panel_payload(
     activity_history = without_policy_denied_activity(
         activity_history, include_blocked=include_blocked_activity
     )
-    activity = without_disallowed_activity(
-        hass, entry, activity, include_blocked=include_blocked_activity
-    )
-    activity_history = without_disallowed_activity(
-        hass, entry, activity_history, include_blocked=include_blocked_activity
-    )
+
+    def filter_activity() -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+        return (
+            without_disallowed_activity(
+                hass, entry, activity, include_blocked=include_blocked_activity
+            ),
+            without_disallowed_activity(
+                hass, entry, activity_history, include_blocked=include_blocked_activity
+            ),
+        )
+
+    activity, activity_history = await hass.async_add_executor_job(filter_activity)
     locations = (
         {}
         if initial
@@ -416,6 +422,13 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         current_options[CONF_REGIONAL_LOGIN_THRESHOLDS] = (
             normalize_regional_login_thresholds(options[CONF_REGIONAL_LOGIN_THRESHOLDS])
         )
+        if any(
+            normalize_login_attempts_threshold(value) != int(value)
+            for value in (options[CONF_REGIONAL_LOGIN_THRESHOLDS] or {}).values()
+        ):
+            raise HomeAssistantError(
+                "Regional login thresholds must be between 0 and 100."
+            )
     current_options.update(
         coerce_allowed_region_options(
             {

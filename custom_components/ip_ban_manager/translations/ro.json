@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Această setare ar bloca fiecare cale de acces local detectată. Adaugă mai întâi o rețea locală curentă la IP-uri permise.",
       "unsafe_allowlist_network": "Această intrare din lista permisă ar avea încredere în fiecare adresă IP și ar dezactiva practic interdicțiile IP.",
       "banned_ip_allowlisted": "O IP nu poate fi simultan permisă și interzisă. Elimin-o dintr-o listă și încearcă din nou.",
-      "confirmation_required": "Bifează caseta de confirmare înainte de a șterge toate IP-urile blocate."
+      "confirmation_required": "Bifează caseta de confirmare înainte de a șterge toate IP-urile blocate.",
+      "geoip_required": "Dezactivați regulile regionale înainte de a dezactiva GeoIP."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "Verificarea stării IP Ban Manager necesită atenție",
       "description": "IP Ban Manager a găsit una sau mai multe probleme de configurare care pot afecta gestionarea interdicțiilor live:\n\n{issues}\n\nDeschide panoul IP Ban Manager după remediere pentru a reîmprospăta verificarea stării."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Cererea a eșuat.",
+      "description": "{issues}"
     }
   },
   "selector": {

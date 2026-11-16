@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "해당 설정은 감지된 모든 로컬 접근 경로를 차단합니다. 먼저 현재 로컬 네트워크를 허용 IP에 추가하세요.",
       "unsafe_allowlist_network": "해당 허용 목록 항목은 모든 IP 주소를 신뢰하여 IP 차단을 사실상 비활성화합니다.",
       "banned_ip_allowlisted": "IP는 허용과 차단을 동시에 할 수 없습니다. 한 목록에서 제거한 후 다시 시도하세요.",
-      "confirmation_required": "모든 차단 IP를 지우기 전에 확인란을 선택하세요."
+      "confirmation_required": "모든 차단 IP를 지우기 전에 확인란을 선택하세요.",
+      "geoip_required": "GeoIP를 비활성화하기 전에 지역 규칙을 비활성화하세요."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager 상태 점검에 주의 필요",
       "description": "IP Ban Manager가 실시간 차단 관리에 영향을 줄 수 있는 하나 이상의 설정 문제를 발견했습니다:\n\n{issues}\n\n수정한 후 IP Ban Manager 패널을 열어 상태 점검을 새로 고치세요."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · 요청에 실패했습니다.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "허용 IP",
       "hint": "신뢰하는 IPv4/IPv6 주소, 네트워크 및 DNS/DDNS 호스트 이름입니다. 개별 IP 차단이 우선합니다. 허용 항목은 네트워크 차단, 지역 제한 및 기본 거부를 우회합니다. 호스트 이름은 백그라운드에서 확인하고 갱신합니다.",
-      "placeholder": "IPv4/IPv6 주소, CIDR 또는 와일드카드, DNS hostname",
+      "placeholder": "IP 주소, CIDR, 와일드카드 또는 DNS 호스트 이름",
       "remove_confirm": "이 허용 IP를 제거할까요? 기본 거부 또는 차단된 네트워크가 활성화된 경우 신뢰 항목을 제거하면 접근이 차단될 수 있습니다."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "이 기기로 사본을 다운로드하거나 백업을 업로드하여 복원하세요.",
       "download": "다운로드",
       "upload": "업로드",
-      "upload_confirm": "{filename}을(를) 업로드하고 현재 IP Ban Manager 설정 및 정확한 IP 차단을 교체할까요?"
+      "upload_confirm": "{filename}을(를) 업로드하고 현재 IP Ban Manager 설정 및 정확한 IP 차단을 교체할까요?",
+      "transfer_title": "전송"
     },
     "geoip": {
       "title": "GeoIP 데이터베이스",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Nginx Proxy Manager를 연결 해제하시겠습니까? IP Ban Manager의 규칙이 선택한 프록시 호스트에서 제거됩니다.",
       "protect_all_domains": "모든 NPM 도메인 보호",
       "protect_all_domains_hint": "나중에 추가되는 호스트를 포함하여 모든 활성 프록시 호스트에 이 규칙을 적용합니다.",
-      "protect_all_domains_warning": "모든 활성 Nginx Proxy Manager 호스트에 IP Ban Manager 규칙을 적용할까요? 기존 호스트 설정은 유지되지만 이 접근 규칙은 모든 도메인에 영향을 줍니다."
+      "protect_all_domains_warning": "모든 활성 Nginx Proxy Manager 호스트에 IP Ban Manager 규칙을 적용할까요? 기존 호스트 설정은 유지되지만 이 접근 규칙은 모든 도메인에 영향을 줍니다.",
+      "addon_detected": "Home Assistant가 Nginx Proxy Manager 앱을 감지하고 로컬 주소를 입력했습니다."
     },
     "tabs": {
       "activity": "활동",

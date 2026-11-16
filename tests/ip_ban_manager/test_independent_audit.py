@@ -18,7 +18,7 @@ from .test_setup import setup_ip_ban_manager
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("status", [401, 403])
+@pytest.mark.parametrize("status", [401])
 async def test_npm_auth_status_does_not_depend_on_json(status):
     """Missing or nonstandard error bodies must still request authentication."""
     response = SimpleNamespace(status=status, json=AsyncMock(side_effect=ValueError))

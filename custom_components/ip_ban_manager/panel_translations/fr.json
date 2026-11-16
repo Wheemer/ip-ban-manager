@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "IP autorisées",
     "hint": "Adresses IPv4/IPv6, réseaux et noms DNS/DDNS de confiance. Les bannissements d’IP exacts sont prioritaires. Les entrées autorisées contournent les blocages de réseaux, de régions et le refus par défaut. Les noms sont résolus et actualisés en arrière-plan.",
-    "placeholder": "Adresse IPv4/IPv6, CIDR ou joker, DNS hostname",
+    "placeholder": "Adresse IP, CIDR, caractère générique ou nom d’hôte DNS",
     "remove_confirm": "Supprimer cette IP autorisée ? Avec le refus par défaut ou des réseaux bloqués actifs, supprimer une entrée de confiance peut bloquer l'accès."
   },
   "allowed_regions": {
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Appliquez les règles IP et réseau explicites de IP Ban Manager au niveau du proxy avant que les demandes n'atteignent Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant a détecté l’application Nginx Proxy Manager et renseigné son adresse locale.",
     "not_connected": "Non connecté",
     "connected_short": "Connecté",
     "active": "Protection des bords active",

@@ -39,6 +39,7 @@ from .ban_lookup import (
     CALLBACK_ROUTE_PREFIXES,
     INTEGRATION_CALLBACK_EXACT_PATHS,
     INTEGRATION_CALLBACK_PREFIXES,
+    _normalize_remote_addr,
 )
 from .ban_ops import chronological_ip_bans
 from .const import (
@@ -110,12 +111,16 @@ def _clear_sync_failure(hass: HomeAssistant) -> None:
     _runtime(hass).pop("sync_failures", None)
     _runtime(hass).pop("last_logged_error", None)
     _runtime(hass).pop("token_refresh_error", None)
+    _runtime(hass).pop("failure_origin", None)
     ir.async_delete_issue(hass, DOMAIN, NPM_SYNC_FAILED_ISSUE_ID)
 
 
-def _record_npm_failure(hass: HomeAssistant, err: BaseException) -> None:
+def _record_npm_failure(
+    hass: HomeAssistant, err: BaseException, *, origin: str = "policy"
+) -> None:
     """Report renewal and policy failures through the same recovery diagnostics."""
     runtime = _runtime(hass)
+    runtime["failure_origin"] = origin
     if runtime.get("last_logged_error") != str(err):
         _LOGGER.warning("Nginx Proxy Manager operation failed: %s", err)
         runtime["last_logged_error"] = str(err)
@@ -131,8 +136,8 @@ def _record_npm_failure(hass: HomeAssistant, err: BaseException) -> None:
             is_fixable=False,
             is_persistent=True,
             severity=ir.IssueSeverity.WARNING,
-            translation_key="health_check_failed",
-            translation_placeholders={"issues": f"Nginx Proxy Manager: {err}"},
+            translation_key=NPM_SYNC_FAILED_ISSUE_ID,
+            translation_placeholders={"issues": str(err)},
         )
 
 
@@ -157,9 +162,17 @@ def _serialized_policy(
                 )
             task = asyncio.create_task(operation(hass, *args, **kwargs))
             try:
-                return await asyncio.shield(task)
+                result = await asyncio.shield(task)
+                if operation.__name__ in {"async_enable_npm", "async_sync_npm"}:
+                    _clear_sync_failure(hass)
+                return result
             except asyncio.CancelledError:
                 await task
+                raise
+            except (HomeAssistantError, ClientError, TimeoutError) as err:
+                if operation.__name__ in {"async_enable_npm", "async_sync_npm"}:
+                    _record_npm_failure(hass, err)
+                    setattr(err, "_ipbm_failure_recorded", True)
                 raise
 
     return run
@@ -544,10 +557,15 @@ class NpmClient:
 
     @staticmethod
     async def _response_json(response: ClientResponse) -> object:
-        if response.status in (401, 403):
+        if response.status == 401:
             raise NpmAuthenticationError(
                 "Nginx Proxy Manager authentication has expired or is invalid. "
                 "Sign in again to restore the connection. Existing proxy rules have not been removed."
+            )
+        if response.status == 403:
+            raise HomeAssistantError(
+                "Nginx Proxy Manager denied this operation (HTTP 403). Check the account's permissions. "
+                "Existing proxy rules have not been removed."
             )
         if response.status == 429 or response.status >= 500:
             raise NpmConnectionError(
@@ -585,12 +603,17 @@ class NpmClient:
 
     async def authenticate(self, identity: str, secret: str) -> dict[str, str]:
         """Authenticate and retain the returned access token."""
-        result = await self._json(
-            "POST",
-            "tokens",
-            payload={"identity": identity, "secret": secret},
-            authenticated=False,
-        )
+        try:
+            result = await self._json(
+                "POST",
+                "tokens",
+                payload={"identity": identity, "secret": secret},
+                authenticated=False,
+            )
+        except NpmAuthenticationError as err:
+            raise NpmAuthenticationError(
+                "Nginx Proxy Manager sign-in failed. Check the email and password."
+            ) from err
         if not isinstance(result, Mapping) or not result.get("token"):
             raise HomeAssistantError(
                 "Nginx Proxy Manager did not return an access token. "
@@ -657,15 +680,16 @@ class NpmClient:
     ) -> None:
         """Preserve editable host fields that NPM defaults on a partial PUT."""
         current = await self._json("GET", f"nginx/proxy-hosts/{host_id}")
-        if not isinstance(current, Mapping) or not isinstance(
-            current.get("advanced_config"), str
+        if not isinstance(current, Mapping) or (
+            current.get("advanced_config") is not None
+            and not isinstance(current.get("advanced_config"), str)
         ):
             raise HomeAssistantError(
                 "Could not read the current NPM proxy host safely."
             )
-        if _without_managed_config(current["advanced_config"]).rstrip() != (
-            _without_managed_config(advanced_config).rstrip()
-        ):
+        if _without_managed_config(
+            str(current.get("advanced_config") or "")
+        ).rstrip() != (_without_managed_config(advanced_config).rstrip()):
             raise HomeAssistantError(
                 "NPM proxy configuration changed during sync. No user configuration was overwritten."
             )
@@ -689,6 +713,38 @@ class NpmClient:
             "locations",
         )
         payload = {key: current[key] for key in writable if key in current}
+        if "locations" in payload:
+            locations = payload["locations"]
+            if not isinstance(locations, list) or any(
+                not isinstance(location, Mapping) for location in locations
+            ):
+                raise HomeAssistantError(
+                    "NPM returned invalid custom locations. No host settings were changed."
+                )
+            location_fields = {
+                "id",
+                "path",
+                "forward_scheme",
+                "forward_host",
+                "forward_port",
+                "forward_path",
+                "advanced_config",
+                "access_list_id",
+            }
+            payload["locations"] = [
+                {
+                    key: value
+                    for key, value in location.items()
+                    if key in location_fields and (value is not None or key == "id")
+                }
+                for location in locations
+            ]
+        if isinstance(payload.get("meta"), Mapping):
+            payload["meta"] = {
+                key: value
+                for key, value in payload["meta"].items()
+                if key not in {"nginx_online", "nginx_err"}
+            }
         payload["advanced_config"] = advanced_config
         if access_list_id is not None:
             payload["access_list_id"] = access_list_id
@@ -836,9 +892,7 @@ async def _async_refresh_token(hass: HomeAssistant) -> None:
             _persist_npm_config(hass, {**current, **token})
             if current.get("enabled"):
                 schedule_npm_sync(hass, reset_retry=True)
-            elif _runtime(hass).get("token_refresh_error") == _runtime(hass).get(
-                "last_error"
-            ):
+            elif _runtime(hass).get("failure_origin") == "token":
                 _runtime(hass)["last_error"] = None
                 _clear_sync_failure(hass)
     except (HomeAssistantError, ClientError, TimeoutError) as err:
@@ -853,8 +907,8 @@ async def _async_refresh_token(hass: HomeAssistant) -> None:
         ):
             return
         _runtime(hass)["token_refresh_error"] = str(err)
-        _record_npm_failure(hass, err)
-        if not isinstance(err, NpmAuthenticationError):
+        _record_npm_failure(hass, err, origin="token")
+        if _sync_error_is_transient(err):
             # Retry transient failures without writing anything to the proxy host.
             _schedule_token_refresh(
                 hass,
@@ -1022,7 +1076,7 @@ def _forward_origin(value: Mapping[str, object]) -> str:
 def _ensure_region_auth_secret(config: Mapping[str, object]) -> dict[str, object]:
     """Return NPM settings with a persistent secret for the auth subrequest."""
     secret = str(config.get(NPM_REGION_AUTH_SECRET_KEY) or "").strip()
-    if secret:
+    if re.fullmatch(r"[A-Za-z0-9_-]{1,256}", secret):
         return dict(config)
     return {**config, NPM_REGION_AUTH_SECRET_KEY: secrets.token_urlsafe(32)}
 
@@ -1075,7 +1129,10 @@ def _policy_rules(
             allows.append(f"allow {parse_allowlist_network(value)};")
     ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
     exact_bans = (
-        [f"deny {ban.ip_address};" for ban in chronological_ip_bans(ban_manager)]
+        [
+            f"deny {_normalize_remote_addr(ban.ip_address)};"
+            for ban in chronological_ip_bans(ban_manager)
+        ]
         if ban_manager is not None
         else []
     )
@@ -1222,14 +1279,19 @@ async def _apply_proxy_policy(
                 await client.delete_access_list(managed_id)
         except (HomeAssistantError, ClientError, TimeoutError) as err:
             # NPM persists failed writes. Restore only if nobody changed the host meanwhile.
-            latest = next(
-                (
-                    row
-                    for row in await client.proxy_hosts()
-                    if isinstance(row, Mapping) and row.get("id") == host.host_id
-                ),
-                None,
-            )
+            try:
+                latest = next(
+                    (
+                        row
+                        for row in await client.proxy_hosts()
+                        if isinstance(row, Mapping) and row.get("id") == host.host_id
+                    ),
+                    None,
+                )
+            except (HomeAssistantError, ClientError, TimeoutError) as read_error:
+                raise HomeAssistantError(
+                    f"{err} Checking the proxy host for rollback also failed: {read_error}"
+                ) from err
             if (
                 latest is not None
                 and latest.get("advanced_config") == advanced_config
@@ -1242,7 +1304,11 @@ async def _apply_proxy_policy(
                         host.advanced_config,
                         access_list_id=host.access_list_id if detach_legacy else None,
                     )
-                except HomeAssistantError as rollback_error:
+                except (
+                    HomeAssistantError,
+                    ClientError,
+                    TimeoutError,
+                ) as rollback_error:
                     raise HomeAssistantError(
                         f"{err} Restoring the previous policy also failed: {rollback_error}"
                     ) from err
@@ -1637,7 +1703,8 @@ async def _async_debounced_sync(hass: HomeAssistant) -> None:
     except asyncio.CancelledError:
         raise
     except (HomeAssistantError, ClientError, TimeoutError) as err:
-        _record_npm_failure(hass, err)
+        if not getattr(err, "_ipbm_failure_recorded", False):
+            _record_npm_failure(hass, err)
         if _sync_error_is_transient(err):
             _schedule_sync_retry(hass)
         else:

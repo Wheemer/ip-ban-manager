@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Diese Einstellung würde jeden erkannten lokalen Zugriffspfad blockieren. Fügen Sie zuerst ein aktuelles lokales Netzwerk zu Erlaubte IPs hinzu.",
       "unsafe_allowlist_network": "Dieser Allowlist-Eintrag würde jeder IP-Adresse vertrauen und IP-Sperren praktisch deaktivieren.",
       "banned_ip_allowlisted": "Eine IP kann nicht gleichzeitig erlaubt und gesperrt sein. Entfernen Sie sie aus einer Liste und versuchen Sie es erneut.",
-      "confirmation_required": "Aktivieren Sie das Bestätigungsfeld, bevor Sie alle blockierten IPs löschen."
+      "confirmation_required": "Aktivieren Sie das Bestätigungsfeld, bevor Sie alle blockierten IPs löschen.",
+      "geoip_required": "Deaktivieren Sie die regionalen Regeln, bevor Sie GeoIP deaktivieren."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP-Ban-Manager-Integritätsprüfung erfordert Aufmerksamkeit",
       "description": "IP Ban Manager hat ein oder mehrere Setup-Probleme gefunden, die die Live-Sperrverwaltung beeinträchtigen können:\n\n{issues}\n\nÖffnen Sie nach der Behebung das IP-Ban-Manager-Panel, um die Integritätsprüfung zu aktualisieren."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Anfrage fehlgeschlagen.",
+      "description": "{issues}"
     }
   },
   "selector": {

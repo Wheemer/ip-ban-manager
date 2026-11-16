@@ -72,7 +72,17 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
         blocked_request_observer: BlockedRequestObserver | None = None,
     ) -> None:
         """Initialize the lookup from Home Assistant's exact IP bans."""
-        super().__init__(values)
+        super().__init__(
+            (
+                _normalize_remote_addr(address),
+                (
+                    ban
+                    if _normalize_remote_addr(address) == address
+                    else IpBan(_normalize_remote_addr(address), banned_at=ban.banned_at)
+                ),
+            )
+            for address, ban in values.items()
+        )
         self.blocked_networks = blocked_networks
         self.allowlist = allowlist
         self.default_deny_enabled = default_deny_enabled

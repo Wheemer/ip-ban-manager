@@ -311,8 +311,8 @@ async def test_renewal_does_not_replace_new_connection(hass, monkeypatch, failur
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("expired", [False, True])
-async def test_renewal_retries_only_transient_errors(hass, monkeypatch, expired):
+@pytest.mark.parametrize("kind", ["transient", "expired", "permanent"])
+async def test_renewal_retries_only_transient_errors(hass, monkeypatch, kind):
     """Retry outages but require sign-in for expired credentials."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
@@ -321,16 +321,16 @@ async def test_renewal_retries_only_transient_errors(hass, monkeypatch, expired)
         entry, options={**entry.options, CONF_NPM: config}
     )
     client = AsyncMock()
-    client.refresh_token.side_effect = (
-        npm.NpmAuthenticationError("expired")
-        if expired
-        else HomeAssistantError("offline")
-    )
+    client.refresh_token.side_effect = {
+        "expired": npm.NpmAuthenticationError("expired"),
+        "transient": npm.NpmConnectionError("offline"),
+        "permanent": HomeAssistantError("invalid configuration"),
+    }[kind]
     monkeypatch.setattr(npm, "NpmClient", lambda *args: client)
     schedule = Mock()
     monkeypatch.setattr(npm, "_schedule_token_refresh", schedule)
     await npm._async_refresh_token(hass)
-    assert schedule.call_count == (0 if expired else 1)
+    assert schedule.call_count == int(kind == "transient")
     assert npm.entry_npm_config(entry) == config
 
 

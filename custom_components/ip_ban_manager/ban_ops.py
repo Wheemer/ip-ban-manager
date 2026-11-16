@@ -31,13 +31,18 @@ from .ban_lookup import (
     _supervisor_internal_networks,
 )
 from .const import ATTR_IP_ADDRESS, DOMAIN, SOURCE_PANEL, SOURCE_SERVICE, SOURCE_SETUP
-from .entry_helpers import allowlisted_logins_can_ban
+from .entry_helpers import (
+    allowlisted_logins_can_ban,
+    entry_ip_addresses,
+    parse_allowlist,
+)
 from .file_store import atomic_write_text, snapshot_dir, snapshot_existing_file
 from .metrics import mark_config_write, metric_increment
 from .storage_keys import (
     KEY_ALLOWLIST,
     KEY_BAN_FILE_WRITE_LOCK,
     KEY_BLOCKED_NETWORKS,
+    KEY_CONFIG_ENTRY,
     KEY_INTERNAL_BYPASS_NETWORKS,
     IPAddress,
 )
@@ -183,7 +188,7 @@ def dismiss_ban_notification_for_ips(
 async def async_add_ip_ban(hass: HomeAssistant, ip_address_value: str) -> None:
     """Add an IP ban immediately."""
     try:
-        remote_addr = ip_address(ip_address_value)
+        remote_addr = _normalize_remote_addr(ip_address(ip_address_value))
     except ValueError as err:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
@@ -261,7 +266,12 @@ async def async_remove_ip_ban(
 
 async def async_remove_allowlisted_ip_bans(hass: HomeAssistant) -> list[IPAddress]:
     """Remove exact bans that were written before allowlist protection loaded."""
-    allowlist = hass.http.app.get(KEY_ALLOWLIST, ())
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    allowlist = (
+        parse_allowlist(entry_ip_addresses(entry))
+        if entry is not None
+        else hass.http.app.get(KEY_ALLOWLIST, ())
+    )
     internal_bypass_networks = hass.http.app.get(
         KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
     )

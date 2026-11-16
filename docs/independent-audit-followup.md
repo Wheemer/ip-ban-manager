@@ -74,6 +74,11 @@ deployment to a user's Home Assistant.
 
 - PR 75 was merged; its squash commit is the audited commit. A linear git log
   does not establish that a PR was bypassed. The published ZIP exists.
+  GitHub evidence: [PR 75](https://github.com/Wheemer/ip-ban-manager/pull/75)
+  reports merge commit `c1914d3fbb4e551462ebe56111633b860ecafc28`.
+  The subsequent pre-release's [asset upload](https://github.com/Wheemer/ip-ban-manager/actions/runs/43913085771)
+  and [unit suite](https://github.com/Wheemer/ip-ban-manager/actions/runs/43911375743)
+  both completed successfully for `39091e5933366e70057f3af9dc223650a2cd7efe`.
 - Multi-host rollback already existed. The legacy-cleanup failure boundary was
   the narrower gap, not a complete absence of multi-host rollback.
 - The backend already rejects removal of the last enabled region. The audit's

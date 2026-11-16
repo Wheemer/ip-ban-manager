@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Den innstillingen ville blokkere alle oppdagede lokale tilgangsveier. Legg til et nåværende lokalt nettverk i Tillatte IP-er først.",
       "unsafe_allowlist_network": "Det tillatte listeelementet ville ha stolt på alle IP-adresser og i praksis deaktivere IP-utestengelse.",
       "banned_ip_allowlisted": "En IP kan ikke være både tillatt og utestengt. Fjern den fra én liste og prøv igjen.",
-      "confirmation_required": "Merk av i bekreftelsesboksen før du fjerner alle blokkerte IP-er."
+      "confirmation_required": "Merk av i bekreftelsesboksen før du fjerner alle blokkerte IP-er.",
+      "geoip_required": "Slå av regionale regler før du deaktiverer GeoIP."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager-helsesjekk krever oppmerksomhet",
       "description": "IP Ban Manager fant ett eller flere oppsettsproblemer som kan påvirke live utestengelsesadministrasjon:\n\n{issues}\n\nÅpne IP Ban Manager-panelet etter at du har rettet disse for å oppdatere helsesjekken."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Forespørselen mislyktes.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "Tillatte IP-er",
       "hint": "Betrodde IPv4-/IPv6-adresser, nettverk og DNS-/DDNS-navn. Eksakte IP-blokkeringer har forrang. Tillatte oppføringer omgår nettverksblokkering, regionslås og standardavvisning. Navn slås opp og oppdateres i bakgrunnen.",
-      "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn, DNS hostname",
+      "placeholder": "IP-adresse, CIDR, jokertegn eller DNS-vertsnavn",
       "remove_confirm": "Fjerne denne tillatte IP-en? Med aktiv standard-nekt eller blokkerte nettverk kan fjerning av en pålitelig oppføring låse ute tilgang."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Last ned en kopi til denne enheten, eller last opp en sikkerhetskopi for gjenoppretting.",
       "download": "Last ned",
       "upload": "Last opp",
-      "upload_confirm": "Laste opp {filename} og erstatte nåværende IP Ban Manager-innstillinger og eksakte IP-utestengelser?"
+      "upload_confirm": "Laste opp {filename} og erstatte nåværende IP Ban Manager-innstillinger og eksakte IP-utestengelser?",
+      "transfer_title": "Overføring"
     },
     "geoip": {
       "title": "GeoIP-database",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Koble fra Nginx Proxy Manager? IP Ban Manager sine regler vil bli fjernet fra den valgte proxy-verten.",
       "protect_all_domains": "Beskytt alle NPM-domener",
       "protect_all_domains_hint": "Bruk disse reglene på alle aktive proxyverter, også verter som legges til senere.",
-      "protect_all_domains_warning": "Bruke IP Ban Manager-regler på alle aktive Nginx Proxy Manager-verter? Eksisterende vertsinnstillinger beholdes, men disse tilgangsreglene vil påvirke alle domener."
+      "protect_all_domains_warning": "Bruke IP Ban Manager-regler på alle aktive Nginx Proxy Manager-verter? Eksisterende vertsinnstillinger beholdes, men disse tilgangsreglene vil påvirke alle domener.",
+      "addon_detected": "Home Assistant oppdaget Nginx Proxy Manager-appen og fylte inn den lokale adressen."
     },
     "tabs": {
       "activity": "Aktivitet",

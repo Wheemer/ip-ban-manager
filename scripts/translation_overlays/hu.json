@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Ez a beállítás minden észlelt helyi hozzáférési utat blokkoltna. Először adjon hozzá egy aktuális helyi hálózatot az Engedélyezett IP-khez.",
       "unsafe_allowlist_network": "Ez az engedélyezési lista bejegyzés minden IP-címet megbízhatónak tekintene, és gyakorlatilag kikapcsolná az IP-tiltást.",
       "banned_ip_allowlisted": "Egy IP nem lehet egyszerre engedélyezett és tiltott. Távolítsa el az egyik listáról, és próbálja újra.",
-      "confirmation_required": "Jelölje be a megerősítő jelölőnégyzetet az összes blokkolt IP törlése előtt."
+      "confirmation_required": "Jelölje be a megerősítő jelölőnégyzetet az összes blokkolt IP törlése előtt.",
+      "geoip_required": "A GeoIP kikapcsolása előtt kapcsolja ki a regionális szabályokat."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "Az IP Ban Manager állapotellenőrzése figyelmet igényel",
       "description": "Az IP Ban Manager egy vagy több beállítási problémát talált, amelyek befolyásolhatják az élő tiltáskezelést:\n\n{issues}\n\nA javítás után nyissa meg az IP Ban Manager panelt az állapotellenőrzés frissítéséhez."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · A kérés sikertelen.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "Engedélyezett IP-k",
       "hint": "Megbízható IPv4/IPv6-címek, hálózatok és DNS/DDNS-nevek. A pontos IP-tiltások elsőbbséget élveznek. Az engedélyezett bejegyzések megkerülik a hálózati és területi tiltásokat, valamint az alapértelmezett elutasítást. A nevek feloldása és frissítése a háttérben történik.",
-      "placeholder": "IPv4/IPv6 cím, CIDR vagy helyettesítő, DNS hostname",
+      "placeholder": "IP-cím, CIDR, helyettesítő karakter vagy DNS-gépnév",
       "remove_confirm": "Eltávolítja ezt az engedélyezett IP-t? Aktív alapértelmezett tiltás vagy blokkolt hálózatok mellett egy megbízható bejegyzés eltávolítása kizárhatja a hozzáférést."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Másolat letöltése erre az eszközre, vagy biztonsági mentés feltöltése visszaállításhoz.",
       "download": "Letöltés",
       "upload": "Feltöltés",
-      "upload_confirm": "Feltölti a {filename} fájlt, és lecseréli az aktuális IP Ban Manager beállításokat és pontos IP-tiltásokat?"
+      "upload_confirm": "Feltölti a {filename} fájlt, és lecseréli az aktuális IP Ban Manager beállításokat és pontos IP-tiltásokat?",
+      "transfer_title": "Átvitel"
     },
     "geoip": {
       "title": "GeoIP adatbázis",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "A Nginx Proxy Manager leválasztása? A IP Ban Manager szabályai el lesznek távolítva a kiválasztott proxy gazdagépről.",
       "protect_all_domains": "Az összes NPM-tartomány védelme",
       "protect_all_domains_hint": "A szabályok alkalmazása minden aktív proxyállomásra, beleértve a később hozzáadottakat is.",
-      "protect_all_domains_warning": "Alkalmazza az IP Ban Manager szabályait minden aktív Nginx Proxy Manager-állomásra? A meglévő beállítások megmaradnak, de ezek a hozzáférési szabályok minden tartományt érintenek."
+      "protect_all_domains_warning": "Alkalmazza az IP Ban Manager szabályait minden aktív Nginx Proxy Manager-állomásra? A meglévő beállítások megmaradnak, de ezek a hozzáférési szabályok minden tartományt érintenek.",
+      "addon_detected": "A Home Assistant felismerte a Nginx Proxy Manager alkalmazást, és kitöltötte a helyi címét."
     },
     "tabs": {
       "activity": "Tevékenység",

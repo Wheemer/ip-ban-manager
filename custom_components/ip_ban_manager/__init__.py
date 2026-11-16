@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import inspect
 import logging
+import sys
 from collections.abc import Callable
 from types import ModuleType
 from typing import Any
@@ -450,6 +452,22 @@ def _reload_runtime_modules_sync() -> None:
         module = importlib.import_module(module_name)
         modules[module_name.rsplit(".", 1)[-1]] = importlib.reload(module)
 
+    # Imports in an earlier-reloaded module can still reference a later module's
+    # previous functions/classes. Rebind these after the complete reload pass.
+    reloaded = set(_RELOADABLE_MODULES)
+    for name, module in tuple(sys.modules.items()):
+        if module is None or not name.startswith("custom_components.ip_ban_manager"):
+            continue
+        for binding, value in tuple(vars(module).items()):
+            if not (inspect.isfunction(value) or inspect.isclass(value)):
+                continue
+            owner = getattr(value, "__module__", "")
+            if owner not in reloaded:
+                continue
+            replacement = getattr(sys.modules[owner], value.__name__, None)
+            if replacement is not None:
+                setattr(module, binding, replacement)
+
     globals().update(
         {
             binding: getattr(modules[module_name], attribute)
@@ -603,6 +621,12 @@ async def _async_unload_runtime(hass: HomeAssistant) -> None:
     await _unload_npm_sync(hass)
     _async_remove_panel(hass)
     await _async_stop_dns_allowlist(hass)
+    from .legacy_migration import async_stop_legacy_work
+
+    await async_stop_legacy_work(hass)
+    from .geoip import async_stop_local_region
+
+    await async_stop_local_region(hass)
     from .reverse_dns import async_stop_reverse_dns
 
     await async_stop_reverse_dns(hass)
@@ -651,5 +675,5 @@ async def _async_unload_runtime(hass: HomeAssistant) -> None:
 
     from .health import HEALTH_CHECK_FAILED_ISSUE_ID, clear_health_grace
 
-    clear_health_grace(hass)
+    clear_health_grace(hass, invalidate=True)
     ir.async_delete_issue(hass, DOMAIN, HEALTH_CHECK_FAILED_ISSUE_ID)

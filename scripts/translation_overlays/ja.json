@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "その設定は検出されたすべてのローカルアクセス経路をブロックします。先に現在のローカルネットワークを許可 IP に追加してください。",
       "unsafe_allowlist_network": "その許可リストエントリはすべての IP アドレスを信頼し、事実上 IP BAN を無効にします。",
       "banned_ip_allowlisted": "IP は許可と BAN の両方にできません。どちらか一方のリストから削除して再試行してください。",
-      "confirmation_required": "すべてのブロック IP を消去する前に確認チェックボックスをオンにしてください。"
+      "confirmation_required": "すべてのブロック IP を消去する前に確認チェックボックスをオンにしてください。",
+      "geoip_required": "GeoIP を無効にする前に地域ルールを無効にしてください。"
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager のヘルスチェックに注意が必要",
       "description": "IP Ban Manager は、ライブ BAN 管理に影響する可能性のある 1 つ以上のセットアップ問題を見つけました:\n\n{issues}\n\n修正後、IP Ban Manager パネルを開いてヘルスチェックを更新してください。"
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · リクエストに失敗しました。",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "許可 IP",
       "hint": "信頼する IPv4/IPv6 アドレス、ネットワーク、DNS/DDNS ホスト名。個別の IP ブロックが優先されます。許可した項目はネットワーク制限、地域制限、既定の拒否を回避します。ホスト名はバックグラウンドで名前解決と更新を行います。",
-      "placeholder": "IPv4/IPv6 アドレス、CIDR、またはワイルドカード, DNS hostname",
+      "placeholder": "IP アドレス、CIDR、ワイルドカード、または DNS ホスト名",
       "remove_confirm": "この許可 IP を削除しますか？デフォルト拒否またはブロックされたネットワークが有効な場合、信頼エントリを削除するとアクセスできなくなる可能性があります。"
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "このデバイスにコピーをダウンロードするか、バックアップをアップロードして復元します。",
       "download": "ダウンロード",
       "upload": "アップロード",
-      "upload_confirm": "{filename} をアップロードし、現在の IP Ban Manager 設定と正確な IP BAN を置き換えますか？"
+      "upload_confirm": "{filename} をアップロードし、現在の IP Ban Manager 設定と正確な IP BAN を置き換えますか？",
+      "transfer_title": "転送"
     },
     "geoip": {
       "title": "GeoIP データベース",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Nginx Proxy Manager を切断しますか? IP Ban Manager のルールは、選択したプロキシ ホストから削除されます。",
       "protect_all_domains": "すべての NPM ドメインを保護",
       "protect_all_domains_hint": "後から追加されるものを含む、すべての有効なプロキシホストにこれらのルールを適用します。",
-      "protect_all_domains_warning": "IP Ban Manager のルールを、すべての有効な Nginx Proxy Manager ホストに適用しますか？既存のホスト設定は維持されますが、これらのアクセスルールはすべてのドメインに影響します。"
+      "protect_all_domains_warning": "IP Ban Manager のルールを、すべての有効な Nginx Proxy Manager ホストに適用しますか？既存のホスト設定は維持されますが、これらのアクセスルールはすべてのドメインに影響します。",
+      "addon_detected": "Home Assistant が Nginx Proxy Manager アプリを検出し、ローカルアドレスを入力しました。"
     },
     "tabs": {
       "activity": "アクティビティ",

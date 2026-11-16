@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Povolené IP",
     "hint": "Důvěryhodné adresy a sítě IPv4/IPv6 a názvy DNS/DDNS. Přesné zákazy IP mají přednost. Povolené položky obcházejí blokování sítí, oblastí a výchozí odmítnutí. Názvy se překládají a obnovují na pozadí.",
-    "placeholder": "IPv4/IPv6 adresa, CIDR nebo zástupný znak, DNS hostname",
+    "placeholder": "IP adresa, CIDR, zástupný znak nebo název hostitele DNS",
     "remove_confirm": "Odstranit tuto povolenou IP? Při aktivním default-deny nebo blokovaných sítích může odstranění důvěryhodné položky zablokovat přístup."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Uložit",
     "restore": "Obnovit",
     "restore_confirm": "Obnovit ze zálohy na disku a nahradit aktuální nastavení IP Ban Manager a přesné IP zákazy?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Přenos",
     "transfer_hint": "Stáhněte kopii na toto zařízení nebo nahrajte zálohu pro obnovení.",
     "download": "Stáhnout",
     "upload": "Nahrát",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Aplikujte explicitní IP a síťová pravidla IP Ban Manager na proxy dříve, než požadavky dosáhnou Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant rozpoznal aplikaci Nginx Proxy Manager a vyplnil její místní adresu.",
     "not_connected": "Nepřipojeno",
     "connected_short": "Připojeno",
     "active": "Ochrana hran je aktivní",

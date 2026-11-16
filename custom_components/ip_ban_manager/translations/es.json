@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Esa configuración bloquearía cada ruta de acceso local detectada. Añada primero una red local actual a IP permitidas.",
       "unsafe_allowlist_network": "Esa entrada de lista permitida confiaría en cada dirección IP y desactivaría efectivamente el bloqueo IP.",
       "banned_ip_allowlisted": "Una IP no puede estar permitida y bloqueada a la vez. Elimínela de una lista e inténtelo de nuevo.",
-      "confirmation_required": "Marque la casilla de confirmación antes de borrar todas las IP bloqueadas."
+      "confirmation_required": "Marque la casilla de confirmación antes de borrar todas las IP bloqueadas.",
+      "geoip_required": "Desactiva las reglas regionales antes de desactivar GeoIP."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "La comprobación de estado de IP Ban Manager requiere atención",
       "description": "IP Ban Manager encontró uno o más problemas de configuración que pueden afectar la gestión de bloqueos en vivo:\n\n{issues}\n\nAbra el panel IP Ban Manager tras corregirlos para actualizar la comprobación."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · La solicitud falló.",
+      "description": "{issues}"
     }
   },
   "selector": {

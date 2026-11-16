@@ -238,6 +238,16 @@ Set Home Assistant's external URL before connecting. IP Ban Manager matches its 
 
 Policy changes synchronize automatically. **Protect all NPM domains** applies the policy to every active Proxy Host found during synchronization; newly added hosts are included on the next sync. Home Assistant callback exceptions remain limited to the selected Home Assistant host.
 
+NPM does not offer conditional proxy-host updates. Avoid editing the same host
+in NPM while a policy update is running: an edit made between the integration's
+read and write can still race with that update. Rollback checks do not eliminate
+this API limitation.
+
+If an NPM token expires, sign in again in the panel using an account with access
+to the managed hosts. Removing remote rules requires working NPM credentials;
+IP Ban Manager retains the connection details rather than pretending those rules
+were removed. Local Home Assistant access does not depend on the NPM connection.
+
 On Home Assistant OS and Supervised installations, the panel detects the Supervisor-managed Nginx Proxy Manager app and pre-fills its local address when available. The NPM email and password are still entered by the user; IP Ban Manager never guesses credentials or reads the NPM database. Container and external-Docker installations continue to use the manual URL field.
 
 Only the clearly marked IP Ban Manager block in each protected host's advanced configuration is changed. Existing NPM settings and unrelated advanced configuration are preserved. Disabling or disconnecting removes our marked blocks from every host IP Ban Manager managed; disconnecting also removes the stored token.

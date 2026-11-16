@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Toto nastavení by zablokovalo každou detekovanou lokální cestu přístupu. Nejprve přidejte aktuální lokální síť do Povolené IP.",
       "unsafe_allowlist_network": "Tato položka allowlistu by důvěřovala každé IP adrese a prakticky by vypnula IP zákazy.",
       "banned_ip_allowlisted": "IP nemůže být současně povolená i zakázaná. Odstraňte ji z jednoho seznamu a zkuste znovu.",
-      "confirmation_required": "Před vymazáním všech blokovaných IP zaškrtněte potvrzovací políčko."
+      "confirmation_required": "Před vymazáním všech blokovaných IP zaškrtněte potvrzovací políčko.",
+      "geoip_required": "Před vypnutím GeoIP vypněte regionální pravidla."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "Kontrola stavu IP Ban Manager vyžaduje pozornost",
       "description": "IP Ban Manager našel jeden nebo více problémů nastavení, které mohou ovlivnit živou správu zákazů:\n\n{issues}\n\nPo opravě otevřete panel IP Ban Manager pro obnovení kontroly stavu."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Požadavek selhal.",
+      "description": "{issues}"
     }
   },
   "selector": {

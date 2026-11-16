@@ -331,6 +331,17 @@ def normalize_login_attempts_threshold(value: Any) -> int:
     return min(MAX_LOGIN_ATTEMPTS_THRESHOLD, max(0, threshold))
 
 
+def entry_requires_geoip(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Return whether configured access or retry rules require location data."""
+    from .region_rules import entry_public_region_settings
+
+    return bool(
+        entry_allowed_region_mode(entry) != ALLOWED_REGION_ANYWHERE
+        or entry_regional_login_thresholds(entry)
+        or entry_public_region_settings(hass, entry)["public_region_enabled"]
+    )
+
+
 def normalize_regional_login_thresholds(value: object) -> dict[str, int]:
     """Return validated ISO country/subdivision threshold overrides."""
     if value is None:

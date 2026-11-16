@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Questa impostazione bloccherebbe ogni percorso di accesso locale rilevato. Aggiungi prima una rete locale attuale alle IP consentite.",
       "unsafe_allowlist_network": "Questa voce Allowlist considererebbe attendibile ogni indirizzo IP e disattiverebbe di fatto il blocco IP.",
       "banned_ip_allowlisted": "Un indirizzo IP non può essere sia consentito sia bloccato. Rimuovilo da un elenco e riprova.",
-      "confirmation_required": "Seleziona la casella di conferma prima di cancellare tutte le IP bloccate."
+      "confirmation_required": "Seleziona la casella di conferma prima di cancellare tutte le IP bloccate.",
+      "geoip_required": "Disattiva le regole regionali prima di disattivare GeoIP."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "Il controllo integrità di IP Ban Manager richiede attenzione",
       "description": "IP Ban Manager ha rilevato uno o più problemi di configurazione che possono influire sulla gestione dei blocchi in tempo reale:\n\n{issues}\n\nDopo averli risolti, apri il pannello IP Ban Manager per aggiornare il controllo integrità."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Richiesta non riuscita.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "IP consentite",
       "hint": "Indirizzi IPv4/IPv6, reti e nomi DNS/DDNS attendibili. I blocchi IP esatti hanno la precedenza. Le voci consentite ignorano i blocchi di rete, geografici e il rifiuto predefinito. I nomi vengono risolti e aggiornati in background.",
-      "placeholder": "Indirizzo IPv4/IPv6, CIDR o wildcard, DNS hostname",
+      "placeholder": "Indirizzo IP, CIDR, carattere jolly o nome host DNS",
       "remove_confirm": "Rimuovere questa IP consentita? Con deny predefinita o reti bloccate attive, la rimozione di una voce attendibile può bloccare l'accesso."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Scarica una copia su questo dispositivo o carica un backup da ripristinare.",
       "download": "Scarica",
       "upload": "Carica",
-      "upload_confirm": "Caricare {filename} e sostituire le impostazioni attuali di IP Ban Manager e i blocchi IP esatti?"
+      "upload_confirm": "Caricare {filename} e sostituire le impostazioni attuali di IP Ban Manager e i blocchi IP esatti?",
+      "transfer_title": "Trasferimento"
     },
     "geoip": {
       "title": "Database GeoIP",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Disconnettere Nginx Proxy Manager? Le regole di IP Ban Manager verranno rimosse dall'host proxy selezionato.",
       "protect_all_domains": "Proteggi tutti i domini NPM",
       "protect_all_domains_hint": "Applica queste regole a tutti gli host proxy attivi, inclusi quelli aggiunti in seguito.",
-      "protect_all_domains_warning": "Applicare le regole di IP Ban Manager a tutti gli host attivi di Nginx Proxy Manager? Le impostazioni esistenti resteranno invariate, ma queste regole di accesso interesseranno tutti i domini."
+      "protect_all_domains_warning": "Applicare le regole di IP Ban Manager a tutti gli host attivi di Nginx Proxy Manager? Le impostazioni esistenti resteranno invariate, ma queste regole di accesso interesseranno tutti i domini.",
+      "addon_detected": "Home Assistant ha rilevato l’app Nginx Proxy Manager e compilato il suo indirizzo locale."
     },
     "tabs": {
       "activity": "Attività",

@@ -13,7 +13,7 @@
   },
   pip_requirements: { enabled: false },
   "pre-commit": { enabled: true },
-  constraints: { python: "==3.13.*" },
+  constraints: { python: "==3.14.*" },
   labels: ["dependencies"],
   packageRules: [
     {

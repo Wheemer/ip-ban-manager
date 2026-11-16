@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Engedélyezett IP-k",
     "hint": "Megbízható IPv4/IPv6-címek, hálózatok és DNS/DDNS-nevek. A pontos IP-tiltások elsőbbséget élveznek. Az engedélyezett bejegyzések megkerülik a hálózati és területi tiltásokat, valamint az alapértelmezett elutasítást. A nevek feloldása és frissítése a háttérben történik.",
-    "placeholder": "IPv4/IPv6 cím, CIDR vagy helyettesítő, DNS hostname",
+    "placeholder": "IP-cím, CIDR, helyettesítő karakter vagy DNS-gépnév",
     "remove_confirm": "Eltávolítja ezt az engedélyezett IP-t? Aktív alapértelmezett tiltás vagy blokkolt hálózatok mellett egy megbízható bejegyzés eltávolítása kizárhatja a hozzáférést."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Mentés",
     "restore": "Visszaállítás",
     "restore_confirm": "Visszaállítja a lemezen lévő biztonsági mentésből, és lecseréli az aktuális IP Ban Manager beállításokat és pontos IP-tiltásokat?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Átvitel",
     "transfer_hint": "Másolat letöltése erre az eszközre, vagy biztonsági mentés feltöltése visszaállításhoz.",
     "download": "Letöltés",
     "upload": "Feltöltés",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Alkalmazza a IP Ban Manager explicit IP- és hálózati szabályait a proxyn, mielőtt a kérések elérnék a Home Assistant-t.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "A Home Assistant felismerte a Nginx Proxy Manager alkalmazást, és kitöltötte a helyi címét.",
     "not_connected": "Nincs csatlakoztatva",
     "connected_short": "Csatlakozva",
     "active": "Élvédelem aktív",

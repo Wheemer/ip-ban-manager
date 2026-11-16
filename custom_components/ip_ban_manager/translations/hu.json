@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Ez a beállítás minden észlelt helyi hozzáférési utat blokkoltna. Először adjon hozzá egy aktuális helyi hálózatot az Engedélyezett IP-khez.",
       "unsafe_allowlist_network": "Ez az engedélyezési lista bejegyzés minden IP-címet megbízhatónak tekintene, és gyakorlatilag kikapcsolná az IP-tiltást.",
       "banned_ip_allowlisted": "Egy IP nem lehet egyszerre engedélyezett és tiltott. Távolítsa el az egyik listáról, és próbálja újra.",
-      "confirmation_required": "Jelölje be a megerősítő jelölőnégyzetet az összes blokkolt IP törlése előtt."
+      "confirmation_required": "Jelölje be a megerősítő jelölőnégyzetet az összes blokkolt IP törlése előtt.",
+      "geoip_required": "A GeoIP kikapcsolása előtt kapcsolja ki a regionális szabályokat."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "Az IP Ban Manager állapotellenőrzése figyelmet igényel",
       "description": "Az IP Ban Manager egy vagy több beállítási problémát talált, amelyek befolyásolhatják az élő tiltáskezelést:\n\n{issues}\n\nA javítás után nyissa meg az IP Ban Manager panelt az állapotellenőrzés frissítéséhez."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · A kérés sikertelen.",
+      "description": "{issues}"
     }
   },
   "selector": {

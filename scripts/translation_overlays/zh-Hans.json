@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "该设置会阻止所有检测到的本地访问路径。请先将当前本地网络添加到“允许的 IP”。",
       "unsafe_allowlist_network": "该白名单条目会信任所有 IP 地址，从而实际上禁用 IP 封禁。",
       "banned_ip_allowlisted": "一个 IP 不能同时处于允许和封禁状态。请从一个列表中移除后重试。",
-      "confirmation_required": "在清除所有已阻止的 IP 之前，请勾选确认框。"
+      "confirmation_required": "在清除所有已阻止的 IP 之前，请勾选确认框。",
+      "geoip_required": "请先关闭区域规则，再禁用 GeoIP。"
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager 健康检查需要关注",
       "description": "IP Ban Manager 发现一个或多个可能影响实时封禁管理的设置问题：\n\n{issues}\n\n修复这些问题后，请打开 IP Ban Manager 面板以刷新健康检查。"
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · 请求失败。",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -191,7 +196,7 @@
     "allowed_ips": {
       "title": "允许的 IP",
       "hint": "受信任的 IPv4/IPv6 地址、网络及 DNS/DDNS 主机名。精确 IP 封禁优先。允许的条目可绕过网络封禁、地区限制和默认拒绝。主机名在后台解析并刷新。",
-      "placeholder": "IPv4/IPv6 地址、CIDR 或通配符, DNS hostname",
+      "placeholder": "IP 地址、CIDR、通配符或 DNS 主机名",
       "remove_confirm": "移除此允许的 IP？在启用默认拒绝或阻止网络时，移除受信任条目可能导致无法访问。"
     },
     "blocked_ips": {
@@ -342,7 +347,8 @@
       "disconnect_confirm": "断开Nginx Proxy Manager？ IP Ban Manager 的规则将从所选代理主机中删除。",
       "protect_all_domains": "保护所有 NPM 域名",
       "protect_all_domains_hint": "将这些规则应用于所有活动的代理主机，包括以后添加的主机。",
-      "protect_all_domains_warning": "要将 IP Ban Manager 规则应用于所有活动的 Nginx Proxy Manager 主机吗？现有主机设置会保留，但这些访问规则将影响所有域名。"
+      "protect_all_domains_warning": "要将 IP Ban Manager 规则应用于所有活动的 Nginx Proxy Manager 主机吗？现有主机设置会保留，但这些访问规则将影响所有域名。",
+      "addon_detected": "Home Assistant 检测到了 Nginx Proxy Manager 应用并填入了其本地地址。"
     },
     "tabs": {
       "activity": "活动",

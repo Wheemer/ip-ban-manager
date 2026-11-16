@@ -15,7 +15,12 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
 from .const import ATTR_HEALTH_ISSUES, DOMAIN, LEGACY_DOMAIN
-from .entry_helpers import entry_geoip_enabled, native_ip_banning_enabled
+from .entry_helpers import (
+    entry_allowed_region_mode,
+    entry_geoip_enabled,
+    entry_regional_login_thresholds,
+    native_ip_banning_enabled,
+)
 from .file_store import geoip_database_path, path_is_file
 from .geoip import geoip_reader
 from .i18n import async_load_health_issue_strings, format_health_issue_message
@@ -44,12 +49,15 @@ HTTP_IP_BAN_DOCS_URL = (
 )
 _UNSET = object()
 _HEALTH_GRACE_STATE = "ip_ban_manager_health_grace"
+_HEALTH_LIFETIME = "ip_ban_manager_health_lifetime"
 HEALTH_GRACE_SECONDS = 30
 
 
-def clear_health_grace(hass: HomeAssistant) -> None:
+def clear_health_grace(hass: HomeAssistant, *, invalidate: bool = False) -> None:
     """Cancel the integration-owned deferred health check on unload."""
     state = hass.data.pop(_HEALTH_GRACE_STATE, None)
+    if invalidate:
+        hass.data.pop(_HEALTH_LIFETIME, None)
     if state is not None and (remove := state.get("remove")):
         remove()
 
@@ -191,16 +199,21 @@ def health_status(
         issues.append({"key": "legacy_cleanup_pending"})
 
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
-    if entry is not None and entry_geoip_enabled(entry):
+    if entry is not None:
         database_present = (
             geoip_database_present
             if geoip_database_present is not None
             else geoip_database_path(hass).is_file()
         )
-        region_enabled = entry_public_region_settings(hass, entry)[
-            "public_region_enabled"
-        ]
-        if geoip_reader(hass) is None and (database_present or region_enabled):
+        region_enabled = (
+            entry_public_region_settings(hass, entry)["public_region_enabled"]
+            or entry_allowed_region_mode(entry) != "anywhere"
+            or bool(entry_regional_login_thresholds(entry))
+        )
+        if (region_enabled and not entry_geoip_enabled(entry)) or (
+            geoip_reader(hass) is None
+            and (region_enabled or (entry_geoip_enabled(entry) and database_present))
+        ):
             issues.append({"key": "geoip_reader_not_ready"})
 
     return {
@@ -233,11 +246,14 @@ async def async_health_status(hass: HomeAssistant) -> dict[str, object]:
 async def async_update_health_issue(hass: HomeAssistant) -> None:
     """Refresh the lightweight health status and matching Repair issue."""
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    lifetime = hass.data.setdefault(_HEALTH_LIFETIME, object())
     if entry is None or hass.data.get(KEY_SETUP_IN_PROGRESS):
         return
     health = await async_health_status(hass)
-    if hass.http.app.get(KEY_CONFIG_ENTRY) is not entry or hass.data.get(
-        KEY_SETUP_IN_PROGRESS
+    if (
+        hass.data.get(_HEALTH_LIFETIME) is not lifetime
+        or hass.http.app.get(KEY_CONFIG_ENTRY) is not entry
+        or hass.data.get(KEY_SETUP_IN_PROGRESS)
     ):
         return
     hass.data[KEY_HEALTH] = health
@@ -249,6 +265,17 @@ async def async_update_health_issue(hass: HomeAssistant) -> None:
         hass.data[_HEALTH_GRACE_STATE] = state
 
         async def refresh(_now: object) -> None:
+            if (
+                state is None
+                or hass.data.get(_HEALTH_GRACE_STATE) is not state
+                or hass.data.get(_HEALTH_LIFETIME) is not lifetime
+            ):
+                return
+            if hass.data.get(KEY_SETUP_IN_PROGRESS):
+                cast(dict[str, object], state)["remove"] = async_call_later(
+                    hass, 1, refresh
+                )
+                return
             if state is not None:
                 state.pop("remove", None)
             await async_update_health_issue(hass)
@@ -267,8 +294,10 @@ async def async_update_health_issue(hass: HomeAssistant) -> None:
         issue_strings = await async_load_health_issue_strings(
             hass, hass.config.language
         )
-        if hass.http.app.get(KEY_CONFIG_ENTRY) is not entry or hass.data.get(
-            KEY_SETUP_IN_PROGRESS
+        if (
+            hass.data.get(_HEALTH_LIFETIME) is not lifetime
+            or hass.http.app.get(KEY_CONFIG_ENTRY) is not entry
+            or hass.data.get(KEY_SETUP_IN_PROGRESS)
         ):
             return
         ir.async_create_issue(

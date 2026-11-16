@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "許可 IP",
     "hint": "信頼する IPv4/IPv6 アドレス、ネットワーク、DNS/DDNS ホスト名。個別の IP ブロックが優先されます。許可した項目はネットワーク制限、地域制限、既定の拒否を回避します。ホスト名はバックグラウンドで名前解決と更新を行います。",
-    "placeholder": "IPv4/IPv6 アドレス、CIDR、またはワイルドカード, DNS hostname",
+    "placeholder": "IP アドレス、CIDR、ワイルドカード、または DNS ホスト名",
     "remove_confirm": "この許可 IP を削除しますか？デフォルト拒否またはブロックされたネットワークが有効な場合、信頼エントリを削除するとアクセスできなくなる可能性があります。"
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "保存",
     "restore": "復元",
     "restore_confirm": "ディスク上のバックアップから復元し、現在の IP Ban Manager 設定と正確な IP BAN を置き換えますか？",
-    "transfer_title": "Transfer",
+    "transfer_title": "転送",
     "transfer_hint": "このデバイスにコピーをダウンロードするか、バックアップをアップロードして復元します。",
     "download": "ダウンロード",
     "upload": "アップロード",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "リクエストが Home Assistant に到達する前に、プロキシで IP Ban Manager の明示的な IP およびネットワーク ルールを適用します。",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant が Nginx Proxy Manager アプリを検出し、ローカルアドレスを入力しました。",
     "not_connected": "接続されていません",
     "connected_short": "接続済み",
     "active": "エッジ保護がアクティブです",

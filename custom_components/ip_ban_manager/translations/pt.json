@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Esta definição bloquearia todos os caminhos de acesso local detetados. Adicione primeiro uma rede local atual às IP permitidas.",
       "unsafe_allowlist_network": "Esta entrada Allowlist confiaria em todos os endereços IP e desativaria efetivamente o bloqueio IP.",
       "banned_ip_allowlisted": "Um endereço IP não pode estar simultaneamente permitido e bloqueado. Remova-o de uma lista e tente novamente.",
-      "confirmation_required": "Marque a caixa de confirmação antes de limpar todas as IP bloqueadas."
+      "confirmation_required": "Marque a caixa de confirmação antes de limpar todas as IP bloqueadas.",
+      "geoip_required": "Desative as regras regionais antes de desativar o GeoIP."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "Verificação de integridade do IP Ban Manager requer atenção",
       "description": "O IP Ban Manager encontrou um ou mais problemas de configuração que podem afetar a gestão de bloqueios em tempo real:\n\n{issues}\n\nApós corrigir, abra o painel IP Ban Manager para atualizar a verificação de integridade."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Pedido falhou.",
+      "description": "{issues}"
     }
   },
   "selector": {

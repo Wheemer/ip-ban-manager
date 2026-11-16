@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Sallitut IP-osoitteet",
     "hint": "Luotetut IPv4-/IPv6-osoitteet, verkot ja DNS-/DDNS-nimet. Tarkat IP-estot ovat ensisijaisia. Sallitut merkinnät ohittavat verkko- ja alue-estot sekä oletuseston. Nimet selvitetään ja päivitetään taustalla.",
-    "placeholder": "IPv4-/IPv6-osoite, CIDR tai jokeri, DNS hostname",
+    "placeholder": "IP-osoite, CIDR, jokerimerkki tai DNS-isäntänimi",
     "remove_confirm": "Poistetaanko tämä sallittu IP? Kun oletus-kielto tai estetyt verkot ovat aktiivisia, luotetun merkinnän poistaminen voi estää pääsyn."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Tallenna",
     "restore": "Palauta",
     "restore_confirm": "Palautetaanko levyn varmuuskopiosta ja korvataanko nykyiset IP Ban Manager -asetukset ja tarkat IP-estot?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Siirto",
     "transfer_hint": "Lataa kopio tälle laitteelle tai lähetä varmuuskopio palautusta varten.",
     "download": "Lataa",
     "upload": "Lähetä",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Käytä IP Ban Manager:n nimenomaisia IP- ja verkkosääntöjä välityspalvelimessa ennen kuin pyynnöt saavuttavat Home Assistant:n.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant havaitsi Nginx Proxy Manager -sovelluksen ja täytti sen paikallisen osoitteen.",
     "not_connected": "Ei yhdistetty",
     "connected_short": "Yhdistetty",
     "active": "Reunasuojaus aktiivinen",
