@@ -73,9 +73,18 @@ async def _async_refresh_dns_allowlist(hass: HomeAssistant) -> None:
     hostnames = _hostnames(entry_ip_addresses(entry))
     cache: dict[str, set[str]] = hass.data.setdefault(KEY_DNS_ALLOWLIST_CACHE, {})
     resolved_at = hass.data.setdefault(KEY_DNS_ALLOWLIST_RESOLVED_AT, {})
-    resolved = await asyncio.gather(
-        *(_async_resolve_hostname(hass, hostname) for hostname in hostnames)
-    )
+    slots = asyncio.Semaphore(8)
+
+    async def resolve(hostname: str) -> set[str]:
+        async with slots:
+            return await _async_resolve_hostname(hass, hostname)
+
+    resolved = await asyncio.gather(*(resolve(hostname) for hostname in hostnames))
+    if (
+        hass.http.app.get(KEY_CONFIG_ENTRY) is not entry
+        or _hostnames(entry_ip_addresses(entry)) != hostnames
+    ):
+        return
     for hostname, addresses in zip(hostnames, resolved, strict=True):
         if addresses:
             cache[hostname] = addresses

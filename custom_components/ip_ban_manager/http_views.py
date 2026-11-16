@@ -22,7 +22,7 @@ from .backup import (
     async_import_config_from_yaml,
     config_download_payload,
 )
-from .ban_lookup import NetworkAwareBanLookup
+from .ban_lookup import NetworkAwareBanLookup, _normalize_remote_addr
 from .ban_ops import async_add_ip_ban, async_remove_ip_ban
 from .const import (
     ATTR_IP_ADDRESS,
@@ -73,6 +73,7 @@ from .panel_assets import (
 from .region_rules import entry_public_region_settings
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
+    KEY_GEOIP_READER,
     KEY_HTTP_VIEW_HANDLERS,
     KEY_HTTP_VIEWS,
 )
@@ -213,7 +214,7 @@ async def async_handle_npm_region_authorize_get(
 
     raw_client_ip = request.headers.get("X-IP-Ban-Manager-Client-IP", "")
     try:
-        client_ip = ip_address(raw_client_ip)
+        client_ip = _normalize_remote_addr(ip_address(raw_client_ip))
     except ValueError:
         return Response(status=400)
 
@@ -223,11 +224,21 @@ async def async_handle_npm_region_authorize_get(
         return Response(status=503)
 
     now = monotonic()
+    policy = (
+        lookup,
+        lookup.allowlist,
+        lookup.blocked_networks,
+        lookup.default_deny_enabled,
+        lookup.internal_bypass_networks,
+        lookup.geoip_access_allowed,
+        hass.http.app.get(KEY_GEOIP_READER),
+        dict.__contains__(lookup, client_ip),
+    )
     cache = hass.data.setdefault(_NPM_REGION_AUTH_CACHE_KEY, {})
     cached = cache.get(client_ip)
     if (
         isinstance(cached, tuple)
-        and cached[0] is lookup
+        and cached[0] == policy
         and now - cached[1] <= _NPM_REGION_AUTH_CACHE_TTL
     ):
         return Response(status=403 if cached[2] else 204)
@@ -256,14 +267,14 @@ async def async_handle_npm_region_authorize_get(
             address
             for address, value in cache.items()
             if not isinstance(value, tuple)
-            or value[0] is not lookup
+            or value[0] != policy
             or now - value[1] > _NPM_REGION_AUTH_CACHE_TTL
         ]
         for address in expired[: max(1, len(expired) // 2)]:
             cache.pop(address, None)
         if len(cache) >= _NPM_REGION_AUTH_CACHE_MAX_ENTRIES:
             cache.pop(next(iter(cache)), None)
-    cache[client_ip] = (lookup, now, blocked)
+    cache[client_ip] = (policy, now, blocked)
     return Response(status=403 if blocked else 204)
 
 

@@ -179,14 +179,14 @@ async def test_network_only_blocks_keep_ban_middleware_active(
     async def handler(request: Any) -> Response:
         return Response(text="ok")
 
-    class BlockedRequest:
+    class BlockedRequest(MockRequestMetadata):
         app = hass.http.app
         remote = "8.8.8.8"
 
     with pytest.raises(HTTPForbidden):
         await http_ban.ban_middleware(cast(Any, BlockedRequest()), handler)
 
-    class AllowedRequest:
+    class AllowedRequest(MockRequestMetadata):
         app = hass.http.app
         remote = "192.168.1.42"
 

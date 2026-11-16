@@ -170,6 +170,7 @@
     "add": "Ajouter",
     "block": "Bloquer",
     "apply": "Appliquer",
+    "retry": "Réessayer",
     "advanced": "Avancé",
     "troubleshooting": "Activité et journalisation",
     "added_before_tracking": "Ajouté avant le suivi",
@@ -185,7 +186,7 @@
     },
     "allowed_ips": {
       "title": "IP autorisées",
-      "hint": "Adresses et réseaux IPv4/IPv6 de confiance. Ces entrées priment sur les bannissements exacts, les réseaux bloqués et le mode refus par défaut. Les jokers IPv4/IPv6 comme 192.168.1.* ou 2001:db8:1:2:* sont pris en charge. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Adresses IPv4/IPv6, réseaux et noms DNS/DDNS de confiance. Les bannissements d’IP exacts sont prioritaires. Les entrées autorisées contournent les blocages de réseaux, de régions et le refus par défaut. Les noms sont résolus et actualisés en arrière-plan.",
       "placeholder": "Adresse IPv4/IPv6, CIDR ou joker, DNS hostname",
       "remove_confirm": "Supprimer cette IP autorisée ? Avec le refus par défaut ou des réseaux bloqués actifs, supprimer une entrée de confiance peut bloquer l'accès."
     },
@@ -282,7 +283,9 @@
       "npm_sync": "Règles Nginx Proxy Manager synchronisées.",
       "npm_disconnect": "Nginx Proxy Manager déconnecté.",
       "set_options": "Options appliquées.",
-      "no_changes": "Aucune modification n'était nécessaire."
+      "no_changes": "Aucune modification n'était nécessaire.",
+      "clear_activity_history": "Historique d’activité effacé.",
+      "update_geoip": "Base de données GeoIP mise à jour."
     },
     "allowed_regions": {
       "title": "Verrouillage de région publique",
@@ -346,7 +349,16 @@
       "notifications": "Notifications"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "L’historique est conservé pendant {hours} heures.",
+      "title": "Activité entrante",
+      "hint": "Un résumé par IP source. Les requêtes de Home Assistant et de Nginx Proxy Manager sont regroupées.",
+      "npm_error": "Activité de Nginx Proxy Manager indisponible : {error}",
+      "none": "Aucune activité récente.",
+      "request_count": "Requêtes : {count}",
+      "recent": "Récente",
+      "history": "Historique",
+      "clear": "Effacer l’historique",
+      "clear_confirm": "Effacer l’historique enregistré ? L’activité récente restera visible."
     },
     "confirmation": {
       "title": "Confirmer la modification",

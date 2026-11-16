@@ -21,6 +21,7 @@
   "add": "Ekle",
   "block": "Engelle",
   "apply": "Uygula",
+  "retry": "Yeniden dene",
   "advanced": "Gelişmiş",
   "troubleshooting": "Etkinlik ve günlük kaydı",
   "options": "Seçenekler",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "İzin verilen IP",
-    "hint": "Güvenilir IPv4/IPv6 adresleri ve ağları. Bu girişler tam yasaklar, engellenen ağlar ve default-deny moduna göre önceliklidir. 192.168.1.* veya 2001:db8:1:2:* gibi IPv4/IPv6 jokerleri desteklenir. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Güvenilen IPv4/IPv6 adresleri, ağlar ve DNS/DDNS adları. Tam IP engelleri önceliklidir. İzin verilen kayıtlar ağ ve bölge engellerini ve varsayılan reddetmeyi atlar. Adlar arka planda çözümlenir ve yenilenir.",
     "placeholder": "IPv4/IPv6 adresi, CIDR veya joker, DNS hostname",
     "remove_confirm": "Bu izin verilen IP kaldırılsın mı? Aktif default-deny veya engellenen ağlar varken güvenilir bir girişi kaldırmak erişimi kilitleyebilir."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "Proxy ana bilgisayarı seçildi.",
     "npm_sync": "Nginx Proxy Manager kuralları senkronize edildi.",
     "npm_disconnect": "Nginx Proxy Manager bağlantısı kesildi.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "Etkinlik geçmişi temizlendi.",
+    "update_geoip": "GeoIP veritabanı güncellendi."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
-    "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "title": "Gelen etkinlik",
+    "hint": "Her kaynak IP için bir özet gösterilir. Home Assistant ve Nginx Proxy Manager istekleri birleştirilir.",
+    "npm_error": "Nginx Proxy Manager etkinliği kullanılamıyor: {error}",
+    "none": "Son etkinlik yok.",
+    "request_count": "İstekler: {count}",
+    "recent": "Son",
+    "history": "Geçmiş",
+    "retention": "Geçmiş {hours} saat saklanır.",
+    "clear": "Geçmişi temizle",
+    "clear_confirm": "Kayıtlı geçmiş temizlensin mi? Son etkinlik görünür kalacaktır.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

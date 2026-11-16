@@ -172,6 +172,7 @@
     "add": "Lisää",
     "block": "Estä",
     "apply": "Käytä",
+    "retry": "Yritä uudelleen",
     "advanced": "Lisäasetukset",
     "troubleshooting": "Aktiviteetti ja lokitus",
     "options": "Asetukset",
@@ -188,7 +189,7 @@
     },
     "allowed_ips": {
       "title": "Sallitut IP-osoitteet",
-      "hint": "Luotetut IPv4-/IPv6-osoitteet ja verkot. Nämä merkinnät voittavat tarkat estot, estetyt verkot ja oletus-kielto-tilan. IPv4-/IPv6-jokerit kuten 192.168.1.* tai 2001:db8:1:2:* tuetaan. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Luotetut IPv4-/IPv6-osoitteet, verkot ja DNS-/DDNS-nimet. Tarkat IP-estot ovat ensisijaisia. Sallitut merkinnät ohittavat verkko- ja alue-estot sekä oletuseston. Nimet selvitetään ja päivitetään taustalla.",
       "placeholder": "IPv4-/IPv6-osoite, CIDR tai jokeri, DNS hostname",
       "remove_confirm": "Poistetaanko tämä sallittu IP? Kun oletus-kielto tai estetyt verkot ovat aktiivisia, luotetun merkinnän poistaminen voi estää pääsyn."
     },
@@ -284,7 +285,9 @@
       "npm_sync": "Nginx Proxy Manager säännöt synkronoitu.",
       "npm_disconnect": "Nginx Proxy Manager irrotettu.",
       "set_options": "Vaihtoehdot käytössä.",
-      "no_changes": "Muutoksia ei tarvittu."
+      "no_changes": "Muutoksia ei tarvittu.",
+      "clear_activity_history": "Toimintahistoria tyhjennetty.",
+      "update_geoip": "GeoIP-tietokanta päivitetty."
     },
     "allowed_regions": {
       "title": "Julkinen aluelukko",
@@ -348,7 +351,16 @@
       "notifications": "Ilmoitukset"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "Historia säilytetään {hours} tuntia.",
+      "title": "Saapuva liikenne",
+      "hint": "Yksi yhteenveto kutakin lähde-IP:tä kohden. Home Assistantin ja Nginx Proxy Managerin pyynnöt yhdistetään.",
+      "npm_error": "Nginx Proxy Managerin toiminta ei ole saatavilla: {error}",
+      "none": "Ei viimeaikaista toimintaa.",
+      "request_count": "Pyynnöt: {count}",
+      "recent": "Viimeisimmät",
+      "history": "Historia",
+      "clear": "Tyhjennä historia",
+      "clear_confirm": "Tyhjennetäänkö tallennettu historia? Viimeaikainen toiminta jää näkyviin."
     },
     "confirmation": {
       "title": "Vahvista muutos",

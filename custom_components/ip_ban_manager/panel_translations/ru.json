@@ -21,6 +21,7 @@
   "add": "Добавить",
   "block": "Заблокировать",
   "apply": "Применить",
+  "retry": "Повторить",
   "advanced": "Дополнительно",
   "troubleshooting": "Активность и ведение журнала",
   "options": "Параметры",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "Разрешённые IP",
-    "hint": "Доверенные IPv4/IPv6 адреса и сети. Эти записи имеют приоритет над точными блокировками, заблокированными сетями и режимом default-deny. Поддерживаются шаблоны IPv4/IPv6, например 192.168.1.* или 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Доверенные адреса IPv4/IPv6, сети и имена DNS/DDNS. Блокировки конкретных IP имеют приоритет. Разрешённые записи обходят блокировку сетей, регионов и запрет по умолчанию. Имена разрешаются и обновляются в фоновом режиме.",
     "placeholder": "IPv4/IPv6 адрес, CIDR или шаблон, DNS hostname",
     "remove_confirm": "Удалить этот разрешённый IP? При активном default-deny или заблокированных сетях удаление доверенной записи может заблокировать доступ."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "Прокси-хост выбран.",
     "npm_sync": "Правила Nginx Proxy Manager синхронизированы.",
     "npm_disconnect": "Nginx Proxy Manager отключен.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "История активности очищена.",
+    "update_geoip": "База данных GeoIP обновлена."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
-    "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "title": "Входящая активность",
+    "hint": "Одна сводка для каждого IP-источника. Запросы Home Assistant и Nginx Proxy Manager объединяются.",
+    "npm_error": "Активность Nginx Proxy Manager недоступна: {error}",
+    "none": "Недавней активности нет.",
+    "request_count": "Запросы: {count}",
+    "recent": "Недавние",
+    "history": "История",
+    "retention": "История хранится {hours} часов.",
+    "clear": "Очистить историю",
+    "clear_confirm": "Очистить сохранённую историю? Недавняя активность останется видимой.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

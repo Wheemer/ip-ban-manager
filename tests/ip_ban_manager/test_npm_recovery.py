@@ -18,6 +18,7 @@ from .test_setup import setup_ip_ban_manager
 @pytest.mark.asyncio
 async def test_expired_token_marks_connection_for_sign_in(hass, monkeypatch):
     """NPM reports expired tokens as 400, not 401."""
+    await setup_ip_ban_manager(hass)
 
     class FakeResponse:
         status = 400
@@ -47,12 +48,15 @@ async def test_http_success_with_offline_host_is_not_success(hass, monkeypatch):
         npm.NpmClient,
         "_json",
         AsyncMock(
-            return_value={
-                "meta": {
-                    "nginx_online": False,
-                    "nginx_err": "duplicate location /api/webhook/",
-                }
-            }
+            side_effect=[
+                {"advanced_config": "test"},
+                {
+                    "meta": {
+                        "nginx_online": False,
+                        "nginx_err": "duplicate location /api/webhook/",
+                    }
+                },
+            ]
         ),
     )
     client = npm.NpmClient(hass, "http://npm.test:81", "valid")

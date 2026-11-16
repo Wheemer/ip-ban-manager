@@ -252,4 +252,4 @@ async def test_changing_npm_server_cleans_previous_host_first(
 
     remove.assert_awaited_once()
     assert npm.entry_npm_config(entry) == target
-    sync.assert_called_once_with(hass)
+    sync.assert_called_once_with(hass, reset_retry=True)

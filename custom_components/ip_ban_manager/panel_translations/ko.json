@@ -21,6 +21,7 @@
   "add": "추가",
   "block": "차단",
   "apply": "적용",
+  "retry": "다시 시도",
   "advanced": "고급",
   "troubleshooting": "활동 및 로깅",
   "options": "옵션",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "허용 IP",
-    "hint": "신뢰할 수 있는 IPv4/IPv6 주소 및 네트워크입니다. 이 항목은 정확한 차단, 차단된 네트워크 및 기본 거부 모드보다 우선합니다. 192.168.1.* 또는 2001:db8:1:2:* 같은 IPv4/IPv6 와일드카드를 지원합니다. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "신뢰하는 IPv4/IPv6 주소, 네트워크 및 DNS/DDNS 호스트 이름입니다. 개별 IP 차단이 우선합니다. 허용 항목은 네트워크 차단, 지역 제한 및 기본 거부를 우회합니다. 호스트 이름은 백그라운드에서 확인하고 갱신합니다.",
     "placeholder": "IPv4/IPv6 주소, CIDR 또는 와일드카드, DNS hostname",
     "remove_confirm": "이 허용 IP를 제거할까요? 기본 거부 또는 차단된 네트워크가 활성화된 경우 신뢰 항목을 제거하면 접근이 차단될 수 있습니다."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "프록시 호스트가 선택되었습니다.",
     "npm_sync": "Nginx Proxy Manager 규칙이 동기화되었습니다.",
     "npm_disconnect": "Nginx Proxy Manager 연결이 끊어졌습니다.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "활동 기록을 지웠습니다.",
+    "update_geoip": "GeoIP 데이터베이스를 업데이트했습니다."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
-    "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "title": "수신 활동",
+    "hint": "출발지 IP별로 요약합니다. Home Assistant와 Nginx Proxy Manager 요청을 합쳐 표시합니다.",
+    "npm_error": "Nginx Proxy Manager 활동을 사용할 수 없습니다: {error}",
+    "none": "최근 활동이 없습니다.",
+    "request_count": "요청: {count}",
+    "recent": "최근",
+    "history": "기록",
+    "retention": "기록은 {hours}시간 동안 보관됩니다.",
+    "clear": "기록 지우기",
+    "clear_confirm": "저장된 기록을 지울까요? 최근 활동은 계속 표시됩니다.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

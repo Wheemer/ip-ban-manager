@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.ip_ban_manager import backup, geoip, panel
+from custom_components.ip_ban_manager.ban_lookup import NetworkAwareBanLookup
 from custom_components.ip_ban_manager.const import DOMAIN
 from custom_components.ip_ban_manager.http_views import IPBanManagerManageView
 from custom_components.ip_ban_manager.region_rules import (
@@ -117,13 +118,21 @@ async def test_disabled_rules_are_preserved_and_stop_enforcing(
     )
     assert geoip.regional_login_threshold_for_ip(hass, ip_address("8.8.8.8")) == 3
     assert (
-        hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup.geoip_access_allowed is not None
+        cast(
+            NetworkAwareBanLookup, hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup
+        ).geoip_access_allowed
+        is not None
     )
     await panel.async_panel_set_options(hass, {"public_region_enabled": False})
     saved = entry_public_region_settings(hass, entry)
     assert saved == {"public_region_enabled": False, "public_region_rules": rules}
     assert geoip.regional_login_threshold_for_ip(hass, ip_address("8.8.8.8")) is None
-    assert hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup.geoip_access_allowed is None
+    assert (
+        cast(
+            NetworkAwareBanLookup, hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup
+        ).geoip_access_allowed
+        is None
+    )
     await panel.async_panel_set_options(
         hass, {"public_region_enabled": True, "confirmed": True}
     )

@@ -284,10 +284,10 @@ def check(page):
     page.locator('[data-panel-tab="notifications"]').click()
     notification = page.locator('[data-option="ban_notifications_enabled"]')
     saved = notification.evaluate("(el)=>el.checked")
-    page.evaluate(
-        """()=>{window.toggleApi=preview._api;window.failedSaves=0;
-      preview._api=async()=>{window.failedSaves++;throw new Error('Test save failure.');};}"""
-    )
+    page.evaluate("""()=>{window.toggleApi=preview._api;window.failedSaves=0;
+      preview._api=async(...args)=>{
+        if(args[0]!=='POST')return window.toggleApi(...args);
+        window.failedSaves++;throw new Error('Test save failure.');};}""")
     notification.click()
     page.wait_for_function("!preview._busy")
     assert notification.evaluate("(el)=>el.checked") == saved
@@ -432,14 +432,14 @@ def check(page):
     page.locator("#threshold").fill("8")
     page.locator("#threshold").press("Enter")
     page.evaluate("preview._renderSafely()")
-    page.evaluate(
-        """()=>{window.numericFailures=0;
-      preview._api=async()=>{window.numericFailures++;throw new Error('Test numeric failure.');};}"""
-    )
+    page.evaluate("""()=>{window.numericFailures=0;
+      preview._api=async(...args)=>{
+        if(args[0]!=='POST')return window.originalApi(...args);
+        window.numericFailures++;throw new Error('Test numeric failure.');};}""")
     page.locator("#threshold").fill("9")
     page.locator("#threshold").press("Enter")
     page.wait_for_function("window.numericFailures===1 && !preview._busy")
-    assert page.locator("#threshold").input_value() == "9"
+    assert page.locator("#threshold").input_value() == "8"
     assert page.evaluate("preview._data.settings.login_attempts_threshold") == 8
     assert page.evaluate("preview._toastType") == "error"
     assert (

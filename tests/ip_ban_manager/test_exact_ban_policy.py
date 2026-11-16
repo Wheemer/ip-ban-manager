@@ -63,6 +63,7 @@ async def test_exact_ban_persists_policy_denied_ip_without_activity(
     assert target in lookup
 
     # Normal request enforcement and observation still work after the mutation.
+    request.path = "/lovelace/default_view"
     token = current_request.set(cast(Any, request))
     try:
         assert target in lookup

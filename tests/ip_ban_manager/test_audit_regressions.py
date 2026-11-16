@@ -125,7 +125,11 @@ async def test_dns_cache_capacity_and_expiry(monkeypatch):
             None, reverse_dns.dt_util.utcnow() - timedelta(days=1)
         )
     }
-    hass = SimpleNamespace(http=SimpleNamespace(app={KEY_REVERSE_DNS_CACHE: cache}))
+    hass = SimpleNamespace(
+        data={},
+        http=SimpleNamespace(app={KEY_REVERSE_DNS_CACHE: cache}),
+        async_create_task=lambda coro, *args: asyncio.create_task(coro),
+    )
     monkeypatch.setattr(reverse_dns, "metric_increment", Mock())
     monkeypatch.setattr(
         reverse_dns, "_async_local_reverse_dns_name", AsyncMock(return_value=None)
@@ -237,6 +241,7 @@ async def test_npm_event_does_not_cancel_active_write(monkeypatch):
 
     monkeypatch.setattr(npm, "async_sync_npm", sync)
     monkeypatch.setattr(npm, "NPM_SYNC_DEBOUNCE_SECONDS", 0)
+    monkeypatch.setattr(npm.ir, "async_delete_issue", Mock())
     npm.schedule_npm_sync(hass)
     task = hass.data[npm.KEY_NPM_SYNC_TASK]
     try:
@@ -298,6 +303,7 @@ async def test_failed_platform_unload_keeps_runtime(hass, monkeypatch):
     """A refused platform unload leaves active services and hooks untouched."""
     import custom_components.ip_ban_manager as integration
 
+    hass.data[integration._PLATFORMS_SETUP_STARTED] = True
     entry = object()
     teardown = Mock()
     monkeypatch.setattr(
@@ -501,7 +507,8 @@ def test_npm_renders_resolved_dns_addresses(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_failed_setup_cleans_partial_runtime(monkeypatch):
+@pytest.mark.parametrize("platforms_started", [False, True])
+async def test_failed_setup_cleans_partial_runtime(monkeypatch, platforms_started):
     """Even failed platform cleanup must not leave partially installed hooks."""
     import custom_components.ip_ban_manager as integration
 
@@ -514,15 +521,23 @@ async def test_failed_setup_cleans_partial_runtime(monkeypatch):
         ),
     )
     cleanup = AsyncMock()
+
+    async def fail_setup(*_args):
+        hass.data[integration._PLATFORMS_SETUP_STARTED] = platforms_started
+        raise ValueError("setup failed")
+
     monkeypatch.setattr(
         integration,
         "_async_setup_entry",
-        AsyncMock(side_effect=ValueError("setup failed")),
+        fail_setup,
     )
     monkeypatch.setattr(integration, "_async_unload_runtime", cleanup)
     with pytest.raises(ValueError, match="setup failed"):
         await integration.async_setup_entry(hass, object())
     cleanup.assert_awaited_once_with(hass)
+    assert hass.config_entries.async_unload_platforms.await_count == int(
+        platforms_started
+    )
 
 
 @pytest.mark.asyncio
@@ -553,7 +568,11 @@ async def test_stop_history_does_not_unsubscribe_consumed_listener(monkeypatch):
         bus=SimpleNamespace(async_listen_once=listen),
         async_create_task=lambda coro, *args: asyncio.create_task(coro),
     )
-    monkeypatch.setattr(activity, "_async_load_history", AsyncMock())
+
+    async def load_history(hass):
+        hass.data[activity.KEY_ACTIVITY_HISTORY_LOADED] = True
+
+    monkeypatch.setattr(activity, "_async_load_history", load_history)
     save = AsyncMock()
     monkeypatch.setattr(activity, "_async_save_history", save)
     activity.async_start_history(hass)

@@ -490,6 +490,13 @@ async def test_switching_back_to_selected_host_removes_other_managed_blocks(
 async def test_multi_host_failure_restores_hosts_changed_earlier() -> None:
     """A later NPM rejection cannot leave an earlier host partially updated."""
     client = AsyncMock()
+    client.proxy_hosts.return_value = [
+        {
+            "id": 4,
+            "access_list_id": 0,
+            "advanced_config": npm._with_managed_config("# ha", ["deny all;"]),
+        }
+    ]
     client.update_proxy_host_policy.side_effect = [
         None,
         HomeAssistantError("HTTP 400"),
@@ -549,7 +556,7 @@ async def test_client_authenticate_uses_token_endpoint(
             return FakeResponse()
 
     monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())
-    hass = cast(HomeAssistant, SimpleNamespace())
+    hass = cast(HomeAssistant, SimpleNamespace(http=None, data={}))
     client = npm.NpmClient(hass, "http://192.168.1.40:81")
 
     token = await client.authenticate("admin@example.test", "secret")
@@ -604,7 +611,7 @@ async def test_client_surfaces_npm_api_error(
             return FakeResponse()
 
     monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())
-    hass = cast(HomeAssistant, SimpleNamespace())
+    hass = cast(HomeAssistant, SimpleNamespace(http=None, data={}))
     client = npm.NpmClient(hass, "http://192.168.1.40:81")
 
     with pytest.raises(HomeAssistantError, match=expected):

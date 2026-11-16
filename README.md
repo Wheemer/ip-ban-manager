@@ -379,6 +379,10 @@ On startup, IP Ban Manager also reconciles Home Assistant's exact ban list again
 
 IP Ban Manager adds numeric diagnostic sensors with detailed attributes:
 
+These entity attributes follow Home Assistant's normal entity permissions, not
+the panel's administrator-only access. Users who can read these entities can
+also read their address and network attributes.
+
 - `sensor.ip_ban_manager_active_bans`
 - `sensor.ip_ban_manager_allowlisted_networks`
 - `sensor.ip_ban_manager_blocked_networks`

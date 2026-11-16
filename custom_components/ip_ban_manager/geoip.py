@@ -8,7 +8,9 @@ import logging
 import os
 import socket
 import ssl
+import struct
 import sys
+from collections import OrderedDict
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -20,6 +22,7 @@ from pathlib import Path
 from socket import getaddrinfo
 from tempfile import NamedTemporaryFile
 from threading import RLock
+from time import monotonic
 from typing import Any, cast
 from urllib.error import URLError
 from urllib.parse import urlencode, urlsplit
@@ -52,6 +55,7 @@ from .entry_helpers import (
 )
 from .file_store import file_updated, geoip_database_path, path_is_file
 from .metrics import metric_increment
+from .panel_assets import async_integration_version, integration_version
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_GEOIP_READER,
@@ -62,14 +66,19 @@ from .storage_keys import (
 
 _LOGGER = logging.getLogger(__name__)
 _READER_LOCK = globals().get("_READER_LOCK", RLock())
+_DOWNLOAD_LOCK = globals().get("_DOWNLOAD_LOCK", RLock())
+_LOOKUP_CACHE_KEY = "ip_ban_manager_geoip_lookup_cache"
+GEOIP_CACHE_MAX_ENTRIES = 1024
+GEOIP_CACHE_SECONDS = 600
+GEOIP_NEGATIVE_CACHE_SECONDS = 30
 
 DBIP_ATTRIBUTION = "IP geolocation by DB-IP.com"
 DBIP_DOWNLOAD_MAX_BYTES = 250 * 1024 * 1024
 DBIP_DOWNLOAD_TIMEOUT = 120
-DBIP_DOWNLOAD_USER_AGENT = "IPBanManager/1.6.2"
 DBIP_SOURCE_NAME = "DB-IP City Lite"
 MAXMINDDB_VENDOR_PATH = Path(__file__).with_name("vendor")
 LOCAL_REGION_CACHE_TTL = timedelta(hours=12)
+LOCAL_REGION_RETRY_TTL = timedelta(minutes=1)
 PUBLIC_IP_LOOKUP_TIMEOUT = ClientTimeout(total=4)
 PUBLIC_IP_LOOKUP_URLS = (
     "https://cloudflare.com/cdn-cgi/trace",
@@ -78,7 +87,6 @@ PUBLIC_IP_LOOKUP_URLS = (
 )
 LOCAL_REGION_LOOKUP_TIMEOUT = ClientTimeout(total=8)
 NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
-NOMINATIM_USER_AGENT = "IPBanManager/1.8 (+https://github.com/Wheemer/ip-ban-manager)"
 DNS_OVER_HTTPS_URL = (
     "https://cloudflare-dns.com/dns-query?name=download.db-ip.com&type=A"
 )
@@ -169,8 +177,9 @@ class GeoIPLocation:
 class LocalGeoIPRegionCacheEntry:
     """Cached configured-location region for the Home Assistant instance."""
 
-    value: dict[str, str | None]
+    value: dict[str, str | None] | None
     expires_at: datetime
+    signature: tuple[object, ...] = ()
 
 
 def geoip_download_months(now: datetime | None = None) -> list[str]:
@@ -207,7 +216,7 @@ def geoip_resolve_download_host_via_https() -> list[str]:
         DNS_OVER_HTTPS_URL,
         headers={
             "Accept": "application/dns-json",
-            "User-Agent": DBIP_DOWNLOAD_USER_AGENT,
+            "User-Agent": f"IPBanManager/{integration_version()}",
         },
     )
     with urlopen(request, timeout=DBIP_DOWNLOAD_TIMEOUT) as response:
@@ -229,7 +238,9 @@ def open_geoip_download_url(url: str) -> Iterator[HTTPResponse]:
     parsed = urlsplit(url)
     host = parsed.hostname or "download.db-ip.com"
     if not geoip_download_host_is_blocked(host):
-        request = UrlRequest(url, headers={"User-Agent": DBIP_DOWNLOAD_USER_AGENT})
+        request = UrlRequest(
+            url, headers={"User-Agent": f"IPBanManager/{integration_version()}"}
+        )
         with urlopen(request, timeout=DBIP_DOWNLOAD_TIMEOUT) as response:
             yield response
         return
@@ -257,7 +268,7 @@ def open_geoip_download_url(url: str) -> Iterator[HTTPResponse]:
                 (
                     f"GET {target} HTTP/1.1\r\n"
                     f"Host: {host}\r\n"
-                    f"User-Agent: {DBIP_DOWNLOAD_USER_AGENT}\r\n"
+                    f"User-Agent: IPBanManager/{integration_version()}\r\n"
                     "Accept: application/octet-stream\r\n"
                     "Connection: close\r\n\r\n"
                 ).encode("ascii")
@@ -285,6 +296,12 @@ def open_geoip_download_url(url: str) -> Iterator[HTTPResponse]:
 
 def download_geoip_database_to_path(path: Path) -> None:
     """Download and install the DB-IP City Lite database atomically."""
+    with _DOWNLOAD_LOCK:
+        _download_validated_geoip_database(path)
+
+
+def _download_validated_geoip_database(path: Path) -> None:
+    """Keep the previous database until the replacement opens successfully."""
     path.parent.mkdir(parents=True, exist_ok=True)
     last_error: Exception | None = None
 
@@ -313,6 +330,11 @@ def download_geoip_database_to_path(path: Path) -> None:
                     temp_file.write(chunk)
                 temp_file.flush()
                 os.fsync(temp_file.fileno())
+            validated = open_geoip_reader(Path(temp_path))
+            if validated is None:
+                raise HomeAssistantError("Downloaded GeoIP database is invalid.")
+            candidate, _mtime = validated
+            cast(Any, candidate).close()
             os.replace(temp_path, path)
             return
         except (BadGzipFile, EOFError, OSError, URLError, HomeAssistantError) as err:
@@ -338,6 +360,8 @@ def close_geoip_reader(hass: HomeAssistant) -> None:
     with _READER_LOCK:
         reader = hass.http.app.pop(KEY_GEOIP_READER, None)
         hass.http.app.pop(KEY_GEOIP_READER_MTIME, None)
+        hass.http.app.pop(_LOOKUP_CACHE_KEY, None)
+        hass.http.app.pop(KEY_LOCAL_GEOIP_REGION_CACHE, None)
         hass.data.pop("ip_ban_manager_activity_location_cache", None)
         close = getattr(reader, "close", None)
         if callable(close):
@@ -354,15 +378,20 @@ def _maxminddb_module() -> Any:
         pass
 
     vendor_path = str(MAXMINDDB_VENDOR_PATH)
-    if vendor_path not in sys.path:
+    inserted = vendor_path not in sys.path
+    if inserted:
         sys.path.insert(0, vendor_path)
 
     if sys.modules.get("maxminddb") is None:
         sys.modules.pop("maxminddb", None)
 
-    import maxminddb
+    try:
+        import maxminddb
 
-    return maxminddb
+        return maxminddb
+    finally:
+        if inserted:
+            sys.path.remove(vendor_path)
 
 
 def open_geoip_reader(path: Path) -> tuple[object, float] | None:
@@ -378,7 +407,7 @@ def open_geoip_reader(path: Path) -> tuple[object, float] | None:
     try:
         maxminddb = _maxminddb_module()
         reader = maxminddb.open_database(str(path))
-    except (ImportError, OSError, RuntimeError):
+    except (ImportError, OSError, RuntimeError, ValueError, struct.error):
         _LOGGER.warning("Could not open GeoIP database %s", path, exc_info=True)
         return None
     return reader, mtime
@@ -386,9 +415,19 @@ def open_geoip_reader(path: Path) -> tuple[object, float] | None:
 
 async def async_prepare_geoip_reader(hass: HomeAssistant) -> None:
     """Prepare the local MMDB reader without blocking the event loop."""
-    result = await hass.async_add_executor_job(
-        open_geoip_reader, geoip_database_path(hass)
-    )
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    pending = hass.async_add_executor_job(open_geoip_reader, geoip_database_path(hass))
+    try:
+        result = await asyncio.shield(pending)
+    except asyncio.CancelledError:
+        result = await pending
+        if result is not None:
+            await hass.async_add_executor_job(cast(Any, result[0]).close)
+        raise
+    if entry is not None and hass.http.app.get(KEY_CONFIG_ENTRY) is not entry:
+        if result is not None:
+            await hass.async_add_executor_job(cast(Any, result[0]).close)
+        return
     with _READER_LOCK:
         close_geoip_reader(hass)
         if result is None:
@@ -406,8 +445,9 @@ def geoip_reader(hass: HomeAssistant) -> object | None:
 async def async_local_geoip_region(hass: HomeAssistant) -> dict[str, str | None] | None:
     """Return Home Assistant's configured home region, when detectable."""
     now = dt_util.utcnow()
+    signature = (_homeassistant_country_code(hass), _homeassistant_coordinates(hass))
     cached = hass.http.app.get(KEY_LOCAL_GEOIP_REGION_CACHE)
-    if cached is not None and cached.expires_at > now:
+    if cached is not None and cached.expires_at > now and cached.signature == signature:
         return cached.value
 
     if geoip_reader(hass) is None:
@@ -417,16 +457,23 @@ async def async_local_geoip_region(hass: HomeAssistant) -> dict[str, str | None]
         else:
             return None
 
-    if geoip_reader(hass) is None:
+    reader = geoip_reader(hass)
+    if reader is None:
         return None
 
     value = await _async_homeassistant_config_region(hass)
-    if value is None:
+    if geoip_reader(hass) is not reader:
         return None
 
     hass.http.app[KEY_LOCAL_GEOIP_REGION_CACHE] = LocalGeoIPRegionCacheEntry(
         value=value,
-        expires_at=now + LOCAL_REGION_CACHE_TTL,
+        expires_at=now
+        + (
+            LOCAL_REGION_CACHE_TTL
+            if value and value.get("subdivision_code")
+            else LOCAL_REGION_RETRY_TTL
+        ),
+        signature=signature,
     )
     return value
 
@@ -494,6 +541,7 @@ async def _async_reverse_geocode_home(
 ) -> GeoIPLocation | None:
     """Reverse-geocode Home Assistant's configured home coordinates."""
     session = async_get_clientsession(hass)
+    version = await async_integration_version(hass)
     query = urlencode(
         {
             "format": "jsonv2",
@@ -506,7 +554,9 @@ async def _async_reverse_geocode_home(
     try:
         async with session.get(
             f"{NOMINATIM_REVERSE_URL}?{query}",
-            headers={"User-Agent": NOMINATIM_USER_AGENT},
+            headers={
+                "User-Agent": f"IPBanManager/{version} (+https://github.com/Wheemer/ip-ban-manager)"
+            },
             timeout=LOCAL_REGION_LOOKUP_TIMEOUT,
         ) as response:
             if response.status != 200:
@@ -750,15 +800,30 @@ def geoip_location_details_for_ip(
         reader = geoip_reader(hass)
         if reader is None:
             return None
+        cache = hass.http.app.setdefault(_LOOKUP_CACHE_KEY, OrderedDict())
+        now = monotonic()
+        cached = cache.get(normalized_addr)
+        if cached is not None and cached[0] > now:
+            cache.move_to_end(normalized_addr)
+            return cached[1]
         metric_increment(hass, "geoip_lookups")
         try:
             result = cast(Any, reader).get(str(normalized_addr))
-        except (ValueError, OSError, RuntimeError):
-            return None
-    if not isinstance(result, dict):
-        return None
-
-    return geoip_location_details_from_result(result)
+        except (ValueError, OSError, RuntimeError, struct.error):
+            result = None
+        details = (
+            geoip_location_details_from_result(result)
+            if isinstance(result, dict)
+            else None
+        )
+        ttl = (
+            GEOIP_CACHE_SECONDS if details is not None else GEOIP_NEGATIVE_CACHE_SECONDS
+        )
+        cache[normalized_addr] = (now + ttl, details)
+        cache.move_to_end(normalized_addr)
+        while len(cache) > GEOIP_CACHE_MAX_ENTRIES:
+            cache.popitem(last=False)
+        return details
 
 
 def geoip_location_for_ip(hass: HomeAssistant, remote_addr: IPAddress) -> str | None:
@@ -851,7 +916,7 @@ def geoip_region_allows_ip(
     if mode == ALLOWED_REGION_SUBDIVISION:
         return bool(subdivision_code) and details.subdivision_code == subdivision_code
 
-    return True
+    return False
 
 
 def geoip_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -22,6 +23,24 @@ DNS_OVER_HTTPS_URL = "https://cloudflare-dns.com/dns-query"
 DNS_TYPE_PTR = 12
 DNS_OVER_HTTPS_TIMEOUT = ClientTimeout(total=3)
 REVERSE_DNS_CACHE_MAX_ENTRIES = 1024
+KEY_REVERSE_DNS_TASKS = "ip_ban_manager_reverse_dns_tasks"
+REVERSE_DNS_MAX_PENDING = 16
+_HOST_LABEL = re.compile(r"[A-Za-z0-9_-]{1,63}")
+
+
+def _safe_hostname(value: str | None) -> str | None:
+    """Accept DNS names, not control characters or injected notification markup."""
+    if value is None:
+        return None
+    try:
+        hostname = value.rstrip(".").encode("idna").decode("ascii")
+    except UnicodeError:
+        return None
+    if len(hostname) > 253 or not all(
+        _HOST_LABEL.fullmatch(label) for label in hostname.split(".")
+    ):
+        return None
+    return hostname
 
 
 @dataclass(frozen=True)
@@ -47,21 +66,59 @@ async def async_reverse_dns_name(
         return cached.hostname
 
     metric_increment(hass, "reverse_dns_lookups")
-    if remote_addr.is_global:
-        hostname = await _async_external_reverse_dns_name(hass, remote_addr)
-    else:
-        hostname = await _async_local_reverse_dns_name(hass, remote_addr)
+    pending = hass.data.setdefault(KEY_REVERSE_DNS_TASKS, {})
+    task = pending.get(remote_addr)
+    if task is None:
+        if len(pending) >= REVERSE_DNS_MAX_PENDING:
+            return None
+        task = hass.async_create_task(_async_resolve_name(hass, remote_addr))
+        pending[remote_addr] = task
 
-    if hostname is not None:
-        hostname = hostname.rstrip(".")
+        def finished(done: asyncio.Task[str | None]) -> None:
+            if pending.get(remote_addr) is done:
+                pending.pop(remote_addr, None)
+
+        task.add_done_callback(finished)
+    try:
+        hostname = await asyncio.shield(task)
+    finally:
+        if task.done() and pending.get(remote_addr) is task:
+            pending.pop(remote_addr, None)
+
+    hostname = _safe_hostname(hostname)
 
     if remote_addr not in cache and len(cache) >= REVERSE_DNS_CACHE_MAX_ENTRIES:
         cache.pop(next(iter(cache)), None)
     cache[remote_addr] = ReverseDNSCacheEntry(
         hostname=hostname,
-        expires_at=now + REVERSE_DNS_CACHE_TTL,
+        expires_at=dt_util.utcnow() + REVERSE_DNS_CACHE_TTL,
     )
     return hostname
+
+
+async def _async_resolve_name(
+    hass: HomeAssistant, remote_addr: IPAddress
+) -> str | None:
+    """Resolve one address; concurrent requests share the bounded worker."""
+    if remote_addr.is_global:
+        return await _async_external_reverse_dns_name(hass, remote_addr)
+    try:
+        return await asyncio.wait_for(
+            _async_local_reverse_dns_name(hass, remote_addr), 3
+        )
+    except TimeoutError:
+        return None
+
+
+async def async_stop_reverse_dns(hass: HomeAssistant) -> None:
+    """Cancel and join integration-owned lookup tasks on unload."""
+    pending: dict[IPAddress, asyncio.Task[str | None]] = hass.data.pop(
+        KEY_REVERSE_DNS_TASKS, {}
+    )
+    for task in pending.values():
+        task.cancel()
+    if pending:
+        await asyncio.gather(*pending.values(), return_exceptions=True)
 
 
 async def _async_external_reverse_dns_name(

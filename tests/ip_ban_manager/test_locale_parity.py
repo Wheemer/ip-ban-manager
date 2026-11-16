@@ -34,17 +34,6 @@ ALLOWED_ENGLISH_PANEL_PATHS = {
     "sources.panel",
     "sources.service",
     "sources.yaml",
-    "activity.title",
-    "activity.hint",
-    "activity.npm_error",
-    "activity.none",
-    "activity.request_count",
-    "activity.recent",
-    "activity.history",
-    "activity.retention",
-    "activity.clear",
-    "activity.clear_confirm",
-    "success.clear_activity_history",
     "activity.sources.home_assistant",
     "activity.sources.nginx_proxy_manager",
     "title",
@@ -166,7 +155,9 @@ def test_supported_panel_locales_preserve_placeholders_and_translate_prose() -> 
         untranslated = {
             path
             for path, value in locale.items()
-            if value == english[path] and path not in ALLOWED_ENGLISH_PANEL_PATHS
+            if value == english[path]
+            and path not in ALLOWED_ENGLISH_PANEL_PATHS
+            and not (language in {"nl", "ca"} and path == "activity.recent")
         }
         assert not untranslated, (
             f"panel/{language}.json contains unexpected English values: "

@@ -172,6 +172,7 @@
     "add": "Lägg till",
     "block": "Blockera",
     "apply": "Tillämpa",
+    "retry": "Försök igen",
     "advanced": "Avancerat",
     "troubleshooting": "Aktivitet och loggning",
     "options": "Alternativ",
@@ -188,7 +189,7 @@
     },
     "allowed_ips": {
       "title": "Tillåtna IP",
-      "hint": "Betrodda IPv4-/IPv6-adresser och nätverk. Dessa poster vinner över exakta spärrar, blockerade nätverk och default-deny-läge. IPv4-/IPv6-jokertecken som 192.168.1.* eller 2001:db8:1:2:* stöds. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Betrodda IPv4-/IPv6-adresser, nätverk och DNS-/DDNS-namn. Exakta IP-blockeringar har företräde. Tillåtna poster kringgår nätverksblockering, regionslås och standardnekande. Namn slås upp och uppdateras i bakgrunden.",
       "placeholder": "IPv4-/IPv6-adress, CIDR eller jokertecken, DNS hostname",
       "remove_confirm": "Ta bort denna tillåtna IP? Med aktiv default-deny eller blockerade nätverk kan borttagning av en betrodd post låsa ute åtkomst."
     },
@@ -284,7 +285,9 @@
       "npm_sync": "Nginx Proxy Manager regler synkroniserade.",
       "npm_disconnect": "Nginx Proxy Manager frånkopplad.",
       "set_options": "Tillämpade alternativ.",
-      "no_changes": "Inga ändringar behövdes."
+      "no_changes": "Inga ändringar behövdes.",
+      "clear_activity_history": "Aktivitetshistoriken har rensats.",
+      "update_geoip": "GeoIP-databasen har uppdaterats."
     },
     "allowed_regions": {
       "title": "Offentlig regionlås",
@@ -348,7 +351,16 @@
       "notifications": "Aviseringar"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "Historiken sparas i {hours} timmar.",
+      "title": "Inkommande aktivitet",
+      "hint": "En sammanfattning per käll-IP. Förfrågningar från Home Assistant och Nginx Proxy Manager slås samman.",
+      "npm_error": "Aktivitet från Nginx Proxy Manager är inte tillgänglig: {error}",
+      "none": "Ingen nylig aktivitet.",
+      "request_count": "Förfrågningar: {count}",
+      "recent": "Senaste",
+      "history": "Historik",
+      "clear": "Rensa historik",
+      "clear_confirm": "Rensa sparad historik? Den senaste aktiviteten förblir synlig."
     },
     "confirmation": {
       "title": "Bekräfta ändring",

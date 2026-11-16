@@ -203,24 +203,21 @@ async def test_panel_script_url_serves_current_bundle(hass: HomeAssistant) -> No
 
 
 @pytest.mark.asyncio
-async def test_panel_options_clamp_login_threshold(
+async def test_panel_options_reject_out_of_range_login_threshold(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test direct panel/API writes cannot bypass threshold limits."""
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
 
-    await _async_panel_set_options(hass, {CONF_LOGIN_ATTEMPTS_THRESHOLD: 999})
+    before = dict(entry.options)
+    threshold = hass.http.app[KEY_LOGIN_THRESHOLD]
+    for value in (999, -10):
+        with pytest.raises(HomeAssistantError, match="between 0 and 100"):
+            await _async_panel_set_options(hass, {CONF_LOGIN_ATTEMPTS_THRESHOLD: value})
     check_records(caplog.records)
-
-    assert entry.options[CONF_LOGIN_ATTEMPTS_THRESHOLD] == 100
-    assert hass.http.app[KEY_LOGIN_THRESHOLD] == 100
-
-    await _async_panel_set_options(hass, {CONF_LOGIN_ATTEMPTS_THRESHOLD: -10})
-    check_records(caplog.records)
-
-    assert entry.options[CONF_LOGIN_ATTEMPTS_THRESHOLD] == 0
-    assert hass.http.app[KEY_LOGIN_THRESHOLD] == 0
+    assert entry.options == before
+    assert hass.http.app[KEY_LOGIN_THRESHOLD] == threshold
 
 
 @pytest.mark.asyncio

@@ -22,7 +22,7 @@ def run(command: list[str], env: dict[str, str] | None = None) -> None:
 
 def create_venv(env: dict[str, str]) -> None:
     """Create a fresh local virtual environment."""
-    run(["uv", "venv", "--clear", "--python", "3.13", str(VENV)], env=env)
+    run(["uv", "venv", "--clear", "--python", "3.14", str(VENV)], env=env)
 
 
 def venv_can_import() -> bool:

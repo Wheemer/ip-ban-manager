@@ -21,6 +21,7 @@
   "add": "添加",
   "block": "阻止",
   "apply": "应用",
+  "retry": "重试",
   "advanced": "高级",
   "troubleshooting": "活动和日志记录",
   "options": "选项",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "允许的 IP",
-    "hint": "受信任的 IPv4/IPv6 地址和网络。这些条目优先于精确封禁、阻止网络和默认拒绝模式。支持 IPv4/IPv6 通配符，例如 192.168.1.* 或 2001:db8:1:2:*。. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "受信任的 IPv4/IPv6 地址、网络及 DNS/DDNS 主机名。精确 IP 封禁优先。允许的条目可绕过网络封禁、地区限制和默认拒绝。主机名在后台解析并刷新。",
     "placeholder": "IPv4/IPv6 地址、CIDR 或通配符, DNS hostname",
     "remove_confirm": "移除此允许的 IP？在启用默认拒绝或阻止网络时，移除受信任条目可能导致无法访问。"
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "已选择代理主机。",
     "npm_sync": "Nginx Proxy Manager规则已同步。",
     "npm_disconnect": "Nginx Proxy Manager 已断开连接。",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "活动历史已清除。",
+    "update_geoip": "GeoIP 数据库已更新。"
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
-    "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "title": "传入活动",
+    "hint": "每个来源 IP 显示一份摘要，合并 Home Assistant 和 Nginx Proxy Manager 的请求。",
+    "npm_error": "无法获取 Nginx Proxy Manager 活动：{error}",
+    "none": "没有最近的活动。",
+    "request_count": "请求数：{count}",
+    "recent": "最近",
+    "history": "历史",
+    "retention": "历史记录保留 {hours} 小时。",
+    "clear": "清除历史",
+    "clear_confirm": "清除已保存的活动历史？最近的活动仍会显示。",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

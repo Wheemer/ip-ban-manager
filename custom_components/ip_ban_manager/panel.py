@@ -14,6 +14,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .activity import (
+    KEY_ACTIVITY_HISTORY_ERROR,
     history_activity,
     merge_activity,
     without_allowlisted_activity,
@@ -108,10 +109,7 @@ from .notifications import (
     silence_allowlisted_login_notifications,
     unsilence_allowlisted_login_notifications,
 )
-from .panel_assets import (
-    async_integration_version,
-    async_panel_js_url,
-)
+from .panel_assets import async_integration_version, async_panel_js_url
 from .region_rules import entry_public_region_settings, normalize_public_region_settings
 from .runtime_options import (
     CONF_CALLBACK_ROUTE_PROTECTION_ENABLED,
@@ -192,18 +190,27 @@ async def async_panel_payload(
     translations = await async_load_panel_translations(hass, resolved_language)
     backup_status = await hass.async_add_executor_job(_backup_status, hass)
     geoip = await hass.async_add_executor_job(geoip_status, hass, entry)
-    geoip["local_region"] = None if initial else await async_local_geoip_region(hass)
+    geoip["local_region"] = None
     npm_activity = []
     npm_discovery: dict[str, object] = {"addon_detected": False}
     if not initial:
-        try:
-            npm_activity = await asyncio.wait_for(async_npm_activity(hass, entry), 3)
-        except (HomeAssistantError, TimeoutError):
-            npm_activity = []
-        try:
-            npm_discovery = await asyncio.wait_for(async_detect_npm_addon(hass), 2)
-        except (HomeAssistantError, TimeoutError):
-            npm_discovery = {"addon_detected": False}
+        results = await asyncio.gather(
+            async_local_geoip_region(hass),
+            asyncio.wait_for(async_npm_activity(hass, entry), 3),
+            asyncio.wait_for(async_detect_npm_addon(hass), 2),
+            return_exceptions=True,
+        )
+        for result in results:
+            if isinstance(result, BaseException) and not isinstance(
+                result, (HomeAssistantError, TimeoutError)
+            ):
+                raise result
+        if not isinstance(results[0], BaseException):
+            geoip["local_region"] = results[0]
+        if isinstance(results[1], list):
+            npm_activity = results[1]
+        if isinstance(results[2], dict):
+            npm_discovery = results[2]
     activity = merge_activity(hass, npm_activity)
     activity_history = history_activity(hass)
     include_blocked_activity = entry_blocked_request_logging_enabled(entry)
@@ -238,6 +245,7 @@ async def async_panel_payload(
     return {
         "ok": True,
         "enrichment_pending": initial,
+        "activity_history_error": hass.data.get(KEY_ACTIVITY_HISTORY_ERROR),
         "version": version,
         "language": resolved_language,
         "translations": translations,
@@ -398,6 +406,12 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] = (
             normalize_login_attempts_threshold(options[CONF_LOGIN_ATTEMPTS_THRESHOLD])
         )
+        if current_options[CONF_LOGIN_ATTEMPTS_THRESHOLD] != int(
+            options[CONF_LOGIN_ATTEMPTS_THRESHOLD]
+        ):
+            raise HomeAssistantError(
+                "Login attempts threshold must be between 0 and 100."
+            )
     if CONF_REGIONAL_LOGIN_THRESHOLDS in options:
         current_options[CONF_REGIONAL_LOGIN_THRESHOLDS] = (
             normalize_regional_login_thresholds(options[CONF_REGIONAL_LOGIN_THRESHOLDS])
@@ -429,18 +443,24 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         or current_options[CONF_REGIONAL_LOGIN_THRESHOLDS]
         or region_settings["public_region_enabled"]
     ):
+        if CONF_GEOIP_ENABLED in options and not current_options[CONF_GEOIP_ENABLED]:
+            raise HomeAssistantError(
+                "Turn off Public Region Lock and remove regional login overrides before disabling GeoIP."
+            )
         current_options[CONF_GEOIP_ENABLED] = True
 
-    await async_validate_panel_network_safety(
-        hass,
-        current_allowlist_strings(hass),
-        current_blocked_network_strings(hass),
-        bool(current_options[CONF_DEFAULT_DENY_ENABLED]),
-    )
+    if CONF_DEFAULT_DENY_ENABLED in options:
+        await async_validate_panel_network_safety(
+            hass,
+            current_allowlist_strings(hass),
+            current_blocked_network_strings(hass),
+            bool(current_options[CONF_DEFAULT_DENY_ENABLED]),
+        )
     if current_options[CONF_GEOIP_ENABLED]:
         geoip_path = geoip_database_path(hass)
         if await hass.async_add_executor_job(path_is_file, geoip_path):
-            await async_prepare_geoip_reader(hass)
+            if geoip_reader(hass) is None:
+                await async_prepare_geoip_reader(hass)
         elif region_changed and region_settings["public_region_enabled"]:
             raise HomeAssistantError(
                 "Download the GeoIP database before enabling Public Region Lock."

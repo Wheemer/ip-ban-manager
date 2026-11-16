@@ -24,7 +24,12 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.util import dt as dt_util
 
 from .audit import record_ip_unbanned
-from .ban_lookup import _is_allowed, _is_blocked, _supervisor_internal_networks
+from .ban_lookup import (
+    _is_allowed,
+    _is_blocked,
+    _normalize_remote_addr,
+    _supervisor_internal_networks,
+)
 from .const import ATTR_IP_ADDRESS, DOMAIN, SOURCE_PANEL, SOURCE_SERVICE, SOURCE_SETUP
 from .entry_helpers import allowlisted_logins_can_ban
 from .file_store import atomic_write_text, snapshot_dir, snapshot_existing_file
@@ -219,7 +224,7 @@ async def async_remove_ip_ban(
 ) -> None:
     """Remove an IP ban immediately."""
     try:
-        remote_addr = ip_address(ip_address_value)
+        remote_addr = _normalize_remote_addr(ip_address(ip_address_value))
     except ValueError as err:
         if source == SOURCE_PANEL:
             raise HomeAssistantError("Invalid IP address.") from err
@@ -232,7 +237,12 @@ async def async_remove_ip_ban(
     ban_manager_ = ban_manager(hass)
 
     def remove(bans: dict[IPAddress, IpBan]) -> None:
-        if bans.pop(remote_addr, None) is None:
+        matching = [
+            address
+            for address in bans
+            if _normalize_remote_addr(address) == remote_addr
+        ]
+        if not matching:
             if source == SOURCE_PANEL:
                 raise HomeAssistantError(f"{remote_addr} is not banned.")
             raise ServiceValidationError(
@@ -240,6 +250,8 @@ async def async_remove_ip_ban(
                 translation_key="ip_address_not_banned",
                 translation_placeholders={ATTR_IP_ADDRESS: str(remote_addr)},
             )
+        for address in matching:
+            bans.pop(address, None)
 
     await async_mutate_ip_bans(hass, ban_manager_, remove)
     hass.http.app[KEY_FAILED_LOGIN_ATTEMPTS].pop(remote_addr, None)
@@ -292,12 +304,35 @@ async def async_remove_all_ip_bans(hass: HomeAssistant) -> None:
         record_ip_unbanned(hass, str(remote_addr), SOURCE_SERVICE)
 
 
+def normalize_exact_bans(
+    hass: HomeAssistant, bans: Iterable[IpBan]
+) -> dict[IPAddress, IpBan]:
+    """Apply canonical identity and self-protection to bulk ban writes."""
+    internal = hass.http.app.get(
+        KEY_INTERNAL_BYPASS_NETWORKS, _supervisor_internal_networks()
+    )
+    normalized: dict[IPAddress, IpBan] = {}
+    for ban in bans:
+        address = _normalize_remote_addr(ban.ip_address)
+        if _is_allowed(address, internal):
+            raise HomeAssistantError(
+                f"{address} is a Home Assistant internal address and cannot be banned."
+            )
+        normalized[address] = (
+            ban
+            if address == ban.ip_address
+            else IpBan(address, banned_at=ban.banned_at)
+        )
+    return normalized
+
+
 async def async_replace_ip_bans(
     hass: HomeAssistant, ip_address_values: list[str]
 ) -> None:
     """Replace the live IP ban list immediately."""
     remote_addrs = [
-        ip_address(ip_address_value) for ip_address_value in ip_address_values
+        _normalize_remote_addr(ip_address(ip_address_value))
+        for ip_address_value in ip_address_values
     ]
     remote_addr_set = set(remote_addrs)
 
@@ -309,6 +344,7 @@ async def async_replace_ip_bans(
         remote_addr: preserved_bans.get(remote_addr, IpBan(remote_addr))
         for remote_addr in remote_addrs
     }
+    updated_bans = normalize_exact_bans(hass, updated_bans.values())
     await async_commit_ip_bans(
         hass,
         ban_manager_,

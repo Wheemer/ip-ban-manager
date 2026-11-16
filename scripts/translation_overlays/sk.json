@@ -172,6 +172,7 @@
     "add": "Pridať",
     "block": "Blokovať",
     "apply": "Použiť",
+    "retry": "Skúsiť znova",
     "advanced": "Pokročilé",
     "troubleshooting": "Aktivita a protokolovanie",
     "options": "Možnosti",
@@ -188,7 +189,7 @@
     },
     "allowed_ips": {
       "title": "Povolené IP",
-      "hint": "Dôveryhodné IPv4/IPv6 adresy a siete. Tieto položky majú prednosť pred presnými zákazmi, blokovanými sieťami a režimom predvoleného zamietnutia. Podporované sú IPv4/IPv6 zástupné znaky ako 192.168.1.* alebo 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Dôveryhodné adresy a siete IPv4/IPv6 a názvy DNS/DDNS. Presné blokovania IP majú prednosť. Povolené položky obchádzajú blokovanie sietí, oblastí a predvolené odmietnutie. Názvy sa prekladajú a obnovujú na pozadí.",
       "placeholder": "IPv4/IPv6 adresa, CIDR alebo zástupný znak, DNS hostname",
       "remove_confirm": "Odstrániť túto povolenú IP? Pri aktívnom predvolenom zamietnutí alebo blokovaných sieťach môže odstránenie dôveryhodnej položky zablokovať prístup."
     },
@@ -284,7 +285,9 @@
       "npm_sync": "Pravidlá Nginx Proxy Manager sú synchronizované.",
       "npm_disconnect": "Nginx Proxy Manager je odpojený.",
       "set_options": "Možnosti boli použité.",
-      "no_changes": "Neboli potrebné žiadne zmeny."
+      "no_changes": "Neboli potrebné žiadne zmeny.",
+      "clear_activity_history": "História aktivity bola vymazaná.",
+      "update_geoip": "Databáza GeoIP bola aktualizovaná."
     },
     "allowed_regions": {
       "title": "Verejný zámok regiónu",
@@ -348,7 +351,16 @@
       "notifications": "Upozornenia"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "História sa uchováva {hours} hodín.",
+      "title": "Prichádzajúca aktivita",
+      "hint": "Jeden súhrn pre každú zdrojovú IP. Požiadavky Home Assistant a Nginx Proxy Manager sa spájajú.",
+      "npm_error": "Aktivita Nginx Proxy Manager nie je dostupná: {error}",
+      "none": "Žiadna nedávna aktivita.",
+      "request_count": "Požiadavky: {count}",
+      "recent": "Nedávne",
+      "history": "História",
+      "clear": "Vymazať históriu",
+      "clear_confirm": "Vymazať uloženú históriu? Nedávna aktivita zostane viditeľná."
     },
     "confirmation": {
       "title": "Potvrdiť zmenu",

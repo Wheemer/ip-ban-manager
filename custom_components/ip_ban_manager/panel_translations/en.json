@@ -21,6 +21,7 @@
   "add": "Add",
   "block": "Block",
   "apply": "Apply",
+  "retry": "Retry",
   "advanced": "Advanced",
   "troubleshooting": "Activity and logging",
   "options": "Options",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "Allowed IPs",
-    "hint": "Trusted IPv4/IPv6 addresses, networks, and DNS or DDNS hostnames. These entries win over exact bans, blocked networks, and default-deny mode. Hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Trusted IPv4/IPv6 addresses, networks, and DNS/DDNS hostnames. Exact IP bans take precedence. Allowed entries bypass blocked networks, Public Region Lock, and default-deny. Hostnames are resolved and refreshed in the background.",
     "placeholder": "IP address, CIDR, wildcard, or DNS hostname",
     "remove_confirm": "Remove this Allowed IP? With default-deny or blocked networks active, removing a trusted entry can lock out access."
   },
@@ -196,7 +197,8 @@
     "npm_select_host": "Proxy host selected.",
     "npm_sync": "Nginx Proxy Manager rules synchronized.",
     "npm_disconnect": "Nginx Proxy Manager disconnected.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "Activity history cleared.",
+    "update_geoip": "GeoIP database updated."
   },
   "activity": {
     "title": "Incoming Activity",

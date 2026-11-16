@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -13,22 +11,20 @@ from .storage_keys import KEY_METRICS
 
 def metrics(hass: HomeAssistant) -> dict[str, object]:
     """Return mutable in-memory integration metrics."""
-    return cast(
-        dict[str, object],
-        hass.data.setdefault(
-            KEY_METRICS,
-            {
-                "panel_api_calls": 0,
-                "panel_api_errors": 0,
-                "config_writes": 0,
-                "snapshots_created": 0,
-                "geoip_lookups": 0,
-                "reverse_dns_lookups": 0,
-                "reverse_dns_cache_hits": 0,
-                ATTR_LAST_CONFIG_WRITE: None,
-            },
-        ),
-    )
+    value = hass.data.get(KEY_METRICS)
+    if value is None:
+        value = {
+            "panel_api_calls": 0,
+            "panel_api_errors": 0,
+            "config_writes": 0,
+            "snapshots_created": 0,
+            "geoip_lookups": 0,
+            "reverse_dns_lookups": 0,
+            "reverse_dns_cache_hits": 0,
+            ATTR_LAST_CONFIG_WRITE: None,
+        }
+        hass.data[KEY_METRICS] = value
+    return value
 
 
 def metric_int(metrics_data: dict[str, object], key: str) -> int:
