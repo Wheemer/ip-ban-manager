@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "İzin verilen IP",
     "hint": "Güvenilen IPv4/IPv6 adresleri, ağlar ve DNS/DDNS adları. Tam IP engelleri önceliklidir. İzin verilen kayıtlar ağ ve bölge engellerini ve varsayılan reddetmeyi atlar. Adlar arka planda çözümlenir ve yenilenir.",
-    "placeholder": "IPv4/IPv6 adresi, CIDR veya joker, DNS hostname",
+    "placeholder": "IP adresi, CIDR, joker karakter veya DNS ana bilgisayar adı",
     "remove_confirm": "Bu izin verilen IP kaldırılsın mı? Aktif default-deny veya engellenen ağlar varken güvenilir bir girişi kaldırmak erişimi kilitleyebilir."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Kaydet",
     "restore": "Geri yükle",
     "restore_confirm": "Diskteki yedekten geri yükleyip mevcut IP Ban Manager ayarlarını ve tam IP yasaklarını değiştir?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Aktarım",
     "transfer_hint": "Bu cihaza bir kopya indirin veya geri yüklemek için yedek yükleyin.",
     "download": "İndir",
     "upload": "Yükle",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "İstekler Home Assistant'ye ulaşmadan önce proxy'de IP Ban Manager'nin açık IP'sini ve ağ kurallarını uygulayın.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant, Nginx Proxy Manager uygulamasını algıladı ve yerel adresini doldurdu.",
     "not_connected": "Bağlı değil",
     "connected_short": "Bağlı",
     "active": "Kenar koruması etkin",

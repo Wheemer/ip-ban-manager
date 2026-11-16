@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Erlaubte IPs",
     "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen, Netzwerke und DNS-/DDNS-Namen. Exakte IP-Sperren haben Vorrang. Erlaubte Einträge umgehen Netzwerk-, Regions- und Standardsperren. Namen werden im Hintergrund aufgelöst und aktualisiert.",
-    "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter, DNS hostname",
+    "placeholder": "IP-Adresse, CIDR, Platzhalter oder DNS-Hostname",
     "remove_confirm": "Diese erlaubte IP entfernen? Bei aktivem Default-Deny oder blockierten Netzwerken kann das den Zugriff sperren."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Speichern",
     "restore": "Wiederherstellen",
     "restore_confirm": "Vom Backup auf der Festplatte wiederherstellen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Übertragung",
     "transfer_hint": "Kopie auf dieses Gerät herunterladen oder ein Backup zum Wiederherstellen hochladen.",
     "download": "Herunterladen",
     "upload": "Hochladen",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Wenden Sie die expliziten IP- und Netzwerkregeln von IP Ban Manager am Proxy an, bevor Anforderungen Home Assistant erreichen.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant hat die Nginx Proxy Manager-App erkannt und ihre lokale Adresse eingetragen.",
     "not_connected": "Nicht verbunden",
     "connected_short": "Verbunden",
     "active": "Kantenschutz aktiv",

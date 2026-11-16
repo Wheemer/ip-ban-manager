@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "IP permeses",
     "hint": "Adreces, xarxes IPv4/IPv6 i noms DNS/DDNS de confiança. Els bloquejos d’IP exactes tenen prioritat. Les entrades permeses eviten els bloquejos de xarxa, regió i denegació per defecte. Els noms es resolen i s’actualitzen en segon pla.",
-    "placeholder": "Adreça IPv4/IPv6, CIDR o comodí, DNS hostname",
+    "placeholder": "Adreça IP, CIDR, comodí o nom d’amfitrió DNS",
     "remove_confirm": "Eliminar aquesta IP permesa? Amb la denegació per defecte o xarxes bloquejades actives, eliminar una entrada de confiança pot bloquejar l'accés."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Desa",
     "restore": "Restaura",
     "restore_confirm": "Restaurar des de la còpia de seguretat del disc i substituir la configuració actual d'IP Ban Manager i els bloquejos IP exactes?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Transferència",
     "transfer_hint": "Descarregueu una còpia a aquest dispositiu o pugeu una còpia de seguretat per restaurar.",
     "download": "Descarrega",
     "upload": "Puja",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Apliqueu les regles de xarxa i IP explícites de IP Ban Manager al servidor intermediari abans que les sol·licituds arribin a Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant ha detectat l’aplicació Nginx Proxy Manager i n’ha emplenat l’adreça local.",
     "not_connected": "No connectat",
     "connected_short": "Connectat",
     "active": "Protecció de vora activa",

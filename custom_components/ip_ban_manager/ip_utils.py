@@ -15,7 +15,9 @@ def is_allowlist_hostname(value: str) -> bool:
     candidate = value.strip().lower().rstrip(".")
     if not candidate or len(candidate) > 253 or "/" in candidate or ":" in candidate:
         return False
-    if candidate.replace(".", "").isdigit():
+    if all(
+        re.fullmatch(r"(?:0x[0-9a-f]+|[0-9]+)", label) for label in candidate.split(".")
+    ):
         return False
     try:
         ip_network(candidate)

@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Ce paramètre bloquerait chaque chemin d'accès local détecté. Ajoutez d'abord un réseau local actuel aux IP autorisées.",
       "unsafe_allowlist_network": "Cette entrée de liste autorisée ferait confiance à chaque adresse IP et désactiverait effectivement le bannissement IP.",
       "banned_ip_allowlisted": "Une IP ne peut pas être à la fois autorisée et bannie. Retirez-la d'une liste et réessayez.",
-      "confirmation_required": "Cochez la case de confirmation avant d'effacer toutes les IP bloquées."
+      "confirmation_required": "Cochez la case de confirmation avant d'effacer toutes les IP bloquées.",
+      "geoip_required": "Désactivez les règles régionales avant de désactiver GeoIP."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "Le contrôle d'intégrité d'IP Ban Manager nécessite votre attention",
       "description": "IP Ban Manager a trouvé un ou plusieurs problèmes de configuration pouvant affecter la gestion des bannissements en direct :\n\n{issues}\n\nOuvrez le panneau IP Ban Manager après correction pour actualiser le contrôle d'intégrité."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Échec de la requête.",
+      "description": "{issues}"
     }
   },
   "selector": {

@@ -11,6 +11,7 @@ import voluptuous as vol
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.components.http.ban import ATTR_BANNED_AT, KEY_LOGIN_THRESHOLD
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector
 from homeassistant.util import dt as dt_util
 from voluptuous.schema_builder import Optional as vol_optional
@@ -846,12 +847,18 @@ class OptionsFlow(config_entries.OptionsFlow):
         """Persist validated options and apply them immediately."""
         from .ban_ops import async_replace_ip_bans
         from .dns_allowlist import async_refresh_dns_allowlist
+        from .entry_helpers import entry_requires_geoip
         from .network_policy import (
             apply_ban_settings,
             update_allowlist_entry,
             update_blocked_networks_entry,
         )
         from .panel import async_register_panel
+
+        if not geoip_enabled and entry_requires_geoip(self.hass, self._config_entry):
+            raise HomeAssistantError(
+                "Turn off Public Region Lock and remove regional login overrides before disabling GeoIP."
+            )
 
         self.hass.config_entries.async_update_entry(
             self._config_entry,
@@ -1047,6 +1054,12 @@ class OptionsFlow(config_entries.OptionsFlow):
                 CONF_GEOIP_CHECKBOX,
                 current_geoip_enabled,
             )
+            from .entry_helpers import entry_requires_geoip
+
+            if not geoip_enabled and entry_requires_geoip(
+                self.hass, self._config_entry
+            ):
+                errors["base"] = "geoip_required"
             login_attempts_threshold = _normalize_login_attempts_threshold(
                 banned_input.get(
                     CONF_LOGIN_ATTEMPTS_THRESHOLD,

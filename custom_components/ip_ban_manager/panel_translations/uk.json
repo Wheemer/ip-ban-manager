@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Дозволені IP",
     "hint": "Довірені адреси IPv4/IPv6, мережі та імена DNS/DDNS. Блокування конкретних IP мають пріоритет. Дозволені записи обходять блокування мереж, регіонів і заборону за замовчуванням. Імена визначаються й оновлюються у фоновому режимі.",
-    "placeholder": "IPv4/IPv6 адреса, CIDR або шаблон, DNS hostname",
+    "placeholder": "IP-адреса, CIDR, шаблон або ім’я вузла DNS",
     "remove_confirm": "Видалити цю дозволену IP? З активним default-deny або заблокованими мережами видалення довіреного запису може заблокувати доступ."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Зберегти",
     "restore": "Відновити",
     "restore_confirm": "Відновити з резервної копії на диску та замінити поточні налаштування IP Ban Manager і точні IP-блокування?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Передавання",
     "transfer_hint": "Завантажте копію на цей пристрій або завантажте резервну копію для відновлення.",
     "download": "Завантажити",
     "upload": "Завантажити",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Застосуйте явні IP-адреси та правила мережі IP Ban Manager на проксі, перш ніж запити досягнуть Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant виявив застосунок Nginx Proxy Manager і заповнив його локальну адресу.",
     "not_connected": "Не підключено",
     "connected_short": "Підключено",
     "active": "Захист країв активний",

@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Toto nastavenie by zablokovalo každú zistenú lokálnu prístupovú cestu. Najprv pridajte aktuálnu lokálnu sieť do Povolené IP.",
       "unsafe_allowlist_network": "Táto položka zoznamu povolených by dôverovala každej IP adrese a v podstate by vypnula IP zákazy.",
       "banned_ip_allowlisted": "IP nemôže byť súčasne povolená aj zakázaná. Odstráňte ju z jedného zoznamu a skúste znova.",
-      "confirmation_required": "Pred vymazaním všetkých blokovaných IP zaškrtnite potvrdzovacie políčko."
+      "confirmation_required": "Pred vymazaním všetkých blokovaných IP zaškrtnite potvrdzovacie políčko.",
+      "geoip_required": "Pred vypnutím GeoIP vypnite regionálne pravidlá."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "Kontrola stavu IP Ban Manager vyžaduje pozornosť",
       "description": "IP Ban Manager našiel jeden alebo viac problémov nastavenia, ktoré môžu ovplyvniť správu živých zákazov:\n\n{issues}\n\nPo oprave otvorte panel IP Ban Manager na obnovenie kontroly stavu."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Požiadavka zlyhala.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "Povolené IP",
       "hint": "Dôveryhodné adresy a siete IPv4/IPv6 a názvy DNS/DDNS. Presné blokovania IP majú prednosť. Povolené položky obchádzajú blokovanie sietí, oblastí a predvolené odmietnutie. Názvy sa prekladajú a obnovujú na pozadí.",
-      "placeholder": "IPv4/IPv6 adresa, CIDR alebo zástupný znak, DNS hostname",
+      "placeholder": "IP adresa, CIDR, zástupný znak alebo názov hostiteľa DNS",
       "remove_confirm": "Odstrániť túto povolenú IP? Pri aktívnom predvolenom zamietnutí alebo blokovaných sieťach môže odstránenie dôveryhodnej položky zablokovať prístup."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Stiahnuť kópiu do tohto zariadenia alebo nahrať zálohu na obnovenie.",
       "download": "Stiahnuť",
       "upload": "Nahrať",
-      "upload_confirm": "Nahrať {filename} a nahradiť aktuálne nastavenia IP Ban Manager a presné IP zákazy?"
+      "upload_confirm": "Nahrať {filename} a nahradiť aktuálne nastavenia IP Ban Manager a presné IP zákazy?",
+      "transfer_title": "Prenos"
     },
     "geoip": {
       "title": "GeoIP databáza",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Odpojiť Nginx Proxy Manager? Pravidlá IP Ban Manager budú odstránené z vybraného hostiteľa proxy.",
       "protect_all_domains": "Chrániť všetky domény NPM",
       "protect_all_domains_hint": "Použiť tieto pravidlá na všetkých aktívnych proxy hostiteľov vrátane tých, ktorí budú pridaní neskôr.",
-      "protect_all_domains_warning": "Použiť pravidlá IP Ban Manager na všetkých aktívnych hostiteľov Nginx Proxy Manager? Existujúce nastavenia hostiteľov zostanú zachované, ale tieto pravidlá prístupu ovplyvnia všetky domény."
+      "protect_all_domains_warning": "Použiť pravidlá IP Ban Manager na všetkých aktívnych hostiteľov Nginx Proxy Manager? Existujúce nastavenia hostiteľov zostanú zachované, ale tieto pravidlá prístupu ovplyvnia všetky domény.",
+      "addon_detected": "Home Assistant rozpoznal aplikáciu Nginx Proxy Manager a vyplnil jej miestnu adresu."
     },
     "tabs": {
       "activity": "Aktivita",

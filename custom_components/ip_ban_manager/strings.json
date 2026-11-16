@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "That setting would block every detected local access path. Add a current local network to Allowed IPs first.",
       "unsafe_allowlist_network": "That allowlist entry would trust every IP address and effectively disable IP banning.",
       "banned_ip_allowlisted": "An IP cannot be both allowed and banned. Remove it from one list and try again.",
-      "confirmation_required": "Check the confirmation box before clearing every blocked IP."
+      "confirmation_required": "Check the confirmation box before clearing every blocked IP.",
+      "geoip_required": "Turn off regional rules before disabling GeoIP."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager health check needs attention",
       "description": "IP Ban Manager found one or more setup issues that can affect live ban management:\n\n{issues}\n\nOpen the IP Ban Manager panel after fixing these items to refresh the health check."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager request failed",
+      "description": "{issues}"
     }
   },
   "selector": {

@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Den inställningen skulle blockera varje upptäckt lokal åtkomstväg. Lägg till ett aktuellt lokalt nätverk i Tillåtna IP först.",
       "unsafe_allowlist_network": "Det allowlist-värdet skulle lita på varje IP-adress och i praktiken inaktivera IP-spärrar.",
       "banned_ip_allowlisted": "En IP kan inte vara både tillåten och spärrad. Ta bort den från en lista och försök igen.",
-      "confirmation_required": "Markera bekräftelserutan innan du rensar alla blockerade IP."
+      "confirmation_required": "Markera bekräftelserutan innan du rensar alla blockerade IP.",
+      "geoip_required": "Stäng av regionala regler innan du inaktiverar GeoIP."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager-hälsokontroll kräver uppmärksamhet",
       "description": "IP Ban Manager hittade ett eller flera installationsproblem som kan påverka live-spärrhantering:\n\n{issues}\n\nÖppna IP Ban Manager-panelen efter att ha åtgärdat dessa för att uppdatera hälsokontrollen."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Begäran misslyckades.",
+      "description": "{issues}"
     }
   },
   "selector": {

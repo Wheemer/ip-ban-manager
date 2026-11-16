@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Diese Einstellung würde jeden erkannten lokalen Zugriffspfad blockieren. Fügen Sie zuerst ein aktuelles lokales Netzwerk zu Erlaubte IPs hinzu.",
       "unsafe_allowlist_network": "Dieser Allowlist-Eintrag würde jeder IP-Adresse vertrauen und IP-Sperren praktisch deaktivieren.",
       "banned_ip_allowlisted": "Eine IP kann nicht gleichzeitig erlaubt und gesperrt sein. Entfernen Sie sie aus einer Liste und versuchen Sie es erneut.",
-      "confirmation_required": "Aktivieren Sie das Bestätigungsfeld, bevor Sie alle blockierten IPs löschen."
+      "confirmation_required": "Aktivieren Sie das Bestätigungsfeld, bevor Sie alle blockierten IPs löschen.",
+      "geoip_required": "Deaktivieren Sie die regionalen Regeln, bevor Sie GeoIP deaktivieren."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "IP-Ban-Manager-Integritätsprüfung erfordert Aufmerksamkeit",
       "description": "IP Ban Manager hat ein oder mehrere Setup-Probleme gefunden, die die Live-Sperrverwaltung beeinträchtigen können:\n\n{issues}\n\nÖffnen Sie nach der Behebung das IP-Ban-Manager-Panel, um die Integritätsprüfung zu aktualisieren."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Anfrage fehlgeschlagen.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "Erlaubte IPs",
       "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen, Netzwerke und DNS-/DDNS-Namen. Exakte IP-Sperren haben Vorrang. Erlaubte Einträge umgehen Netzwerk-, Regions- und Standardsperren. Namen werden im Hintergrund aufgelöst und aktualisiert.",
-      "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter, DNS hostname",
+      "placeholder": "IP-Adresse, CIDR, Platzhalter oder DNS-Hostname",
       "remove_confirm": "Diese erlaubte IP entfernen? Bei aktivem Default-Deny oder blockierten Netzwerken kann das den Zugriff sperren."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Kopie auf dieses Gerät herunterladen oder ein Backup zum Wiederherstellen hochladen.",
       "download": "Herunterladen",
       "upload": "Hochladen",
-      "upload_confirm": "{filename} hochladen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?"
+      "upload_confirm": "{filename} hochladen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?",
+      "transfer_title": "Übertragung"
     },
     "geoip": {
       "title": "GeoIP-Datenbank",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Nginx Proxy Manager trennen? Die Regeln von IP Ban Manager werden vom ausgewählten Proxy-Host entfernt.",
       "protect_all_domains": "Alle NPM-Domains schützen",
       "protect_all_domains_hint": "Diese Regeln auf alle aktiven Proxy-Hosts anwenden, einschließlich später hinzugefügter Hosts.",
-      "protect_all_domains_warning": "IP Ban Manager-Regeln auf alle aktiven Nginx Proxy Manager-Hosts anwenden? Bestehende Host-Einstellungen bleiben erhalten, aber diese Zugriffsregeln wirken sich auf jede Domain aus."
+      "protect_all_domains_warning": "IP Ban Manager-Regeln auf alle aktiven Nginx Proxy Manager-Hosts anwenden? Bestehende Host-Einstellungen bleiben erhalten, aber diese Zugriffsregeln wirken sich auf jede Domain aus.",
+      "addon_detected": "Home Assistant hat die Nginx Proxy Manager-App erkannt und ihre lokale Adresse eingetragen."
     },
     "tabs": {
       "activity": "Aktivität",

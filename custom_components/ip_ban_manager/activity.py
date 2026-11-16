@@ -143,6 +143,26 @@ def _prune_history(hass: HomeAssistant) -> None:
     hass.data[KEY_ACTIVITY_HISTORY_KEYS] = {_event_key(event) for event in valid}
 
 
+def _trim_history(hass: HomeAssistant) -> None:
+    """Expire the sorted, sanitized history without reprocessing every row."""
+    from .entry_helpers import entry_activity_history_hours
+
+    if KEY_ACTIVITY_HISTORY_KEYS not in hass.data:
+        _prune_history(hass)
+        return
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY) if hass.http is not None else None
+    cutoff = (
+        dt_util.utcnow() - timedelta(hours=entry_activity_history_hours(entry))
+    ).isoformat()
+    history = _history(hass)
+    keys = hass.data[KEY_ACTIVITY_HISTORY_KEYS]
+    while history and (
+        len(history) > MAX_ACTIVITY_HISTORY_EVENTS
+        or str(history[-1]["timestamp"]) < cutoff
+    ):
+        keys.discard(_event_key(history.pop()))
+
+
 def _sanitize_events(events: object) -> list[dict[str, object]]:
     if not isinstance(events, list):
         return []
@@ -176,7 +196,7 @@ async def _async_load_history(hass: HomeAssistant) -> None:
     """Load history without delaying runtime hook installation."""
     try:
         stored = await _history_store(hass).async_load()
-    except (OSError, ValueError) as err:
+    except Exception as err:
         hass.data[KEY_ACTIVITY_HISTORY_ERROR] = str(err)
         _LOGGER.warning("Could not load IP Ban Manager activity history: %s", err)
         return
@@ -223,7 +243,7 @@ async def _async_save_history(hass: HomeAssistant) -> None:
         await asyncio.shield(pending)
     if hass.data.get(KEY_ACTIVITY_HISTORY_ERROR):
         return
-    _prune_history(hass)
+    _trim_history(hass)
     payload: dict[str, object] = {"events": list(_history(hass))}
     if cutoff := _history_cutoff(hass):
         payload["cleared_at"] = cutoff.isoformat()
@@ -285,7 +305,7 @@ async def async_clear_history(hass: HomeAssistant) -> None:
 
 def history_activity(hass: HomeAssistant) -> list[dict[str, object]]:
     """Return persisted, sanitized activity within configured retention."""
-    _prune_history(hass)
+    _trim_history(hass)
     return group_activity(_history(hass))[:MAX_ACTIVITY_HISTORY_DISPLAY_EVENTS]
 
 

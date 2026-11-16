@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Разрешённые IP",
     "hint": "Доверенные адреса IPv4/IPv6, сети и имена DNS/DDNS. Блокировки конкретных IP имеют приоритет. Разрешённые записи обходят блокировку сетей, регионов и запрет по умолчанию. Имена разрешаются и обновляются в фоновом режиме.",
-    "placeholder": "IPv4/IPv6 адрес, CIDR или шаблон, DNS hostname",
+    "placeholder": "IP-адрес, CIDR, подстановочный знак или имя узла DNS",
     "remove_confirm": "Удалить этот разрешённый IP? При активном default-deny или заблокированных сетях удаление доверенной записи может заблокировать доступ."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Сохранить",
     "restore": "Восстановить",
     "restore_confirm": "Восстановить из резервной копии на диске и заменить текущие настройки IP Ban Manager и точные IP-блокировки?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Передача",
     "transfer_hint": "Скачайте копию на это устройство или загрузите резервную копию для восстановления.",
     "download": "Скачать",
     "upload": "Загрузить",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Примените явные правила IP и сети IP Ban Manager на прокси-сервере до того, как запросы достигнут Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant обнаружил приложение Nginx Proxy Manager и заполнил его локальный адрес.",
     "not_connected": "Не подключено",
     "connected_short": "Подключено",
     "active": "Защита кромок активна",

@@ -695,6 +695,9 @@ async def _async_apply_config_backup_payload(
         if same_host and current_npm.get("hosts"):
             imported_npm["hosts"] = current_npm["hosts"]
         npm_updates[CONF_NPM] = imported_npm
+        from .nginx_proxy_manager import _clear_sync_failure
+
+        _clear_sync_failure(hass)
         hass.data.pop(KEY_NPM_RUNTIME, None)
 
     updated_entry = update_entry_options(

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import shutil
 from asyncio import CancelledError, Task
+from collections.abc import Callable, Coroutine
 from contextlib import suppress
 from pathlib import Path
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry, UnknownEntry
 from homeassistant.core import HomeAssistant, callback
@@ -26,6 +29,44 @@ from .storage_keys import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_LEGACY_TASKS = "ip_ban_manager_legacy_tasks"
+_LEGACY_START_HANDLES = "ip_ban_manager_legacy_start_handles"
+
+
+def _legacy_task(hass: HomeAssistant, work: Coroutine[Any, Any, None]) -> None:
+    """Track migration work so unload can drain it."""
+    tasks = hass.data.setdefault(_LEGACY_TASKS, set())
+    task = hass.async_create_task(work)
+    tasks.add(task)
+    task.add_done_callback(tasks.discard)
+
+
+def _legacy_at_started(
+    hass: HomeAssistant, action: Callable[[HomeAssistant], Any]
+) -> None:
+    """Retain startup subscriptions and any coroutine they start."""
+
+    @callback
+    def run(instance: HomeAssistant) -> None:
+        result = action(instance)
+        if asyncio.iscoroutine(result):
+            _legacy_task(instance, result)
+
+    hass.data.setdefault(_LEGACY_START_HANDLES, []).append(async_at_started(hass, run))
+
+
+async def async_stop_legacy_work(hass: HomeAssistant) -> None:
+    """Cancel only work owned by this integration's current runtime."""
+    for remove in hass.data.pop(_LEGACY_START_HANDLES, []):
+        remove()
+    if not hass.is_running:
+        hass.data.pop(KEY_LEGACY_CLEANUP_SCHEDULED, None)
+    tasks: set[Task[None]] = hass.data.pop(_LEGACY_TASKS, set())
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+
 
 ENTRY_TITLE = "IP Ban Manager"
 LEGACY_ENTRY_TITLES = {"IP Ban Allowlist", "ban_allowlist"}
@@ -142,7 +183,7 @@ def async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> Non
     async def _migrate_sensor_statistics(_hass: HomeAssistant) -> None:
         await _async_migrate_sensor_statistics(_hass, statistic_ids)
 
-    async_at_started(hass, _migrate_sensor_statistics)
+    _legacy_at_started(hass, _migrate_sensor_statistics)
 
     if isinstance(legacy_entry_id, str):
         legacy_entry = hass.config_entries.async_get_entry(legacy_entry_id)
@@ -155,7 +196,7 @@ def async_cleanup_entry_metadata(hass: HomeAssistant, entry: ConfigEntry) -> Non
                 with suppress(UnknownEntry):
                     await hass.config_entries.async_remove(legacy_entry_id)
 
-            hass.async_create_task(_remove_migrated_legacy_entry())
+            _legacy_task(hass, _remove_migrated_legacy_entry())
 
 
 @callback
@@ -178,7 +219,7 @@ def async_remove_legacy_entries(hass: HomeAssistant) -> None:
             with suppress(UnknownEntry):
                 await hass.config_entries.async_remove(entry_id)
 
-        hass.async_create_task(_remove_legacy_entry())
+        _legacy_task(hass, _remove_legacy_entry())
 
 
 def cleanup_destination(cleanup_root: Path, name: str, timestamp: str) -> Path:
@@ -273,8 +314,13 @@ async def async_cleanup_legacy_component_folder(hass: HomeAssistant) -> None:
     """Move stale legacy files once the new integration is running."""
     if hass.data.get(KEY_LEGACY_FOLDER_CLEANED):
         return
-    hass.data[KEY_LEGACY_FOLDER_CLEANED] = True
-    failures = await hass.async_add_executor_job(move_legacy_component_folder, hass)
+    job = hass.async_add_executor_job(move_legacy_component_folder, hass)
+    try:
+        failures = await asyncio.shield(job)
+    except CancelledError:
+        await job
+        raise
+    hass.data[KEY_LEGACY_FOLDER_CLEANED] = not failures
     async_update_legacy_folder_cleanup_issue(hass, failures)
 
 
@@ -309,4 +355,4 @@ def async_schedule_legacy_cleanup(hass: HomeAssistant) -> None:
         return
 
     hass.data[KEY_LEGACY_CLEANUP_SCHEDULED] = True
-    async_at_started(hass, async_remove_legacy_entries)
+    _legacy_at_started(hass, async_remove_legacy_entries)

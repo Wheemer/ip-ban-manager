@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Esa configuración bloquearía cada ruta de acceso local detectada. Añada primero una red local actual a IP permitidas.",
       "unsafe_allowlist_network": "Esa entrada de lista permitida confiaría en cada dirección IP y desactivaría efectivamente el bloqueo IP.",
       "banned_ip_allowlisted": "Una IP no puede estar permitida y bloqueada a la vez. Elimínela de una lista e inténtelo de nuevo.",
-      "confirmation_required": "Marque la casilla de confirmación antes de borrar todas las IP bloqueadas."
+      "confirmation_required": "Marque la casilla de confirmación antes de borrar todas las IP bloqueadas.",
+      "geoip_required": "Desactiva las reglas regionales antes de desactivar GeoIP."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "La comprobación de estado de IP Ban Manager requiere atención",
       "description": "IP Ban Manager encontró uno o más problemas de configuración que pueden afectar la gestión de bloqueos en vivo:\n\n{issues}\n\nAbra el panel IP Ban Manager tras corregirlos para actualizar la comprobación."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · La solicitud falló.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "IP permitidas",
       "hint": "Direcciones IPv4/IPv6, redes y nombres DNS/DDNS de confianza. Los bloqueos de IP exactos tienen prioridad. Las entradas permitidas omiten los bloqueos de redes, regiones y la denegación por defecto. Los nombres se resuelven y actualizan en segundo plano.",
-      "placeholder": "Dirección IPv4/IPv6, CIDR o comodín, DNS hostname",
+      "placeholder": "Dirección IP, CIDR, comodín o nombre de host DNS",
       "remove_confirm": "¿Eliminar esta IP permitida? Con denegar por defecto o redes bloqueadas activas, quitar una entrada de confianza puede bloquear el acceso."
     },
     "blocked_ips": {
@@ -341,7 +346,8 @@
       "disconnect_confirm": "¿Desconectar Nginx Proxy Manager? Las reglas de IP Ban Manager se eliminarán del host proxy seleccionado.",
       "protect_all_domains": "Proteger todos los dominios de NPM",
       "protect_all_domains_hint": "Aplicar estas reglas a todos los hosts proxy activos, incluidos los que se añadan más adelante.",
-      "protect_all_domains_warning": "¿Aplicar las reglas de IP Ban Manager a todos los hosts activos de Nginx Proxy Manager? La configuración existente de los hosts se conservará, pero estas reglas de acceso afectarán a todos los dominios."
+      "protect_all_domains_warning": "¿Aplicar las reglas de IP Ban Manager a todos los hosts activos de Nginx Proxy Manager? La configuración existente de los hosts se conservará, pero estas reglas de acceso afectarán a todos los dominios.",
+      "addon_detected": "Home Assistant detectó la aplicación Nginx Proxy Manager y completó su dirección local."
     },
     "tabs": {
       "activity": "Actividad",

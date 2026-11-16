@@ -74,7 +74,8 @@
       "local_network_block_unprotected": "Ce paramètre bloquerait chaque chemin d'accès local détecté. Ajoutez d'abord un réseau local actuel aux IP autorisées.",
       "unsafe_allowlist_network": "Cette entrée de liste autorisée ferait confiance à chaque adresse IP et désactiverait effectivement le bannissement IP.",
       "banned_ip_allowlisted": "Une IP ne peut pas être à la fois autorisée et bannie. Retirez-la d'une liste et réessayez.",
-      "confirmation_required": "Cochez la case de confirmation avant d'effacer toutes les IP bloquées."
+      "confirmation_required": "Cochez la case de confirmation avant d'effacer toutes les IP bloquées.",
+      "geoip_required": "Désactivez les règles régionales avant de désactiver GeoIP."
     }
   },
   "exceptions": {
@@ -123,6 +124,10 @@
     "health_check_failed": {
       "title": "Le contrôle d'intégrité d'IP Ban Manager nécessite votre attention",
       "description": "IP Ban Manager a trouvé un ou plusieurs problèmes de configuration pouvant affecter la gestion des bannissements en direct :\n\n{issues}\n\nOuvrez le panneau IP Ban Manager après correction pour actualiser le contrôle d'intégrité."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Échec de la requête.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -187,7 +192,7 @@
     "allowed_ips": {
       "title": "IP autorisées",
       "hint": "Adresses IPv4/IPv6, réseaux et noms DNS/DDNS de confiance. Les bannissements d’IP exacts sont prioritaires. Les entrées autorisées contournent les blocages de réseaux, de régions et le refus par défaut. Les noms sont résolus et actualisés en arrière-plan.",
-      "placeholder": "Adresse IPv4/IPv6, CIDR ou joker, DNS hostname",
+      "placeholder": "Adresse IP, CIDR, caractère générique ou nom d’hôte DNS",
       "remove_confirm": "Supprimer cette IP autorisée ? Avec le refus par défaut ou des réseaux bloqués actifs, supprimer une entrée de confiance peut bloquer l'accès."
     },
     "blocked_ips": {
@@ -338,7 +343,8 @@
       "disconnect_confirm": "Déconnecter Nginx Proxy Manager ? Les règles de IP Ban Manager seront supprimées de l'hôte proxy sélectionné.",
       "protect_all_domains": "Proteger tous les domaines NPM",
       "protect_all_domains_hint": "Appliquer ces règles à tous les hôtes proxy actifs, y compris ceux ajoutés ultérieurement.",
-      "protect_all_domains_warning": "Appliquer les règles IP Ban Manager à tous les hôtes Nginx Proxy Manager actifs ? Les paramètres existants sont conservés, mais ces règles d'accès affecteront tous les domaines."
+      "protect_all_domains_warning": "Appliquer les règles IP Ban Manager à tous les hôtes Nginx Proxy Manager actifs ? Les paramètres existants sont conservés, mais ces règles d'accès affecteront tous les domaines.",
+      "addon_detected": "Home Assistant a détecté l’application Nginx Proxy Manager et renseigné son adresse locale."
     },
     "tabs": {
       "activity": "Activité",

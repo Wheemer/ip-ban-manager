@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Dozwolone IP",
     "hint": "Zaufane adresy IPv4/IPv6, sieci i nazwy DNS/DDNS. Blokady konkretnych adresów IP mają pierwszeństwo. Dozwolone wpisy omijają blokady sieci, regionów i domyślną odmowę. Nazwy są rozwiązywane i odświeżane w tle.",
-    "placeholder": "Adres IPv4/IPv6, CIDR lub maska, DNS hostname",
+    "placeholder": "Adres IP, CIDR, symbol wieloznaczny lub nazwa hosta DNS",
     "remove_confirm": "Usunąć to dozwolone IP? Przy aktywnym trybie domyślnej odmowy lub zablokowanych sieciach usunięcie zaufanego wpisu może zablokować dostęp."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Zapisz",
     "restore": "Przywróć",
     "restore_confirm": "Przywrócić z kopii na dysku i zastąpić bieżące ustawienia IP Ban Manager oraz dokładne blokady IP?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Przenoszenie",
     "transfer_hint": "Pobierz kopię na to urządzenie lub prześlij kopię zapasową do przywrócenia.",
     "download": "Pobierz",
     "upload": "Prześlij",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Zastosuj jawne reguły IP i sieci IP Ban Manager na serwerze proxy, zanim żądania dotrą do Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant wykrył aplikację Nginx Proxy Manager i uzupełnił jej adres lokalny.",
     "not_connected": "Nie podłączony",
     "connected_short": "Połączono",
     "active": "Ochrona krawędzi aktywna",

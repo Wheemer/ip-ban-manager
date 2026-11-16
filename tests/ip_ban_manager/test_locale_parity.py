@@ -16,6 +16,8 @@ PANEL_TRANSLATIONS_DIR = INTEGRATION_DIR / "panel_translations"
 PLACEHOLDER_PATTERN = re.compile(r"\{([a-zA-Z0-9_]+)\}")
 
 ALLOWED_ENGLISH_HA_PATHS = {
+    # Placeholder-only diagnostic text has no English prose to translate.
+    "issues.npm_sync_failed.description",
     "config.error.unknown",
     "config.step.user.data.ban_options",
     "options.step.init.sections.banned_ips.data.ban_options",
@@ -23,13 +25,11 @@ ALLOWED_ENGLISH_HA_PATHS = {
 }
 ALLOWED_ENGLISH_PANEL_PATHS = {
     "backup.download",
-    "backup.transfer_title",
     "backup.upload",
     "geoip.download",
     "npm.identity",
     "npm.secret",
     "npm.title",
-    "npm.addon_detected",
     "options",
     "sources.panel",
     "sources.service",

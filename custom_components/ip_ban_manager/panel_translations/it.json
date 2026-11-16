@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "IP consentite",
     "hint": "Indirizzi IPv4/IPv6, reti e nomi DNS/DDNS attendibili. I blocchi IP esatti hanno la precedenza. Le voci consentite ignorano i blocchi di rete, geografici e il rifiuto predefinito. I nomi vengono risolti e aggiornati in background.",
-    "placeholder": "Indirizzo IPv4/IPv6, CIDR o wildcard, DNS hostname",
+    "placeholder": "Indirizzo IP, CIDR, carattere jolly o nome host DNS",
     "remove_confirm": "Rimuovere questa IP consentita? Con deny predefinita o reti bloccate attive, la rimozione di una voce attendibile può bloccare l'accesso."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Salva",
     "restore": "Ripristina",
     "restore_confirm": "Ripristinare dal backup su disco e sostituire le impostazioni attuali di IP Ban Manager e i blocchi IP esatti?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Trasferimento",
     "transfer_hint": "Scarica una copia su questo dispositivo o carica un backup da ripristinare.",
     "download": "Scarica",
     "upload": "Carica",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Applica l'IP esplicito e le regole di rete di IP Ban Manager al proxy prima che le richieste raggiungano Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant ha rilevato l’app Nginx Proxy Manager e compilato il suo indirizzo locale.",
     "not_connected": "Non connesso",
     "connected_short": "Connesso",
     "active": "Protezione bordi attiva",

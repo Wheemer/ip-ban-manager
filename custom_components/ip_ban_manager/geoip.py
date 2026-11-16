@@ -66,6 +66,7 @@ from .storage_keys import (
 
 _LOGGER = logging.getLogger(__name__)
 _READER_LOCK = globals().get("_READER_LOCK", RLock())
+_IMPORT_LOCK = globals().get("_IMPORT_LOCK", RLock())
 _DOWNLOAD_LOCK = globals().get("_DOWNLOAD_LOCK", RLock())
 _LOOKUP_CACHE_KEY = "ip_ban_manager_geoip_lookup_cache"
 GEOIP_CACHE_MAX_ENTRIES = 1024
@@ -334,10 +335,31 @@ def _download_validated_geoip_database(path: Path) -> None:
             if validated is None:
                 raise HomeAssistantError("Downloaded GeoIP database is invalid.")
             candidate, _mtime = validated
-            cast(Any, candidate).close()
+            try:
+                if total < 1024:
+                    raise HomeAssistantError("Downloaded GeoIP database is too small.")
+                probes = [
+                    cast(Any, candidate).get(address)
+                    for address in ("1.1.1.1", "8.8.8.8", "9.9.9.9")
+                ]
+                if not any(probes):
+                    raise HomeAssistantError(
+                        "Downloaded GeoIP database has no usable probe records."
+                    )
+            finally:
+                cast(Any, candidate).close()
             os.replace(temp_path, path)
             return
-        except (BadGzipFile, EOFError, OSError, URLError, HomeAssistantError) as err:
+        except (
+            BadGzipFile,
+            EOFError,
+            OSError,
+            URLError,
+            HomeAssistantError,
+            ValueError,
+            RuntimeError,
+            struct.error,
+        ) as err:
             last_error = err
             _LOGGER.warning("GeoIP database download failed from %s: %s", url, err)
             if temp_path is not None and os.path.exists(temp_path):
@@ -369,6 +391,12 @@ def close_geoip_reader(hass: HomeAssistant) -> None:
 
 
 def _maxminddb_module() -> Any:
+    """Serialize temporary import-path changes across executor workers."""
+    with _IMPORT_LOCK:
+        return _import_maxminddb_module()
+
+
+def _import_maxminddb_module() -> Any:
     """Return the bundled MMDB reader module without requiring runtime pip."""
     try:
         import maxminddb  # type: ignore[import-not-found]
@@ -443,6 +471,32 @@ def geoip_reader(hass: HomeAssistant) -> object | None:
 
 
 async def async_local_geoip_region(hass: HomeAssistant) -> dict[str, str | None] | None:
+    """Share local-region enrichment across concurrent panel requests."""
+    key = "ip_ban_manager_local_region_task"
+    task = hass.data.get(key)
+    if task is None or task.done():
+        task = hass.async_create_task(
+            _async_local_geoip_region(hass), "IP Ban Manager local region"
+        )
+        hass.data[key] = task
+    try:
+        return await asyncio.shield(task)
+    finally:
+        if task.done() and hass.data.get(key) is task:
+            hass.data.pop(key, None)
+
+
+async def async_stop_local_region(hass: HomeAssistant) -> None:
+    """Drain the shared enrichment task before runtime teardown."""
+    task = hass.data.pop("ip_ban_manager_local_region_task", None)
+    if task is not None:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
+
+async def _async_local_geoip_region(
+    hass: HomeAssistant,
+) -> dict[str, str | None] | None:
     """Return Home Assistant's configured home region, when detectable."""
     now = dt_util.utcnow()
     signature = (_homeassistant_country_code(hass), _homeassistant_coordinates(hass))

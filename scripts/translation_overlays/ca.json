@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Aquesta configuració bloquejaria cada camí d'accés local detectat. Afegiu primer una xarxa local actual a IP permeses.",
       "unsafe_allowlist_network": "Aquesta entrada de la llista permesa confiaria en cada adreça IP i desactivaria efectivament el bloqueig IP.",
       "banned_ip_allowlisted": "Una IP no pot estar permesa i bloquejada alhora. Elimineu-la d'una llista i torneu-ho a provar.",
-      "confirmation_required": "Marqueu la casella de confirmació abans d'esborrar totes les IP bloquejades."
+      "confirmation_required": "Marqueu la casella de confirmació abans d'esborrar totes les IP bloquejades.",
+      "geoip_required": "Desactiveu les regles regionals abans de desactivar GeoIP."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "La comprovació de salut d'IP Ban Manager necessita atenció",
       "description": "IP Ban Manager ha trobat un o més problemes de configuració que poden afectar la gestió de bloquejos en directe:\n\n{issues}\n\nObriu el panell IP Ban Manager després de corregir-los per actualitzar la comprovació de salut."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · La sol·licitud ha fallat.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "IP permeses",
       "hint": "Adreces, xarxes IPv4/IPv6 i noms DNS/DDNS de confiança. Els bloquejos d’IP exactes tenen prioritat. Les entrades permeses eviten els bloquejos de xarxa, regió i denegació per defecte. Els noms es resolen i s’actualitzen en segon pla.",
-      "placeholder": "Adreça IPv4/IPv6, CIDR o comodí, DNS hostname",
+      "placeholder": "Adreça IP, CIDR, comodí o nom d’amfitrió DNS",
       "remove_confirm": "Eliminar aquesta IP permesa? Amb la denegació per defecte o xarxes bloquejades actives, eliminar una entrada de confiança pot bloquejar l'accés."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Descarregueu una còpia a aquest dispositiu o pugeu una còpia de seguretat per restaurar.",
       "download": "Descarrega",
       "upload": "Puja",
-      "upload_confirm": "Pujar {filename} i substituir la configuració actual d'IP Ban Manager i els bloquejos IP exactes?"
+      "upload_confirm": "Pujar {filename} i substituir la configuració actual d'IP Ban Manager i els bloquejos IP exactes?",
+      "transfer_title": "Transferència"
     },
     "geoip": {
       "title": "Base de dades GeoIP",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Desconnecteu Nginx Proxy Manager? Les regles de IP Ban Manager s'eliminaran de l'amfitrió intermediari seleccionat.",
       "protect_all_domains": "Protegeix tots els dominis NPM",
       "protect_all_domains_hint": "Aplica aquestes regles a tots els amfitrions intermediaris actius, inclosos els que s'afegeixin més endavant.",
-      "protect_all_domains_warning": "Voleu aplicar les regles d'IP Ban Manager a tots els amfitrions actius de Nginx Proxy Manager? La configuració existent dels amfitrions es conserva, però aquestes regles d'accés afectaran tots els dominis."
+      "protect_all_domains_warning": "Voleu aplicar les regles d'IP Ban Manager a tots els amfitrions actius de Nginx Proxy Manager? La configuració existent dels amfitrions es conserva, però aquestes regles d'accés afectaran tots els dominis.",
+      "addon_detected": "Home Assistant ha detectat l’aplicació Nginx Proxy Manager i n’ha emplenat l’adreça local."
     },
     "tabs": {
       "activity": "Activitat",

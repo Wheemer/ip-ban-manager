@@ -34,6 +34,12 @@ def main() -> int:
         if unexpected or len(files) != len(set(files)):
             print("zip contains unexpected or duplicate files", file=sys.stderr)
             return 1
+        if any(
+            archive.read(name) != (INTEGRATION_DIR / name).read_bytes()
+            for name in files
+        ):
+            print("zip content differs from the checked-out source", file=sys.stderr)
+            return 1
         if "manifest.json" in names:
             packaged = json.loads(archive.read("manifest.json"))
             expected = json.loads((INTEGRATION_DIR / "manifest.json").read_text())

@@ -57,12 +57,11 @@ async def async_reverse_dns_name(
     """Return a cached reverse-DNS name for a remote address."""
     now = dt_util.utcnow()
     cache = hass.http.app.setdefault(KEY_REVERSE_DNS_CACHE, {})
-    for address in tuple(cache):
-        if cache[address].expires_at <= now:
-            cache.pop(address, None)
     cached = cache.get(remote_addr)
     if cached is not None and cached.expires_at > now:
         metric_increment(hass, "reverse_dns_cache_hits")
+        cache.pop(remote_addr)
+        cache[remote_addr] = cached
         return cached.hostname
 
     metric_increment(hass, "reverse_dns_lookups")

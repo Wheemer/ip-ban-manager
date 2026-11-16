@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Toegestane IP's",
     "hint": "Vertrouwde IPv4-/IPv6-adressen, netwerken en DNS-/DDNS-namen. Exacte IP-blokkades hebben voorrang. Toegestane items omzeilen netwerkblokkades, regiobeperkingen en standaardweigering. Namen worden op de achtergrond opgezocht en vernieuwd.",
-    "placeholder": "IPv4-/IPv6-adres, CIDR of wildcard, DNS hostname",
+    "placeholder": "IP-adres, CIDR, jokerteken of DNS-hostnaam",
     "remove_confirm": "Dit toegestane IP verwijderen? Met default-deny of geblokkeerde netwerken actief kan het verwijderen van een vertrouwd item de toegang blokkeren."
   },
   "allowed_regions": {
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Pas de expliciete IP- en netwerkregels van IP Ban Manager toe bij de proxy voordat verzoeken Home Assistant bereiken.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant heeft de Nginx Proxy Manager-app gedetecteerd en het lokale adres ingevuld.",
     "not_connected": "Niet verbonden",
     "connected_short": "Verbonden",
     "active": "Randbeveiliging actief",

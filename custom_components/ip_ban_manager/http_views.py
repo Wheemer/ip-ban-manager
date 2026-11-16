@@ -24,6 +24,7 @@ from .backup import (
 )
 from .ban_lookup import NetworkAwareBanLookup, _normalize_remote_addr
 from .ban_ops import async_add_ip_ban, async_remove_ip_ban
+from .configuration_transaction import configuration_transaction
 from .const import (
     ATTR_IP_ADDRESS,
     CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED,
@@ -154,15 +155,19 @@ async def async_handle_silence_post(
         notification_id = data.get(ATTR_NOTIFICATION_ID) or query.get(
             ATTR_NOTIFICATION_ID
         )
-        silence_allowlisted_login_notifications(
-            hass,
-            entry,
-            remote_addr,
-            notification_id if isinstance(notification_id, str) else None,
-        )
+        async with configuration_transaction(hass):
+            silence_allowlisted_login_notifications(
+                hass,
+                entry,
+                remote_addr,
+                notification_id if isinstance(notification_id, str) else None,
+            )
         return notification_action_response()
 
-    update_entry_options(hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False})
+    async with configuration_transaction(hass):
+        update_entry_options(
+            hass, **{CONF_ALLOWLISTED_LOGIN_NOTIFICATIONS_ENABLED: False}
+        )
     dismiss_allowlisted_login_notifications(hass)
     return notification_action_response()
 
@@ -278,6 +283,69 @@ async def async_handle_npm_region_authorize_get(
     return Response(status=403 if blocked else 204)
 
 
+async def _async_manage_public_region(
+    hass: HomeAssistant, action: str, value: str, data: dict[str, object]
+) -> None:
+    """Read and update region rules within one configuration transaction."""
+    from .configuration_transaction import configuration_transaction
+    from .panel import _async_panel_set_options
+
+    async with configuration_transaction(hass):
+        region_options = entry_public_region_settings(
+            hass, hass.http.app[KEY_CONFIG_ENTRY]
+        )
+        thresholds = region_options["public_region_rules"]
+        region = value.upper()
+        if action == "remove_public_region":
+            if (
+                region_options["public_region_enabled"]
+                and region in thresholds
+                and len(thresholds) == 1
+            ):
+                raise HomeAssistantError(
+                    "Turn off Public Region Lock and apply before removing the last region."
+                )
+            thresholds.pop(region, None)
+        else:
+            threshold = data.get("threshold")
+            if type(threshold) is not int or not 0 <= threshold <= 100:
+                raise HomeAssistantError("Enter a whole number from 0 to 100.")
+            original = data.get("original_region")
+            if original is not None:
+                if not isinstance(original, str) or original.upper() not in thresholds:
+                    raise HomeAssistantError(
+                        "This region changed. Reload the panel and try again."
+                    )
+                original = original.upper()
+                if original != region and region in thresholds:
+                    raise HomeAssistantError(
+                        "That region already exists. Edit its row instead."
+                    )
+                thresholds.pop(original)
+            country = region.split("-")[0]
+            overlaps = [
+                key
+                for key in thresholds
+                if (key == country if "-" in region else key.startswith(f"{country}-"))
+            ]
+            replacements = data.get("replace_regions", [])
+            if (
+                not isinstance(replacements, list)
+                or any(not isinstance(key, str) for key in replacements)
+                or sorted(replacements) != sorted(overlaps)
+                or (overlaps and data.get("confirmed") is not True)
+            ):
+                raise HomeAssistantError(
+                    "The country or province rules changed. Review and confirm the replacement."
+                )
+            for key in overlaps:
+                thresholds.pop(key)
+            thresholds[region] = threshold
+        await _async_panel_set_options(
+            hass, {**region_options, "confirmed": data.get("confirmed")}
+        )
+
+
 async def async_handle_manage_post(
     view: HomeAssistantView, request: Request
 ) -> Response:
@@ -330,66 +398,7 @@ async def async_handle_manage_post(
         elif action == "set_options":
             await async_panel_set_options(hass, data.get("options", {}))
         elif action in {"set_public_region", "remove_public_region"}:
-            region_options = entry_public_region_settings(
-                hass, hass.http.app[KEY_CONFIG_ENTRY]
-            )
-            thresholds = region_options["public_region_rules"]
-            region = value.upper()
-            if action == "remove_public_region":
-                if (
-                    region_options["public_region_enabled"]
-                    and region in thresholds
-                    and len(thresholds) == 1
-                ):
-                    raise HomeAssistantError(
-                        "Turn off Public Region Lock and apply before removing the last region."
-                    )
-                thresholds.pop(region, None)
-            else:
-                threshold = data.get("threshold")
-                if type(threshold) is not int or not 0 <= threshold <= 100:
-                    raise HomeAssistantError("Enter a whole number from 0 to 100.")
-                original = data.get("original_region")
-                if original is not None:
-                    if (
-                        not isinstance(original, str)
-                        or original.upper() not in thresholds
-                    ):
-                        raise HomeAssistantError(
-                            "This region changed. Reload the panel and try again."
-                        )
-                    original = original.upper()
-                    if original != region and region in thresholds:
-                        raise HomeAssistantError(
-                            "That region already exists. Edit its row instead."
-                        )
-                    thresholds.pop(original)
-                country = region.split("-")[0]
-                overlaps = [
-                    key
-                    for key in thresholds
-                    if (
-                        key == country
-                        if "-" in region
-                        else key.startswith(f"{country}-")
-                    )
-                ]
-                replacements = data.get("replace_regions", [])
-                if (
-                    not isinstance(replacements, list)
-                    or any(not isinstance(key, str) for key in replacements)
-                    or sorted(replacements) != sorted(overlaps)
-                    or (overlaps and data.get("confirmed") is not True)
-                ):
-                    raise HomeAssistantError(
-                        "The country or province rules changed. Review and confirm the replacement."
-                    )
-                for key in overlaps:
-                    thresholds.pop(key)
-                thresholds[region] = threshold
-            await async_panel_set_options(
-                hass, {**region_options, "confirmed": data.get("confirmed")}
-            )
+            await _async_manage_public_region(hass, action, value, data)
         elif action == "update_geoip":
             await async_download_geoip_database(hass)
             record_geoip_updated(hass, SOURCE_PANEL)
@@ -427,11 +436,13 @@ async def async_handle_manage_post(
         elif action == "npm_disconnect":
             await async_disconnect_npm(hass)
         elif action == PANEL_ACTION_SILENCE_ALLOWLISTED_LOGIN:
-            panel_silence_allowlisted_login_notification(
-                hass, value, data.get(ATTR_NOTIFICATION_ID)
-            )
+            async with configuration_transaction(hass):
+                panel_silence_allowlisted_login_notification(
+                    hass, value, data.get(ATTR_NOTIFICATION_ID)
+                )
         elif action == PANEL_ACTION_UNSILENCE_ALLOWLISTED_LOGIN:
-            panel_unsilence_allowlisted_login_notification(hass, value)
+            async with configuration_transaction(hass):
+                panel_unsilence_allowlisted_login_notification(hass, value)
         else:
             metric_increment(hass, "panel_api_errors")
             return view.json(

@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "해당 설정은 감지된 모든 로컬 접근 경로를 차단합니다. 먼저 현재 로컬 네트워크를 허용 IP에 추가하세요.",
       "unsafe_allowlist_network": "해당 허용 목록 항목은 모든 IP 주소를 신뢰하여 IP 차단을 사실상 비활성화합니다.",
       "banned_ip_allowlisted": "IP는 허용과 차단을 동시에 할 수 없습니다. 한 목록에서 제거한 후 다시 시도하세요.",
-      "confirmation_required": "모든 차단 IP를 지우기 전에 확인란을 선택하세요."
+      "confirmation_required": "모든 차단 IP를 지우기 전에 확인란을 선택하세요.",
+      "geoip_required": "GeoIP를 비활성화하기 전에 지역 규칙을 비활성화하세요."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager 상태 점검에 주의 필요",
       "description": "IP Ban Manager가 실시간 차단 관리에 영향을 줄 수 있는 하나 이상의 설정 문제를 발견했습니다:\n\n{issues}\n\n수정한 후 IP Ban Manager 패널을 열어 상태 점검을 새로 고치세요."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · 요청에 실패했습니다.",
+      "description": "{issues}"
     }
   },
   "selector": {

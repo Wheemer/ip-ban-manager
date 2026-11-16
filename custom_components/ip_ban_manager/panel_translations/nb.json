@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "Tillatte IP-er",
     "hint": "Betrodde IPv4-/IPv6-adresser, nettverk og DNS-/DDNS-navn. Eksakte IP-blokkeringer har forrang. Tillatte oppføringer omgår nettverksblokkering, regionslås og standardavvisning. Navn slås opp og oppdateres i bakgrunnen.",
-    "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn, DNS hostname",
+    "placeholder": "IP-adresse, CIDR, jokertegn eller DNS-vertsnavn",
     "remove_confirm": "Fjerne denne tillatte IP-en? Med aktiv standard-nekt eller blokkerte nettverk kan fjerning av en pålitelig oppføring låse ute tilgang."
   },
   "allowed_regions": {
@@ -118,7 +118,7 @@
     "save": "Lagre",
     "restore": "Gjenopprett",
     "restore_confirm": "Gjenopprette fra sikkerhetskopi på disk og erstatte nåværende IP Ban Manager-innstillinger og eksakte IP-utestengelser?",
-    "transfer_title": "Transfer",
+    "transfer_title": "Overføring",
     "transfer_hint": "Last ned en kopi til denne enheten, eller last opp en sikkerhetskopi for gjenoppretting.",
     "download": "Last ned",
     "upload": "Last opp",
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "Bruk IP Ban Managers eksplisitte IP- og nettverksregler på proxyen før forespørsler når Home Assistant.",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant oppdaget Nginx Proxy Manager-appen og fylte inn den lokale adressen.",
     "not_connected": "Ikke tilkoblet",
     "connected_short": "Tilkoblet",
     "active": "Kantbeskyttelse aktiv",

@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "该设置会阻止所有检测到的本地访问路径。请先将当前本地网络添加到“允许的 IP”。",
       "unsafe_allowlist_network": "该白名单条目会信任所有 IP 地址，从而实际上禁用 IP 封禁。",
       "banned_ip_allowlisted": "一个 IP 不能同时处于允许和封禁状态。请从一个列表中移除后重试。",
-      "confirmation_required": "在清除所有已阻止的 IP 之前，请勾选确认框。"
+      "confirmation_required": "在清除所有已阻止的 IP 之前，请勾选确认框。",
+      "geoip_required": "请先关闭区域规则，再禁用 GeoIP。"
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP Ban Manager 健康检查需要关注",
       "description": "IP Ban Manager 发现一个或多个可能影响实时封禁管理的设置问题：\n\n{issues}\n\n修复这些问题后，请打开 IP Ban Manager 面板以刷新健康检查。"
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · 请求失败。",
+      "description": "{issues}"
     }
   },
   "selector": {

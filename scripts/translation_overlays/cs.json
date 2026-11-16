@@ -76,7 +76,8 @@
       "local_network_block_unprotected": "Toto nastavení by zablokovalo každou detekovanou lokální cestu přístupu. Nejprve přidejte aktuální lokální síť do Povolené IP.",
       "unsafe_allowlist_network": "Tato položka allowlistu by důvěřovala každé IP adrese a prakticky by vypnula IP zákazy.",
       "banned_ip_allowlisted": "IP nemůže být současně povolená i zakázaná. Odstraňte ji z jednoho seznamu a zkuste znovu.",
-      "confirmation_required": "Před vymazáním všech blokovaných IP zaškrtněte potvrzovací políčko."
+      "confirmation_required": "Před vymazáním všech blokovaných IP zaškrtněte potvrzovací políčko.",
+      "geoip_required": "Před vypnutím GeoIP vypněte regionální pravidla."
     }
   },
   "exceptions": {
@@ -125,6 +126,10 @@
     "health_check_failed": {
       "title": "Kontrola stavu IP Ban Manager vyžaduje pozornost",
       "description": "IP Ban Manager našel jeden nebo více problémů nastavení, které mohou ovlivnit živou správu zákazů:\n\n{issues}\n\nPo opravě otevřete panel IP Ban Manager pro obnovení kontroly stavu."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Požadavek selhal.",
+      "description": "{issues}"
     }
   },
   "selector": {
@@ -190,7 +195,7 @@
     "allowed_ips": {
       "title": "Povolené IP",
       "hint": "Důvěryhodné adresy a sítě IPv4/IPv6 a názvy DNS/DDNS. Přesné zákazy IP mají přednost. Povolené položky obcházejí blokování sítí, oblastí a výchozí odmítnutí. Názvy se překládají a obnovují na pozadí.",
-      "placeholder": "IPv4/IPv6 adresa, CIDR nebo zástupný znak, DNS hostname",
+      "placeholder": "IP adresa, CIDR, zástupný znak nebo název hostitele DNS",
       "remove_confirm": "Odstranit tuto povolenou IP? Při aktivním default-deny nebo blokovaných sítích může odstranění důvěryhodné položky zablokovat přístup."
     },
     "blocked_ips": {
@@ -254,7 +259,8 @@
       "transfer_hint": "Stáhněte kopii na toto zařízení nebo nahrajte zálohu pro obnovení.",
       "download": "Stáhnout",
       "upload": "Nahrát",
-      "upload_confirm": "Nahrát {filename} a nahradit aktuální nastavení IP Ban Manager a přesné IP zákazy?"
+      "upload_confirm": "Nahrát {filename} a nahradit aktuální nastavení IP Ban Manager a přesné IP zákazy?",
+      "transfer_title": "Přenos"
     },
     "geoip": {
       "title": "GeoIP databáze",
@@ -340,7 +346,8 @@
       "disconnect_confirm": "Odpojit Nginx Proxy Manager? Pravidla IP Ban Manager budou odstraněna z vybraného hostitele proxy.",
       "protect_all_domains": "Chránit všechny domény NPM",
       "protect_all_domains_hint": "Použít tato pravidla na všechny aktivní proxy hostitele včetně těch, kteří budou přidáni později.",
-      "protect_all_domains_warning": "Použít pravidla IP Ban Manager na všechny aktivní hostitele Nginx Proxy Manager? Stávající nastavení hostitelů zůstanou zachována, ale tato přístupová pravidla ovlivní všechny domény."
+      "protect_all_domains_warning": "Použít pravidla IP Ban Manager na všechny aktivní hostitele Nginx Proxy Manager? Stávající nastavení hostitelů zůstanou zachována, ale tato přístupová pravidla ovlivní všechny domény.",
+      "addon_detected": "Home Assistant rozpoznal aplikaci Nginx Proxy Manager a vyplnil její místní adresu."
     },
     "tabs": {
       "activity": "Aktivita",

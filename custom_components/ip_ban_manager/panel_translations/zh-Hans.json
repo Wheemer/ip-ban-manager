@@ -40,7 +40,7 @@
   "allowed_ips": {
     "title": "允许的 IP",
     "hint": "受信任的 IPv4/IPv6 地址、网络及 DNS/DDNS 主机名。精确 IP 封禁优先。允许的条目可绕过网络封禁、地区限制和默认拒绝。主机名在后台解析并刷新。",
-    "placeholder": "IPv4/IPv6 地址、CIDR 或通配符, DNS hostname",
+    "placeholder": "IP 地址、CIDR、通配符或 DNS 主机名",
     "remove_confirm": "移除此允许的 IP？在启用默认拒绝或阻止网络时，移除受信任条目可能导致无法访问。"
   },
   "allowed_regions": {
@@ -143,7 +143,7 @@
   "npm": {
     "title": "Nginx Proxy Manager",
     "hint": "在请求到达 Home Assistant 之前，在代理上应用 IP Ban Manager 的显式 IP 和网络规则。",
-    "addon_detected": "Home Assistant detected the Nginx Proxy Manager app and filled its local address.",
+    "addon_detected": "Home Assistant 检测到了 Nginx Proxy Manager 应用并填入了其本地地址。",
     "not_connected": "未连接",
     "connected_short": "已连接",
     "active": "边缘保护激活",

@@ -77,7 +77,8 @@
       "local_network_block_unprotected": "Tämä asetus estäisi jokaisen havaittuun paikalliseen käyttöpolkuun. Lisää ensin nykyinen paikallinen verkko Sallitut IP-osoitteet -listaan.",
       "unsafe_allowlist_network": "Tämä sallituslistan merkintä luottaisi jokaiseen IP-osoitteeseen ja käytännössä poistaisi IP-estot käytöstä.",
       "banned_ip_allowlisted": "IP-osoite ei voi olla sekä sallittu että estetty. Poista se jostakin listasta ja yritä uudelleen.",
-      "confirmation_required": "Valitse vahvistusruutu ennen kaikkien estettyjen IP-osoitteiden tyhjentämistä."
+      "confirmation_required": "Valitse vahvistusruutu ennen kaikkien estettyjen IP-osoitteiden tyhjentämistä.",
+      "geoip_required": "Poista alueelliset säännöt käytöstä ennen GeoIP:n poistamista käytöstä."
     }
   },
   "exceptions": {
@@ -126,6 +127,10 @@
     "health_check_failed": {
       "title": "IP Ban Managerin kuntotarkistus vaatii huomiota",
       "description": "IP Ban Manager löysi yhden tai useamman asetusongelman, jotka voivat vaikuttaa live-estojen hallintaan:\n\n{issues}\n\nAvaa IP Ban Manager -paneeli korjausten jälkeen päivittääksesi kuntotarkistuksen."
+    },
+    "npm_sync_failed": {
+      "title": "Nginx Proxy Manager · Pyyntö epäonnistui.",
+      "description": "{issues}"
     }
   },
   "selector": {
