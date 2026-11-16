@@ -199,6 +199,7 @@ from .storage_keys import (
     KEY_PANEL_REGISTERED,
     KEY_PANEL_SIDEBAR_ENABLED,
     KEY_REVERSE_DNS_CACHE,
+    KEY_SETUP_IN_PROGRESS,
     KEY_STATIC_PATH_REGISTERED,
 )
 from .yaml_config import CONFIG_SCHEMA  # noqa: F401
@@ -489,6 +490,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
+    hass.data[KEY_SETUP_IN_PROGRESS] = True
     try:
         return await _async_setup_entry(hass, entry)
     except BaseException:
@@ -500,6 +502,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:
             _LOGGER.exception("Could not clean up IP Ban Manager after setup failed")
         raise
+    finally:
+        hass.data.pop(KEY_SETUP_IN_PROGRESS, None)
 
 
 async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -563,6 +567,7 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _register_services(hass)
     _setup_npm_sync(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    hass.data.pop(KEY_SETUP_IN_PROGRESS, None)
     await _async_update_health_issue(hass)
 
     return True

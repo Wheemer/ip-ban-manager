@@ -506,11 +506,12 @@ async def test_failed_setup_cleans_partial_runtime(monkeypatch):
     import custom_components.ip_ban_manager as integration
 
     hass = SimpleNamespace(
+        data={},
         config_entries=SimpleNamespace(
             async_unload_platforms=AsyncMock(
                 side_effect=RuntimeError("platform failed")
             )
-        )
+        ),
     )
     cleanup = AsyncMock()
     monkeypatch.setattr(

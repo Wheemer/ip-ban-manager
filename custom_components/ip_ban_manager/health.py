@@ -22,6 +22,7 @@ from .storage_keys import (
     KEY_HEALTH,
     KEY_LEGACY_FOLDER_CLEANED,
     KEY_PANEL_REGISTERED,
+    KEY_SETUP_IN_PROGRESS,
 )
 
 IP_BAN_DISABLED_ISSUE_ID = "ip_ban_disabled"
@@ -219,7 +220,11 @@ async def async_health_status(hass: HomeAssistant) -> dict[str, object]:
 
 async def async_update_health_issue(hass: HomeAssistant) -> None:
     """Refresh the lightweight health status and matching Repair issue."""
+    if hass.data.get(KEY_SETUP_IN_PROGRESS):
+        return
     health = await async_health_status(hass)
+    if hass.data.get(KEY_SETUP_IN_PROGRESS):
+        return
     hass.data[KEY_HEALTH] = health
     issues = cast(list[dict[str, object]], health[ATTR_HEALTH_ISSUES])
     actionable = [
@@ -231,6 +236,8 @@ async def async_update_health_issue(hass: HomeAssistant) -> None:
         issue_strings = await async_load_health_issue_strings(
             hass, hass.config.language
         )
+        if hass.data.get(KEY_SETUP_IN_PROGRESS):
+            return
         ir.async_create_issue(
             hass,
             DOMAIN,

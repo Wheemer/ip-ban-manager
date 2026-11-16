@@ -70,15 +70,12 @@ Requires Home Assistant `2026.4.0` or newer. Designed for Home Assistant OS, Con
   </tr>
 </table>
 
-### Edge protection and backups
+### Settings, edge protection, and backups
 
 <table>
   <tr>
-    <td width="50%" valign="top">
-      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png" alt="Settings, NGINX Proxy Manager, and GeoIP" width="420"></a>
-    </td>
-    <td width="50%" valign="top">
-      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-backup.png" alt="Backup" width="420"></a>
+    <td valign="top">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png" alt="Settings, NGINX Proxy Manager, GeoIP, and Backup" width="420"></a>
     </td>
   </tr>
 </table>
@@ -122,23 +119,28 @@ Open **Settings > Devices & services > IP Ban Manager > Configure**. The panel i
 administrator-only. **Show in sidebar** adds a menu entry; turning it off does not
 remove access through **Configure**.
 
-The panel has six tabs:
+The panel has five tabs:
 
 - **Activity:** incoming traffic, with Recent and History views.
 - **Allowed IPs:** trusted addresses and silenced-login notifications.
 - **Blocking:** Blocked IPs, Blocked Networks, and Public Region Lock.
 - **Notifications:** ban alerts, allowlisted-login alerts, and activity logging.
-- **Settings:** general options, automatic bans, NPM edge protection, and GeoIP.
-- **Backup:** save, restore, download, and upload configuration backups.
+- **Settings:** general options, automatic bans, NPM edge protection, GeoIP, and configuration backups.
 
-Switching tabs preserves unsaved fields. Incoming activity continues to update
-without refreshing the whole panel.
-The Notifications and Settings Apply buttons save their own section's options.
-Apply stays muted until that section has unsaved changes. Reverting or saving the
-changes makes it inactive again. Allowed IPs Add stays inactive while its field
-is empty. Blocking actions, removals, and backup transfers have distinct styling.
+Switches save immediately. Login attempts and history retention save valid edits
+when you leave the field or press Enter, not while typing. Bottom toasts identify
+the setting and saved value; failed saves show an error. Risky changes still
+require confirmation. Region-rule edits keep their own **Apply** button.
 
-List **Add**, **Block**, and **Remove** actions apply immediately. For options, Public Region Lock, and NPM settings, select the section's **Apply** button. These changes do not require a Home Assistant restart.
+Desktop action buttons use compact icons with hover and keyboard-focus tooltips;
+touch devices keep larger buttons with text labels. Tabs remain labeled. Only
+Activity spans the full desktop page; other tabs use two columns when space
+permits and stack on narrow screens. Incoming activity updates without refreshing
+the whole panel. Allowed IPs **Add** stays inactive while its field is empty.
+
+List **Add**, **Block**, and **Remove** actions apply immediately. Panel changes
+do not require a Home Assistant restart. Installing updated Python files through
+HACS still requires a Core restart.
 
 When upgrading an existing local-safe-default configuration, IP Ban Manager can
 add the detected IPv6 link-local subnet to **Allowed IPs** once. This preserves
@@ -245,7 +247,7 @@ Only the clearly marked IP Ban Manager block in each protected host's advanced c
 
 ## Backup And Restore
 
-The live panel can **Save**, **Restore**, **Download**, and **Upload** a YAML backup.
+The **Backup** section in **Settings** can **Save**, **Restore**, **Download**, and **Upload** a YAML backup.
 
 **Save** / **Restore** use the on-disk file:
 
@@ -265,7 +267,7 @@ Older backups without NPM settings leave the current NPM connection unchanged. T
 
 ## GeoIP Labels
 
-GeoIP labels are optional. Use the GeoIP section's **Download** button to install the free DB-IP City Lite database, then enable location labels and select **Apply**. Enabling the checkbox alone does not download a database. The file is stored at:
+GeoIP labels are optional. Use the GeoIP section's **Download** button to install the free DB-IP City Lite database, then enable location labels. The switch saves immediately; enabling it alone does not download a database. The file is stored at:
 
 ```text
 /config/ip_ban_manager/geoip/dbip-city-lite.mmdb
@@ -281,9 +283,9 @@ Reverse-DNS names shown in notifications are separate from GeoIP. Public-address
 
 Public Region Lock has an on/off checkbox and a saved list of countries or provinces/states. Enter an ISO country code such as `CA`, or a subdivision code such as `CA-NL`, set its failed-login threshold, then select **Add**. Adding an existing code updates its threshold. Edit an existing row and select its **Apply** button to save changes, or **Remove** to delete it. Quick-add buttons use Home Assistant's detected current country or province/state.
 
-Select **Enable Public Region Lock** and **Apply** to activate the list. This is a restrictive policy: public IPs outside every listed region, including unknown locations, are blocked. Allowed IPs, local/private traffic, Home Assistant's internal access paths, and the **Protect integration callbacks** option are still respected.
+Turn on **Enable Public Region Lock** and confirm to activate the list. This is a restrictive policy: public IPs outside every listed region, including unknown locations, are blocked. Allowed IPs, local/private traffic, Home Assistant's internal access paths, and the **Protect integration callbacks** option are still respected.
 
-Turning the lock off retains the list but disables both its access restriction and regional retry overrides. Other IP bans and the global failed-login threshold are unchanged. Only the checkbox turns the lock off: turn it off and apply before removing the last region. An empty list cannot be enabled. Enabling or changing an active restriction requires confirmation and a working GeoIP database.
+Turning the lock off saves immediately and retains the list, but disables both its access restriction and regional retry overrides. Other IP bans and the global failed-login threshold are unchanged. Turn the lock off before removing the last region. An empty list cannot be enabled. Enabling or changing an active restriction requires confirmation and a working GeoIP database.
 
 You can list several provinces/states, such as `CA-NL` and `CA-ON`. Adding a province
 when its whole country is already listed asks to replace the country rule. Adding

@@ -18,7 +18,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../custom_components/ip
   panel._statusPath = () => 'status';
   panel._t = key => key;
   const connection = { configured: true, reauth_required: true, base_url: 'http://npm.test:81', identity: 'owner@test.invalid' };
-  for (const [action, extra] of [['npm_disconnect', {}], ['set_options', { options: { npm_edge_protection_enabled: false } }]]) {
+  for (const [action, extra] of [['npm_disconnect', {}], ['set_options', { options: { npm_edge_protection_enabled: false } }], ['set_options', { options: { npm_protect_all_domains: true } }]]) {
     const methods = [];
     panel._api = async method => {
       methods.push(method);
@@ -44,7 +44,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../custom_components/ip
   assert.match(configured, /id="npm-protect-all-domains"[^>]*checked/);
   assert.match(configured, /npm\.protect_all_domains_hint/);
   assert.match(configured, /class="npm-disconnect-row"[\s\S]*id="npm-disconnect"/);
-  assert.match(configured, /class="npm-action-row npm-action-row-apply"[\s\S]*id="npm-apply"/);
+  assert.doesNotMatch(configured, /id="npm-apply"/);
   const suggested = panel._npmOptions({ configured: false, suggested_url: 'http://192.168.2.66:81' });
   assert.match(suggested, /value="http:\/\/192.168.2.66:81"/);
   assert.doesNotMatch(suggested, /ha\.test/);
@@ -75,7 +75,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../custom_components/ip
       { settings: { auto_ban_enabled: true } },
       { options: { auto_ban_enabled: true } }
     ),
-    'Options applied. settings.auto_ban_enabled'
+    'Options applied. settings.auto_ban_enabled: Enabled'
   );
   panel._api = async () => { throw new Error('Unavailable'); };
   assert.equal(await panel._post('npm_disconnect'), false);

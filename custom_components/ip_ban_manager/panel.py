@@ -181,22 +181,29 @@ async def _async_activity_locations(
 
 
 async def async_panel_payload(
-    hass: HomeAssistant, entry: ConfigEntry, *, language: str | None = None
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    *,
+    language: str | None = None,
+    initial: bool = False,
 ) -> dict[str, object]:
     """Return the complete JSON payload used by the bundled panel."""
     resolved_language = await async_normalize_language(hass, language)
     translations = await async_load_panel_translations(hass, resolved_language)
     backup_status = await hass.async_add_executor_job(_backup_status, hass)
     geoip = await hass.async_add_executor_job(geoip_status, hass, entry)
-    geoip["local_region"] = await async_local_geoip_region(hass)
-    try:
-        npm_activity = await asyncio.wait_for(async_npm_activity(hass, entry), 3)
-    except (HomeAssistantError, TimeoutError):
-        npm_activity = []
-    try:
-        npm_discovery = await asyncio.wait_for(async_detect_npm_addon(hass), 2)
-    except (HomeAssistantError, TimeoutError):
-        npm_discovery = {"addon_detected": False}
+    geoip["local_region"] = None if initial else await async_local_geoip_region(hass)
+    npm_activity = []
+    npm_discovery: dict[str, object] = {"addon_detected": False}
+    if not initial:
+        try:
+            npm_activity = await asyncio.wait_for(async_npm_activity(hass, entry), 3)
+        except (HomeAssistantError, TimeoutError):
+            npm_activity = []
+        try:
+            npm_discovery = await asyncio.wait_for(async_detect_npm_addon(hass), 2)
+        except (HomeAssistantError, TimeoutError):
+            npm_discovery = {"addon_detected": False}
     activity = merge_activity(hass, npm_activity)
     activity_history = history_activity(hass)
     include_blocked_activity = entry_blocked_request_logging_enabled(entry)
@@ -219,13 +226,18 @@ async def async_panel_payload(
     activity_history = without_disallowed_activity(
         hass, entry, activity_history, include_blocked=include_blocked_activity
     )
-    locations = await _async_activity_locations(hass, [*activity, *activity_history])
+    locations = (
+        {}
+        if initial
+        else await _async_activity_locations(hass, [*activity, *activity_history])
+    )
     for event in [*activity, *activity_history]:
         if location := locations.get(str(event.get("ip") or "")):
             event["location"] = location
     version = await async_integration_version(hass)
     return {
         "ok": True,
+        "enrichment_pending": initial,
         "version": version,
         "language": resolved_language,
         "translations": translations,

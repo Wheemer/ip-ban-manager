@@ -11,7 +11,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../custom_components/ip
 const panel = new Panel();
 const keys = ['activity-section','options-section','allowed-ips-section','blocked-ips-section','allowed-regions-section','blocked-networks-section','backup-section','notifications-section','silenced-section','npm-section','geoip-section'];
 const markup = panel._gridMarkup(new Map(keys.map(key => [key, `<section class="${key}">${key}</section>`])));
-for (const tab of ['activity','allowed','blocking','notifications','settings','backup']) {
+for (const tab of ['activity','allowed','blocking','notifications','settings']) {
   assert.match(markup, new RegExp(`aria-controls="page-${tab}"`));
   assert.match(markup, new RegExp(`id="page-${tab}" role="tabpanel" aria-labelledby="tab-${tab}"`));
 }
@@ -19,10 +19,12 @@ const blocking = markup.slice(markup.indexOf('id="page-blocking"'),markup.indexO
 assert.doesNotMatch(blocking, /options-section|backup-section|activity-section|allowed-ips-section/);
 assert.match(blocking, /blocked-ips-section[\s\S]*blocked-networks-section[\s\S]*allowed-regions-section/);
 assert.equal(panel._sectionColumn('activity-section'),'#page-activity');
-assert.equal(panel._sectionColumn('backup-section'),'#page-backup');
+assert.equal(panel._sectionColumn('backup-section'),'#page-settings');
+assert.doesNotMatch(markup, /id="page-backup"|data-panel-tab="backup"/);
+assert.match(markup.slice(markup.indexOf('id="page-settings"')), /backup-section/);
 assert.equal(panel._sectionColumn('allowed-regions-section'),'#page-blocking');
 assert.equal(panel._sectionColumn('notifications-section'),'#page-notifications');
-const buttons = ['activity','allowed','blocking','notifications','settings','backup'].map(id=>({dataset:{panelTab:id},setAttribute(key,value){this[key]=value;}}));
+const buttons = ['activity','allowed','blocking','notifications','settings'].map(id=>({dataset:{panelTab:id},setAttribute(key,value){this[key]=value;}}));
 const pages = buttons.map(button=>({id:`page-${button.dataset.panelTab}`}));
 panel.shadowRoot = {querySelectorAll: selector=>selector === '.tab-page' ? pages : buttons};
 panel._selectPanelTab('settings');
