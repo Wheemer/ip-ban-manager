@@ -303,6 +303,7 @@ async def test_failed_platform_unload_keeps_runtime(hass, monkeypatch):
     """A refused platform unload leaves active services and hooks untouched."""
     import custom_components.ip_ban_manager as integration
 
+    hass.data[integration._PLATFORMS_SETUP_STARTED] = True
     entry = object()
     teardown = Mock()
     monkeypatch.setattr(
