@@ -10,9 +10,13 @@ from .test_setup import *
 
 @pytest.mark.asyncio
 async def test_failed_login_event_uses_native_notification_message(
-    hass: HomeAssistant,
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test every failed login exposes Home Assistant's native message text."""
+    monkeypatch.setattr(
+        "custom_components.ip_ban_manager.reverse_dns.gethostbyaddr",
+        lambda remote: (remote, [], [remote]),
+    )
     events: list[dict[str, Any]] = []
 
     @callback
