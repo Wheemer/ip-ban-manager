@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.10.4.1
+## v1.10.4-1
 
 ### 🎨 Panel refinements
 
