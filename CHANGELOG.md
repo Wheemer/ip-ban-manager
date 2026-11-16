@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.11.0
+
+### 🎨 A more compact panel
+
+- Tighten desktop layouts, keep non-Activity tabs in two columns, and move configuration backups into Settings.
+- Use compact icon actions with hover and keyboard-focus tooltips on desktop, while retaining larger labeled controls on touch devices.
+- Save switches immediately and valid login-attempt/history-retention edits on blur or Enter. Region rules keep their own Apply controls and risky changes still require confirmation.
+- Show the setting and saved value in bottom toasts, preserve failed edits and field errors, and prevent unrelated successful saves from hiding an error.
+- Improve keyboard focus, screen-reader labels, touch targets, region-removal confirmations, and pending-save feedback.
+
+### ⚡ Faster loading and GeoIP
+
+- Open the panel with local content first, then add optional activity, discovery, and location details without interrupting edits.
+- Share concurrent location lookups and reuse authoritative GeoIP network records with bounded caches.
+- Move cold NPM regional authorization lookups off the event loop, sharing duplicate work and limiting outstanding lookups without allowing traffic through on overload.
+- Validate GeoIP downloads before and after replacement, retain the previous database, and restore it if replacement checks fail.
+- Safely finish active GeoIP reads before closing an old database reader.
+
+### 🌐 NGINX Proxy Manager recovery
+
+- Automatically retry temporary synchronization and token-renewal outages, while keeping permanent errors visible.
+- Preserve editable proxy-host and Custom Location settings, exclude response-only metadata, and handle empty location lists consistently.
+- Distinguish expired credentials from permission errors, recover invalid saved authorization secrets, and report failed disable operations.
+- Keep token and policy failures separate so recovery clears only the problem that actually recovered. Preserve the original error if rollback checks also fail.
+
+### 🛡️ Protection and runtime reliability
+
+- Activate ban hooks earlier during startup and suppress normal startup warnings without hiding persistent failures.
+- Prevent disabling GeoIP while regional rules still require it, including through the older Configure form.
+- Preserve deliberate exact bans when a DNS allowlist hostname resolves to the same address, and report the conflict rather than silently removing the ban.
+- Normalize mapped IPv6 bans consistently across management and restore paths, reject ambiguous numeric DNS entries, and bound concurrent hostname-resolution work.
+- Drain active integration operations before Python reload, refresh imported helpers and constants, and restore previous module bindings if reload fails.
+- Use generic unavailable responses during reload instead of returning internal exception text.
+- Preserve activity received while history loads, protect unread history after storage errors, and avoid unnecessary sorting and cache sweeps during panel updates.
+
+### 📚 Documentation and maintenance
+
+- Complete translated discovery, backup, and DNS guidance, and update the README and panel examples.
+- Include a SHA-256 checksum alongside the downloadable integration ZIP.
+- Update uv to 0.13.8 and Renovate's GitHub Action to 46.3.14, with development tooling aligned to supported Home Assistant versions.
+
 ## v1.10.4-3
 
 ### 🛡️ Safer configuration

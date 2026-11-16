@@ -5,6 +5,8 @@
 # flake8: noqa
 # ruff: noqa: F403,F405
 
+from ipaddress import ip_network
+
 from custom_components.ip_ban_manager.geoip import geoip_location_from_result
 from custom_components.ip_ban_manager.storage_keys import IPAddress
 
@@ -139,6 +141,10 @@ async def test_allowlisted_wrong_login_suppresses_ip_encoded_reverse_name(
 ) -> None:
     """Test provider reverse names still show as reverse-DNS detail."""
     await setup_ip_ban_manager(hass)
+    hass.http.app[KEY_ALLOWLIST] = (
+        *hass.http.app[KEY_ALLOWLIST],
+        ip_network("8.235.12.238/32"),
+    )
     monkeypatch.setattr(
         reverse_dns,
         "_async_external_reverse_dns_name",
@@ -158,6 +164,7 @@ async def test_allowlisted_wrong_login_suppresses_ip_encoded_reverse_name(
     assert "from 238.12.235.8.bc.googleusercontent.com" not in message
     assert "from 8.235.12.238." in message
     assert "Reverse DNS: 238.12.235.8.bc.googleusercontent.com" in message
+    reverse_dns._async_external_reverse_dns_name.assert_awaited_once()
 
 
 @pytest.mark.asyncio

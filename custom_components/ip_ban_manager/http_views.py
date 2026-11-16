@@ -22,7 +22,7 @@ from .backup import (
     async_import_config_from_yaml,
     config_download_payload,
 )
-from .ban_lookup import NetworkAwareBanLookup, _normalize_remote_addr
+from .ban_lookup import NetworkAwareBanLookup, _is_allowed, _normalize_remote_addr
 from .ban_ops import async_add_ip_ban, async_remove_ip_ban
 from .configuration_transaction import configuration_transaction
 from .const import (
@@ -32,7 +32,7 @@ from .const import (
     SOURCE_PANEL,
 )
 from .entry_helpers import update_entry_options
-from .geoip import async_download_geoip_database
+from .geoip import async_download_geoip_database, async_warm_geoip_for_ip
 from .health import async_update_health_issue
 from .metrics import metric_increment
 from .network_policy import (
@@ -72,6 +72,7 @@ from .panel_assets import (
     async_panel_js_response,
 )
 from .region_rules import entry_public_region_settings
+from .runtime_lifecycle import RuntimeClosingError, runtime_operation
 from .storage_keys import (
     KEY_CONFIG_ENTRY,
     KEY_GEOIP_READER,
@@ -99,7 +100,17 @@ async def async_dispatch_http_view(
     handler = handlers.get(handler_name)
     if not callable(handler):
         return http_view_not_loaded_response(view, handler_name)
-    return await handler(view, request)
+    try:
+        async with runtime_operation(hass):
+            return await handler(view, request)
+    except RuntimeClosingError:
+        return view.json(
+            {
+                "ok": False,
+                "error": "IP Ban Manager is temporarily unavailable. Try again shortly.",
+            },
+            status_code=503,
+        )
 
 
 def http_view_not_loaded_response(
@@ -266,6 +277,15 @@ async def async_handle_npm_region_authorize_get(
         return Response(status=429, headers={"Retry-After": "1"})
     client_misses.append(now)
 
+    if (
+        lookup.geoip_access_allowed is not None
+        and not dict.__contains__(lookup, client_ip)
+        and not _is_allowed(client_ip, lookup.allowlist)
+        and not _is_allowed(client_ip, lookup.blocked_networks)
+        and not _is_allowed(client_ip, lookup.internal_bypass_networks)
+        and not await async_warm_geoip_for_ip(hass, client_ip)
+    ):
+        return Response(status=429, headers={"Retry-After": "1"})
     blocked = client_ip in lookup
     if len(cache) >= _NPM_REGION_AUTH_CACHE_MAX_ENTRIES:
         expired = [

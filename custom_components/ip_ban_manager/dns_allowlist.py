@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import socket
 from collections.abc import Iterable
 from datetime import timedelta
@@ -23,6 +24,7 @@ KEY_DNS_ALLOWLIST_UNSUBSCRIBER = "ip_ban_manager_dns_allowlist_unsubscriber"
 DNS_REFRESH_INTERVAL = 60
 DNS_RESOLUTION_TIMEOUT = 10
 DNS_STALE_GRACE_SECONDS = 300
+_LOGGER = logging.getLogger(__name__)
 KEY_DNS_ALLOWLIST_RESOLVED_AT = "ip_ban_manager_dns_allowlist_resolved_at"
 KEY_DNS_ALLOWLIST_TASK = "ip_ban_manager_dns_allowlist_task"
 KEY_DNS_ALLOWLIST_LOCK = "ip_ban_manager_dns_allowlist_lock"
@@ -74,16 +76,17 @@ async def _async_refresh_dns_allowlist(hass: HomeAssistant) -> None:
     hostnames = _hostnames(entry_ip_addresses(entry))
     cache: dict[str, set[str]] = hass.data.setdefault(KEY_DNS_ALLOWLIST_CACHE, {})
     resolved_at = hass.data.setdefault(KEY_DNS_ALLOWLIST_RESOLVED_AT, {})
-    slots = asyncio.Semaphore(8)
+    queue = iter(hostnames)
+    answers: dict[str, set[str]] = {}
 
-    async def resolve(hostname: str) -> set[str]:
-        async with slots:
-            return await _async_resolve_hostname(hass, hostname)
+    async def resolve_batch() -> None:
+        for hostname in queue:
+            answers[hostname] = await _async_resolve_hostname(hass, hostname)
 
-    pending = asyncio.gather(*(resolve(hostname) for hostname in hostnames))
+    pending = asyncio.gather(*(resolve_batch() for _ in range(min(8, len(hostnames)))))
     hass.data[KEY_DNS_ALLOWLIST_RESOLUTIONS] = pending
     try:
-        resolved = await pending
+        await pending
     finally:
         if hass.data.get(KEY_DNS_ALLOWLIST_RESOLUTIONS) is pending:
             hass.data.pop(KEY_DNS_ALLOWLIST_RESOLUTIONS, None)
@@ -92,7 +95,8 @@ async def _async_refresh_dns_allowlist(hass: HomeAssistant) -> None:
         or _hostnames(entry_ip_addresses(entry)) != hostnames
     ):
         return
-    for hostname, addresses in zip(hostnames, resolved, strict=True):
+    for hostname in hostnames:
+        addresses = answers[hostname]
         if addresses:
             cache[hostname] = addresses
             resolved_at[hostname] = monotonic()
@@ -124,6 +128,20 @@ async def _async_refresh_dns_allowlist(hass: HomeAssistant) -> None:
         return
     if hasattr(lookup, "allowlist"):
         lookup.allowlist = allowlist
+    conflicts = {
+        (hostname, address)
+        for hostname in hostnames
+        for address in cache.get(hostname, set())
+        if isinstance(lookup, dict) and dict.__contains__(lookup, ip_address(address))
+    }
+    previous_conflicts = hass.data.get("ip_ban_manager_dns_ban_conflicts", set())
+    for hostname, address in sorted(conflicts - previous_conflicts):
+        _LOGGER.warning(
+            "Allowed hostname %s resolves to explicitly banned address %s; the exact ban remains active",
+            hostname,
+            address,
+        )
+    hass.data["ip_ban_manager_dns_ban_conflicts"] = conflicts
     if previous != allowlist and hass.data.get("ip_ban_manager_npm_unsubscribers"):
         from .nginx_proxy_manager import schedule_npm_sync
 

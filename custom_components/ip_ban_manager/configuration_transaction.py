@@ -57,7 +57,13 @@ async def configuration_transaction(hass: HomeAssistant) -> AsyncIterator[None]:
                     hass, sidebar_enabled=entry_sidebar_panel_enabled(entry)
                 )
                 if npm_options.get("enabled"):
-                    await async_sync_npm(hass)
+                    try:
+                        await async_sync_npm(hass)
+                    except BaseException:
+                        # A failed recovery may renew credentials or repair a secret;
+                        # it must not leave a failed transaction's options committed.
+                        hass.config_entries.async_update_entry(entry, options=options)
+                        raise
                 else:
                     schedule_npm_sync(hass)
 

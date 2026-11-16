@@ -7,7 +7,7 @@ import sys
 from contextvars import ContextVar
 from ipaddress import ip_address
 
-from aiohttp.web import Request
+from aiohttp.web import HTTPServiceUnavailable, Request
 from homeassistant.components.http import ban as http_ban
 from homeassistant.components.http.ban import (
     KEY_BAN_MANAGER,
@@ -45,6 +45,7 @@ from .notifications import (
     should_notify_allowlisted_login,
 )
 from .reverse_dns import async_reverse_dns_name
+from .runtime_lifecycle import RuntimeClosingError, runtime_operation
 from .storage_keys import (
     KEY_ALLOWLIST,
     KEY_CONFIG_ENTRY,
@@ -217,6 +218,17 @@ async def _async_apply_regional_threshold(
 
 async def _allowlist_process_wrong_login(request: Request) -> None:
     """Process failed logins while preventing allowlisted addresses from bans."""
+    try:
+        async with runtime_operation(request.app[KEY_HASS]):
+            await _async_process_wrong_login_owned(request)
+    except RuntimeClosingError:
+        raise HTTPServiceUnavailable(
+            text="IP Ban Manager is temporarily unavailable. Try again shortly."
+        ) from None
+
+
+async def _async_process_wrong_login_owned(request: Request) -> None:
+    """Keep the active login handler within its owning Python generation."""
     allowlist = request.app.get(KEY_ALLOWLIST, ())
     remote_addr = _request_remote_ip(request)
     hass = request.app[KEY_HASS]

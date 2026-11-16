@@ -18,7 +18,9 @@ from custom_components.ip_ban_manager.storage_keys import KEY_LEGACY_FOLDER_CLEA
 from .test_setup import setup_ip_ban_manager
 
 
-@pytest.mark.parametrize("value", ["0x7f.1", "0x7f000001", "0x7f.0x0.0x0.0x1"])
+@pytest.mark.parametrize(
+    "value", ["0x", "0x.1", "0x7f.1", "0x7f000001", "0x7f.0x0.0x0.0x1"]
+)
 def test_numeric_resolver_spellings_are_not_hostnames(value):
     """Legacy numeric resolver spellings must not become trusted DNS names."""
     assert not is_allowlist_hostname(value)
@@ -105,7 +107,9 @@ async def test_npm_permission_failure_is_not_expired_authentication():
     from custom_components.ip_ban_manager import nginx_proxy_manager as npm
 
     with pytest.raises(HomeAssistantError, match="permissions") as error:
-        await npm.NpmClient._response_json(SimpleNamespace(status=403))
+        await npm.NpmClient._response_json(
+            SimpleNamespace(status=403, json=AsyncMock(return_value={}))
+        )
     assert not isinstance(error.value, npm.NpmAuthenticationError)
 
 
@@ -154,6 +158,63 @@ def test_invalid_stored_npm_secret_is_replaced():
     assert npm._ensure_region_auth_secret(config) == config
 
 
+@pytest.mark.asyncio
+async def test_null_npm_locations_and_ids_are_omitted():
+    """Tolerate absent location lists without sending invalid null identifiers."""
+    from custom_components.ip_ban_manager import nginx_proxy_manager as npm
+
+    client = object.__new__(npm.NpmClient)
+    client._json = AsyncMock(side_effect=[{"locations": None}, {}])
+    await client.update_proxy_host_policy(1, "")
+    assert client._json.await_args.kwargs["payload"]["locations"] == []
+    client._json = AsyncMock(
+        side_effect=[{"locations": [{"id": None, "path": "/camera"}]}, {}]
+    )
+    await client.update_proxy_host_policy(1, "")
+    assert client._json.await_args.kwargs["payload"]["locations"] == [
+        {"path": "/camera"}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_token_recovery_does_not_clear_policy_failure(hass):
+    """Independent failures must recover independently."""
+    from custom_components.ip_ban_manager import nginx_proxy_manager as npm
+
+    await setup_ip_ban_manager(hass)
+    npm._record_npm_failure(hass, HomeAssistantError("policy rejected"))
+    npm._record_npm_failure(hass, HomeAssistantError("token rejected"), origin="token")
+    npm._clear_sync_failure(hass, origin="token")
+    runtime = npm._runtime(hass)
+    assert runtime["last_error"] == "policy rejected"
+    assert runtime["sync_failures"] == 2
+    npm._clear_sync_failure(hass, origin="policy")
+    assert "sync_failures" not in runtime
+
+
+@pytest.mark.asyncio
+async def test_unconfigured_npm_enable_does_not_create_failure(hass):
+    """Incomplete setup is a form error, not a failed remote policy sync."""
+    from custom_components.ip_ban_manager import nginx_proxy_manager as npm
+
+    await setup_ip_ban_manager(hass)
+    with pytest.raises(HomeAssistantError, match="Select"):
+        await npm.async_enable_npm(hass)
+    assert not npm._runtime(hass).get("sync_failures")
+
+
+@pytest.mark.asyncio
+async def test_local_region_cannot_restart_after_stop(hass, monkeypatch):
+    """Late panel requests cannot create enrichment work during teardown."""
+    from custom_components.ip_ban_manager import geoip
+
+    lookup = AsyncMock()
+    monkeypatch.setattr(geoip, "_async_local_geoip_region", lookup)
+    await geoip.async_stop_local_region(hass)
+    assert await geoip.async_local_geoip_region(hass) is None
+    lookup.assert_not_awaited()
+
+
 def test_openable_but_corrupt_database_preserves_old_file(tmp_path, monkeypatch):
     """Probe every candidate before the atomic replacement, not just metadata."""
     import gzip
@@ -181,6 +242,42 @@ def test_openable_but_corrupt_database_preserves_old_file(tmp_path, monkeypatch)
     with pytest.raises(HomeAssistantError):
         geoip.download_geoip_database_to_path(path)
     assert path.read_bytes() == b"previous working database"
+    candidate.close.assert_called_once()
+
+
+@pytest.mark.parametrize("post_replace", [False, True])
+def test_geoip_partial_or_reopened_corruption_keeps_previous(
+    tmp_path, monkeypatch, post_replace
+):
+    """Partial probe success and fresh-open failure cannot destroy the database."""
+    import gzip
+    import io
+    from unittest.mock import Mock
+
+    from custom_components.ip_ban_manager import geoip
+
+    path = tmp_path / "database.mmdb"
+    path.write_bytes(b"known good")
+    candidate = Mock()
+    candidate.get.side_effect = (
+        [{"country": "CA"}, {"country": "CA"}, {"country": "CA"}]
+        if post_replace
+        else [{"country": "CA"}, None, None]
+    )
+    monkeypatch.setattr(
+        geoip, "geoip_download_urls", lambda: ["https://audit.invalid/db"]
+    )
+    monkeypatch.setattr(
+        geoip,
+        "open_geoip_download_url",
+        lambda _: io.BytesIO(gzip.compress(b"x" * 2048)),
+    )
+    monkeypatch.setattr(
+        geoip, "open_geoip_reader", Mock(side_effect=[(candidate, 1), None])
+    )
+    with pytest.raises(HomeAssistantError):
+        geoip.download_geoip_database_to_path(path)
+    assert path.read_bytes() == b"known good"
     candidate.close.assert_called_once()
 
 

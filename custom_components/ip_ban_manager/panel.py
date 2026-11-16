@@ -149,9 +149,6 @@ async def _async_activity_locations(
     """Return cached activity locations without blocking the event loop."""
     now = monotonic()
     cache = hass.data.setdefault(_ACTIVITY_LOCATION_CACHE_KEY, {})
-    for address in tuple(cache):
-        if now - cache[address][0] >= _ACTIVITY_LOCATION_CACHE_TTL:
-            cache.pop(address, None)
     locations: dict[str, str | None] = {}
     missing: list[str] = []
     for event in events:

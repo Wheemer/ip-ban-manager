@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Coroutine
+from functools import wraps
+from typing import Any
+
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
@@ -35,6 +39,7 @@ from .network_policy import (
     async_remove_allowlist_network,
     async_remove_blocked_network,
 )
+from .runtime_lifecycle import runtime_operation
 
 IP_ADDRESS_SCHEMA = vol.Schema({vol.Required(ATTR_IP_ADDRESS): cv.string})
 NETWORK_SCHEMA = vol.Schema({vol.Required(ATTR_NETWORK): cv.string})
@@ -59,13 +64,26 @@ REGISTERED_SERVICES = (
 def register_services(hass: HomeAssistant) -> None:  # noqa: D202
     """Register live ban and allowlist management services."""
 
+    def owned(
+        handler: Callable[[ServiceCall], Coroutine[Any, Any, None]],
+    ) -> Callable[[ServiceCall], Coroutine[Any, Any, None]]:
+        @wraps(handler)
+        async def run(call: ServiceCall) -> None:
+            async with runtime_operation(hass):
+                await handler(call)
+
+        return run
+
+    @owned
     async def add_ip_ban(call: ServiceCall) -> None:
         with mutation_source(SOURCE_SERVICE):
             await async_add_ip_ban(hass, call.data[ATTR_IP_ADDRESS])
 
+    @owned
     async def remove_ip_ban(call: ServiceCall) -> None:
         await async_remove_ip_ban(hass, call.data[ATTR_IP_ADDRESS])
 
+    @owned
     async def remove_all_ip_bans(call: ServiceCall) -> None:
         if not call.data[ATTR_CONFIRM]:
             raise ServiceValidationError(
@@ -74,24 +92,31 @@ def register_services(hass: HomeAssistant) -> None:  # noqa: D202
             )
         await async_remove_all_ip_bans(hass)
 
+    @owned
     async def add_allowlist_network(call: ServiceCall) -> None:
         await async_add_allowlist_network(hass, call.data[ATTR_NETWORK])
 
+    @owned
     async def remove_allowlist_network(call: ServiceCall) -> None:
         await async_remove_allowlist_network(hass, call.data[ATTR_NETWORK])
 
+    @owned
     async def add_blocked_network(call: ServiceCall) -> None:
         await async_add_blocked_network(hass, call.data[ATTR_NETWORK])
 
+    @owned
     async def remove_blocked_network(call: ServiceCall) -> None:
         await async_remove_blocked_network(hass, call.data[ATTR_NETWORK])
 
+    @owned
     async def export_config(call: ServiceCall) -> None:
         await async_export_config(hass)
 
+    @owned
     async def import_config(call: ServiceCall) -> None:
         await async_import_config(hass)
 
+    @owned
     async def update_geoip(call: ServiceCall) -> None:
         await async_download_geoip_database(hass)
         record_geoip_updated(hass, SOURCE_SERVICE)
