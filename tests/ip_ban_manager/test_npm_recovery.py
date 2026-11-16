@@ -18,6 +18,7 @@ from .test_setup import setup_ip_ban_manager
 @pytest.mark.asyncio
 async def test_expired_token_marks_connection_for_sign_in(hass, monkeypatch):
     """NPM reports expired tokens as 400, not 401."""
+    await setup_ip_ban_manager(hass)
 
     class FakeResponse:
         status = 400

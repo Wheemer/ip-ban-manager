@@ -209,19 +209,27 @@ def check_icon_route(timeout: float = 10.0) -> None:
         time.sleep(0.1)
 
 
-def check_logs() -> None:
+def check_logs(*, native_banning_disabled: bool = False) -> None:
     """Check the logs for errors."""
     log_path = Path(__file__).parent.joinpath("config", "home-assistant.log")
     if not log_path.exists():
         return
     data = log_path.open().read()
-    assert "ERROR" not in data, data
+    errors = [line for line in data.splitlines() if " ERROR " in line]
+    if native_banning_disabled:
+        assert len(errors) == 1, data
+        assert (
+            "Error setting up entry IP Ban Manager for ip_ban_manager: "
+            "Enable Home Assistant IP banning before setting up IP Ban Manager."
+        ) in errors[0], data
+    else:
+        assert not errors, data
 
 
-# Disable banning entirely first, and make sure plugin works with an IP set
+# Native banning disabled: requests remain unbanned and setup reports the prerequisite.
 configure_ha(["1.1.1.1"], ip_ban_enabled=False)
 check_res([404, 404])
-check_logs()
+check_logs(native_banning_disabled=True)
 
 # Enable banning
 configure_ha([])
