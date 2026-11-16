@@ -87,7 +87,9 @@ or performance on hardware not available for measurement.
 - Native frontend exercise: `remaining-browser-final.log` (sample-data UI writes
   are stubbed; real backend mutation verification is the separate HTTP exercise).
 
-The source remains uncommitted on Server with manifest version 1.10.4-2. No new
+The remediation pass ended with uncommitted changes on Server and manifest
+version 1.10.4-2. Later pre-release preparation versions and commits that work;
+the evidence above describes the remediation snapshot. During that pass, no new
 release assets were published and no user installation was changed. Future
 release creation must leave ZIP/checksum upload to the workflow; attempts to
 upload over an existing asset now fail instead of silently replacing it.
