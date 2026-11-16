@@ -14,7 +14,8 @@ async def test_failed_login_event_uses_native_notification_message(
 ) -> None:
     """Test every failed login exposes Home Assistant's native message text."""
     monkeypatch.setattr(
-        "custom_components.ip_ban_manager.reverse_dns.gethostbyaddr",
+        http_ban,
+        "gethostbyaddr",
         lambda remote: (remote, [], [remote]),
     )
     events: list[dict[str, Any]] = []

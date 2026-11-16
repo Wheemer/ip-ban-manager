@@ -172,6 +172,7 @@
     "add": "Toevoegen",
     "block": "Blokkeren",
     "apply": "Toepassen",
+    "retry": "Opnieuw proberen",
     "advanced": "Geavanceerd",
     "troubleshooting": "Activiteit en logboekregistratie",
     "options": "Opties",
@@ -188,7 +189,7 @@
     },
     "allowed_ips": {
       "title": "Toegestane IP's",
-      "hint": "Vertrouwde IPv4-/IPv6-adressen en netwerken. Deze items hebben voorrang op exacte bans, geblokkeerde netwerken en default-deny. IPv4-/IPv6-wildcards zoals 192.168.1.* of 2001:db8:1:2:* worden ondersteund. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Vertrouwde IPv4-/IPv6-adressen, netwerken en DNS-/DDNS-namen. Exacte IP-blokkades hebben voorrang. Toegestane items omzeilen netwerkblokkades, regiobeperkingen en standaardweigering. Namen worden op de achtergrond opgezocht en vernieuwd.",
       "placeholder": "IPv4-/IPv6-adres, CIDR of wildcard, DNS hostname",
       "remove_confirm": "Dit toegestane IP verwijderen? Met default-deny of geblokkeerde netwerken actief kan het verwijderen van een vertrouwd item de toegang blokkeren."
     },
@@ -285,7 +286,9 @@
       "npm_sync": "Nginx Proxy Manager-regels gesynchroniseerd.",
       "npm_disconnect": "Nginx Proxy Manager verbinding verbroken.",
       "set_options": "Opties toegepast.",
-      "no_changes": "Er waren geen wijzigingen nodig."
+      "no_changes": "Er waren geen wijzigingen nodig.",
+      "clear_activity_history": "Activiteitsgeschiedenis gewist.",
+      "update_geoip": "GeoIP-database bijgewerkt."
     },
     "allowed_regions": {
       "title": "Openbare regiovergrendeling",
@@ -349,7 +352,16 @@
       "notifications": "Meldingen"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "De geschiedenis wordt {hours} uur bewaard.",
+      "title": "Inkomende activiteit",
+      "hint": "Eén overzicht per bron-IP. Verzoeken van Home Assistant en Nginx Proxy Manager worden samengevoegd.",
+      "npm_error": "Activiteit van Nginx Proxy Manager is niet beschikbaar: {error}",
+      "none": "Geen recente activiteit.",
+      "request_count": "Verzoeken: {count}",
+      "recent": "Recent",
+      "history": "Geschiedenis",
+      "clear": "Geschiedenis wissen",
+      "clear_confirm": "Opgeslagen geschiedenis wissen? Recente activiteit blijft zichtbaar."
     },
     "confirmation": {
       "title": "Wijziging bevestigen",

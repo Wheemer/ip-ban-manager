@@ -141,8 +141,8 @@ async def test_allowlisted_wrong_login_suppresses_ip_encoded_reverse_name(
     await setup_ip_ban_manager(hass)
     monkeypatch.setattr(
         reverse_dns,
-        "gethostbyaddr",
-        lambda remote: ("238.12.235.8.bc.googleusercontent.com", [], [remote]),
+        "_async_external_reverse_dns_name",
+        AsyncMock(return_value="238.12.235.8.bc.googleusercontent.com"),
     )
 
     class MockRequest(MockRequestMetadata):

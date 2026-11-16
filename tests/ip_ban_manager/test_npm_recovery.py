@@ -47,12 +47,15 @@ async def test_http_success_with_offline_host_is_not_success(hass, monkeypatch):
         npm.NpmClient,
         "_json",
         AsyncMock(
-            return_value={
-                "meta": {
-                    "nginx_online": False,
-                    "nginx_err": "duplicate location /api/webhook/",
-                }
-            }
+            side_effect=[
+                {"advanced_config": "test"},
+                {
+                    "meta": {
+                        "nginx_online": False,
+                        "nginx_err": "duplicate location /api/webhook/",
+                    }
+                },
+            ]
         ),
     )
     client = npm.NpmClient(hass, "http://npm.test:81", "valid")

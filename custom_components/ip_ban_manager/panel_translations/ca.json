@@ -21,6 +21,7 @@
   "add": "Afegeix",
   "block": "Bloqueja",
   "apply": "Aplica",
+  "retry": "Torna-ho a provar",
   "advanced": "Avançat",
   "troubleshooting": "Activitat i registre",
   "options": "Opcions",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "IP permeses",
-    "hint": "Adreces i xarxes IPv4/IPv6 de confiança. Aquestes entrades tenen prioritat sobre bloquejos exactes, xarxes bloquejades i el mode de denegació per defecte. S'admeten comodins IPv4/IPv6 com 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Adreces, xarxes IPv4/IPv6 i noms DNS/DDNS de confiança. Els bloquejos d’IP exactes tenen prioritat. Les entrades permeses eviten els bloquejos de xarxa, regió i denegació per defecte. Els noms es resolen i s’actualitzen en segon pla.",
     "placeholder": "Adreça IPv4/IPv6, CIDR o comodí, DNS hostname",
     "remove_confirm": "Eliminar aquesta IP permesa? Amb la denegació per defecte o xarxes bloquejades actives, eliminar una entrada de confiança pot bloquejar l'accés."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "Amfitrió intermediari seleccionat.",
     "npm_sync": "Regles Nginx Proxy Manager sincronitzades.",
     "npm_disconnect": "Nginx Proxy Manager desconnectat.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "Historial d’activitat esborrat.",
+    "update_geoip": "Base de dades GeoIP actualitzada."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
+    "title": "Activitat entrant",
+    "hint": "Un resum per IP d’origen. Es combinen les peticions de Home Assistant i Nginx Proxy Manager.",
+    "npm_error": "L’activitat de Nginx Proxy Manager no està disponible: {error}",
+    "none": "No hi ha activitat recent.",
+    "request_count": "Peticions: {count}",
     "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "history": "Historial",
+    "retention": "L’historial es conserva durant {hours} hores.",
+    "clear": "Esborra l’historial",
+    "clear_confirm": "Voleu esborrar l’historial desat? L’activitat recent continuarà visible.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

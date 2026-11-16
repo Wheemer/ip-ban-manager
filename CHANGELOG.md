@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.10.4-2
+
+### 🛡️ Protection and recovery
+
+- Activate ban hooks earlier during startup and report genuine health failures without lingering warnings after unload.
+- Apply NPM authorization decisions against current allowlists, region rules, exact bans, and the GeoIP database instead of retaining stale cached decisions.
+- Preserve NPM custom locations and host settings during synchronization, avoid overwriting concurrent edits during rollback, and improve automatic recovery and authentication diagnostics.
+- Prevent pending proxy actions from writing into a replacement runtime after unload/reload.
+
+### 🔧 Reliability
+
+- Reconcile failed or late setting saves, show persistent field errors, and improve keyboard and screen-reader feedback.
+- Validate GeoIP downloads before replacement, retain a working database after invalid downloads, and bound DNS and location lookup work.
+- Protect Home Assistant internal addresses during bulk ban replacement and backup restoration, with consistent IPv4/IPv6 normalization.
+- Preserve activity received while history loads, expose storage failures, and prevent internal management requests from appearing as visitor activity.
+- Correct translated allowlist guidance and Activity text.
+
+### 🛠️ Maintenance
+
+- Update uv to 0.13.8 and Renovate's GitHub Action to 46.3.14.
+
 ## v1.10.4-1
 
 ### 🎨 Panel refinements

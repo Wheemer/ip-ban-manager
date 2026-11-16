@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import timedelta
+from functools import partial
 from typing import Any, cast
 
 from homeassistant.components.sensor import (
@@ -15,6 +18,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+)
 
 from .const import (
     ATTR_BANNED_IPS,
@@ -24,6 +31,8 @@ from .const import (
     ATTR_NETWORKS,
 )
 from .status import async_current_status
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -97,16 +106,27 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up IP Ban Manager sensors."""
+    coordinator = DataUpdateCoordinator[dict[str, Any]](
+        hass,
+        _LOGGER,
+        name="IP Ban Manager diagnostics",
+        config_entry=entry,
+        update_method=partial(async_current_status, hass),
+        update_interval=timedelta(seconds=30),
+    )
+    await coordinator.async_refresh()
     async_add_entities(
         [
-            IPBanManagerSensor(hass, entry, description)
+            IPBanManagerSensor(hass, entry, description, coordinator)
             for description in SENSOR_DESCRIPTIONS
         ],
-        update_before_add=True,
+        update_before_add=False,
     )
 
 
-class IPBanManagerSensor(SensorEntity):
+class IPBanManagerSensor(
+    CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]], SensorEntity
+):
     """Expose one live IP Ban Manager diagnostic count."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -126,26 +146,25 @@ class IPBanManagerSensor(SensorEntity):
         hass: HomeAssistant,
         entry: ConfigEntry,
         description: IPBanManagerSensorDescription,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
     ) -> None:
         """Initialize the sensor."""
+        super().__init__(coordinator)
         self.hass = hass
         self._description = description
         self.entity_description = description
         self._attr_icon = description.icon
         self._attr_translation_key = description.key
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._status = _initial_status()
-
-    async def async_update(self) -> None:
-        """Refresh the cached diagnostic status."""
-        self._status = cast(dict[str, Any], await async_current_status(self.hass))
 
     @property
     def native_value(self) -> int:
         """Return the diagnostic count."""
-        return self._description.value_fn(self._status)
+        return self._description.value_fn(self.coordinator.data or _initial_status())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return details behind the diagnostic count."""
-        return self._description.attributes_fn(self._status)
+        return self._description.attributes_fn(
+            self.coordinator.data or _initial_status()
+        )

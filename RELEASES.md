@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.10.4-2](CHANGELOG.md#v1104-2) | Pre-release: audit fixes for startup, NPM policy preservation and recovery, authorization caching, settings, GeoIP, bans, and activity history. |
 | [v1.10.4-1](CHANGELOG.md#v1104-1) | Pre-release: compact panel refinements, immediate setting saves with named toasts, faster initial loading, and startup/NPM recovery fixes. |
 | [v1.10.3](CHANGELOG.md#v1103) | Fixes exact bans for region/default-deny blocked IPs and phantom activity from Block clicks; updates automation tooling. |
 | [v1.10.2](CHANGELOG.md#v1102) | Fixes IPv6 link-local allowance migration on upgrades while respecting custom lists, explicit blocks, and removed allowances. |

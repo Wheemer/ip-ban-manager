@@ -172,6 +172,7 @@
     "add": "追加",
     "block": "ブロック",
     "apply": "適用",
+    "retry": "再試行",
     "advanced": "詳細",
     "troubleshooting": "アクティビティとログ",
     "options": "オプション",
@@ -188,7 +189,7 @@
     },
     "allowed_ips": {
       "title": "許可 IP",
-      "hint": "信頼できる IPv4/IPv6 アドレスとネットワーク。これらのエントリは、正確な BAN、ブロックされたネットワーク、デフォルト拒否モードより優先されます。192.168.1.* や 2001:db8:1:2:* などの IPv4/IPv6 ワイルドカードに対応しています。. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "信頼する IPv4/IPv6 アドレス、ネットワーク、DNS/DDNS ホスト名。個別の IP ブロックが優先されます。許可した項目はネットワーク制限、地域制限、既定の拒否を回避します。ホスト名はバックグラウンドで名前解決と更新を行います。",
       "placeholder": "IPv4/IPv6 アドレス、CIDR、またはワイルドカード, DNS hostname",
       "remove_confirm": "この許可 IP を削除しますか？デフォルト拒否またはブロックされたネットワークが有効な場合、信頼エントリを削除するとアクセスできなくなる可能性があります。"
     },
@@ -284,7 +285,9 @@
       "npm_sync": "Nginx Proxy Manager ルールが同期されました。",
       "npm_disconnect": "Nginx Proxy Manager が切断されました。",
       "set_options": "オプションが適用されました。",
-      "no_changes": "変更は必要ありませんでした。"
+      "no_changes": "変更は必要ありませんでした。",
+      "clear_activity_history": "アクティビティ履歴を消去しました。",
+      "update_geoip": "GeoIP データベースを更新しました。"
     },
     "allowed_regions": {
       "title": "パブリック領域ロック",
@@ -348,7 +351,16 @@
       "notifications": "通知"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "履歴は {hours} 時間保存されます。",
+      "title": "受信アクティビティ",
+      "hint": "送信元 IP ごとにまとめて表示します。Home Assistant と Nginx Proxy Manager のリクエストを統合します。",
+      "npm_error": "Nginx Proxy Manager のアクティビティを取得できません: {error}",
+      "none": "最近のアクティビティはありません。",
+      "request_count": "リクエスト数: {count}",
+      "recent": "最近",
+      "history": "履歴",
+      "clear": "履歴を消去",
+      "clear_confirm": "保存した履歴を消去しますか？最近のアクティビティは引き続き表示されます。"
     },
     "confirmation": {
       "title": "変更を確認",

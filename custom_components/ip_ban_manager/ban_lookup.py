@@ -86,9 +86,15 @@ class NetworkAwareBanLookup(dict[IPAddress, IpBan]):
 
     def _blocked(self, remote_addr: IPAddress, reason: str) -> bool:
         """Report a managed rejection and return the lookup result."""
+        request = current_request.get()
         if (
             self.blocked_request_observer is not None
-            and current_request.get() is not None
+            and request is not None
+            and request.path
+            not in {
+                "/api/ip_ban_manager/manage",
+                "/api/ip_ban_manager/npm-region-auth",
+            }
         ):
             self.blocked_request_observer(remote_addr, reason)
         return True
@@ -173,6 +179,8 @@ def _supervisor_internal_networks() -> tuple[IPNetwork, ...]:
 
 def _normalize_remote_addr(remote_addr: IPAddress) -> IPAddress:
     """Normalize runtime addresses into the family users configured."""
+    if isinstance(remote_addr, IPv6Address) and remote_addr.scope_id is not None:
+        remote_addr = IPv6Address(remote_addr.packed)
     if isinstance(remote_addr, IPv6Address) and remote_addr.ipv4_mapped is not None:
         return remote_addr.ipv4_mapped
 

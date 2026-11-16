@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from zipfile import ZipFile
@@ -28,6 +29,17 @@ def main() -> int:
     zip_path = Path(sys.argv[1])
     with ZipFile(zip_path) as archive:
         names = set(archive.namelist())
+        files = [item.filename for item in archive.infolist() if not item.is_dir()]
+        unexpected = set(files) - expected_integration_files()
+        if unexpected or len(files) != len(set(files)):
+            print("zip contains unexpected or duplicate files", file=sys.stderr)
+            return 1
+        if "manifest.json" in names:
+            packaged = json.loads(archive.read("manifest.json"))
+            expected = json.loads((INTEGRATION_DIR / "manifest.json").read_text())
+            if packaged.get("version") != expected["version"]:
+                print("zip manifest version differs from the source", file=sys.stderr)
+                return 1
 
     missing = sorted(expected_integration_files() - names)
     nested = sorted(name for name in names if name.startswith("custom_components/"))

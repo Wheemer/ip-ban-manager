@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from datetime import datetime
 from ipaddress import ip_address
 from pathlib import Path
@@ -26,6 +27,7 @@ from .ban_ops import (
     dismiss_ban_notification_for_ips,
     ip_ban_chronological_key,
     ip_ban_file_payload,
+    normalize_exact_bans,
 )
 from .const import (
     ALLOWED_REGION_ANYWHERE,
@@ -159,6 +161,12 @@ def _npm_from_import(settings: dict[str, object]) -> dict[str, object] | None:
         if not isinstance(value, str) or any(ord(char) < 32 for char in value):
             raise HomeAssistantError(f"Invalid NGINX Proxy Manager {key} in backup.")
         config[key] = value
+    if config["region_auth_secret"] and not re.fullmatch(
+        r"[A-Za-z0-9_-]{1,256}", str(config["region_auth_secret"])
+    ):
+        raise HomeAssistantError(
+            "Invalid NGINX Proxy Manager region_auth_secret in backup."
+        )
     if config["base_url"]:
         try:
             config["base_url"] = normalize_npm_url(config["base_url"])
@@ -360,6 +368,7 @@ def _imported_bans_from_payload(payload: object) -> list[IpBan]:
 
 async def async_restore_exact_bans(hass: HomeAssistant, bans: list[IpBan]) -> None:
     """Replace Home Assistant's exact ban list while preserving ban timestamps."""
+    bans = list(normalize_exact_bans(hass, bans).values())
     manager = ban_manager(hass)
     existing_bans = manager.ip_bans_lookup
     removed_addrs = set(existing_bans) - {ban.ip_address for ban in bans}
@@ -606,6 +615,7 @@ async def _async_apply_config_backup_payload(
         else None
     )
     if imported_bans is not None:
+        imported_bans = list(normalize_exact_bans(hass, imported_bans).values())
         try:
             _validate_ban_safety(
                 allowlist, [str(ban.ip_address) for ban in imported_bans]
@@ -729,4 +739,4 @@ async def _async_apply_config_backup_payload(
     await async_register_panel(hass, sidebar_enabled=sidebar_panel_enabled)
     if imported_bans is not None:
         await async_restore_exact_bans(hass, imported_bans)
-    schedule_npm_sync(hass)
+    schedule_npm_sync(hass, reset_retry=True)

@@ -476,8 +476,10 @@ def create_allowlisted_login_notification(
     """Create an IP Ban Manager failed-login notification for an allowlisted source."""
     if not notifications_enabled(hass):
         return
-    failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
-    attempts = int(failed_attempts.get(remote_addr, 0))
+    failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS)
+    attempts = (
+        int(failed_attempts.get(remote_addr, 0)) if failed_attempts is not None else 0
+    )
     threshold = effective_login_threshold_for_ip(hass, remote_addr)
     if (
         attempts >= ALLOWLISTED_LOGIN_ESCALATION_THRESHOLD

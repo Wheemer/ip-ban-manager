@@ -85,7 +85,7 @@ def current_status(
 ) -> dict[str, object]:
     """Return the live ban and allowlist status for UI surfaces."""
     ban_manager = hass.http.app.get(KEY_BAN_MANAGER)
-    failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS, {})
+    failed_attempts = hass.http.app.get(KEY_FAILED_LOGIN_ATTEMPTS)
     entry = hass.http.app.get(KEY_CONFIG_ENTRY)
     health = (
         health
@@ -145,7 +145,7 @@ def current_status(
         ATTR_FAILED_LOGIN_ATTEMPTS: {
             str(ip): count
             for ip, count in sorted(
-                failed_attempts.items(),
+                (failed_attempts or {}).items(),
                 key=lambda item: (item[0].version, item[0].packed),
             )
             if count

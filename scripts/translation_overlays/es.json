@@ -172,6 +172,7 @@
     "add": "Añadir",
     "block": "Bloquear",
     "apply": "Aplicar",
+    "retry": "Reintentar",
     "advanced": "Avanzado",
     "troubleshooting": "Actividad y registro",
     "options": "Opciones",
@@ -188,7 +189,7 @@
     },
     "allowed_ips": {
       "title": "IP permitidas",
-      "hint": "Direcciones y redes IPv4/IPv6 de confianza. Estas entradas prevalecen sobre bloqueos exactos, redes bloqueadas y el modo denegar por defecto. Se admiten comodines IPv4/IPv6 como 192.168.1.* o 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Direcciones IPv4/IPv6, redes y nombres DNS/DDNS de confianza. Los bloqueos de IP exactos tienen prioridad. Las entradas permitidas omiten los bloqueos de redes, regiones y la denegación por defecto. Los nombres se resuelven y actualizan en segundo plano.",
       "placeholder": "Dirección IPv4/IPv6, CIDR o comodín, DNS hostname",
       "remove_confirm": "¿Eliminar esta IP permitida? Con denegar por defecto o redes bloqueadas activas, quitar una entrada de confianza puede bloquear el acceso."
     },
@@ -285,7 +286,9 @@
       "npm_sync": "Reglas Nginx Proxy Manager sincronizadas.",
       "npm_disconnect": "Nginx Proxy Manager desconectado.",
       "set_options": "Opciones aplicadas.",
-      "no_changes": "No fue necesario realizar cambios."
+      "no_changes": "No fue necesario realizar cambios.",
+      "clear_activity_history": "Historial de actividad borrado.",
+      "update_geoip": "Base de datos GeoIP actualizada."
     },
     "allowed_regions": {
       "title": "Bloqueo de región pública",
@@ -349,7 +352,16 @@
       "notifications": "Notificaciones"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "El historial se conserva durante {hours} horas.",
+      "title": "Actividad entrante",
+      "hint": "Un resumen por IP de origen. Se combinan las solicitudes de Home Assistant y Nginx Proxy Manager.",
+      "npm_error": "La actividad de Nginx Proxy Manager no está disponible: {error}",
+      "none": "Sin actividad reciente.",
+      "request_count": "Solicitudes: {count}",
+      "recent": "Reciente",
+      "history": "Historial",
+      "clear": "Borrar historial",
+      "clear_confirm": "¿Borrar el historial guardado? La actividad reciente seguirá visible."
     },
     "confirmation": {
       "title": "Confirmar cambio",

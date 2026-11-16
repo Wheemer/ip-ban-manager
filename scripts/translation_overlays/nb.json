@@ -172,6 +172,7 @@
     "add": "Legg til",
     "block": "Blokker",
     "apply": "Bruk",
+    "retry": "Prøv igjen",
     "advanced": "Avansert",
     "troubleshooting": "Aktivitet og logging",
     "options": "Alternativer",
@@ -188,7 +189,7 @@
     },
     "allowed_ips": {
       "title": "Tillatte IP-er",
-      "hint": "Pålitelige IPv4-/IPv6-adresser og nettverk. Disse oppføringene slår eksakte utestengelser, blokkerte nettverk og standard-nekt-modus. IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* støttes. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+      "hint": "Betrodde IPv4-/IPv6-adresser, nettverk og DNS-/DDNS-navn. Eksakte IP-blokkeringer har forrang. Tillatte oppføringer omgår nettverksblokkering, regionslås og standardavvisning. Navn slås opp og oppdateres i bakgrunnen.",
       "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn, DNS hostname",
       "remove_confirm": "Fjerne denne tillatte IP-en? Med aktiv standard-nekt eller blokkerte nettverk kan fjerning av en pålitelig oppføring låse ute tilgang."
     },
@@ -284,7 +285,9 @@
       "npm_sync": "Nginx Proxy Manager regler synkronisert.",
       "npm_disconnect": "Nginx Proxy Manager frakoblet.",
       "set_options": "Alternativer brukt.",
-      "no_changes": "Ingen endringer var nødvendige."
+      "no_changes": "Ingen endringer var nødvendige.",
+      "clear_activity_history": "Aktivitetshistorikken er tømt.",
+      "update_geoip": "GeoIP-databasen er oppdatert."
     },
     "allowed_regions": {
       "title": "Offentlig regionlås",
@@ -348,7 +351,16 @@
       "notifications": "Varsler"
     },
     "activity": {
-      "retention": "History is retained for {hours} hours."
+      "retention": "Historikken lagres i {hours} timer.",
+      "title": "Innkommende aktivitet",
+      "hint": "Ett sammendrag per kilde-IP. Forespørsler fra Home Assistant og Nginx Proxy Manager slås sammen.",
+      "npm_error": "Aktivitet fra Nginx Proxy Manager er utilgjengelig: {error}",
+      "none": "Ingen nylig aktivitet.",
+      "request_count": "Forespørsler: {count}",
+      "recent": "Nylig",
+      "history": "Historikk",
+      "clear": "Tøm historikk",
+      "clear_confirm": "Tømme lagret historikk? Nylig aktivitet forblir synlig."
     },
     "confirmation": {
       "title": "Bekreft endring",

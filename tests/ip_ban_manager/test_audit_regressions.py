@@ -125,7 +125,11 @@ async def test_dns_cache_capacity_and_expiry(monkeypatch):
             None, reverse_dns.dt_util.utcnow() - timedelta(days=1)
         )
     }
-    hass = SimpleNamespace(http=SimpleNamespace(app={KEY_REVERSE_DNS_CACHE: cache}))
+    hass = SimpleNamespace(
+        data={},
+        http=SimpleNamespace(app={KEY_REVERSE_DNS_CACHE: cache}),
+        async_create_task=lambda coro, *args: asyncio.create_task(coro),
+    )
     monkeypatch.setattr(reverse_dns, "metric_increment", Mock())
     monkeypatch.setattr(
         reverse_dns, "_async_local_reverse_dns_name", AsyncMock(return_value=None)
@@ -237,6 +241,7 @@ async def test_npm_event_does_not_cancel_active_write(monkeypatch):
 
     monkeypatch.setattr(npm, "async_sync_npm", sync)
     monkeypatch.setattr(npm, "NPM_SYNC_DEBOUNCE_SECONDS", 0)
+    monkeypatch.setattr(npm.ir, "async_delete_issue", Mock())
     npm.schedule_npm_sync(hass)
     task = hass.data[npm.KEY_NPM_SYNC_TASK]
     try:
@@ -553,7 +558,11 @@ async def test_stop_history_does_not_unsubscribe_consumed_listener(monkeypatch):
         bus=SimpleNamespace(async_listen_once=listen),
         async_create_task=lambda coro, *args: asyncio.create_task(coro),
     )
-    monkeypatch.setattr(activity, "_async_load_history", AsyncMock())
+
+    async def load_history(hass):
+        hass.data[activity.KEY_ACTIVITY_HISTORY_LOADED] = True
+
+    monkeypatch.setattr(activity, "_async_load_history", load_history)
     save = AsyncMock()
     monkeypatch.setattr(activity, "_async_save_history", save)
     activity.async_start_history(hass)

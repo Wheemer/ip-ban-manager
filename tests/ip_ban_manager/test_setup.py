@@ -7,6 +7,7 @@ import json
 import logging
 import sys
 from asyncio import Event, wait_for
+from collections.abc import Mapping
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address
 from pathlib import Path
 from typing import Any, cast
@@ -183,6 +184,7 @@ class MockRequestMetadata(dict):
 
     method = "POST"
     path = "/auth/login_flow/test"
+    transport = None
 
 
 class MockViewRequest:
@@ -190,7 +192,7 @@ class MockViewRequest:
 
     def __init__(
         self,
-        app: dict[Any, Any],
+        app: Mapping[Any, Any],
         *,
         user: object | None = None,
         has_user: bool = True,
@@ -310,7 +312,7 @@ def test_geoip_module_falls_back_to_vendored_reader(
         .resolve()
         .is_relative_to(ban_geoip.MAXMINDDB_VENDOR_PATH.resolve())
     )
-    assert sys.path[0] == vendor_path
+    assert vendor_path not in sys.path
 
 
 def test_geoip_reader_uses_bundled_reader_when_dependency_is_not_installed(
@@ -337,7 +339,7 @@ def test_geoip_reader_uses_bundled_reader_when_dependency_is_not_installed(
 
 async def setup_ip_ban_manager(hass: HomeAssistant) -> None:
     """Configure ip_ban_manager and dependencies."""
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
@@ -355,7 +357,7 @@ async def test_setup_entry_removes_preexisting_allowlisted_ban(
     hass: HomeAssistant,
 ) -> None:
     """Test startup clears exact bans written before allowlist protection loaded."""
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
@@ -369,7 +371,7 @@ async def test_setup_entry_removes_preexisting_allowlisted_ban(
     )
     events: list[dict[str, str]] = []
     remove_listener = hass.bus.async_listen(
-        EVENT_IP_UNBANNED, lambda event: events.append(event.data)
+        EVENT_IP_UNBANNED, lambda event: events.append(dict(event.data))
     )
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -395,7 +397,7 @@ async def test_setup_entry_keeps_preexisting_allowlisted_ban_when_enabled(
     hass: HomeAssistant,
 ) -> None:
     """Test startup leaves exact allowlisted bans when the user opted into them."""
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
@@ -424,7 +426,7 @@ async def test_setup_entry_removes_preexisting_internal_ban_even_when_enabled(
 ) -> None:
     """Test startup always clears exact bans for Home Assistant internal paths."""
     monkeypatch.setenv("SUPERVISOR", "172.30.32.2")
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     ban_manager = cast(IpBanManager, hass.http.app[KEY_BAN_MANAGER])
@@ -467,7 +469,7 @@ async def test_setup_entry_does_not_wait_for_legacy_folder_cleanup(
         ban_legacy_migration, "async_cleanup_legacy_component_folder", slow_cleanup
     )
 
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
@@ -517,7 +519,7 @@ async def test_unload_cancels_legacy_folder_cleanup_without_health_refresh(
         ban_legacy_migration, "async_update_health_issue", record_health_update
     )
 
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
@@ -557,7 +559,7 @@ async def test_setup_entry_does_not_wait_for_geoip_reader_prepare(
     monkeypatch.setattr(ipbm, "_async_reload_runtime_modules", skip_runtime_reload)
     monkeypatch.setattr(ban_geoip_lifecycle, "async_prepare_geoip_reader", slow_prepare)
 
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
@@ -604,7 +606,7 @@ async def test_unload_cancels_geoip_prepare_without_health_refresh(
         ban_geoip_lifecycle, "async_update_health_issue", record_health_update
     )
 
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(
@@ -638,7 +640,7 @@ async def test_setup_entry_removes_legacy_entry_from_all_entries(
     hass: HomeAssistant, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Test cleanup is based on all runtime entries, not only domain indexes."""
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
     await async_setup_component(hass, "http", {})
     legacy_entry = MockConfigEntry(

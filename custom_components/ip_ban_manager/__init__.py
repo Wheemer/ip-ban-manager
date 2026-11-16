@@ -19,6 +19,7 @@ from homeassistant.components.http.ban import (
 from homeassistant.config_entries import SOURCE_IMPORT as HA_SOURCE_IMPORT
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
@@ -530,23 +531,33 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Can't find ban manager. ip_ban_manager requires http.ip_ban_enabled to be True, so disabling."
         )
         _async_create_ip_ban_disabled_issue(hass)
-        return True
+        raise ConfigEntryError(
+            "Enable Home Assistant IP banning before setting up IP Ban Manager."
+        )
     _async_delete_ip_ban_disabled_issue(hass)
+    _apply_ban_settings(hass, entry)
+    _apply_blocked_networks(hass, entry)
+    _install_load_bans_patch(hass, ban_manager)
+    _install_wrong_login_patch()
+    _install_add_ban_patch(hass, ban_manager)
     await _async_register_static_assets(hass)
     await _async_register_panel(
         hass, sidebar_enabled=_entry_sidebar_panel_enabled(entry)
     )
     _register_http_views(hass)
     _LOGGER.debug("Ban manager %s", ban_manager)
-    _install_load_bans_patch(hass, ban_manager)
     await _async_update_internal_bypass_networks(hass)
     await _async_sync_detected_allowlist_defaults(hass)
     await _async_start_dns_allowlist(hass)
     if _entry_geoip_enabled(entry):
+        from .entry_helpers import entry_allowed_region_mode
         from .geoip import async_prepare_geoip_reader
         from .region_rules import entry_public_region_settings
 
-        if entry_public_region_settings(hass, entry)["public_region_enabled"]:
+        if (
+            entry_public_region_settings(hass, entry)["public_region_enabled"]
+            or entry_allowed_region_mode(entry) != "anywhere"
+        ):
             await async_prepare_geoip_reader(hass)
         else:
             _async_schedule_geoip_reader_prepare(hass)
@@ -560,8 +571,6 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         _LOGGER.info("Setting allowlist with %s", [str(ip) for ip in allowlist])
 
-    _install_wrong_login_patch()
-    _install_add_ban_patch(hass, ban_manager)
     _handle_http_notifications(hass)
 
     _register_services(hass)
@@ -587,6 +596,9 @@ async def _async_unload_runtime(hass: HomeAssistant) -> None:
     await _unload_npm_sync(hass)
     _async_remove_panel(hass)
     await _async_stop_dns_allowlist(hass)
+    from .reverse_dns import async_stop_reverse_dns
+
+    await async_stop_reverse_dns(hass)
     tasks: list[asyncio.Task[object]] = []
     legacy_cleanup_task = hass.data.pop(KEY_LEGACY_FOLDER_CLEANUP_TASK, None)
     if legacy_cleanup_task is not None:
@@ -630,6 +642,7 @@ async def _async_unload_runtime(hass: HomeAssistant) -> None:
             hass.services.async_remove(DOMAIN, service)
     from homeassistant.helpers import issue_registry as ir
 
-    from .health import HEALTH_CHECK_FAILED_ISSUE_ID
+    from .health import HEALTH_CHECK_FAILED_ISSUE_ID, clear_health_grace
 
+    clear_health_grace(hass)
     ir.async_delete_issue(hass, DOMAIN, HEALTH_CHECK_FAILED_ISSUE_ID)

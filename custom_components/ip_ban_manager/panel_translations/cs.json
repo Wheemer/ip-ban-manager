@@ -21,6 +21,7 @@
   "add": "Přidat",
   "block": "Blokovat",
   "apply": "Použít",
+  "retry": "Zkusit znovu",
   "advanced": "Pokročilé",
   "troubleshooting": "Aktivita a protokolování",
   "options": "Možnosti",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "Povolené IP",
-    "hint": "Důvěryhodné IPv4/IPv6 adresy a sítě. Tyto položky mají přednost před přesnými zákazy, blokovanými sítěmi a režimem default-deny. Podporovány jsou IPv4/IPv6 zástupné znaky jako 192.168.1.* nebo 2001:db8:1:2:*. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Důvěryhodné adresy a sítě IPv4/IPv6 a názvy DNS/DDNS. Přesné zákazy IP mají přednost. Povolené položky obcházejí blokování sítí, oblastí a výchozí odmítnutí. Názvy se překládají a obnovují na pozadí.",
     "placeholder": "IPv4/IPv6 adresa, CIDR nebo zástupný znak, DNS hostname",
     "remove_confirm": "Odstranit tuto povolenou IP? Při aktivním default-deny nebo blokovaných sítích může odstranění důvěryhodné položky zablokovat přístup."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "Byl vybrán hostitel proxy.",
     "npm_sync": "Pravidla Nginx Proxy Manager synchronizována.",
     "npm_disconnect": "Nginx Proxy Manager odpojeno.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "Historie aktivity byla vymazána.",
+    "update_geoip": "Databáze GeoIP byla aktualizována."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
-    "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "title": "Příchozí aktivita",
+    "hint": "Jeden souhrn pro každou zdrojovou IP. Požadavky Home Assistant a Nginx Proxy Manager se slučují.",
+    "npm_error": "Aktivita Nginx Proxy Manager není dostupná: {error}",
+    "none": "Žádná nedávná aktivita.",
+    "request_count": "Požadavky: {count}",
+    "recent": "Nedávné",
+    "history": "Historie",
+    "retention": "Historie se uchovává {hours} hodin.",
+    "clear": "Vymazat historii",
+    "clear_confirm": "Vymazat uloženou historii? Nedávná aktivita zůstane viditelná.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

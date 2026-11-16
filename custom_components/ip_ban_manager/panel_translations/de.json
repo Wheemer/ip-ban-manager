@@ -21,6 +21,7 @@
   "add": "Hinzufügen",
   "block": "Blockieren",
   "apply": "Anwenden",
+  "retry": "Erneut versuchen",
   "advanced": "Erweitert",
   "troubleshooting": "Aktivität und Protokollierung",
   "options": "Optionen",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "Erlaubte IPs",
-    "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen und Netzwerke. Diese Einträge haben Vorrang vor exakten Sperren, blockierten Netzwerken und dem Default-Deny-Modus. IPv4-/IPv6-Platzhalter wie 192.168.1.* oder 2001:db8:1:2:* werden unterstützt. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Vertrauenswürdige IPv4-/IPv6-Adressen, Netzwerke und DNS-/DDNS-Namen. Exakte IP-Sperren haben Vorrang. Erlaubte Einträge umgehen Netzwerk-, Regions- und Standardsperren. Namen werden im Hintergrund aufgelöst und aktualisiert.",
     "placeholder": "IPv4-/IPv6-Adresse, CIDR oder Platzhalter, DNS hostname",
     "remove_confirm": "Diese erlaubte IP entfernen? Bei aktivem Default-Deny oder blockierten Netzwerken kann das den Zugriff sperren."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "Proxy-Host ausgewählt.",
     "npm_sync": "Nginx Proxy Manager Regeln synchronisiert.",
     "npm_disconnect": "Nginx Proxy Manager Verbindung getrennt.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "Aktivitätsverlauf gelöscht.",
+    "update_geoip": "GeoIP-Datenbank aktualisiert."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
-    "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "title": "Eingehende Aktivität",
+    "hint": "Eine Zusammenfassung pro Quell-IP. Anfragen von Home Assistant und Nginx Proxy Manager werden zusammengeführt.",
+    "npm_error": "Nginx-Proxy-Manager-Aktivität nicht verfügbar: {error}",
+    "none": "Keine kürzliche Aktivität.",
+    "request_count": "Anfragen: {count}",
+    "recent": "Zuletzt",
+    "history": "Verlauf",
+    "retention": "Der Verlauf wird {hours} Stunden gespeichert.",
+    "clear": "Verlauf löschen",
+    "clear_confirm": "Gespeicherten Verlauf löschen? Kürzliche Aktivität bleibt sichtbar.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

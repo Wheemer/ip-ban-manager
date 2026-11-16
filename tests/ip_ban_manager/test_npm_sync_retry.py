@@ -38,6 +38,8 @@ def retry_env(monkeypatch):
     monkeypatch.setattr(npm, "async_track_point_in_utc_time", timer)
     monkeypatch.setattr(npm.dt_util, "utcnow", lambda: now)
     monkeypatch.setattr(npm, "NPM_SYNC_DEBOUNCE_SECONDS", 0)
+    monkeypatch.setattr(npm.ir, "async_create_issue", Mock())
+    monkeypatch.setattr(npm.ir, "async_delete_issue", Mock())
     return hass, config, timers, now
 
 
@@ -108,10 +110,14 @@ async def test_repeated_outage_backoff_is_capped(retry_env, monkeypatch):
             timers[-1][0](now)
             await asyncio.wait_for(hass.data[npm.KEY_NPM_SYNC_TASK], 2)
         assert npm._NPM_SYNC_RETRY_TIMER in hass.data
+        npm.ir.async_create_issue.assert_called()
     finally:
         await npm.unload_npm_sync(hass)
     timers[-1][2].assert_called_once()
     assert npm._NPM_SYNC_RETRY_TIMER not in hass.data
+    npm.ir.async_delete_issue.assert_called_with(
+        hass, DOMAIN, npm.NPM_SYNC_FAILED_ISSUE_ID
+    )
 
 
 @pytest.mark.asyncio

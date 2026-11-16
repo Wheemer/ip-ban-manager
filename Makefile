@@ -15,10 +15,10 @@ VENV_WATCHMEDO := $(VENV)/bin/watchmedo
 endif
 
 $(VENV_PYTHON):
-	uv venv --clear --python 3.13 $(VENV)
+	uv venv --clear --python 3.14 $(VENV)
 
 requirements.test: $(VENV_PYTHON) requirements.test.in requirements.constraints
-	uv pip compile requirements.test.in --constraint=requirements.constraints --output-file=requirements.test
+	uv pip compile requirements.test.in --python-version 3.14.2 --constraint=requirements.constraints --output-file=requirements.test
 
 sync: $(VENV_PYTHON) requirements.test
 	uv pip sync --python $(VENV_PYTHON) --strict requirements.test

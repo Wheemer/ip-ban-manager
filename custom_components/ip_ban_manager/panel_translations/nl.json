@@ -21,6 +21,7 @@
   "add": "Toevoegen",
   "block": "Blokkeren",
   "apply": "Toepassen",
+  "retry": "Opnieuw proberen",
   "advanced": "Geavanceerd",
   "troubleshooting": "Activiteit en logboekregistratie",
   "options": "Opties",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "Toegestane IP's",
-    "hint": "Vertrouwde IPv4-/IPv6-adressen en netwerken. Deze items hebben voorrang op exacte bans, geblokkeerde netwerken en default-deny. IPv4-/IPv6-wildcards zoals 192.168.1.* of 2001:db8:1:2:* worden ondersteund. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Vertrouwde IPv4-/IPv6-adressen, netwerken en DNS-/DDNS-namen. Exacte IP-blokkades hebben voorrang. Toegestane items omzeilen netwerkblokkades, regiobeperkingen en standaardweigering. Namen worden op de achtergrond opgezocht en vernieuwd.",
     "placeholder": "IPv4-/IPv6-adres, CIDR of wildcard, DNS hostname",
     "remove_confirm": "Dit toegestane IP verwijderen? Met default-deny of geblokkeerde netwerken actief kan het verwijderen van een vertrouwd item de toegang blokkeren."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "Proxyhost geselecteerd.",
     "npm_sync": "Nginx Proxy Manager-regels gesynchroniseerd.",
     "npm_disconnect": "Nginx Proxy Manager verbinding verbroken.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "Activiteitsgeschiedenis gewist.",
+    "update_geoip": "GeoIP-database bijgewerkt."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
+    "title": "Inkomende activiteit",
+    "hint": "Eén overzicht per bron-IP. Verzoeken van Home Assistant en Nginx Proxy Manager worden samengevoegd.",
+    "npm_error": "Activiteit van Nginx Proxy Manager is niet beschikbaar: {error}",
+    "none": "Geen recente activiteit.",
+    "request_count": "Verzoeken: {count}",
     "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "history": "Geschiedenis",
+    "retention": "De geschiedenis wordt {hours} uur bewaard.",
+    "clear": "Geschiedenis wissen",
+    "clear_confirm": "Opgeslagen geschiedenis wissen? Recente activiteit blijft zichtbaar.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

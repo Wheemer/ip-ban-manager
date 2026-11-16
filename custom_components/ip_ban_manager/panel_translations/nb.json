@@ -21,6 +21,7 @@
   "add": "Legg til",
   "block": "Blokker",
   "apply": "Bruk",
+  "retry": "Prøv igjen",
   "advanced": "Avansert",
   "troubleshooting": "Aktivitet og logging",
   "options": "Alternativer",
@@ -38,7 +39,7 @@
   },
   "allowed_ips": {
     "title": "Tillatte IP-er",
-    "hint": "Pålitelige IPv4-/IPv6-adresser og nettverk. Disse oppføringene slår eksakte utestengelser, blokkerte nettverk og standard-nekt-modus. IPv4-/IPv6-jokertegn som 192.168.1.* eller 2001:db8:1:2:* støttes. DNS/DDNS hostnames are forward-resolved and refreshed in the background.",
+    "hint": "Betrodde IPv4-/IPv6-adresser, nettverk og DNS-/DDNS-navn. Eksakte IP-blokkeringer har forrang. Tillatte oppføringer omgår nettverksblokkering, regionslås og standardavvisning. Navn slås opp og oppdateres i bakgrunnen.",
     "placeholder": "IPv4-/IPv6-adresse, CIDR eller jokertegn, DNS hostname",
     "remove_confirm": "Fjerne denne tillatte IP-en? Med aktiv standard-nekt eller blokkerte nettverk kan fjerning av en pålitelig oppføring låse ute tilgang."
   },
@@ -196,19 +197,20 @@
     "npm_select_host": "Proxy-vert valgt.",
     "npm_sync": "Nginx Proxy Manager regler synkronisert.",
     "npm_disconnect": "Nginx Proxy Manager frakoblet.",
-    "clear_activity_history": "Activity history cleared."
+    "clear_activity_history": "Aktivitetshistorikken er tømt.",
+    "update_geoip": "GeoIP-databasen er oppdatert."
   },
   "activity": {
-    "title": "Incoming Activity",
-    "hint": "One summary is shown per source IP. Home Assistant and Nginx Proxy Manager requests are combined.",
-    "npm_error": "Nginx Proxy Manager activity is unavailable: {error}",
-    "none": "No recent activity.",
-    "request_count": "Requests: {count}",
-    "recent": "Recent",
-    "history": "History",
-    "retention": "History is retained for {hours} hours.",
-    "clear": "Clear history",
-    "clear_confirm": "Clear the stored activity history? Recent activity will remain visible.",
+    "title": "Innkommende aktivitet",
+    "hint": "Ett sammendrag per kilde-IP. Forespørsler fra Home Assistant og Nginx Proxy Manager slås sammen.",
+    "npm_error": "Aktivitet fra Nginx Proxy Manager er utilgjengelig: {error}",
+    "none": "Ingen nylig aktivitet.",
+    "request_count": "Forespørsler: {count}",
+    "recent": "Nylig",
+    "history": "Historikk",
+    "retention": "Historikken lagres i {hours} timer.",
+    "clear": "Tøm historikk",
+    "clear_confirm": "Tømme lagret historikk? Nylig aktivitet forblir synlig.",
     "sources": {
       "home_assistant": "Home Assistant",
       "nginx_proxy_manager": "Nginx Proxy Manager"

@@ -318,7 +318,17 @@ def current_login_threshold(hass: HomeAssistant) -> int:
 
 def normalize_login_attempts_threshold(value: Any) -> int:
     """Return a login-attempt threshold inside the supported backend range."""
-    return min(MAX_LOGIN_ATTEMPTS_THRESHOLD, max(0, int(value)))
+    try:
+        if isinstance(value, bool) or (
+            isinstance(value, float) and not value.is_integer()
+        ):
+            raise ValueError
+        threshold = int(value)
+    except (TypeError, ValueError, OverflowError) as err:
+        raise HomeAssistantError(
+            "Login attempts threshold must be a whole number."
+        ) from err
+    return min(MAX_LOGIN_ATTEMPTS_THRESHOLD, max(0, threshold))
 
 
 def normalize_regional_login_thresholds(value: object) -> dict[str, int]:

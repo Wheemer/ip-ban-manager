@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, ip_address
 from pathlib import Path
@@ -48,6 +49,19 @@ from custom_components.ip_ban_manager.const import (
     SOURCE_CONFIGURE,
     SOURCE_DETECTED,
 )
+
+
+def _flow_schema(result: Any) -> Any:
+    """Inspect the concrete voluptuous schema after asserting it is present."""
+    assert result.get("data_schema") is not None
+    return cast(Any, result["data_schema"]).schema
+
+
+def _flow_placeholders(result: Any) -> Mapping[str, str]:
+    """Narrow optional flow placeholders before checking their contents."""
+    value = result.get("description_placeholders")
+    assert isinstance(value, Mapping)
+    return value
 
 
 def expected_setup_data(ip_addresses: list[str]) -> dict[str, object]:
@@ -198,7 +212,7 @@ async def container_adapters(hass: HomeAssistant) -> list[dict[str, object]]:
 
 async def load_ip_ban_manager(hass: HomeAssistant) -> None:
     """Load the custom integration."""
-    hass.data[DATA_CUSTOM_COMPONENTS] = None
+    hass.data.pop(DATA_CUSTOM_COMPONENTS, None)
     assert "ip_ban_manager" in (await async_get_custom_components(hass))
 
 
@@ -281,7 +295,7 @@ async def test_user_flow(hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch) -
     )
 
     assert result["type"] == "form"
-    assert result["description_placeholders"]["home_assistant_subnets"] == "None"
+    assert _flow_placeholders(result)["home_assistant_subnets"] == "None"
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -341,12 +355,10 @@ async def test_user_flow_can_add_detected_subnet(
     )
 
     assert result["type"] == "form"
-    assert result["description_placeholders"]["home_assistant_subnets"] == (
-        "192.168.1.0/24\n"
-    )
+    assert _flow_placeholders(result)["home_assistant_subnets"] == ("192.168.1.0/24\n")
     quick_allowlist_marker = next(
         marker
-        for marker in result["data_schema"].schema
+        for marker in _flow_schema(result)
         if marker.schema == ban_config_flow.CONF_QUICK_ALLOWLIST
     )
     assert quick_allowlist_marker.default() == [
@@ -388,7 +400,7 @@ async def test_user_flow_can_add_detected_ipv4_and_ipv6_subnets(
     )
 
     assert result["type"] == "form"
-    assert result["description_placeholders"]["home_assistant_subnets"] == (
+    assert _flow_placeholders(result)["home_assistant_subnets"] == (
         "192.168.1.0/24\nfd12:3456:789a::/64\n"
     )
 
@@ -424,7 +436,7 @@ async def test_user_flow_adds_supervisor_internal_safe_default(
     )
 
     assert result["type"] == "form"
-    assert result["description_placeholders"]["home_assistant_subnets"] == (
+    assert _flow_placeholders(result)["home_assistant_subnets"] == (
         "192.168.1.0/24\n172.30.0.0/16\n"
     )
 
@@ -465,7 +477,7 @@ async def test_user_flow_adds_container_bridge_gateway_safe_default(
     )
 
     assert result["type"] == "form"
-    assert result["description_placeholders"]["home_assistant_subnets"] == (
+    assert _flow_placeholders(result)["home_assistant_subnets"] == (
         "192.168.1.0/24\n172.17.0.1/32\n"
     )
 
@@ -510,7 +522,7 @@ async def test_user_flow_only_shows_safe_first_run_options(
     assert result["type"] == "form"
     ban_options_marker = next(
         marker
-        for marker in result["data_schema"].schema
+        for marker in _flow_schema(result)
         if marker.schema == ban_config_flow.CONF_BAN_OPTIONS
     )
     assert ban_options_marker.default() == [ban_config_flow.CONF_AUTO_BAN_CHECKBOX]
@@ -535,7 +547,7 @@ async def test_user_flow_can_skip_localhost(
     assert result["type"] == "form"
     ban_options_marker = next(
         marker
-        for marker in result["data_schema"].schema
+        for marker in _flow_schema(result)
         if marker.schema == ban_config_flow.CONF_BAN_OPTIONS
     )
     assert ban_options_marker.default() == [ban_config_flow.CONF_AUTO_BAN_CHECKBOX]
@@ -649,10 +661,8 @@ async def test_options_flow_edits_live_lists(
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
-    assert result["description_placeholders"]["networks"] == (
-        "192.168.1.1/32\n172.17.0.0/24"
-    )
-    assert result["description_placeholders"][ATTR_BANNED_IPS] == (
+    assert _flow_placeholders(result)["networks"] == ("192.168.1.1/32\n172.17.0.0/24")
+    assert _flow_placeholders(result)[ATTR_BANNED_IPS] == (
         f"10.0.0.1 - {_format_banned_at(original_banned_at.isoformat())}"
     )
 
@@ -797,9 +807,7 @@ async def test_options_flow_can_hide_sidebar_panel(
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
-    banned_schema = (
-        result["data_schema"].schema[ban_config_flow.SECTION_BANNED_IPS].schema
-    )
+    banned_schema = _flow_schema(result)[ban_config_flow.SECTION_BANNED_IPS].schema
     options_marker = next(
         marker
         for marker in banned_schema.schema
@@ -904,9 +912,7 @@ async def test_options_flow_safe_default_checkboxes(
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
-    allowed_schema = (
-        result["data_schema"].schema[ban_config_flow.SECTION_ALLOWED_IPS].schema
-    )
+    allowed_schema = _flow_schema(result)[ban_config_flow.SECTION_ALLOWED_IPS].schema
     quick_marker = next(
         marker
         for marker in allowed_schema.schema
@@ -1223,7 +1229,7 @@ async def test_options_flow_handles_missing_ban_file(
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
-    assert result["description_placeholders"][ATTR_BANNED_IPS] == "None"
+    assert _flow_placeholders(result)[ATTR_BANNED_IPS] == "None"
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
@@ -1347,9 +1353,7 @@ async def test_options_flow_banned_ips_field_is_optional(
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "form"
-    banned_schema = (
-        result["data_schema"].schema[ban_config_flow.SECTION_BANNED_IPS].schema
-    )
+    banned_schema = _flow_schema(result)[ban_config_flow.SECTION_BANNED_IPS].schema
     banned_marker = next(
         marker for marker in banned_schema.schema if marker.schema == CONF_BANNED_IPS
     )
