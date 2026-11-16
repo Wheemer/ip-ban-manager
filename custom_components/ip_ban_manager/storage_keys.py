@@ -46,6 +46,7 @@ KEY_LOCAL_GEOIP_REGION_CACHE = AppKey[dict[str, Any]](
 )
 KEY_REVERSE_DNS_CACHE = AppKey[dict[IPAddress, Any]]("ip_ban_manager_reverse_dns_cache")
 KEY_HEALTH = AppKey[dict[str, object]]("ip_ban_manager_health")
+KEY_SETUP_IN_PROGRESS = AppKey[bool]("ip_ban_manager_setup_in_progress")
 KEY_METRICS = AppKey[dict[str, object]]("ip_ban_manager_metrics")
 KEY_BAN_FILE_WRITE_LOCK = AppKey[Lock]("ip_ban_manager_ban_file_write_lock")
 KEY_BLOCKED_REQUEST_LOG_STATE = "ip_ban_manager_blocked_request_log_state"

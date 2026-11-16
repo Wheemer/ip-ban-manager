@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.10.4-1
+
+### 🎨 Panel refinements
+
+- Make the existing panel more compact, with two-column desktop layouts and Backup moved into Settings.
+- Use icon actions with hover and keyboard-focus tooltips on mouse-driven desktops, while retaining larger labeled controls on touch devices.
+- Save switches immediately and valid login-attempt/history-retention edits on blur or Enter. Keep confirmations for risky changes and show the saved setting and value in bottom toasts.
+- Improve row outlines, contrast, keyboard focus, mobile menu access, and switch labels across supported Home Assistant versions.
+
+### ⚡ Faster opening
+
+- Show local panel content first, then load optional NPM activity, discovery, and location details in the background without interrupting edits.
+
+### 🔧 Reliability
+
+- Prevent transient health warnings from appearing during normal integration startup while retaining checks for real failures.
+- Retry background NPM synchronization after temporary outages, with bounded backoff and cleanup when disabled or unloaded.
+- Refresh NPM recovery status after either edge-protection or all-domain settings fail.
+
 ## v1.10.3
 
 ### 🔧 Blocking fixes

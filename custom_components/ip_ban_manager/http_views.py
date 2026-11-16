@@ -189,7 +189,9 @@ async def async_handle_status_get(
         )
 
     language = request.query.get("language")
-    payload = await async_panel_payload(hass, entry, language=language)
+    payload = await async_panel_payload(
+        hass, entry, language=language, initial=request.query.get("initial") == "1"
+    )
     return view.json(payload)
 
 

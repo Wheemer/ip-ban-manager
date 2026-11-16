@@ -67,8 +67,13 @@ NPM_CONFIG_END = "# END IP BAN MANAGER"
 NPM_REQUEST_TIMEOUT = ClientTimeout(total=15)
 NPM_DISCOVERY_TIMEOUT = ClientTimeout(total=5)
 NPM_SYNC_DEBOUNCE_SECONDS = 1.0
+NPM_SYNC_RETRY_INITIAL_SECONDS = 30
+NPM_SYNC_RETRY_MAX_SECONDS = 300
 _NPM_POLICY_LOCK = "ip_ban_manager_npm_policy_lock"
 _NPM_SYNC_PENDING = "ip_ban_manager_npm_sync_pending"
+_NPM_SYNC_RETRY_TIMER = "ip_ban_manager_npm_sync_retry_timer"
+_NPM_SYNC_RETRY_DELAY = "ip_ban_manager_npm_sync_retry_delay"
+_NPM_UNLOADING = "ip_ban_manager_npm_unloading"
 
 
 def _serialized_policy(
@@ -109,6 +114,10 @@ KEY_NPM_DISCOVERY_CACHE = "ip_ban_manager_npm_discovery_cache"
 
 class NpmAuthenticationError(HomeAssistantError):
     """NPM requires a fresh sign-in, not another proxy configuration update."""
+
+
+class NpmConnectionError(HomeAssistantError):
+    """NPM is temporarily unreachable or unable to serve requests."""
 
 
 class NpmConfigurationError(HomeAssistantError):
@@ -433,7 +442,7 @@ class NpmClient:
             ) as response:
                 return await self._response_json(response)
         except (ClientError, TimeoutError) as err:
-            raise HomeAssistantError(
+            raise NpmConnectionError(
                 f"Could not connect to Nginx Proxy Manager: {err}"
             ) from err
         except NpmAuthenticationError as err:
@@ -445,6 +454,10 @@ class NpmClient:
 
     @staticmethod
     async def _response_json(response: ClientResponse) -> object:
+        if response.status == 429 or response.status >= 500:
+            raise NpmConnectionError(
+                f"Nginx Proxy Manager returned HTTP {response.status}."
+            )
         try:
             body = await response.json(content_type=None)
         except (ClientError, ValueError) as err:
@@ -570,6 +583,8 @@ class NpmClient:
 
 def _persist_npm_config(hass: HomeAssistant, config: Mapping[str, object]) -> None:
     update_entry_options(hass, **{CONF_NPM: dict(config)})
+    if not config.get("enabled"):
+        _clear_sync_retry(hass)
     _schedule_token_refresh(hass, config)
 
 
@@ -1379,15 +1394,67 @@ async def async_disconnect_npm(hass: HomeAssistant) -> None:
     _runtime(hass).clear()
 
 
+def _clear_sync_retry(hass: HomeAssistant) -> None:
+    if remove := hass.data.pop(_NPM_SYNC_RETRY_TIMER, None):
+        remove()
+    hass.data.pop(_NPM_SYNC_RETRY_DELAY, None)
+
+
+def _sync_error_is_transient(err: BaseException | None) -> bool:
+    """Retain transport failures wrapped by transactional rollback errors."""
+    while err is not None:
+        if isinstance(err, (NpmAuthenticationError, NpmConfigurationError)):
+            return False
+        if isinstance(err, (NpmConnectionError, ClientError, TimeoutError)):
+            return True
+        err = err.__cause__
+    return False
+
+
+def _schedule_sync_retry(hass: HomeAssistant) -> None:
+    if hass.data.get(_NPM_UNLOADING) or _NPM_SYNC_RETRY_TIMER in hass.data:
+        return
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if entry is None or not entry_npm_config(entry).get("enabled"):
+        return
+    delay = hass.data.get(_NPM_SYNC_RETRY_DELAY, NPM_SYNC_RETRY_INITIAL_SECONDS)
+    hass.data[_NPM_SYNC_RETRY_DELAY] = min(delay * 2, NPM_SYNC_RETRY_MAX_SECONDS)
+
+    @callback
+    def retry(_now: object) -> None:
+        if hass.data.get(_NPM_SYNC_RETRY_TIMER) is not remove:
+            return
+        hass.data.pop(_NPM_SYNC_RETRY_TIMER, None)
+        entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+        if (
+            not hass.data.get(_NPM_UNLOADING)
+            and entry is not None
+            and entry_npm_config(entry).get("enabled")
+        ):
+            schedule_npm_sync(hass)
+        else:
+            _clear_sync_retry(hass)
+
+    remove = async_track_point_in_utc_time(
+        hass, retry, dt_util.utcnow() + timedelta(seconds=delay)
+    )
+    hass.data[_NPM_SYNC_RETRY_TIMER] = remove
+
+
 async def _async_debounced_sync(hass: HomeAssistant) -> None:
     try:
         while hass.data.pop(_NPM_SYNC_PENDING, False):
             await asyncio.sleep(NPM_SYNC_DEBOUNCE_SECONDS)
             await async_sync_npm(hass)
+            _clear_sync_retry(hass)
     except asyncio.CancelledError:
         raise
     except (HomeAssistantError, ClientError, TimeoutError) as err:
         _runtime(hass)["last_error"] = str(err)
+        if _sync_error_is_transient(err):
+            _schedule_sync_retry(hass)
+        else:
+            _clear_sync_retry(hass)
     finally:
         if hass.data.get(KEY_NPM_SYNC_TASK) is asyncio.current_task():
             hass.data.pop(KEY_NPM_SYNC_TASK, None)
@@ -1396,8 +1463,12 @@ async def _async_debounced_sync(hass: HomeAssistant) -> None:
 @callback
 def schedule_npm_sync(hass: HomeAssistant, _event: Event | None = None) -> None:
     """Debounce NPM writes after local policy events."""
+    if hass.data.get(_NPM_UNLOADING):
+        return
     task = hass.data.get(KEY_NPM_SYNC_TASK)
     hass.data[_NPM_SYNC_PENDING] = True
+    if _NPM_SYNC_RETRY_TIMER in hass.data:
+        return
     if task is not None and not task.done():
         return
     hass.data[KEY_NPM_SYNC_TASK] = hass.async_create_task(
@@ -1407,6 +1478,7 @@ def schedule_npm_sync(hass: HomeAssistant, _event: Event | None = None) -> None:
 
 def setup_npm_sync(hass: HomeAssistant) -> None:
     """Listen for policy changes without delaying Home Assistant startup."""
+    hass.data.pop(_NPM_UNLOADING, None)
     if hass.data.get(KEY_NPM_UNSUBSCRIBERS):
         return
     events = (
@@ -1433,6 +1505,8 @@ def setup_npm_sync(hass: HomeAssistant) -> None:
 
 async def unload_npm_sync(hass: HomeAssistant) -> None:
     """Remove NPM listeners and cancel a pending sync."""
+    hass.data[_NPM_UNLOADING] = True
+    _clear_sync_retry(hass)
     for unsubscribe in hass.data.pop(KEY_NPM_UNSUBSCRIBERS, []):
         unsubscribe()
     if remove := hass.data.pop(KEY_NPM_TOKEN_TIMER, None):

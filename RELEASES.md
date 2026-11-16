@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.10.4-1](CHANGELOG.md#v1104-1) | Pre-release: compact panel refinements, immediate setting saves with named toasts, faster initial loading, and startup/NPM recovery fixes. |
 | [v1.10.3](CHANGELOG.md#v1103) | Fixes exact bans for region/default-deny blocked IPs and phantom activity from Block clicks; updates automation tooling. |
 | [v1.10.2](CHANGELOG.md#v1102) | Fixes IPv6 link-local allowance migration on upgrades while respecting custom lists, explicit blocks, and removed allowances. |
 | [v1.10.1](CHANGELOG.md#v1101) | Fixes regional authorization when NGINX Proxy Manager runs on a separate machine. |

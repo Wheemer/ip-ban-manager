@@ -19,6 +19,8 @@ vm.runInNewContext(
     customElements: { get: () => undefined, define: (_, value) => { Panel = value; } },
     URLSearchParams,
     window: {
+      addEventListener: () => {},
+      removeEventListener: () => {},
       sessionStorage,
       setTimeout: (fn, ms) => {
         const timer = setTimeout(fn, ms);
