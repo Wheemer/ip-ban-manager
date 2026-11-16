@@ -29,8 +29,9 @@ from .const import (
     SOURCE_AUTO,
 )
 
-_mutation_source: ContextVar[str] = ContextVar(
-    "ip_ban_manager_mutation_source", default=SOURCE_AUTO
+_mutation_source: ContextVar[str] = globals().get(
+    "_mutation_source",
+    ContextVar("ip_ban_manager_mutation_source", default=SOURCE_AUTO),
 )
 
 

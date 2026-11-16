@@ -4,12 +4,15 @@
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import importlib
 import inspect
 import logging
 import sys
+import tokenize
 from collections.abc import Callable
+from threading import RLock
 from types import ModuleType
 from typing import Any
 
@@ -172,6 +175,7 @@ from .panel import async_panel_set_options as _async_panel_set_options
 from .panel import async_register_panel as _async_register_panel
 from .panel import async_register_static_assets as _async_register_static_assets
 from .panel import async_remove_panel as _async_remove_panel
+from .runtime_lifecycle import async_drain_runtime, open_runtime
 from .services import (
     IP_ADDRESS_SCHEMA,
     NETWORK_SCHEMA,
@@ -214,16 +218,28 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor"]
 _PLATFORMS_SETUP_STARTED = "ip_ban_manager_platforms_setup_started"
+_RELOAD_LOCK = RLock()
 
 _RELOADABLE_MODULES = (
-    "custom_components.ip_ban_manager.activity",
     "custom_components.ip_ban_manager.const",
+    "custom_components.ip_ban_manager.runtime_options",
+    "custom_components.ip_ban_manager.ip_utils",
+    "custom_components.ip_ban_manager.entry_meta",
+    "custom_components.ip_ban_manager.file_store",
+    "custom_components.ip_ban_manager.internal_networks",
+    "custom_components.ip_ban_manager.ha_compat",
+    "custom_components.ip_ban_manager.i18n",
+    "custom_components.ip_ban_manager.audit",
     "custom_components.ip_ban_manager.metrics",
     "custom_components.ip_ban_manager.entry_helpers",
+    "custom_components.ip_ban_manager.region_rules",
+    "custom_components.ip_ban_manager.activity",
     "custom_components.ip_ban_manager.blocked_request_log",
     "custom_components.ip_ban_manager.ban_lookup",
     "custom_components.ip_ban_manager.ban_ops",
+    "custom_components.ip_ban_manager.geoip_cache",
     "custom_components.ip_ban_manager.geoip",
+    "custom_components.ip_ban_manager.reverse_dns",
     "custom_components.ip_ban_manager.dns_allowlist",
     "custom_components.ip_ban_manager.geoip_lifecycle",
     "custom_components.ip_ban_manager.health",
@@ -239,6 +255,7 @@ _RELOADABLE_MODULES = (
     "custom_components.ip_ban_manager.http_views",
     "custom_components.ip_ban_manager.services",
     "custom_components.ip_ban_manager.status",
+    "custom_components.ip_ban_manager.sensor",
     "custom_components.ip_ban_manager.yaml_config",
 )
 
@@ -446,11 +463,50 @@ _RELOADABLE_BINDINGS: dict[str, tuple[str, str]] = {
 
 def _reload_runtime_modules_sync() -> None:
     """Reload IP Ban Manager submodules so config-entry reloads pick up new code."""
+    with _RELOAD_LOCK:
+        for name in _RELOADABLE_MODULES:
+            importlib.import_module(name)
+        snapshots = {
+            module: dict(vars(module))
+            for name, module in tuple(sys.modules.items())
+            if module is not None
+            and (name == __package__ or name.startswith(f"{__package__}."))
+        }
+        try:
+            _reload_runtime_modules_locked()
+        except BaseException:
+            for module, namespace in snapshots.items():
+                current = vars(module)
+                for binding in tuple(current):
+                    if binding not in namespace:
+                        current.pop(binding, None)
+                current.update(namespace)
+            raise
+
+
+def _reload_runtime_modules_locked() -> None:
+    """Reload only after calls have drained, restoring imported aliases as a unit."""
     importlib.invalidate_caches()
     modules: dict[str, ModuleType] = {}
+    imported: list[tuple[ModuleType, str, str, str]] = []
     for module_name in _RELOADABLE_MODULES:
         module = importlib.import_module(module_name)
         modules[module_name.rsplit(".", 1)[-1]] = importlib.reload(module)
+        if module.__file__:
+            with tokenize.open(module.__file__) as source:
+                tree = ast.parse(source.read())
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.level == 1 and node.module:
+                    owner = f"{__package__}.{node.module}"
+                    if owner in _RELOADABLE_MODULES:
+                        imported.extend(
+                            (module, alias.asname or alias.name, owner, alias.name)
+                            for alias in node.names
+                            if alias.name != "*"
+                        )
+
+    for module, binding, owner, attribute in imported:
+        setattr(module, binding, getattr(sys.modules[owner], attribute))
 
     # Imports in an earlier-reloaded module can still reference a later module's
     # previous functions/classes. Rebind these after the complete reload pass.
@@ -478,7 +534,13 @@ def _reload_runtime_modules_sync() -> None:
 
 async def _async_reload_runtime_modules(hass: HomeAssistant) -> None:
     """Reload IP Ban Manager code off the event loop before setting up an entry."""
-    await hass.async_add_executor_job(_reload_runtime_modules_sync)
+    await async_drain_runtime(hass)
+    pending = hass.async_add_executor_job(_reload_runtime_modules_sync)
+    try:
+        await asyncio.shield(pending)
+    except asyncio.CancelledError:
+        await pending
+        raise
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -543,6 +605,8 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _async_schedule_legacy_cleanup(hass)
     _async_schedule_legacy_folder_cleanup(hass)
     hass.http.app[KEY_CONFIG_ENTRY] = entry
+    open_runtime(hass)
+    hass.data.pop("ip_ban_manager_local_region_stopping", None)
     hass.http.app[KEY_ALLOWLIST] = _parse_allowlist(_entry_ip_addresses(entry))
 
     try:
@@ -606,9 +670,11 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
+    await async_drain_runtime(hass)
     if hass.data.get(
         _PLATFORMS_SETUP_STARTED
     ) and not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        open_runtime(hass)
         return False
     hass.data.pop(_PLATFORMS_SETUP_STARTED, None)
     await _async_unload_runtime(hass)
@@ -617,6 +683,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_unload_runtime(hass: HomeAssistant) -> None:
     """Release integration-owned runtime after platform unload or failed setup."""
+    await async_drain_runtime(hass)
     _unregister_http_views(hass)
     await _unload_npm_sync(hass)
     _async_remove_panel(hass)

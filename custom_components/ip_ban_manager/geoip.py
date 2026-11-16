@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 import socket
 import ssl
 import struct
@@ -54,6 +55,7 @@ from .entry_helpers import (
     entry_regional_login_thresholds,
 )
 from .file_store import file_updated, geoip_database_path, path_is_file
+from .geoip_cache import GeoIPPrefixCache
 from .metrics import metric_increment
 from .panel_assets import async_integration_version, integration_version
 from .storage_keys import (
@@ -69,9 +71,13 @@ _READER_LOCK = globals().get("_READER_LOCK", RLock())
 _IMPORT_LOCK = globals().get("_IMPORT_LOCK", RLock())
 _DOWNLOAD_LOCK = globals().get("_DOWNLOAD_LOCK", RLock())
 _LOOKUP_CACHE_KEY = "ip_ban_manager_geoip_lookup_cache"
+_PREFIX_CACHE_KEY = "ip_ban_manager_geoip_prefix_cache"
+_READER_LEASE_KEY = "ip_ban_manager_geoip_reader_lease"
 GEOIP_CACHE_MAX_ENTRIES = 1024
 GEOIP_CACHE_SECONDS = 600
 GEOIP_NEGATIVE_CACHE_SECONDS = 30
+GEOIP_ASYNC_MAX_LOOKUPS = 4
+_ASYNC_LOOKUPS_KEY = "ip_ban_manager_geoip_async_lookups"
 
 DBIP_ATTRIBUTION = "IP geolocation by DB-IP.com"
 DBIP_DOWNLOAD_MAX_BYTES = 250 * 1024 * 1024
@@ -172,6 +178,13 @@ class GeoIPLocation:
     subdivision_code: str | None
     country_name: str | None = None
     subdivision_label: str | None = None
+
+
+@dataclass
+class _ReaderLease:
+    reader: Any
+    active: int = 0
+    retired: bool = False
 
 
 @dataclass(frozen=True)
@@ -342,13 +355,42 @@ def _download_validated_geoip_database(path: Path) -> None:
                     cast(Any, candidate).get(address)
                     for address in ("1.1.1.1", "8.8.8.8", "9.9.9.9")
                 ]
-                if not any(probes):
+                if not all(probes):
                     raise HomeAssistantError(
                         "Downloaded GeoIP database has no usable probe records."
                     )
             finally:
                 cast(Any, candidate).close()
+            previous = path.with_name(f".{path.name}.previous")
+            had_previous = path.is_file()
+            if had_previous:
+                shutil.copyfile(path, previous)
             os.replace(temp_path, path)
+            try:
+                reopened = open_geoip_reader(path)
+                if reopened is None:
+                    raise HomeAssistantError(
+                        "Installed GeoIP database could not be reopened."
+                    )
+                reader, _mtime = reopened
+                try:
+                    if not all(
+                        cast(Any, reader).get(address)
+                        for address in ("1.1.1.1", "8.8.8.8", "9.9.9.9")
+                    ):
+                        raise HomeAssistantError(
+                            "Installed GeoIP database failed validation."
+                        )
+                finally:
+                    cast(Any, reader).close()
+            except Exception:
+                if had_previous:
+                    os.replace(previous, path)
+                else:
+                    path.unlink(missing_ok=True)
+                raise
+            if not had_previous:
+                previous.unlink(missing_ok=True)
             return
         except (
             BadGzipFile,
@@ -373,7 +415,12 @@ def _download_validated_geoip_database(path: Path) -> None:
 async def async_download_geoip_database(hass: HomeAssistant) -> None:
     """Download the local GeoIP database without blocking the event loop."""
     path = geoip_database_path(hass)
-    await hass.async_add_executor_job(download_geoip_database_to_path, path)
+    pending = hass.async_add_executor_job(download_geoip_database_to_path, path)
+    try:
+        await asyncio.shield(pending)
+    except asyncio.CancelledError:
+        await pending
+        raise
     await async_prepare_geoip_reader(hass)
 
 
@@ -381,8 +428,14 @@ def close_geoip_reader(hass: HomeAssistant) -> None:
     """Close any cached GeoIP database reader."""
     with _READER_LOCK:
         reader = hass.http.app.pop(KEY_GEOIP_READER, None)
+        lease = hass.http.app.pop(_READER_LEASE_KEY, None)
+        if lease is not None and lease.reader is reader:
+            lease.retired = True
+            if lease.active:
+                reader = None
         hass.http.app.pop(KEY_GEOIP_READER_MTIME, None)
         hass.http.app.pop(_LOOKUP_CACHE_KEY, None)
+        hass.http.app.pop(_PREFIX_CACHE_KEY, None)
         hass.http.app.pop(KEY_LOCAL_GEOIP_REGION_CACHE, None)
         hass.data.pop("ip_ban_manager_activity_location_cache", None)
         close = getattr(reader, "close", None)
@@ -452,7 +505,9 @@ async def async_prepare_geoip_reader(hass: HomeAssistant) -> None:
         if result is not None:
             await hass.async_add_executor_job(cast(Any, result[0]).close)
         raise
-    if entry is not None and hass.http.app.get(KEY_CONFIG_ENTRY) is not entry:
+    if hass.data.get("ip_ban_manager_local_region_stopping") or (
+        entry is not None and hass.http.app.get(KEY_CONFIG_ENTRY) is not entry
+    ):
         if result is not None:
             await hass.async_add_executor_job(cast(Any, result[0]).close)
         return
@@ -472,6 +527,8 @@ def geoip_reader(hass: HomeAssistant) -> object | None:
 
 async def async_local_geoip_region(hass: HomeAssistant) -> dict[str, str | None] | None:
     """Share local-region enrichment across concurrent panel requests."""
+    if hass.data.get("ip_ban_manager_local_region_stopping"):
+        return None
     key = "ip_ban_manager_local_region_task"
     task = hass.data.get(key)
     if task is None or task.done():
@@ -488,6 +545,7 @@ async def async_local_geoip_region(hass: HomeAssistant) -> dict[str, str | None]
 
 async def async_stop_local_region(hass: HomeAssistant) -> None:
     """Drain the shared enrichment task before runtime teardown."""
+    hass.data["ip_ban_manager_local_region_stopping"] = True
     task = hass.data.pop("ip_ban_manager_local_region_task", None)
     if task is not None:
         task.cancel()
@@ -860,9 +918,30 @@ def geoip_location_details_for_ip(
         if cached is not None and cached[0] > now:
             cache.move_to_end(normalized_addr)
             return cached[1]
+        prefixes = hass.http.app.setdefault(
+            _PREFIX_CACHE_KEY, GeoIPPrefixCache[GeoIPLocation](GEOIP_CACHE_MAX_ENTRIES)
+        )
+        if details := prefixes.get(normalized_addr, now):
+            return details
+        lease = hass.http.app.get(_READER_LEASE_KEY)
+        if lease is None or lease.reader is not reader:
+            lease = _ReaderLease(reader)
+            hass.http.app[_READER_LEASE_KEY] = lease
+        lease.active += 1
         metric_increment(hass, "geoip_lookups")
+    prefix = None
+    try:
         try:
-            result = cast(Any, reader).get(str(normalized_addr))
+            lookup = getattr(reader, "get_with_prefix_len", None)
+            decoded = lookup(str(normalized_addr)) if callable(lookup) else None
+            if (
+                isinstance(decoded, tuple)
+                and len(decoded) == 2
+                and type(decoded[1]) is int
+            ):
+                result, prefix = decoded
+            else:
+                result = cast(Any, reader).get(str(normalized_addr))
         except (ValueError, OSError, RuntimeError, struct.error):
             result = None
         details = (
@@ -870,10 +949,23 @@ def geoip_location_details_for_ip(
             if isinstance(result, dict)
             else None
         )
+    finally:
+        with _READER_LOCK:
+            lease.active -= 1
+            if lease.retired and not lease.active:
+                lease.reader.close()
+    with _READER_LOCK:
+        if (
+            geoip_reader(hass) is not reader
+            or hass.http.app.get(_LOOKUP_CACHE_KEY) is not cache
+        ):
+            return None
         ttl = (
             GEOIP_CACHE_SECONDS if details is not None else GEOIP_NEGATIVE_CACHE_SECONDS
         )
         cache[normalized_addr] = (now + ttl, details)
+        if details is not None and prefix is not None:
+            prefixes.put(normalized_addr, prefix, now + ttl, details)
         cache.move_to_end(normalized_addr)
         while len(cache) > GEOIP_CACHE_MAX_ENTRIES:
             cache.popitem(last=False)
@@ -884,6 +976,45 @@ def geoip_location_for_ip(hass: HomeAssistant, remote_addr: IPAddress) -> str | 
     """Return a human-readable local GeoIP location for a public IP address."""
     details = geoip_location_details_for_ip(hass, remote_addr)
     return details.display if details else None
+
+
+async def async_warm_geoip_for_ip(hass: HomeAssistant, remote_addr: IPAddress) -> bool:
+    """Warm a cold auth lookup off-loop without an unbounded executor queue."""
+    address = _normalize_remote_addr(remote_addr)
+    if address.is_private or address.is_loopback:
+        return True
+    with _READER_LOCK:
+        reader = geoip_reader(hass)
+        if reader is None or not callable(getattr(reader, "get", None)):
+            return True
+        now = monotonic()
+        cached = hass.http.app.get(_LOOKUP_CACHE_KEY, {}).get(address)
+        if cached is not None and cached[0] > now:
+            return True
+        prefixes = hass.http.app.get(_PREFIX_CACHE_KEY)
+        if prefixes is not None and prefixes.get(address, now) is not None:
+            return True
+    pending = hass.data.setdefault(_ASYNC_LOOKUPS_KEY, {})
+    future = pending.get(address)
+    if future is None:
+        if len(pending) >= GEOIP_ASYNC_MAX_LOOKUPS:
+            return False
+        future = hass.async_add_executor_job(
+            geoip_location_details_for_ip, hass, address
+        )
+        pending[address] = future
+
+        def finished(done: asyncio.Future[object]) -> None:
+            if pending.get(address) is done:
+                pending.pop(address, None)
+
+        future.add_done_callback(finished)
+    try:
+        await asyncio.shield(future)
+    except asyncio.CancelledError:
+        await future
+        raise
+    return True
 
 
 def regional_login_threshold_for_ip(

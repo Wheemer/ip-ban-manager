@@ -65,6 +65,7 @@ class IPBanManagerPanel extends HTMLElement {
     window.clearTimeout(this._tooltipHideTimer);
     this._cancelConfirmation?.();
     this._updateGeneration = (this._updateGeneration || 0) + 1;
+    this._detachedGeneration = this._updateGeneration;
     window.clearInterval(this._autoRefresh);
     window.clearTimeout(this._loadTimer);
     window.clearTimeout(this._toastTimer);
@@ -181,6 +182,7 @@ class IPBanManagerPanel extends HTMLElement {
       const result = await this._withTimeout(this._api("GET", this._statusPath(!this._data)));
       if (generation !== (this._updateGeneration || 0)) return;
       this._data = result;
+      this._numericErrors?.clear();
       this._error = "";
       loaded = true;
     } catch (err) {
@@ -189,7 +191,8 @@ class IPBanManagerPanel extends HTMLElement {
       }
     } finally {
       this._loading = false;
-      if (generation === (this._updateGeneration || 0)) {
+      if (this._numericSaveQueue?.size) this._scheduleNumericFlush();
+      if (generation === (this._updateGeneration || 0) || (this._detachedGeneration === generation + 1 && !this._pendingAction)) {
         this._busy = false;
       }
       if (generation === (this._updateGeneration || 0) && (!canStayQuiet || loaded)) {
@@ -224,10 +227,12 @@ class IPBanManagerPanel extends HTMLElement {
     const optionDrafts = action === "set_options" ? this._captureOptionDrafts() : new Map();
     this._updateGeneration = (this._updateGeneration || 0) + 1;
     this._busy = true;
-    this._clearStoredToast();
+    if (!background || !this._numericErrors?.size) {
+      this._clearStoredToast();
+      this._toast = "";
+      this._toastType = "success";
+    }
     this._error = "";
-    this._toast = "";
-    this._toastType = "success";
     if (action === "update_geoip") {
       this._showToast(this._t("geoip.downloading"), "success", false);
     }
@@ -295,10 +300,11 @@ class IPBanManagerPanel extends HTMLElement {
             const input = this.shadowRoot.getElementById(key === 'login_attempts_threshold' ? 'threshold' : 'history-hours');
             if (!input) continue;
             const saved = this._data.settings[key];
-            if (input.value !== '' && Number(input.value) === value) input.value = String(saved);
+            if (ok && input.value !== '' && Number(input.value) === value) input.value = String(saved);
             input.defaultValue = String(saved);
           }
-        } else {
+        }
+        if (!ok) {
           for (const key of Object.keys(extra.options || {})) {
             const input = this.shadowRoot.getElementById(key === 'login_attempts_threshold' ? 'threshold' : 'history-hours');
             if (input) this._setNumericError(input, this._error);
@@ -383,6 +389,9 @@ class IPBanManagerPanel extends HTMLElement {
     this._numericErrors ||= new Map();
     if (message) this._numericErrors.set(input.id, message);
     else this._numericErrors.delete(input.id);
+    this._numericErrorValues ||= new Map();
+    if (message) this._numericErrorValues.set(input.id, input.value);
+    else this._numericErrorValues.delete(input.id);
     const id = `${input.id}-error`;
     let error = this.shadowRoot?.getElementById(id);
     if (!message) {
@@ -519,7 +528,7 @@ class IPBanManagerPanel extends HTMLElement {
       icon.classList.add("command-icon");
       button.append(label);
       button.classList.add("icon-command");
-      button.dataset.tooltip = text;
+      button.dataset.tooltip = button.getAttribute('aria-label') || text;
       if (!button.hasAttribute("aria-label")) button.setAttribute("aria-label", text);
     });
     if (!customElements.get("ha-button")) return;
@@ -632,6 +641,7 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _showToast(message, type = "success", autoHide = true) {
+    if (type === "success" && this._toastType === "error" && this._numericErrors?.size) return;
     this._toast = message || "";
     this._toastType = type;
     this._renderToast();
@@ -722,7 +732,7 @@ class IPBanManagerPanel extends HTMLElement {
       npm_edge_protection_enabled: "enabled",
       npm_protect_all_domains: "protect_all_domains",
     };
-    const keys = new Set([...Object.keys(options), ...Object.keys(after?.settings || {})]);
+    const keys = new Set(Object.keys(options));
     return [...keys].filter((key) => {
       if (key === "confirmed") return false;
       if (npmKeys[key]) {
@@ -1211,7 +1221,7 @@ class IPBanManagerPanel extends HTMLElement {
         input[aria-invalid="true"] { border-color: var(--error-color, #db4437); }
         .numeric-error { color: var(--error-color, #db4437); margin: 4px 0; font-size: 12px; }
         .threshold:has(input[aria-busy="true"]) .hint::after { content: ' …'; color: var(--primary-color); }
-        .threshold:has(input[aria-busy="true"]) > span::after { content: ' …'; color: var(--primary-color); }
+        .threshold:has(input[aria-busy="true"]) label > span::after { content: ' …'; color: var(--primary-color); }
         .region-toggle-row:focus-within { outline: 2px solid var(--primary-color); outline-offset: 3px; }
         @media (any-pointer: coarse) {
           button[data-toast-close] { min-height: 44px; min-width: 44px; }
@@ -1913,7 +1923,7 @@ class IPBanManagerPanel extends HTMLElement {
       this._render();
       for (const [id, message] of this._numericErrors || []) {
         const input = this.shadowRoot?.getElementById(id);
-        if (input) this._setNumericError(input, message);
+        if (input) this._setNumericError(input, this._numericErrorValues?.get(id) === input.value ? message : '');
       }
     } catch (err) {
       this._error = this._errorMessage(err);
@@ -2208,7 +2218,7 @@ class IPBanManagerPanel extends HTMLElement {
         <label>${this._t("regional_rules.region")}<input name="region" required maxlength="9" pattern="[A-Za-z]{2}(-[A-Za-z0-9]{1,6})?" value="${this._escape(code)}"></label>
         <label>${this._t("regional_thresholds.attempts")}<input name="threshold" type="number" min="0" max="100" step="1" required value="${Number(count)}"></label>
         <button class="primary region-apply-unchanged" aria-label="${this._escape(`${this._t('apply')} ${code}`)}" disabled>${this._t("apply")}</button>
-        <button type="button" class="danger" aria-label="${this._escape(`${this._t('remove')} ${code}`)}" data-action="remove_public_region" data-value="${this._escape(code)}" ${this._busy ? "disabled" : ""}>${this._t("remove")}</button>
+        <button type="button" class="danger" aria-label="${this._escape(`${this._t('remove')} ${code}`)}" data-action="remove_public_region" data-value="${this._escape(code)}" ${(this._busy || (this._data.settings.public_region_enabled && Object.keys(this._data.settings.public_region_rules).length === 1)) ? "disabled" : ""}>${this._t("remove")}</button>
       </form>
     `).join("");
     return `
@@ -2482,7 +2492,7 @@ class IPBanManagerPanel extends HTMLElement {
           const rules = { ...this._data.settings.public_region_rules };
           delete rules[button.dataset.value];
           if (this._data.settings.public_region_enabled && Object.keys(rules).length
-              && !await this._confirm(this._regionConfirmation(rules, true))) return;
+              && !await this._confirm(`${this._t("remove")}: ${button.dataset.value}\n\n${this._regionConfirmation(rules, true)}`)) return;
           this._post("remove_public_region", { value: button.dataset.value, confirmed: true });
           return;
         }

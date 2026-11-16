@@ -94,6 +94,11 @@ If the button does not work:
 
 Restart Home Assistant Core after a HACS installation or update. Reloading the integration tears down and restores its hooks, services, and panel API, and reloads its runtime Python modules. A reload does not replace every imported module, so it is not a substitute for the post-update Core restart.
 
+Active integration calls finish before runtime Python is reloaded. Failed reloads
+restore the previous module bindings instead of leaving a partially replaced
+runtime. Process-lifetime keys and the reload coordinator still require the
+post-update Core restart.
+
 ## Configure
 
 Normal setup is done from the UI. The integration name is **IP Ban Manager** and service calls use `ip_ban_manager.*`.

@@ -16,7 +16,7 @@ def is_allowlist_hostname(value: str) -> bool:
     if not candidate or len(candidate) > 253 or "/" in candidate or ":" in candidate:
         return False
     if all(
-        re.fullmatch(r"(?:0x[0-9a-f]+|[0-9]+)", label) for label in candidate.split(".")
+        re.fullmatch(r"(?:0x[0-9a-f]*|[0-9]+)", label) for label in candidate.split(".")
     ):
         return False
     try:

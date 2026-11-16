@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.11.0](CHANGELOG.md#v1110) | Compact panel and immediate setting saves, faster loading and GeoIP, NPM outage recovery, safer startup/reload and DNS handling, and updated translations and documentation. |
 | [v1.10.4-3](CHANGELOG.md#v1104-3) | Pre-release: safer region and DNS settings, NPM error recovery, reload and history fixes, and clearer panel feedback and translations. |
 | [v1.10.4-2](CHANGELOG.md#v1104-2) | Pre-release: audit fixes for startup, NPM policy preservation and recovery, authorization caching, settings, GeoIP, bans, and activity history. |
 | [v1.10.4-1](CHANGELOG.md#v1104-1) | Pre-release: compact panel refinements, immediate setting saves with named toasts, faster initial loading, and startup/NPM recovery fixes. |
