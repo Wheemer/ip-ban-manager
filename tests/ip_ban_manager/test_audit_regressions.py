@@ -506,7 +506,8 @@ def test_npm_renders_resolved_dns_addresses(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_failed_setup_cleans_partial_runtime(monkeypatch):
+@pytest.mark.parametrize("platforms_started", [False, True])
+async def test_failed_setup_cleans_partial_runtime(monkeypatch, platforms_started):
     """Even failed platform cleanup must not leave partially installed hooks."""
     import custom_components.ip_ban_manager as integration
 
@@ -519,15 +520,23 @@ async def test_failed_setup_cleans_partial_runtime(monkeypatch):
         ),
     )
     cleanup = AsyncMock()
+
+    async def fail_setup(*_args):
+        hass.data[integration._PLATFORMS_SETUP_STARTED] = platforms_started
+        raise ValueError("setup failed")
+
     monkeypatch.setattr(
         integration,
         "_async_setup_entry",
-        AsyncMock(side_effect=ValueError("setup failed")),
+        fail_setup,
     )
     monkeypatch.setattr(integration, "_async_unload_runtime", cleanup)
     with pytest.raises(ValueError, match="setup failed"):
         await integration.async_setup_entry(hass, object())
     cleanup.assert_awaited_once_with(hass)
+    assert hass.config_entries.async_unload_platforms.await_count == int(
+        platforms_started
+    )
 
 
 @pytest.mark.asyncio

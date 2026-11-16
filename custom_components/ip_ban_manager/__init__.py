@@ -211,6 +211,7 @@ from .yaml_config import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor"]
+_PLATFORMS_SETUP_STARTED = "ip_ban_manager_platforms_setup_started"
 
 _RELOADABLE_MODULES = (
     "custom_components.ip_ban_manager.activity",
@@ -492,12 +493,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up IP Ban Manager from a config entry."""
     hass.data[KEY_SETUP_IN_PROGRESS] = True
+    hass.data[_PLATFORMS_SETUP_STARTED] = False
     try:
         return await _async_setup_entry(hass, entry)
     except BaseException:
         try:
             try:
-                await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+                if hass.data.pop(_PLATFORMS_SETUP_STARTED, False):
+                    await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
             finally:
                 await _async_unload_runtime(hass)
         except Exception:
@@ -575,6 +578,7 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _register_services(hass)
     _setup_npm_sync(hass)
+    hass.data[_PLATFORMS_SETUP_STARTED] = True
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     hass.data.pop(KEY_SETUP_IN_PROGRESS, None)
     await _async_update_health_issue(hass)
@@ -584,8 +588,11 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload IP Ban Manager."""
-    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+    if hass.data.get(
+        _PLATFORMS_SETUP_STARTED
+    ) and not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
+    hass.data.pop(_PLATFORMS_SETUP_STARTED, None)
     await _async_unload_runtime(hass)
     return True
 
