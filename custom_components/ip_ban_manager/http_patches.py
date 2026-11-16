@@ -221,8 +221,10 @@ async def _allowlist_process_wrong_login(request: Request) -> None:
     try:
         async with runtime_operation(request.app[KEY_HASS]):
             await _async_process_wrong_login_owned(request)
-    except RuntimeClosingError as err:
-        raise HTTPServiceUnavailable(text=str(err)) from err
+    except RuntimeClosingError:
+        raise HTTPServiceUnavailable(
+            text="IP Ban Manager is temporarily unavailable. Try again shortly."
+        ) from None
 
 
 async def _async_process_wrong_login_owned(request: Request) -> None:

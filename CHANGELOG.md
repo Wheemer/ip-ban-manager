@@ -32,6 +32,7 @@
 - Preserve deliberate exact bans when a DNS allowlist hostname resolves to the same address, and report the conflict rather than silently removing the ban.
 - Normalize mapped IPv6 bans consistently across management and restore paths, reject ambiguous numeric DNS entries, and bound concurrent hostname-resolution work.
 - Drain active integration operations before Python reload, refresh imported helpers and constants, and restore previous module bindings if reload fails.
+- Use generic unavailable responses during reload instead of returning internal exception text.
 - Preserve activity received while history loads, protect unread history after storage errors, and avoid unnecessary sorting and cache sweeps during panel updates.
 
 ### 📚 Documentation and maintenance

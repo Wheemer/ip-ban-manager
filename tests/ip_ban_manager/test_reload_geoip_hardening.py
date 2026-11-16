@@ -2,6 +2,7 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from ipaddress import ip_address
 from threading import Event
 from types import SimpleNamespace
@@ -9,7 +10,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.ip_ban_manager import geoip, http_views
+from custom_components.ip_ban_manager import geoip, http_patches, http_views
 from custom_components.ip_ban_manager.geoip_cache import GeoIPPrefixCache
 from custom_components.ip_ban_manager.runtime_lifecycle import (
     RuntimeClosingError,
@@ -148,6 +149,32 @@ async def test_dispatch_refuses_new_calls_during_drain():
     response = await http_views.async_dispatch_http_view(view, request, "status_get")
     assert response[1] == 503
     handler.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_unavailable_http_responses_do_not_echo_exception_details(monkeypatch):
+    """Internal lifecycle exception details must never reach the HTTP response."""
+    from aiohttp.web import HTTPServiceUnavailable
+
+    @asynccontextmanager
+    async def unavailable(hass):
+        raise RuntimeClosingError("private-detail /config/internal-file")
+        yield
+
+    hass = SimpleNamespace(
+        data={http_views.KEY_HTTP_VIEW_HANDLERS: {"status_get": AsyncMock()}}
+    )
+    request = SimpleNamespace(app={http_views.KEY_HASS: hass})
+    monkeypatch.setattr(http_views, "runtime_operation", unavailable)
+    view = SimpleNamespace(json=lambda data, status_code: (data, status_code))
+    response = await http_views.async_dispatch_http_view(view, request, "status_get")
+    assert response[1] == 503
+    assert "private-detail" not in str(response[0])
+    monkeypatch.setattr(http_patches, "runtime_operation", unavailable)
+    with pytest.raises(HTTPServiceUnavailable) as error:
+        await http_patches._allowlist_process_wrong_login(request)
+    assert "private-detail" not in error.value.text
+    assert error.value.status == 503
 
 
 @pytest.mark.asyncio

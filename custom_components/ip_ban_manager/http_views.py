@@ -103,8 +103,14 @@ async def async_dispatch_http_view(
     try:
         async with runtime_operation(hass):
             return await handler(view, request)
-    except RuntimeClosingError as err:
-        return view.json({"ok": False, "error": str(err)}, status_code=503)
+    except RuntimeClosingError:
+        return view.json(
+            {
+                "ok": False,
+                "error": "IP Ban Manager is temporarily unavailable. Try again shortly.",
+            },
+            status_code=503,
+        )
 
 
 def http_view_not_loaded_response(
