@@ -65,39 +65,28 @@ labeled controls. Activity updates without refreshing the whole page.
 
 ## Screenshots
 
-
-### Setup
-
-<p align="center">
-  <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png" alt="IP Ban Manager setup" width="420"></a>
-</p>
-
-### Live panel
-
 <table>
   <tr>
+    <td width="50%" valign="top" align="center">
+      <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/setup-flow.png" alt="IP Ban Manager setup" width="240"></a>
+    </td>
     <td width="50%" valign="top">
       <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-activity.png" alt="Activity" width="420"></a>
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
       <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-allowed.png" alt="Allowed IPs" width="420"></a>
     </td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">
       <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-blocking.png" alt="Blocking" width="420"></a>
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
       <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-notifications.png" alt="Notifications" width="420"></a>
     </td>
-  </tr>
-</table>
-
-### Settings, edge protection, and backups
-
-<table>
-  <tr>
-    <td valign="top">
+    <td width="50%" valign="top">
       <a href="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png"><img src="https://raw.githubusercontent.com/Wheemer/ip-ban-manager/main/docs/images/panel-settings.png" alt="Settings, NGINX Proxy Manager, GeoIP, and Backup" width="420"></a>
     </td>
   </tr>
