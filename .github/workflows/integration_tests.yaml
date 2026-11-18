@@ -20,23 +20,37 @@ jobs:
   generate_versions:
     runs-on: ubuntu-24.04
     outputs:
-      versions: ${{ steps.generate-versions.outputs.versions }}
+      versions: ${{ steps.generate-versions.outputs.versions || '["docs-only"]' }}
+      runtime: ${{ steps.scope.outputs.runtime }}
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        fetch-depth: 0
+    - name: Classify changed files
+      id: scope
+      env:
+        CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: python3 scripts/ci_runtime_changes.py >> "$GITHUB_OUTPUT"
     - name: Set up Python
+      if: steps.scope.outputs.runtime == 'true'
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
         python-version: '3.14'
     - name: Install uv
+      if: steps.scope.outputs.runtime == 'true'
       uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
     - name: Install dependencies
+      if: steps.scope.outputs.runtime == 'true'
       run: uv pip sync --system --strict requirements.test
     - name: Generate versions
+      if: steps.scope.outputs.runtime == 'true'
       id: generate-versions
       run: |
-        python .github/get_versions.py >> $GITHUB_OUTPUT
+        python .github/get_versions.py >> "$GITHUB_OUTPUT"
 
   test:
+    if: needs.generate_versions.outputs.runtime == 'true'
     runs-on: ubuntu-24.04
     needs: [generate_versions]
     strategy:
@@ -62,7 +76,20 @@ jobs:
 
   # No real steps, just a meta-step to wait for all test steps
   finish:
-    needs: [test]
+    if: always()
+    needs: [generate_versions, test]
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Require successful runtime tests or a confirmed docs-only diff
+      env:
+        SCOPE_RESULT: ${{ needs.generate_versions.result }}
+        RUNTIME: ${{ needs.generate_versions.outputs.runtime }}
+        TEST_RESULT: ${{ needs.test.result }}
+      run: |
+        test "$SCOPE_RESULT" = success
+        if [ "$RUNTIME" = true ]; then
+          test "$TEST_RESULT" = success
+        else
+          test "$RUNTIME" = false
+          test "$TEST_RESULT" = skipped
+        fi
