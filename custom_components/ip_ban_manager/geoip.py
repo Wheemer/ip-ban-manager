@@ -359,27 +359,26 @@ async def async_check_geoip_update(hass: HomeAssistant) -> None:
         await async_download_geoip_database(hass, update_url=url)
 
 
+async def _async_periodic_geoip_updates(hass: HomeAssistant) -> None:
+    await asyncio.sleep(60)
+    while True:
+        try:
+            await async_check_geoip_update(hass)
+        except (OSError, HomeAssistantError, ValueError):
+            _LOGGER.debug("Could not check or update the GeoIP database", exc_info=True)
+        await asyncio.sleep(86400)
+
+
 def start_geoip_updates(hass: HomeAssistant) -> None:
     """Check after startup, then daily for the lifetime of the integration."""
-
-    async def check_updates() -> None:
-        await asyncio.sleep(60)
-        while True:
-            try:
-                await async_check_geoip_update(hass)
-            except (OSError, HomeAssistantError, ValueError):
-                _LOGGER.debug(
-                    "Could not check or update the GeoIP database", exc_info=True
-                )
-            await asyncio.sleep(86400)
-
     if _UPDATE_TASK not in hass.data:
         hass.data[_UPDATE_TASK] = hass.async_create_background_task(
-            check_updates(), "IP Ban Manager GeoIP updates"
+            _async_periodic_geoip_updates(hass), "IP Ban Manager GeoIP updates"
         )
 
 
 async def stop_geoip_updates(hass: HomeAssistant) -> None:
+    """Stop the background refresh and clear its availability state."""
     task = hass.data.pop(_UPDATE_TASK, None)
     if task is not None:
         task.cancel()
