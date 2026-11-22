@@ -215,6 +215,12 @@ GeoIP labels are optional. Use the GeoIP section's **Download** button to instal
 
 Remote public-IP locations are looked up locally in the downloaded database. Private and loopback addresses are not geolocated. Location data is approximate and provided by DB-IP.com. The bundled pure-Python MaxMind DB reader avoids installing Python packages inside the Home Assistant container at startup.
 
+After the first download, IP Ban Manager checks for new monthly DB-IP editions
+in the background. When one is available, the **Update** button is highlighted
+and reads **Update available**. Turn on **Automatically update GeoIP database**
+to install newer editions automatically. The setting is off by default, and a
+failed download leaves the existing database in place.
+
 The current-region shortcuts use Home Assistant's configured country and home coordinates. Resolving those coordinates to a province/state uses an online OpenStreetMap Nominatim request, cached for 12 hours. This is separate from local lookups of incoming IP addresses.
 
 Reverse-DNS names shown in notifications are separate from GeoIP. Public-address PTR records are resolved through Cloudflare DNS-over-HTTPS, while private and local addresses use Home Assistant's local resolver. Results are cached for 10 minutes.

@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.11.1
+
+### 🌍 GeoIP database updates
+
+- Check for new DB-IP City Lite editions in the background after the first download. The existing button highlights when an update is available.
+- Add opt-in automatic updates that keep the current database if a replacement fails validation.
+
+### 🔔 Notification links
+
+- Open Blocking from ban alerts, Activity from failed-login alerts, and Allowed IPs when silencing alerts for an allowlisted address.
+
+### 🛡️ Localhost defaults
+
+- Include IPv4 and IPv6 loopback in the Localhost preset and add the IPv6 address once on eligible existing installs, respecting explicit network blocks and later removals.
+
 ## v1.11.0
 
 ### 🎨 A more compact panel

@@ -44,6 +44,12 @@ class IPBanManagerPanel extends HTMLElement {
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", this._beforeUnload);
+    this._onPanelLocationChanged = () => {
+      if (this._loaded && window.location.pathname === "/ip_ban_manager") {
+        this._handleInitialAction();
+      }
+    };
+    window.addEventListener("location-changed", this._onPanelLocationChanged);
     this._autoRefresh = window.setInterval(() => this._scheduleLoad(), 10000);
   }
 
@@ -70,6 +76,7 @@ class IPBanManagerPanel extends HTMLElement {
     window.clearTimeout(this._loadTimer);
     window.clearTimeout(this._toastTimer);
     window.removeEventListener("beforeunload", this._beforeUnload);
+    window.removeEventListener("location-changed", this._onPanelLocationChanged);
   }
 
   _language() {
@@ -527,7 +534,9 @@ class IPBanManagerPanel extends HTMLElement {
       label.append(...[...button.childNodes].filter(node => node !== icon));
       icon.classList.add("command-icon");
       button.append(label);
-      button.classList.add("icon-command");
+      if (!button.classList.contains("geoip-update-available")) {
+        button.classList.add("icon-command");
+      }
       button.dataset.tooltip = button.getAttribute('aria-label') || text;
       if (!button.hasAttribute("aria-label")) button.setAttribute("aria-label", text);
     });
@@ -777,6 +786,7 @@ class IPBanManagerPanel extends HTMLElement {
       allowlisted_logins_can_ban: "settings.allowlisted_logins_can_ban",
       default_deny_enabled: "settings.default_deny_enabled",
       geoip_enabled: "settings.geoip_enabled",
+      geoip_auto_update: "geoip.auto_update",
       sidebar_panel_enabled: "settings.sidebar_panel_enabled",
       login_attempts_threshold: "settings.login_attempts_threshold",
       activity_history_hours: "settings.activity_history_hours",
@@ -864,13 +874,18 @@ class IPBanManagerPanel extends HTMLElement {
   }
 
   _handleInitialAction() {
-    if (this._initialActionHandled) {
+    const search = window.location.search;
+    if (this._lastPanelSearch === search) {
       return false;
     }
-    this._initialActionHandled = true;
+    this._lastPanelSearch = search;
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(search);
     const action = params.get("action");
+    const tab = action === "silence_allowlisted_login" ? "allowed" : params.get("tab");
+    if (tab) {
+      this._selectPanelTab(tab);
+    }
     if (action !== "silence_allowlisted_login") {
       return false;
     }
@@ -891,7 +906,16 @@ class IPBanManagerPanel extends HTMLElement {
     try {
       await this._post(action, payload);
     } finally {
-      window.history.replaceState(null, "", window.location.pathname);
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("action") === action &&
+          url.searchParams.get("ip_address") === payload.value) {
+        for (const key of ["action", "ip_address", "notification_id"]) {
+          url.searchParams.delete(key);
+        }
+        url.searchParams.set("tab", "allowed");
+        window.history.replaceState(window.history.state, "", url);
+        this._lastPanelSearch = url.search;
+      }
       if (!this._data) {
         await this._load();
       }
@@ -1266,6 +1290,7 @@ class IPBanManagerPanel extends HTMLElement {
           text-decoration: none;
         }
         .geoip-status a:hover { text-decoration: underline; }
+        .geoip-auto-update { margin-top: 12px; }
         .backup-stack {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(min(100%, 390px), 1fr));
@@ -1557,6 +1582,19 @@ class IPBanManagerPanel extends HTMLElement {
         @media (max-width: 760px) { .tab-page > section > h2 { min-height: 52px; padding: 10px 12px; gap: 8px; } .activity-row { padding: 10px; gap: 8px; } .activity-row-actions time { white-space: normal; text-align: end; max-width: 120px; } .activity-source { gap: 5px 8px; } .backup-stack .button-row { align-self: auto; } }
         button:not([role="tab"]):not([data-toast-close]), ha-button::part(base) { border-radius: 8px; transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease; }
         button.primary:not(:disabled):not([role="tab"]), ha-button.primary:not([disabled])::part(base) { background: var(--ipbm-action-fill); border-color: var(--ipbm-action-fill); color: #fff; box-shadow: 0 2px 3px rgba(0,0,0,.12); }
+        button.primary.geoip-update-available:not(:disabled) {
+          outline: 2px solid var(--ipbm-action-fill);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          button.primary.geoip-update-available:not(:disabled) {
+            animation: geoip-update-pulse 1.4s ease-out 3;
+          }
+        }
+        @keyframes geoip-update-pulse {
+          from { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ipbm-action-fill) 65%, transparent); }
+          to { box-shadow: 0 0 0 9px transparent; }
+        }
         button.secondary:not(:disabled), ha-button.secondary:not([disabled])::part(base) { background: color-mix(in srgb, var(--primary-color) 5%, var(--card-background-color)); }
         button.blocking:not(:disabled), ha-button.blocking:not([disabled])::part(base) { background: color-mix(in srgb, var(--warning-color, #f9a825) 7%, var(--card-background-color)); border-color: color-mix(in srgb, var(--warning-color, #f9a825) 60%, var(--divider-color)); }
         .command-icon { --mdc-icon-size: 18px; margin-inline-end: 6px; vertical-align: middle; flex: 0 0 18px; }
@@ -1740,7 +1778,7 @@ class IPBanManagerPanel extends HTMLElement {
     if (id === "backup") id = "settings";
     if (!["activity", "allowed", "blocking", "notifications", "settings"].includes(id)) return;
     this._panelTab = id;
-    this.shadowRoot.querySelectorAll("button[data-panel-tab]").forEach(button => {
+    this.shadowRoot?.querySelectorAll("button[data-panel-tab]").forEach(button => {
       const selected = button.dataset.panelTab === id;
       button.setAttribute("aria-selected", String(selected));
       button.tabIndex = selected ? 0 : -1;
@@ -1751,7 +1789,7 @@ class IPBanManagerPanel extends HTMLElement {
         button.parentElement.scrollBy({ left: delta, behavior: "instant" });
       }
     });
-    this.shadowRoot.querySelectorAll(".tab-page").forEach(page => {
+    this.shadowRoot?.querySelectorAll(".tab-page").forEach(page => {
       page.hidden = page.id !== `page-${id}`;
     });
   }
@@ -2336,7 +2374,8 @@ class IPBanManagerPanel extends HTMLElement {
     const installed = Boolean(geoip.geoip_database_present);
     const updated = geoip.geoip_database_updated ? this._formatDate(geoip.geoip_database_updated) : this._t("geoip.not_installed");
     const status = installed ? this._t("geoip.installed", { date: updated }) : this._t("geoip.download_hint");
-    const buttonLabel = installed ? this._t("geoip.update") : this._t("geoip.download");
+    const updateAvailable = installed && Boolean(geoip.geoip_update_available);
+    const buttonLabel = this._t(!installed ? "geoip.download" : updateAvailable ? "geoip.update_available" : "geoip.update");
     return `
       <div class="geoip-status">
         <div>
@@ -2344,8 +2383,9 @@ class IPBanManagerPanel extends HTMLElement {
           <small class="database-state"><ha-icon icon="${installed ? "mdi:database-check-outline" : "mdi:database-arrow-down-outline"}" aria-hidden="true"></ha-icon>${status}</small>
           <small>${this._t("geoip.attribution")} <a href="https://db-ip.com" target="_blank" rel="noreferrer">DB-IP City Lite</a></small>
         </div>
-        <button class="secondary" data-action="update_geoip" ${this._busy ? "disabled" : ""}>${buttonLabel}</button>
+        <button class="${updateAvailable ? "primary geoip-update-available" : "secondary"}" data-action="update_geoip" ${this._busy ? "disabled" : ""}>${buttonLabel}</button>
       </div>
+      <div class="geoip-auto-update">${this._checkbox("geoip_auto_update", this._t("geoip.auto_update"), this._t("geoip.auto_update_hint"), geoip.geoip_auto_update)}</div>
     `;
   }
 

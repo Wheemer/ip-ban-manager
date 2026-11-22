@@ -24,6 +24,47 @@ from custom_components.ip_ban_manager.const import (
 from custom_components.ip_ban_manager.entry_helpers import entry_ip_addresses
 
 
+@pytest.mark.parametrize(
+    ("allowed", "blocked", "migrated", "adds_ipv6"),
+    [
+        (["127.0.0.1"], [], False, True),
+        (["127.0.0.1"], [], True, False),
+        ([], [], False, False),
+        (["127.0.0.1"], ["::1/128"], False, False),
+        (["127.0.0.1", "::1/128"], [], False, False),
+    ],
+)
+def test_ipv6_loopback_migration(monkeypatch, allowed, blocked, migrated, adds_ipv6):
+    """Migrate only the old localhost default without undoing later changes."""
+    entry = SimpleNamespace(
+        data={},
+        options={
+            CONF_IP_ADDRESSES: allowed,
+            CONF_BLOCKED_NETWORKS: blocked,
+            "ipv6_loopback_default_migrated": migrated,
+        },
+    )
+    hass = Mock()
+    monkeypatch.setattr(network_policy, "_config_entry", lambda _: entry)
+    update_allowlist = Mock()
+    update_options = Mock()
+    monkeypatch.setattr(network_policy, "update_allowlist_entry", update_allowlist)
+    monkeypatch.setattr(network_policy, "update_entry_options", update_options)
+    network_policy.migrate_ipv6_loopback_default(hass)
+    if adds_ipv6:
+        update_allowlist.assert_called_once()
+        assert update_allowlist.call_args.args[1] == [*allowed, "::1"]
+        assert update_allowlist.call_args.kwargs["mark_ipv6_loopback_migrated"]
+    else:
+        update_allowlist.assert_not_called()
+        if migrated or not allowed:
+            update_options.assert_not_called()
+        else:
+            update_options.assert_called_once_with(
+                hass, ipv6_loopback_default_migrated=True
+            )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("client", ["fe80::2", "fe80::2%eth0"])
 async def test_ipv4_allowlist_does_not_cover_link_local_ipv6_peer(monkeypatch, client):
@@ -106,7 +147,12 @@ async def test_upgrade_adds_visible_link_local_once_and_preserves_removal(
 ):
     """Real setup and reload restore legacy access without a hidden exemption."""
     entry, _ = await _setup_legacy(hass, monkeypatch)
-    assert entry_ip_addresses(entry) == ["127.0.0.1", "192.168.1.0/24", "fe80::/64"]
+    assert entry_ip_addresses(entry) == [
+        "127.0.0.1",
+        "192.168.1.0/24",
+        "fe80::/64",
+        "::1",
+    ]
     assert entry.options[CONF_IPV6_LOCAL_DEFAULTS_MIGRATED] is True
     assert entry.options[CONF_ALLOWLIST_ENTRY_META]["fe80::/64"]["source"] == "detected"
     lookup = hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup
@@ -120,6 +166,7 @@ async def test_upgrade_adds_visible_link_local_once_and_preserves_removal(
     assert await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert "fe80::/64" not in entry_ip_addresses(entry)
+    assert "::1" not in entry_ip_addresses(entry)
     assert ip_address("fe80::2") in hass.http.app[KEY_BAN_MANAGER].ip_bans_lookup
 
 
@@ -159,7 +206,7 @@ async def test_upgrade_does_not_duplicate_equivalent_ipv6(hass, monkeypatch, exi
     """Existing larger allowances and expanded spelling are kept unchanged."""
     addresses = ["127.0.0.1", "192.168.1.0/24", existing]
     entry, _ = await _setup_legacy(hass, monkeypatch, addresses=addresses)
-    assert entry_ip_addresses(entry) == addresses
+    assert entry_ip_addresses(entry) == [*addresses, "::1"]
     assert entry.options[CONF_IPV6_LOCAL_DEFAULTS_MIGRATED] is True
 
 

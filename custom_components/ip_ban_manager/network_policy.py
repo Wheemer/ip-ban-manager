@@ -131,6 +131,7 @@ def _network_is_covered(network: IPNetwork, allowed: IPNetwork) -> bool:
 
 async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
     """Sync internal defaults and migrate legacy link-local trust once."""
+    migrate_ipv6_loopback_default(hass)
     entry = _config_entry(hass)
     current = entry_ip_addresses(entry)
     current_networks = {
@@ -205,6 +206,31 @@ async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
             meta_source=SOURCE_DETECTED,
             mark_ipv6_defaults_migrated=migrate_ipv6,
         )
+
+
+def migrate_ipv6_loopback_default(hass: HomeAssistant) -> None:
+    """Pair the legacy IPv4 localhost default with IPv6 once."""
+    entry = _config_entry(hass)
+    if entry.options.get("ipv6_loopback_default_migrated"):
+        return
+    current = entry_ip_addresses(entry)
+    networks = parse_allowlist(current)
+    ipv4 = parse_allowlist_network("127.0.0.1")
+    ipv6 = parse_allowlist_network("::1")
+    if ipv4 not in networks:
+        return
+    if not any(_network_is_covered(ipv6, allowed) for allowed in networks) and not any(
+        _network_is_covered(ipv6, blocked)
+        for blocked in parse_blocked_networks(entry_blocked_networks(entry))
+    ):
+        update_allowlist_entry(
+            hass,
+            [*current, "::1"],
+            meta_source=SOURCE_DETECTED,
+            mark_ipv6_loopback_migrated=True,
+        )
+    else:
+        update_entry_options(hass, ipv6_loopback_default_migrated=True)
 
 
 def dismiss_http_notifications(hass: HomeAssistant) -> None:
@@ -323,6 +349,7 @@ def update_allowlist_entry(
     *,
     meta_source: str | None = None,
     mark_ipv6_defaults_migrated: bool = False,
+    mark_ipv6_loopback_migrated: bool = False,
 ) -> None:
     """Persist and apply the current allowlist without a Home Assistant restart."""
     entry = _config_entry(hass)
@@ -343,6 +370,8 @@ def update_allowlist_entry(
     }
     if mark_ipv6_defaults_migrated:
         updates[CONF_IPV6_LOCAL_DEFAULTS_MIGRATED] = True
+    if mark_ipv6_loopback_migrated:
+        updates["ipv6_loopback_default_migrated"] = True
     update_entry_options(hass, **updates)
     hass.http.app[KEY_ALLOWLIST] = parse_allowlist(ip_addresses)
     apply_blocked_networks(hass, _config_entry(hass))

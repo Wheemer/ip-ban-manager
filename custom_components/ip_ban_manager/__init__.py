@@ -665,6 +665,9 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.pop(KEY_SETUP_IN_PROGRESS, None)
     await _async_update_health_issue(hass)
 
+    from .geoip import start_geoip_updates
+
+    start_geoip_updates(hass)
     return True
 
 
@@ -691,8 +694,9 @@ async def _async_unload_runtime(hass: HomeAssistant) -> None:
     from .legacy_migration import async_stop_legacy_work
 
     await async_stop_legacy_work(hass)
-    from .geoip import async_stop_local_region
+    from .geoip import async_stop_local_region, stop_geoip_updates
 
+    await stop_geoip_updates(hass)
     await async_stop_local_region(hass)
     from .reverse_dns import async_stop_reverse_dns
 

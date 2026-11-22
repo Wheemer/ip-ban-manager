@@ -453,6 +453,7 @@ async def test_user_flow_adds_supervisor_internal_safe_default(
     assert result["type"] == "create_entry"
     assert result["data"][CONF_IP_ADDRESSES] == [
         "127.0.0.1",
+        "::1",
         "192.168.1.0/24",
         "172.30.0.0/16",
     ]
@@ -494,6 +495,7 @@ async def test_user_flow_adds_container_bridge_gateway_safe_default(
     assert result["type"] == "create_entry"
     assert result["data"][CONF_IP_ADDRESSES] == [
         "127.0.0.1",
+        "::1",
         "192.168.1.0/24",
         "172.17.0.1/32",
     ]
@@ -950,7 +952,7 @@ async def test_options_flow_safe_default_checkboxes(
 
     assert result["type"] == "create_entry"
     assert result["data"] == expected_options_data(
-        ["10.0.1.0/24", "127.0.0.1", "192.168.1.0/24"], threshold=5
+        ["10.0.1.0/24", "127.0.0.1", "::1", "192.168.1.0/24"], threshold=5
     )
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None

@@ -59,7 +59,7 @@ from .ip_utils import normalize_allowlist_entry, parse_allowlist_network
 
 SECTION_ALLOWED_IPS = "allowed_ips"
 SECTION_BANNED_IPS = "banned_ips"
-DEFAULT_ALLOWED_IPS = ["127.0.0.1"]
+DEFAULT_ALLOWED_IPS = ["127.0.0.1", "::1"]
 CONF_QUICK_ALLOWLIST = "quick_allowlist"
 CONF_BAN_OPTIONS = "ban_options"
 CONF_ADVANCED_BAN_OPTIONS = "advanced_ban_options"
@@ -566,7 +566,7 @@ def _current_quick_allowlist_options(
     """Return common allowlist checkbox options already active."""
     current = set(current_addresses)
     selected: list[str] = []
-    if DEFAULT_ALLOWED_IPS[0] in current:
+    if any(address in current for address in DEFAULT_ALLOWED_IPS):
         selected.append(QUICK_ALLOW_LOCALHOST)
     if detected_subnets and any(subnet in current for subnet in detected_subnets):
         selected.append(QUICK_ALLOW_LOCAL_NETWORK)
@@ -574,10 +574,18 @@ def _current_quick_allowlist_options(
 
 
 def _apply_quick_allowlist_options(
-    ip_addresses: list[str], quick_input: list[str], detected_subnets: list[str]
+    ip_addresses: list[str],
+    quick_input: list[str],
+    detected_subnets: list[str],
+    current_addresses: list[str],
 ) -> list[str]:
     """Sync convenience allowlist entries with the checkbox state."""
-    quick_managed_entries = {*DEFAULT_ALLOWED_IPS, *detected_subnets}
+    localhost_entries = (
+        DEFAULT_ALLOWED_IPS
+        if QUICK_ALLOW_LOCALHOST in quick_input
+        else set(DEFAULT_ALLOWED_IPS).intersection(current_addresses)
+    )
+    quick_managed_entries = {*localhost_entries, *detected_subnets}
     updated = [ip for ip in ip_addresses if ip not in quick_managed_entries]
 
     if QUICK_ALLOW_LOCALHOST in quick_input:
@@ -1079,6 +1087,7 @@ class OptionsFlow(config_entries.OptionsFlow):
                         ip_addresses,
                         cast(list[str], allowed_input[CONF_QUICK_ALLOWLIST]),
                         self._detected_subnets,
+                        _current_addresses(self._config_entry),
                     )
             except UnsafeAllowlistError:
                 errors[CONF_ALLOWED_IPS] = "unsafe_allowlist_network"

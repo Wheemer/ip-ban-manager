@@ -15,7 +15,7 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from gzip import BadGzipFile, GzipFile
 from http.client import HTTPResponse
 from ipaddress import ip_address
@@ -25,7 +25,7 @@ from tempfile import NamedTemporaryFile
 from threading import RLock
 from time import monotonic
 from typing import Any, cast
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
@@ -308,18 +308,104 @@ def open_geoip_download_url(url: str) -> Iterator[HTTPResponse]:
     ) from last_error
 
 
-def download_geoip_database_to_path(path: Path) -> None:
+CONF_GEOIP_AUTO_UPDATE = "geoip_auto_update"
+_UPDATE_AVAILABLE = "ip_ban_manager_geoip_update_available"
+_UPDATE_TASK = "ip_ban_manager_geoip_update_task"
+
+
+def _database_build_epoch(path: Path) -> int | None:
+    opened = open_geoip_reader(path)
+    if opened is None:
+        return None
+    reader = cast(Any, opened[0])
+    try:
+        return int(reader.metadata().build_epoch)
+    finally:
+        reader.close()
+
+
+def geoip_update_url(path: Path) -> str | None:
+    """Probe release URLs without downloading the database."""
+    epoch = _database_build_epoch(path)
+    if epoch is None:
+        return None
+    installed_month = datetime.fromtimestamp(epoch, UTC).strftime("%Y-%m")
+    now = dt_util.utcnow()
+    for month, url in zip(
+        geoip_download_months(now), geoip_download_urls(now), strict=True
+    ):
+        if month <= installed_month:
+            return None
+        try:
+            request = UrlRequest(
+                url,
+                method="HEAD",
+                headers={"User-Agent": f"IPBanManager/{integration_version()}"},
+            )
+            with urlopen(request, timeout=DBIP_DOWNLOAD_TIMEOUT):
+                return url
+        except HTTPError as err:
+            if err.code != 404:
+                raise
+    return None
+
+
+async def async_check_geoip_update(hass: HomeAssistant) -> None:
+    """Refresh availability and apply an opted-in update."""
+    url = await hass.async_add_executor_job(geoip_update_url, geoip_database_path(hass))
+    hass.data[_UPDATE_AVAILABLE] = url is not None
+    entry = hass.http.app.get(KEY_CONFIG_ENTRY)
+    if url and entry and entry.options.get(CONF_GEOIP_AUTO_UPDATE) is True:
+        await async_download_geoip_database(hass, update_url=url)
+
+
+def start_geoip_updates(hass: HomeAssistant) -> None:
+    """Check after startup, then daily for the lifetime of the integration."""
+
+    async def check_updates() -> None:
+        await asyncio.sleep(60)
+        while True:
+            try:
+                await async_check_geoip_update(hass)
+            except (OSError, HomeAssistantError, ValueError):
+                _LOGGER.debug(
+                    "Could not check or update the GeoIP database", exc_info=True
+                )
+            await asyncio.sleep(86400)
+
+    if _UPDATE_TASK not in hass.data:
+        hass.data[_UPDATE_TASK] = hass.async_create_background_task(
+            check_updates(), "IP Ban Manager GeoIP updates"
+        )
+
+
+async def stop_geoip_updates(hass: HomeAssistant) -> None:
+    task = hass.data.pop(_UPDATE_TASK, None)
+    if task is not None:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+    hass.data.pop(_UPDATE_AVAILABLE, None)
+
+
+def download_geoip_database_to_path(path: Path, update_url: str | None = None) -> None:
     """Download and install the DB-IP City Lite database atomically."""
     with _DOWNLOAD_LOCK:
-        _download_validated_geoip_database(path)
+        if update_url is None:
+            _download_validated_geoip_database(path)
+        else:
+            epoch = _database_build_epoch(path)
+            if epoch is not None:
+                _download_validated_geoip_database(path, update_url, epoch)
 
 
-def _download_validated_geoip_database(path: Path) -> None:
+def _download_validated_geoip_database(
+    path: Path, update_url: str | None = None, minimum_epoch: int = 0
+) -> None:
     """Keep the previous database until the replacement opens successfully."""
     path.parent.mkdir(parents=True, exist_ok=True)
     last_error: Exception | None = None
 
-    for url in geoip_download_urls():
+    for url in [update_url] if update_url else geoip_download_urls():
         temp_path: str | None = None
         try:
             with (
@@ -348,7 +434,10 @@ def _download_validated_geoip_database(path: Path) -> None:
             if validated is None:
                 raise HomeAssistantError("Downloaded GeoIP database is invalid.")
             candidate, _mtime = validated
+            build_epoch = 0
             try:
+                if update_url:
+                    build_epoch = cast(Any, candidate).metadata().build_epoch
                 if total < 1024:
                     raise HomeAssistantError("Downloaded GeoIP database is too small.")
                 probes = [
@@ -361,6 +450,9 @@ def _download_validated_geoip_database(path: Path) -> None:
                     )
             finally:
                 cast(Any, candidate).close()
+            if update_url and build_epoch <= minimum_epoch:
+                os.unlink(temp_path)
+                return
             previous = path.with_name(f".{path.name}.previous")
             had_previous = path.is_file()
             if had_previous:
@@ -412,16 +504,20 @@ def _download_validated_geoip_database(path: Path) -> None:
     ) from last_error
 
 
-async def async_download_geoip_database(hass: HomeAssistant) -> None:
+async def async_download_geoip_database(
+    hass: HomeAssistant, *, update_url: str | None = None
+) -> None:
     """Download the local GeoIP database without blocking the event loop."""
     path = geoip_database_path(hass)
-    pending = hass.async_add_executor_job(download_geoip_database_to_path, path)
+    args = (path,) if update_url is None else (path, update_url)
+    pending = hass.async_add_executor_job(download_geoip_database_to_path, *args)
     try:
         await asyncio.shield(pending)
     except asyncio.CancelledError:
         await pending
         raise
     await async_prepare_geoip_reader(hass)
+    hass.data.pop(_UPDATE_AVAILABLE, None)
 
 
 def close_geoip_reader(hass: HomeAssistant) -> None:
@@ -1109,6 +1205,8 @@ def geoip_status(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, object]:
     database_path = geoip_database_path(hass)
     return {
         ATTR_GEOIP_ENABLED: entry_geoip_enabled(entry),
+        CONF_GEOIP_AUTO_UPDATE: entry.options.get(CONF_GEOIP_AUTO_UPDATE) is True,
+        "geoip_update_available": hass.data.get(_UPDATE_AVAILABLE, False),
         ATTR_GEOIP_DATABASE_PRESENT: database_path.is_file(),
         ATTR_GEOIP_DATABASE_SOURCE: DBIP_SOURCE_NAME,
         ATTR_GEOIP_DATABASE_UPDATED: file_updated(database_path),
