@@ -125,6 +125,9 @@
     "upload_confirm": "Téléverser {filename} et remplacer les paramètres actuels d'IP Ban Manager et les bannissements exacts ?"
   },
   "geoip": {
+    "update_available": "Mise à jour disponible",
+    "auto_update": "Mettre à jour automatiquement la base GeoIP",
+    "auto_update_hint": "Installe les nouvelles éditions en arrière-plan après le premier téléchargement.",
     "title": "Base de données GeoIP",
     "not_installed": "Non installée",
     "installed": "Installée - {date}",

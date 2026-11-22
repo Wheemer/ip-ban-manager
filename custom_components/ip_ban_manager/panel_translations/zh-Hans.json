@@ -125,6 +125,9 @@
     "upload_confirm": "上传 {filename} 并替换当前 IP Ban Manager 设置和精确 IP 封禁？"
   },
   "geoip": {
+    "update_available": "有可用更新",
+    "auto_update": "自动更新 GeoIP 数据库",
+    "auto_update_hint": "首次下载后，在后台安装新版本。",
     "title": "GeoIP 数据库",
     "not_installed": "未安装",
     "installed": "已安装 - {date}",

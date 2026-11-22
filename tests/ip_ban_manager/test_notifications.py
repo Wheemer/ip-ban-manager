@@ -345,7 +345,7 @@ async def test_imported_auth_wrong_login_gets_branded_notification(
     assert "**Login attempt failed**" in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
     assert f"/{DOMAIN}?action=silence_allowlisted_login" not in message
-    assert message.endswith(f"[Open settings](/{DOMAIN})")
+    assert message.endswith(f"[Open settings](/{DOMAIN}?tab=activity)")
     assert "/config/integrations/" not in message
 
 
@@ -381,7 +381,7 @@ async def test_allowlisted_wrong_login_can_become_exact_ban(
     assert ban_message.startswith("## <img ")
     assert ban_message.count(NOTIFICATION_ICON_DATA_URL) == 1
     assert "**IP banned**" in ban_message
-    assert f"[Open settings](/{DOMAIN})" in ban_message
+    assert f"[Open settings](/{DOMAIN}?tab=blocking)" in ban_message
     assert "/config/integrations/" not in ban_message
     assert "Allowlisted login" not in ban_message
 
@@ -829,7 +829,7 @@ async def test_setup_entry_rewrites_existing_http_notifications(
     assert "**Login attempt failed**" in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
     assert f"/{DOMAIN}?action=silence_allowlisted_login" not in message
-    assert message.endswith(f"[Open settings](/{DOMAIN})")
+    assert message.endswith(f"[Open settings](/{DOMAIN}?tab=activity)")
     assert "/config/integrations/" not in message
     assert "IP Ban Manager icon" not in message
     assert "from host (10.0.0.1)." not in message
@@ -970,7 +970,7 @@ async def test_standard_wrong_login_rewrites_same_turn_notification(
     assert "from dns.google (8.8.8.8)." not in message
     assert "from 8.8.8.8." in message
     assert "Reverse DNS: dns.google" in message
-    assert message.endswith(f"[Open settings](/{DOMAIN})")
+    assert message.endswith(f"[Open settings](/{DOMAIN}?tab=activity)")
 
 
 @pytest.mark.asyncio
@@ -1005,7 +1005,7 @@ async def test_setup_entry_removes_wrong_public_login_silence_link(
     assert "Reverse DNS: dns.google" in message
     assert ALLOWLISTED_LOGIN_SILENCE_LABEL not in message
     assert f"/{DOMAIN}?action=silence_allowlisted_login" not in message
-    assert message.endswith(f"[Open settings](/{DOMAIN})")
+    assert message.endswith(f"[Open settings](/{DOMAIN}?tab=activity)")
 
 
 @pytest.mark.asyncio
@@ -1140,7 +1140,7 @@ async def test_http_notifications_link_directly_to_live_panel(
     assert notifications[NOTIFICATION_ID_BAN]["title"] == " "
     assert "IP banned" in notifications[NOTIFICATION_ID_BAN]["message"]
     message = notifications[NOTIFICATION_ID_BAN]["message"]
-    assert message.endswith(f"[Open settings](/{DOMAIN})")
+    assert message.endswith(f"[Open settings](/{DOMAIN}?tab=blocking)")
     assert "/config/integrations/" not in message
     assert "Open integrations" not in message
 

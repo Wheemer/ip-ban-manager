@@ -125,6 +125,9 @@
     "upload_confirm": "{filename}을(를) 업로드하고 현재 IP Ban Manager 설정 및 정확한 IP 차단을 교체할까요?"
   },
   "geoip": {
+    "update_available": "업데이트 사용 가능",
+    "auto_update": "GeoIP 데이터베이스 자동 업데이트",
+    "auto_update_hint": "첫 다운로드 후 새 버전을 백그라운드에서 설치합니다.",
     "title": "GeoIP 데이터베이스",
     "not_installed": "설치되지 않음",
     "installed": "설치됨 - {date}",

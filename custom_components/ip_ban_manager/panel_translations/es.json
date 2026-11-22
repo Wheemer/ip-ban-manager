@@ -125,6 +125,9 @@
     "upload_confirm": "¿Subir {filename} y reemplazar la configuración actual de IP Ban Manager y los bloqueos exactos de IP?"
   },
   "geoip": {
+    "update_available": "Actualización disponible",
+    "auto_update": "Actualizar automáticamente la base de datos GeoIP",
+    "auto_update_hint": "Instala nuevas ediciones en segundo plano tras la primera descarga.",
     "title": "Base de datos GeoIP",
     "not_installed": "No instalada",
     "installed": "Instalada - {date}",

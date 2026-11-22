@@ -167,15 +167,18 @@ def manager_config_url(hass: HomeAssistant) -> str:
     return INTEGRATION_CONFIG_URL
 
 
-def manager_notification_link(hass: HomeAssistant) -> str:
+def manager_notification_link(hass: HomeAssistant, tab: str = "activity") -> str:
     """Return the markdown link to the IP Ban Manager live panel."""
-    return f"[{NOTIFICATION_LINK_LABEL}]({manager_config_url(hass)})"
+    url = manager_config_url(hass)
+    if url == f"/{DOMAIN}":
+        url = f"{url}?{urlencode({'tab': tab})}"
+    return f"[{NOTIFICATION_LINK_LABEL}]({url})"
 
 
-def with_manager_link(hass: HomeAssistant, message: str) -> str:
+def with_manager_link(hass: HomeAssistant, message: str, tab: str = "activity") -> str:
     """Append or refresh the manager panel link."""
     cleaned = strip_notification_action_links(message)
-    return f"{cleaned}\n\n{manager_notification_link(hass)}"
+    return f"{cleaned}\n\n{manager_notification_link(hass, tab)}"
 
 
 def allowlisted_login_silence_panel_url(
@@ -590,7 +593,7 @@ def add_manager_links_to_http_notifications(hass: HomeAssistant) -> None:
             else:
                 message = with_manager_link(hass, message)
         elif notification_id == NOTIFICATION_ID_BAN:
-            message = with_manager_link(hass, message)
+            message = with_manager_link(hass, message, "blocking")
         if has_geoip_detail:
             message = with_geoip_attribution_footer(message)
         if (

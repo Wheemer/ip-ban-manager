@@ -81,6 +81,7 @@ from .file_store import (
     path_is_file,
 )
 from .geoip import (
+    CONF_GEOIP_AUTO_UPDATE,
     async_local_geoip_region,
     async_prepare_geoip_reader,
     close_geoip_reader,
@@ -284,6 +285,7 @@ async def async_panel_payload(
             CONF_REGIONAL_LOGIN_THRESHOLDS: entry_regional_login_thresholds(entry),
             CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
             CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
+            CONF_GEOIP_AUTO_UPDATE: entry.options.get(CONF_GEOIP_AUTO_UPDATE) is True,
             CONF_SILENCED_ALLOWLISTED_LOGIN_IPS: (
                 entry_silenced_allowlisted_login_ip_strings(entry)
             ),
@@ -383,6 +385,7 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         CONF_ALLOWED_REGION_COUNTRY: entry_allowed_region_country(entry),
         CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
         CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
+        CONF_GEOIP_AUTO_UPDATE: entry.options.get(CONF_GEOIP_AUTO_UPDATE) is True,
         CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
         CONF_REGIONAL_LOGIN_THRESHOLDS: entry_regional_login_thresholds(entry),
         CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
@@ -396,6 +399,7 @@ async def _async_panel_set_options(hass: HomeAssistant, options: object) -> None
         CONF_ALLOWLISTED_LOGINS_CAN_BAN,
         CONF_DEFAULT_DENY_ENABLED,
         CONF_GEOIP_ENABLED,
+        CONF_GEOIP_AUTO_UPDATE,
         CONF_SIDEBAR_PANEL_ENABLED,
     ):
         if key in options:

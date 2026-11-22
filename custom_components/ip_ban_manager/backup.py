@@ -93,7 +93,12 @@ from .file_store import (
     geoip_database_path,
     path_is_file,
 )
-from .geoip import async_prepare_geoip_reader, close_geoip_reader, geoip_reader
+from .geoip import (
+    CONF_GEOIP_AUTO_UPDATE,
+    async_prepare_geoip_reader,
+    close_geoip_reader,
+    geoip_reader,
+)
 from .network_policy import (
     apply_ban_settings,
     apply_blocked_networks,
@@ -248,6 +253,7 @@ def config_export_payload(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, 
             CONF_ALLOWED_REGION_COUNTRY: entry_allowed_region_country(entry),
             CONF_ALLOWED_REGION_SUBDIVISION: entry_allowed_region_subdivision(entry),
             CONF_GEOIP_ENABLED: entry_geoip_enabled(entry),
+            CONF_GEOIP_AUTO_UPDATE: entry.options.get(CONF_GEOIP_AUTO_UPDATE) is True,
             CONF_LOGIN_ATTEMPTS_THRESHOLD: entry_login_threshold(entry, hass),
             CONF_REGIONAL_LOGIN_THRESHOLDS: entry_regional_login_thresholds(entry),
             CONF_SIDEBAR_PANEL_ENABLED: entry_sidebar_panel_enabled(entry),
@@ -551,6 +557,11 @@ async def _async_apply_config_backup_payload(
     geoip_enabled = _bool_from_import(
         settings, CONF_GEOIP_ENABLED, entry_geoip_enabled(entry)
     )
+    geoip_auto_update = _bool_from_import(
+        settings,
+        CONF_GEOIP_AUTO_UPDATE,
+        entry.options.get(CONF_GEOIP_AUTO_UPDATE) is True,
+    )
     if allowed_region_options[CONF_ALLOWED_REGION_MODE] != ALLOWED_REGION_ANYWHERE:
         geoip_enabled = True
     sidebar_panel_enabled = _bool_from_import(
@@ -721,6 +732,7 @@ async def _async_apply_config_backup_payload(
             **allowed_region_options,
             **region_settings,
             CONF_GEOIP_ENABLED: geoip_enabled,
+            CONF_GEOIP_AUTO_UPDATE: geoip_auto_update,
             CONF_LOGIN_ATTEMPTS_THRESHOLD: login_attempts_threshold,
             CONF_REGIONAL_LOGIN_THRESHOLDS: regional_login_thresholds,
             CONF_SIDEBAR_PANEL_ENABLED: sidebar_panel_enabled,

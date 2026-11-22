@@ -125,6 +125,9 @@
     "upload_confirm": "Загрузить {filename} и заменить текущие настройки IP Ban Manager и точные IP-блокировки?"
   },
   "geoip": {
+    "update_available": "Доступно обновление",
+    "auto_update": "Автоматически обновлять базу данных GeoIP",
+    "auto_update_hint": "После первой загрузки устанавливать новые выпуски в фоновом режиме.",
     "title": "База GeoIP",
     "not_installed": "Не установлена",
     "installed": "Установлена - {date}",

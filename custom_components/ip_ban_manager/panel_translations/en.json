@@ -132,7 +132,10 @@
     "attribution": "Location data:",
     "download": "Download",
     "downloading": "Downloading GeoIP database...",
-    "update": "Update"
+    "update": "Update",
+    "update_available": "Update available",
+    "auto_update": "Automatically update GeoIP database",
+    "auto_update_hint": "Install new DB-IP editions in the background after the first download."
   },
   "regional_thresholds": {
     "title": "Regional login bans",
