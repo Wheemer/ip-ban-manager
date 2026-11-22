@@ -125,6 +125,9 @@
     "upload_confirm": "{filename} yüklensin ve mevcut IP Ban Manager ayarları ile tam IP yasakları değiştirilsin mi?"
   },
   "geoip": {
+    "update_available": "Güncelleme mevcut",
+    "auto_update": "GeoIP veritabanını otomatik güncelle",
+    "auto_update_hint": "İlk indirmeden sonra yeni sürümleri arka planda yükle.",
     "title": "GeoIP veritabanı",
     "not_installed": "Kurulu değil",
     "installed": "Kurulu - {date}",

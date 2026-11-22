@@ -125,6 +125,9 @@
     "upload_confirm": "Lähetetäänkö {filename} ja korvataanko nykyiset IP Ban Manager -asetukset ja tarkat IP-estot?"
   },
   "geoip": {
+    "update_available": "Päivitys saatavilla",
+    "auto_update": "Päivitä GeoIP-tietokanta automaattisesti",
+    "auto_update_hint": "Asenna uudet versiot taustalla ensimmäisen latauksen jälkeen.",
     "title": "GeoIP-tietokanta",
     "not_installed": "Ei asennettu",
     "installed": "Asennettu - {date}",

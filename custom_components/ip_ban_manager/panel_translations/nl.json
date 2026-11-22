@@ -125,6 +125,9 @@
     "upload_confirm": "{filename} uploaden en huidige IP Ban Manager-instellingen en exacte IP-bans vervangen?"
   },
   "geoip": {
+    "update_available": "Update beschikbaar",
+    "auto_update": "GeoIP-database automatisch bijwerken",
+    "auto_update_hint": "Installeer nieuwe versies op de achtergrond na de eerste download.",
     "title": "GeoIP-database",
     "not_installed": "Niet geïnstalleerd",
     "installed": "Geïnstalleerd - {date}",

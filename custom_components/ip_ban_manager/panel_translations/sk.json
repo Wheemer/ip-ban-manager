@@ -125,6 +125,9 @@
     "upload_confirm": "Nahrať {filename} a nahradiť aktuálne nastavenia IP Ban Manager a presné IP zákazy?"
   },
   "geoip": {
+    "update_available": "Dostupná aktualizácia",
+    "auto_update": "Automaticky aktualizovať databázu GeoIP",
+    "auto_update_hint": "Po prvom stiahnutí inštalovať nové vydania na pozadí.",
     "title": "GeoIP databáza",
     "not_installed": "Nie je nainštalovaná",
     "installed": "Nainštalovaná - {date}",

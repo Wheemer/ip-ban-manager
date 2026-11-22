@@ -125,6 +125,9 @@
     "upload_confirm": "Uploade {filename} og erstatte nuværende IP Ban Manager-indstillinger og eksakte IP-udelukkelser?"
   },
   "geoip": {
+    "update_available": "Opdatering tilgængelig",
+    "auto_update": "Opdater GeoIP-databasen automatisk",
+    "auto_update_hint": "Installer nye udgaver i baggrunden efter første download.",
     "title": "GeoIP-database",
     "not_installed": "Ikke installeret",
     "installed": "Installeret - {date}",

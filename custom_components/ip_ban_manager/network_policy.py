@@ -131,7 +131,11 @@ def _network_is_covered(network: IPNetwork, allowed: IPNetwork) -> bool:
 
 async def async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
     """Sync internal defaults and migrate legacy link-local trust once."""
+    await _async_sync_detected_allowlist_defaults(hass)
     migrate_ipv6_loopback_default(hass)
+
+
+async def _async_sync_detected_allowlist_defaults(hass: HomeAssistant) -> None:
     entry = _config_entry(hass)
     current = entry_ip_addresses(entry)
     current_networks = {

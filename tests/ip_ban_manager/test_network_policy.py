@@ -374,11 +374,13 @@ async def test_setup_syncs_new_internal_defaults_when_safe_defaults_active(
         "127.0.0.1",
         "192.168.1.0/24",
         "172.17.0.1/32",
+        "::1",
     ]
     assert [str(network) for network in hass.http.app[KEY_ALLOWLIST]] == [
         "127.0.0.1/32",
         "192.168.1.0/24",
         "172.17.0.1/32",
+        "::1/128",
     ]
 
 
@@ -468,7 +470,10 @@ async def test_setup_does_not_duplicate_equivalent_internal_defaults(
 
     stored_entry = hass.config_entries.async_get_entry(entry.entry_id)
     assert stored_entry is not None
-    assert stored_entry.options.get(CONF_IP_ADDRESSES) is None
+    assert stored_entry.options[CONF_IP_ADDRESSES] == [
+        *entry.data[CONF_IP_ADDRESSES],
+        "::1",
+    ]
     assert entry.data[CONF_IP_ADDRESSES] == [
         "127.0.0.1",
         "192.168.1.0/24",

@@ -125,6 +125,9 @@
     "upload_confirm": "{filename} hochladen und aktuelle IP-Ban-Manager-Einstellungen sowie exakte IP-Sperren ersetzen?"
   },
   "geoip": {
+    "update_available": "Aktualisierung verfügbar",
+    "auto_update": "GeoIP-Datenbank automatisch aktualisieren",
+    "auto_update_hint": "Nach dem ersten Download neue Ausgaben im Hintergrund installieren.",
     "title": "GeoIP-Datenbank",
     "not_installed": "Nicht installiert",
     "installed": "Installiert - {date}",

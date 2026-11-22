@@ -125,6 +125,9 @@
     "upload_confirm": "{filename} をアップロードし、現在の IP Ban Manager 設定と正確な IP BAN を置き換えますか？"
   },
   "geoip": {
+    "update_available": "更新があります",
+    "auto_update": "GeoIP データベースを自動更新",
+    "auto_update_hint": "初回ダウンロード後は、新しい版をバックグラウンドでインストールします。",
     "title": "GeoIP データベース",
     "not_installed": "未インストール",
     "installed": "インストール済み - {date}",

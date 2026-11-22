@@ -125,6 +125,9 @@
     "upload_confirm": "Ladda upp {filename} och ersätta aktuella IP Ban Manager-inställningar och exakta IP-spärrar?"
   },
   "geoip": {
+    "update_available": "Uppdatering tillgänglig",
+    "auto_update": "Uppdatera GeoIP-databasen automatiskt",
+    "auto_update_hint": "Installera nya utgåvor i bakgrunden efter första nedladdningen.",
     "title": "GeoIP-databas",
     "not_installed": "Inte installerad",
     "installed": "Installerad - {date}",

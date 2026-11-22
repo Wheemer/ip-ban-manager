@@ -125,6 +125,9 @@
     "upload_confirm": "Încarci {filename} și înlocuiești setările curente IP Ban Manager și interdicțiile IP exacte?"
   },
   "geoip": {
+    "update_available": "Actualizare disponibilă",
+    "auto_update": "Actualizează automat baza de date GeoIP",
+    "auto_update_hint": "Instalează versiuni noi în fundal după prima descărcare.",
     "title": "Bază de date GeoIP",
     "not_installed": "Neinstalată",
     "installed": "Instalată - {date}",
