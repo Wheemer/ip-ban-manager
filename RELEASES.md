@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.11.4](CHANGELOG.md#v1114) | Moves live settings into Home Assistant's internal storage and migrates existing settings. |
 | [v1.11.3](CHANGELOG.md#v1113) | Persistent live settings across reinstalls, with a notice for restored restrictions. |
 | [v1.11.2](CHANGELOG.md#v1112) | Stops NGINX Proxy Manager add-on discovery from using the deprecated Supervisor token API. |
 | [v1.11.1](CHANGELOG.md#v1111) | Optional automatic DB-IP updates, notification links that open the right tab, and IPv6 localhost defaults for new and existing installs. |

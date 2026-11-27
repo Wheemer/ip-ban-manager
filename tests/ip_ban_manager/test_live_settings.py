@@ -88,3 +88,48 @@ async def test_existing_entry_migrates_and_subsequent_load_uses_disk(
     assert entry_blocked_networks(entry) == ["203.0.113.0/24"]
     notices = persistent_notification._async_get_or_create_notifications(hass)
     assert "ip_ban_manager_recovery" not in notices
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reinstall", [False, True])
+async def test_legacy_settings_move_preserves_restrictions(
+    hass: HomeAssistant, reinstall: bool
+) -> None:
+    """Move the old live file on reload or reinstall without resetting policy."""
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    hass.config_entries.async_update_entry(
+        entry,
+        options={
+            **entry.options,
+            CONF_BLOCKED_NETWORKS: ["203.0.113.0/24"],
+            "public_region_enabled": True,
+            "public_region_rules": {"CA-NL": 5, "CA-ON": 5},
+        },
+    )
+    await hass.async_block_till_done()
+    path = settings_path(hass)
+    legacy = config_export_path(hass).with_name("settings.json")
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    path.replace(legacy)
+    manual = config_export_path(hass)
+    manual.write_text("manual backup", encoding="utf-8")
+    if reinstall:
+        await hass.config_entries.async_remove(entry.entry_id)
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "user"}
+        )
+        assert result["type"] == "create_entry"
+        await hass.async_block_till_done()
+        entry = hass.config_entries.async_entries(DOMAIN)[0]
+    else:
+        assert await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state.value == "loaded"
+    assert entry_blocked_networks(entry) == ["203.0.113.0/24"]
+    assert entry.options["public_region_enabled"] is True
+    assert entry.options["public_region_rules"] == {"CA-NL": 5, "CA-ON": 5}
+    assert path.is_file()
+    assert not legacy.exists()
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert manual.read_text(encoding="utf-8") == "manual backup"

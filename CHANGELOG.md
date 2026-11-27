@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.11.4
+
+### 💾 Live settings
+
+- Move live settings into Home Assistant's internal storage. Existing settings migrate automatically without disabling restrictions. Manual Export and Restore are unchanged.
+
 ## v1.11.3
 
 ### 💾 Live settings
