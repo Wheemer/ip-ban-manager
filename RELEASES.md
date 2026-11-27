@@ -4,6 +4,7 @@ This page is the quick release map. Click any version for the full notes in [CHA
 
 | Release | Highlights |
 | --- | --- |
+| [v1.11.2](CHANGELOG.md#v1112) | Stops NGINX Proxy Manager add-on discovery from using the deprecated Supervisor token API. |
 | [v1.11.1](CHANGELOG.md#v1111) | Optional automatic DB-IP updates, notification links that open the right tab, and IPv6 localhost defaults for new and existing installs. |
 | [v1.11.0](CHANGELOG.md#v1110) | Compact panel and immediate setting saves, faster loading and GeoIP, NPM outage recovery, safer startup/reload and DNS handling, and updated translations and documentation. |
 | [v1.10.4-3](CHANGELOG.md#v1104-3) | Pre-release: safer region and DNS settings, NPM error recovery, reload and history fixes, and clearer panel feedback and translations. |
