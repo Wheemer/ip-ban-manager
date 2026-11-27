@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.11.2
+
+### 🔧 NGINX Proxy Manager
+
+- Detect the NGINX Proxy Manager add-on using Home Assistant's installed add-on list instead of the deprecated Supervisor token API.
+
 ## v1.11.1
 
 ### 🌍 GeoIP database updates
