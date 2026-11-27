@@ -233,6 +233,12 @@ Turn on **Enable Public Region Lock** and confirm to activate the list. This is 
 
 Turning the lock off saves immediately and retains the list, but disables both its access restriction and regional retry overrides. Other IP bans and the global failed-login threshold are unchanged. Turn the lock off before removing the last region. An empty list cannot be enabled. Enabling or changing an active restriction requires confirmation and a working GeoIP database.
 
+To automate this setting, call the administrator-only
+`ip_ban_manager.set_public_region_lock` action with `enabled: false` before
+travel and `enabled: true` to restore the saved restrictions. The action does
+not change your regions, and enabling still requires a working GeoIP database
+and at least one saved region.
+
 You can list several provinces/states, such as `CA-NL` and `CA-ON`. Adding a province
 when its whole country is already listed asks to replace the country rule. Adding
 the whole country back asks to replace its province rules. Cancel leaves the list

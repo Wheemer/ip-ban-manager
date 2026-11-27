@@ -43,6 +43,8 @@ from .runtime_lifecycle import runtime_operation
 
 IP_ADDRESS_SCHEMA = vol.Schema({vol.Required(ATTR_IP_ADDRESS): cv.string})
 NETWORK_SCHEMA = vol.Schema({vol.Required(ATTR_NETWORK): cv.string})
+SERVICE_SET_PUBLIC_REGION_LOCK = "set_public_region_lock"
+PUBLIC_REGION_LOCK_SCHEMA = vol.Schema({vol.Required("enabled"): cv.boolean})
 REMOVE_ALL_IP_BANS_SCHEMA = vol.Schema(
     {vol.Required(ATTR_CONFIRM, default=False): cv.boolean}
 )
@@ -58,6 +60,7 @@ REGISTERED_SERVICES = (
     SERVICE_EXPORT_CONFIG,
     SERVICE_IMPORT_CONFIG,
     SERVICE_UPDATE_GEOIP,
+    SERVICE_SET_PUBLIC_REGION_LOCK,
 )
 
 
@@ -121,6 +124,16 @@ def register_services(hass: HomeAssistant) -> None:  # noqa: D202
         await async_download_geoip_database(hass)
         record_geoip_updated(hass, SOURCE_SERVICE)
 
+    @owned
+    async def set_public_region_lock(call: ServiceCall) -> None:
+        from .panel import async_panel_set_options
+
+        with mutation_source(SOURCE_SERVICE):
+            await async_panel_set_options(
+                hass,
+                {"public_region_enabled": call.data["enabled"], "confirmed": True},
+            )
+
     async_register_admin_service(
         hass, DOMAIN, SERVICE_ADD_IP_BAN, add_ip_ban, schema=IP_ADDRESS_SCHEMA
     )
@@ -165,3 +178,10 @@ def register_services(hass: HomeAssistant) -> None:  # noqa: D202
     async_register_admin_service(hass, DOMAIN, SERVICE_EXPORT_CONFIG, export_config)
     async_register_admin_service(hass, DOMAIN, SERVICE_IMPORT_CONFIG, import_config)
     async_register_admin_service(hass, DOMAIN, SERVICE_UPDATE_GEOIP, update_geoip)
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_SET_PUBLIC_REGION_LOCK,
+        set_public_region_lock,
+        schema=PUBLIC_REGION_LOCK_SCHEMA,
+    )

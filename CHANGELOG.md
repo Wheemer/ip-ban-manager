@@ -6,6 +6,10 @@
 
 - Move live settings into Home Assistant's internal storage. Existing settings migrate automatically without disabling restrictions. Manual Export and Restore are unchanged.
 
+### 🌍 Public Region Lock
+
+- Add an administrator-only action to enable or disable Public Region Lock from automations without changing the saved regions.
+
 ## v1.11.3
 
 ### 💾 Live settings

@@ -89,6 +89,17 @@ update_geoip:
   name: Update GeoIP database
   description: IP Ban Manager downloads and installs the local DB-IP City Lite database used for GeoIP location labels.
 
+set_public_region_lock:
+  name: Set Public Region Lock
+  description: Enable or disable Public Region Lock without changing the saved regions.
+  fields:
+    enabled:
+      name: Enabled
+      description: Enable the lock using the saved regions, or turn it off.
+      required: true
+      selector:
+        boolean:
+
 export_config:
   name: Export configuration
   description: IP Ban Manager writes its managed settings and exact IP bans to /config/ip_ban_manager/ip-ban-manager-backup.yaml.
