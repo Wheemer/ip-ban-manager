@@ -23,7 +23,39 @@ _LOGGER = logging.getLogger(__name__)
 
 def settings_path(hass: HomeAssistant) -> Path:
     """Return the private live settings path, not the manual backup path."""
+    return Path(hass.config.path(".storage", f"{DOMAIN}.settings"))
+
+
+def _legacy_settings_path(hass: HomeAssistant) -> Path:
     return Path(hass.config.path(DOMAIN, "settings.json"))
+
+
+def has_saved_settings(hass: HomeAssistant) -> bool:
+    """Detect saved settings in either location from an executor."""
+    return settings_path(hass).is_file() or _legacy_settings_path(hass).is_file()
+
+
+def _load_settings(hass: HomeAssistant) -> dict[str, object]:
+    target = settings_path(hass)
+    source = target
+    try:
+        content = source.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        source = _legacy_settings_path(hass)
+        content = source.read_text(encoding="utf-8")
+    payload = json.loads(content)
+    if (
+        not isinstance(payload, dict)
+        or payload.get("domain") != DOMAIN
+        or payload.get("format_version") != 1
+        or not isinstance(payload.get("data"), dict)
+        or not isinstance(payload.get("options"), dict)
+    ):
+        raise ValueError("Invalid live settings format.")
+    if source != target:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        source.replace(target)
+    return {"data": payload["data"], "options": payload["options"]}
 
 
 async def async_load_settings(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -31,40 +63,30 @@ async def async_load_settings(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.pop(_LAST_SAVED_SETTINGS, None)
     reinstall = entry.data.get(REINSTALLED_FROM_DISK) is True
     try:
-        content = await hass.async_add_executor_job(
-            settings_path(hass).read_text, "utf-8"
-        )
+        payload = await hass.async_add_executor_job(_load_settings, hass)
     except FileNotFoundError as err:
         if not reinstall:
             return False
         raise ConfigEntryError(
             "IP Ban Manager settings file was removed during setup."
         ) from err
-    except (OSError, ValueError) as err:
+    except OSError as err:
         raise ConfigEntryError(
             "IP Ban Manager could not read its settings file."
         ) from err
-    try:
-        payload = json.loads(content)
-        if (
-            not isinstance(payload, dict)
-            or payload.get("domain") != DOMAIN
-            or payload.get("format_version") != 1
-            or not isinstance(payload.get("data"), dict)
-            or not isinstance(payload.get("options"), dict)
-        ):
-            raise ValueError("Invalid live settings format.")
     except ValueError as err:
         raise ConfigEntryError(
             "IP Ban Manager settings file is invalid and was not changed."
         ) from err
+    data, options = payload["data"], payload["options"]
+    assert isinstance(data, dict) and isinstance(options, dict)
     hass.config_entries.async_update_entry(
         entry,
         data={
-            **payload["data"],
+            **data,
             **({REINSTALLED_FROM_DISK: True} if reinstall else {}),
         },
-        options=payload["options"],
+        options=options,
     )
     return reinstall
 

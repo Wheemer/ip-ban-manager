@@ -647,9 +647,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
         if user_input is None:
-            from .live_settings import REINSTALLED_FROM_DISK, settings_path
+            from .live_settings import REINSTALLED_FROM_DISK, has_saved_settings
 
-            if await self.hass.async_add_executor_job(settings_path(self.hass).is_file):
+            if await self.hass.async_add_executor_job(has_saved_settings, self.hass):
                 await self.async_set_unique_id(DOMAIN)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(

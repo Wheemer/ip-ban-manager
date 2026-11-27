@@ -125,7 +125,7 @@ See [GeoIP and lookup services](docs/configuration.md#geoip-labels).
 ## Backup And Restore
 
 IP Ban Manager loads its live settings from the private
-`/config/ip_ban_manager/settings.json` file, separate from manual backups.
+`/config/.storage/ip_ban_manager.settings` file, separate from manual backups.
 Upgrading creates the file from existing settings. Reinstalling uses the same
 file and posts a Home Assistant notification if saved restrictions are active.
 The file may contain NPM credentials; keep it private. Home Assistant's native

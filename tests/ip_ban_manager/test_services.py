@@ -16,6 +16,47 @@ from .test_setup import *
 
 
 @pytest.mark.asyncio
+async def test_public_region_lock_service_validates_and_preserves_rules(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Automation uses the same validation and saved rules as the panel."""
+    from custom_components.ip_ban_manager import panel
+    from custom_components.ip_ban_manager.region_rules import (
+        entry_public_region_settings,
+    )
+
+    await setup_ip_ban_manager(hass)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    service = ban_services.SERVICE_SET_PUBLIC_REGION_LOCK
+
+    with pytest.raises(HomeAssistantError, match="Add at least one region"):
+        await hass.services.async_call(
+            DOMAIN, service, {"enabled": True}, blocking=True
+        )
+
+    rules = {"CA-NL": 5, "CA-ON": 3}
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, "public_region_rules": rules}
+    )
+    monkeypatch.setattr(panel, "path_is_file", lambda _: False)
+    with pytest.raises(HomeAssistantError, match="Download the GeoIP database"):
+        await hass.services.async_call(
+            DOMAIN, service, {"enabled": True}, blocking=True
+        )
+
+    monkeypatch.setattr(panel, "path_is_file", lambda _: True)
+    monkeypatch.setattr(panel, "geoip_reader", lambda _: object())
+    for enabled in (True, False):
+        await hass.services.async_call(
+            DOMAIN, service, {"enabled": enabled}, blocking=True
+        )
+        assert entry_public_region_settings(hass, entry) == {
+            "public_region_enabled": enabled,
+            "public_region_rules": rules,
+        }
+
+
+@pytest.mark.asyncio
 async def test_mutating_services_require_admin_for_user_calls(
     hass: HomeAssistant,
 ) -> None:
