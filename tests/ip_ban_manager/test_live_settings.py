@@ -26,6 +26,7 @@ async def test_reinstall_restores_last_settings_and_warns(hass: HomeAssistant) -
     await setup_ip_ban_manager(hass)
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     manual = config_export_path(hass)
+    manual.parent.mkdir(parents=True, exist_ok=True)
     manual.write_text("manual backup", encoding="utf-8")
     hass.config_entries.async_update_entry(
         entry,
