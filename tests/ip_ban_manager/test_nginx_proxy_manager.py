@@ -292,95 +292,33 @@ async def test_npm_activity_reads_selected_proxy_host_logs(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("installed", [None, False])
 async def test_detect_supervisor_npm_addon_prefills_local_url(
-    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch, installed: bool | None
 ) -> None:
-    """Supervisor discovery finds NPM without attempting authentication."""
-    responses = []
+    """Use Core's installed app list without a legacy Supervisor request."""
+    from homeassistant.components.hassio import coordinator
 
-    class FakeResponse:
-        status = 200
-
-        async def __aenter__(self) -> "FakeResponse":
-            return self
-
-        async def __aexit__(self, *args: object) -> None:
-            return None
-
-        async def json(self, *, content_type: object = None) -> object:
-            return {
-                "addons": [
-                    {
-                        "name": "Nginx Proxy Manager",
-                        "slug": "a0d7b954_nginxproxymanager",
-                        "installed": True,
-                        "state": "started",
-                    }
-                ]
-            }
-
-    class FakeSession:
-        def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
-            responses.append((method, url, kwargs))
-            return FakeResponse()
-
-    monkeypatch.setenv("SUPERVISOR", "http://supervisor")
-    monkeypatch.setenv("SUPERVISOR_TOKEN", "supervisor-token")
-    monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())
+    hass.config.components.add("hassio")
+    addon: dict[str, object] = {
+        "name": "Nginx Proxy Manager",
+        "slug": "a0d7b954_nginxproxymanager",
+        "state": "started",
+    }
+    if installed is not None:
+        addon["installed"] = installed
+    monkeypatch.setattr(coordinator, "get_addons_list", lambda _hass: [addon])
     monkeypatch.setattr(
         npm, "suggested_npm_url", lambda _hass: "http://192.168.2.66:81"
     )
 
     result = await npm.async_detect_npm_addon(hass)
-
-    assert result["addon_detected"] is True
-    assert result["addon_name"] == "Nginx Proxy Manager"
-    assert result["detected_url"] == "http://192.168.2.66:81"
-    assert responses[0][0:2] == ("GET", "http://supervisor/addons")
-    assert responses[0][2]["headers"] == {"Authorization": "Bearer supervisor-token"}
-
-
-@pytest.mark.asyncio
-async def test_detect_supervisor_ignores_uninstalled_npm_addon(
-    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """An add-on repository entry is not enough to prefill NPM settings."""
-    responses = []
-
-    class FakeResponse:
-        status = 200
-
-        async def __aenter__(self) -> "FakeResponse":
-            return self
-
-        async def __aexit__(self, *args: object) -> None:
-            return None
-
-        async def json(self, *, content_type: object = None) -> object:
-            return {
-                "addons": [
-                    {
-                        "name": "Nginx Proxy Manager",
-                        "slug": "a0d7b954_nginxproxymanager",
-                        "installed": False,
-                        "state": "",
-                    }
-                ]
-            }
-
-    class FakeSession:
-        def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
-            responses.append((method, url, kwargs))
-            return FakeResponse()
-
-    monkeypatch.setenv("SUPERVISOR", "http://supervisor")
-    monkeypatch.setenv("SUPERVISOR_TOKEN", "supervisor-token")
-    monkeypatch.setattr(npm, "async_get_clientsession", lambda _hass: FakeSession())
-
-    result = await npm.async_detect_npm_addon(hass)
-
-    assert result == {"addon_detected": False}
-    assert responses[0][0:2] == ("GET", "http://supervisor/addons")
+    if installed is False:
+        assert result == {"addon_detected": False}
+    else:
+        assert result["addon_detected"] is True
+        assert result["addon_name"] == "Nginx Proxy Manager"
+        assert result["detected_url"] == "http://192.168.2.66:81"
 
 
 @pytest.mark.asyncio
