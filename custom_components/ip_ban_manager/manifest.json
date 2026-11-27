@@ -2,6 +2,7 @@
   "domain": "ip_ban_manager",
   "name": "IP Ban Manager",
   "after_dependencies": [
+    "hassio",
     "logbook",
     "recorder"
   ],
