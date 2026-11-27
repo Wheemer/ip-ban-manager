@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import re
 import secrets
 from collections.abc import Callable, Coroutine, Mapping
@@ -69,7 +68,6 @@ NPM_ACCESS_LIST_NAME = "IP Ban Manager"
 NPM_CONFIG_BEGIN = "# BEGIN IP BAN MANAGER"
 NPM_CONFIG_END = "# END IP BAN MANAGER"
 NPM_REQUEST_TIMEOUT = ClientTimeout(total=15)
-NPM_DISCOVERY_TIMEOUT = ClientTimeout(total=5)
 NPM_SYNC_DEBOUNCE_SECONDS = 1.0
 NPM_SYNC_RETRY_INITIAL_SECONDS = 30
 NPM_SYNC_RETRY_MAX_SECONDS = 300
@@ -308,16 +306,6 @@ def suggested_npm_url(hass: HomeAssistant) -> str:
     return f"http://{host}:81"
 
 
-def _supervisor_origin() -> str:
-    """Return the Supervisor origin when this is an OS or Supervised install."""
-    value = os.environ.get("SUPERVISOR", "").strip()
-    if not value:
-        return ""
-    if "://" not in value:
-        value = f"http://{value}"
-    return value.rstrip("/")
-
-
 def _installed_addon(value: object) -> bool:
     """Interpret Supervisor's installed flag without treating 'false' as true."""
     if isinstance(value, str):
@@ -347,31 +335,26 @@ async def async_detect_npm_addon(hass: HomeAssistant) -> dict[str, object]:
         except (TypeError, ValueError):
             pass
 
-    origin = _supervisor_origin()
-    token = os.environ.get("SUPERVISOR_TOKEN", "").strip()
-    if not origin or not token:
+    if "hassio" not in hass.config.components:
+        return {"addon_detected": False}
+
+    try:
+        from homeassistant.components.hassio import coordinator
+    except ImportError:
         return {"addon_detected": False}
 
     result: dict[str, object] = {"addon_detected": False}
     try:
-        session = async_get_clientsession(hass)
-        async with session.request(
-            "GET",
-            f"{origin}/addons",
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=NPM_DISCOVERY_TIMEOUT,
-        ) as response:
-            body = await response.json(content_type=None)
-            addons = body.get("addons") if isinstance(body, Mapping) else None
-            if response.status >= 400 or not isinstance(addons, list):
-                return result
+        addons = coordinator.get_addons_list(hass)
+        if addons is None:
+            return result
         addon = next(
             (
                 item
                 for item in addons
                 if _is_npm_addon(item)
                 and isinstance(item, Mapping)
-                and _installed_addon(item.get("installed"))
+                and _installed_addon(item.get("installed", True))
             ),
             None,
         )
@@ -383,7 +366,7 @@ async def async_detect_npm_addon(hass: HomeAssistant) -> dict[str, object]:
                 "addon_state": str(addon.get("state") or ""),
                 "detected_url": suggested_npm_url(hass),
             }
-    except (ClientError, TimeoutError, ValueError):
+    except getattr(coordinator, "HassioNotReadyError", HomeAssistantError):
         return result
     finally:
         if (
