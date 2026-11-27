@@ -600,6 +600,14 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
 
     await _async_reload_runtime_modules(hass)
+    from .live_settings import (
+        REINSTALLED_FROM_DISK,
+        async_load_settings,
+        async_save_settings,
+        notify_restored_restrictions,
+    )
+
+    reinstalled = await async_load_settings(hass, entry)
     _async_start_activity_history(hass)
     _async_cleanup_entry_metadata(hass, entry)
     _async_schedule_legacy_cleanup(hass)
@@ -668,6 +676,18 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .geoip import start_geoip_updates
 
     start_geoip_updates(hass)
+    if reinstalled:
+        notify_restored_restrictions(hass, entry)
+        hass.config_entries.async_update_entry(
+            entry,
+            data={
+                key: value
+                for key, value in entry.data.items()
+                if key != REINSTALLED_FROM_DISK
+            },
+        )
+    await async_save_settings(hass, entry)
+    entry.async_on_unload(entry.add_update_listener(async_save_settings))
     return True
 
 
@@ -680,6 +700,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         open_runtime(hass)
         return False
     hass.data.pop(_PLATFORMS_SETUP_STARTED, None)
+    from .live_settings import async_flush_settings
+
+    await async_flush_settings(hass, entry)
     await _async_unload_runtime(hass)
     return True
 
