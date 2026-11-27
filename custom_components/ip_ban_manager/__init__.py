@@ -700,6 +700,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         open_runtime(hass)
         return False
     hass.data.pop(_PLATFORMS_SETUP_STARTED, None)
+    from .live_settings import async_flush_settings
+
+    await async_flush_settings(hass, entry)
     await _async_unload_runtime(hass)
     return True
 

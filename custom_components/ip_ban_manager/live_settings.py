@@ -17,6 +17,7 @@ from .file_store import atomic_write_text
 from .storage_keys import KEY_CONFIG_ENTRY
 
 REINSTALLED_FROM_DISK = "reinstalled_from_disk"
+_LAST_SAVED_SETTINGS = "ip_ban_manager_last_saved_settings"
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -27,6 +28,7 @@ def settings_path(hass: HomeAssistant) -> Path:
 
 async def async_load_settings(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Hydrate the runtime entry from disk, or use existing settings on upgrade."""
+    hass.data.pop(_LAST_SAVED_SETTINGS, None)
     reinstall = entry.data.get(REINSTALLED_FROM_DISK) is True
     try:
         content = await hass.async_add_executor_job(
@@ -84,13 +86,21 @@ async def async_save_settings(hass: HomeAssistant, entry: ConfigEntry) -> None:
             "options": dict(entry.options),
         }
         try:
+            content = json.dumps(payload, indent=2, sort_keys=True)
+            if hass.data.get(_LAST_SAVED_SETTINGS) == (entry.entry_id, content):
+                return
             await hass.async_add_executor_job(
-                atomic_write_text,
-                str(settings_path(hass)),
-                json.dumps(payload, indent=2),
+                atomic_write_text, str(settings_path(hass)), content
             )
+            hass.data[_LAST_SAVED_SETTINGS] = (entry.entry_id, content)
         except (OSError, TypeError, ValueError):
             _LOGGER.exception("Could not write IP Ban Manager live settings")
+
+
+async def async_flush_settings(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Persist pending edits before unload without replacing unchanged settings."""
+    if _LAST_SAVED_SETTINGS in hass.data:
+        await async_save_settings(hass, entry)
 
 
 def notify_restored_restrictions(hass: HomeAssistant, entry: ConfigEntry) -> None:
