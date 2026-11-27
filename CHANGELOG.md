@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.11.3
+
+### 💾 Live settings
+
+- Migrate existing settings to a private live settings file and automatically load it on startup and reinstall.
+- Restore enabled restrictions on reinstall and post a notice in Home Assistant. Manual export and restore remain separate.
+
+### 🛠️ Maintenance
+
+- Update uv to 0.13.9 and refresh the pinned setup-uv, Dependency Review, CodeQL, and OpenSSF Scorecard actions.
+
 ## v1.11.2
 
 ### 🔧 NGINX Proxy Manager

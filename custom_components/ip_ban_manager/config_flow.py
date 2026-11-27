@@ -646,6 +646,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data=_legacy_entry_data(legacy_entry),
                 )
 
+        if user_input is None:
+            from .live_settings import REINSTALLED_FROM_DISK, settings_path
+
+            if await self.hass.async_add_executor_job(settings_path(self.hass).is_file):
+                await self.async_set_unique_id(DOMAIN)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title="IP Ban Manager", data={REINSTALLED_FROM_DISK: True}
+                )
+
         detected_subnets = await _async_detect_home_assistant_subnets(self.hass)
 
         if user_input is not None:
